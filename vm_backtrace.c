@@ -1055,10 +1055,6 @@ Init_vm_backtrace(void)
 
 /* debugger API */
 
-RUBY_SYMBOL_EXPORT_BEGIN
-
-RUBY_SYMBOL_EXPORT_END
-
 struct rb_debug_inspector_struct {
     rb_thread_t *th;
     rb_control_frame_t *cfp;
