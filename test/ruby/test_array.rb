@@ -560,6 +560,8 @@ class TestArray < Test::Unit::TestCase
     assert_equal(@cls[],               @cls[].concat(@cls[]))
     assert_equal(@cls[@cls[1, 2], @cls[3, 4]], @cls[@cls[1, 2]].concat(@cls[@cls[3, 4]]))
 
+    assert_equal(@cls[1, 2, 3, 4, 5, 6], @cls[1, 2].concat(@cls[3, 4], @cls[5, 6]))
+
     a = @cls[1, 2, 3]
     a.concat(a)
     assert_equal([1, 2, 3, 1, 2, 3], a)

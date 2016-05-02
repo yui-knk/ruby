@@ -3630,6 +3630,22 @@ rb_ary_plus(VALUE x, VALUE y)
  *
  *  See also Array#+.
  */
+VALUE
+rb_ary_concat_m(int argc, VALUE *argv, VALUE ary)
+{
+// rb_get_values_at
+    long i;
+    VALUE arg;
+
+    rb_ary_modify_check(ary);
+    for (i=0; i<argc; i++) {
+        arg = to_ary(argv[i]);
+        if (RARRAY_LEN(arg) > 0) {
+            rb_ary_splice(ary, RARRAY_LEN(ary), 0, arg);
+        }
+    }
+    return ary;
+}
 
 VALUE
 rb_ary_concat(VALUE x, VALUE y)
@@ -3637,11 +3653,10 @@ rb_ary_concat(VALUE x, VALUE y)
     rb_ary_modify_check(x);
     y = to_ary(y);
     if (RARRAY_LEN(y) > 0) {
-	rb_ary_splice(x, RARRAY_LEN(x), 0, y);
+       rb_ary_splice(x, RARRAY_LEN(x), 0, y);
     }
     return x;
 }
-
 
 /*
  *  call-seq:
@@ -6071,7 +6086,7 @@ Init_Array(void)
     rb_define_method(rb_cArray, "fetch", rb_ary_fetch, -1);
     rb_define_method(rb_cArray, "first", rb_ary_first, -1);
     rb_define_method(rb_cArray, "last", rb_ary_last, -1);
-    rb_define_method(rb_cArray, "concat", rb_ary_concat, 1);
+    rb_define_method(rb_cArray, "concat", rb_ary_concat_m, -1);
     rb_define_method(rb_cArray, "<<", rb_ary_push, 1);
     rb_define_method(rb_cArray, "push", rb_ary_push_m, -1);
     rb_define_method(rb_cArray, "pop", rb_ary_pop_m, -1);
