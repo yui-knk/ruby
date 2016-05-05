@@ -84,7 +84,15 @@ f_add(VALUE x, VALUE y)
     else if (FIXNUM_P(x) && FIX2LONG(x) == 0)
 	return y;
 #endif
-    return rb_funcall(x, '+', 1, y);
+    if (RB_TYPE_P(x, T_FIXNUM) || RB_TYPE_P(x, T_BIGNUM)) {
+	return (FIXNUM_P(x) ? rb_fix_plus(x, y) : rb_big_plus(x, y));
+    } else if (RB_TYPE_P(x, T_FLOAT)) {
+	return (rb_flo_plus(x, y));
+    } else if (RB_TYPE_P(x, T_RATIONAL)) {
+	return (rb_rational_plus(x, y));
+    } else {
+	return rb_funcall(x, '+', 1, y);
+    }
 }
 
 inline static VALUE
