@@ -902,8 +902,8 @@ rb_flo_plus(VALUE x, VALUE y)
  * Returns a new float which is the difference of +float+ and +other+.
  */
 
-static VALUE
-flo_minus(VALUE x, VALUE y)
+VALUE
+rb_flo_minus(VALUE x, VALUE y)
 {
     if (RB_TYPE_P(y, T_FIXNUM)) {
 	return DBL2NUM(RFLOAT_VALUE(x) - (double)FIX2LONG(y));
@@ -3310,6 +3310,12 @@ fix_minus(VALUE x, VALUE y)
 }
 
 VALUE
+rb_fix_minus(VALUE x, VALUE y)
+{
+    return fix_minus(x, y);
+}
+
+VALUE
 rb_int_minus(VALUE x, VALUE y)
 {
     if (FIXNUM_P(x)) {
@@ -5100,7 +5106,7 @@ Init_Numeric(void)
     rb_define_method(rb_cFloat, "coerce", flo_coerce, 1);
     rb_define_method(rb_cFloat, "-@", flo_uminus, 0);
     rb_define_method(rb_cFloat, "+", rb_flo_plus, 1);
-    rb_define_method(rb_cFloat, "-", flo_minus, 1);
+    rb_define_method(rb_cFloat, "-", rb_flo_minus, 1);
     rb_define_method(rb_cFloat, "*", flo_mul, 1);
     rb_define_method(rb_cFloat, "/", flo_div, 1);
     rb_define_method(rb_cFloat, "quo", flo_quo, 1);

@@ -144,7 +144,15 @@ f_sub(VALUE x, VALUE y)
     if (FIXNUM_P(y) && FIX2LONG(y) == 0)
 	return x;
 #endif
-    return rb_funcall(x, '-', 1, y);
+    if (RB_TYPE_P(x, T_FIXNUM) || RB_TYPE_P(x, T_BIGNUM)) {
+	return (FIXNUM_P(x) ? rb_fix_minus(x, y) : rb_big_minus(x, y));
+    } else if (RB_TYPE_P(x, T_FLOAT)) {
+	return rb_flo_minus(x, y);
+    } else if (RB_TYPE_P(x, T_RATIONAL)) {
+	return rb_rational_minus(x, y);
+    } else {
+	return rb_funcall(x, '-', 1, y);
+    }
 }
 
 fun1(abs)
