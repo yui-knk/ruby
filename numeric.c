@@ -926,8 +926,8 @@ rb_flo_minus(VALUE x, VALUE y)
  * Returns a new float which is the product of +float+ and +other+.
  */
 
-static VALUE
-flo_mul(VALUE x, VALUE y)
+VALUE
+rb_flo_mul(VALUE x, VALUE y)
 {
     if (RB_TYPE_P(y, T_FIXNUM)) {
 	return DBL2NUM(RFLOAT_VALUE(x) * (double)FIX2LONG(y));
@@ -3364,6 +3364,12 @@ fix_mul(VALUE x, VALUE y)
 }
 
 VALUE
+rb_fix_mul(VALUE x, VALUE y)
+{
+    return fix_mul(x, y);
+}
+
+VALUE
 rb_int_mul(VALUE x, VALUE y)
 {
     if (FIXNUM_P(x)) {
@@ -5107,7 +5113,7 @@ Init_Numeric(void)
     rb_define_method(rb_cFloat, "-@", flo_uminus, 0);
     rb_define_method(rb_cFloat, "+", rb_flo_plus, 1);
     rb_define_method(rb_cFloat, "-", rb_flo_minus, 1);
-    rb_define_method(rb_cFloat, "*", flo_mul, 1);
+    rb_define_method(rb_cFloat, "*", rb_flo_mul, 1);
     rb_define_method(rb_cFloat, "/", flo_div, 1);
     rb_define_method(rb_cFloat, "quo", flo_quo, 1);
     rb_define_method(rb_cFloat, "fdiv", flo_quo, 1);

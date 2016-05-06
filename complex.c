@@ -134,7 +134,15 @@ f_mul(VALUE x, VALUE y)
 	    return y;
     }
 #endif
-    return rb_funcall(x, '*', 1, y);
+    if (RB_TYPE_P(x, T_FIXNUM) || RB_TYPE_P(x, T_BIGNUM)) {
+	return (FIXNUM_P(x) ? rb_fix_mul(x, y) : rb_big_mul(x, y));
+    } else if (RB_TYPE_P(x, T_FLOAT)) {
+	return rb_flo_mul(x, y);
+    } else if (RB_TYPE_P(x, T_RATIONAL)) {
+	return rb_rational_mul(x, y);
+    } else {
+	return rb_funcall(x, '*', 1, y);
+    }
 }
 
 inline static VALUE

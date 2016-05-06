@@ -862,8 +862,8 @@ f_muldiv(VALUE self, VALUE anum, VALUE aden, VALUE bnum, VALUE bden, int k)
  *    Rational(9, 8)  * 4                #=> (9/2)
  *    Rational(20, 9) * 9.8              #=> 21.77777777777778
  */
-static VALUE
-nurat_mul(VALUE self, VALUE other)
+VALUE
+rb_rational_mul(VALUE self, VALUE other)
 {
     if (RB_TYPE_P(other, T_FIXNUM) || RB_TYPE_P(other, T_BIGNUM)) {
 	{
@@ -2540,7 +2540,7 @@ Init_Rational(void)
 
     rb_define_method(rb_cRational, "+", rb_rational_plus, 1);
     rb_define_method(rb_cRational, "-", rb_rational_minus, 1);
-    rb_define_method(rb_cRational, "*", nurat_mul, 1);
+    rb_define_method(rb_cRational, "*", rb_rational_mul, 1);
     rb_define_method(rb_cRational, "/", nurat_div, 1);
     rb_define_method(rb_cRational, "quo", nurat_div, 1);
     rb_define_method(rb_cRational, "fdiv", nurat_fdiv, 1);

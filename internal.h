@@ -1104,8 +1104,10 @@ VALUE rb_int2str(VALUE num, int base);
 VALUE rb_dbl_hash(double d);
 VALUE rb_fix_plus(VALUE x, VALUE y);
 VALUE rb_fix_minus(VALUE x, VALUE y);
+VALUE rb_fix_mul(VALUE x, VALUE y);
 VALUE rb_flo_plus(VALUE x, VALUE y);
 VALUE rb_flo_minus(VALUE x, VALUE y);
+VALUE rb_flo_mul(VALUE x, VALUE y);
 
 #if USE_FLONUM
 #define RUBY_BIT_ROTL(v, n) (((v) << (n)) | ((v) >> ((sizeof(v) * 8) - n)))
@@ -1294,6 +1296,7 @@ void rb_last_status_clear(void);
 /* rational.c */
 VALUE rb_rational_plus(VALUE self, VALUE other);
 VALUE rb_rational_minus(VALUE self, VALUE other);
+VALUE rb_rational_mul(VALUE self, VALUE other);
 VALUE rb_lcm(VALUE x, VALUE y);
 VALUE rb_rational_reciprocal(VALUE x);
 VALUE rb_cstr_to_rat(const char *, int);
