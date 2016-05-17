@@ -126,10 +126,13 @@ class TestDateConv < Test::Unit::TestCase
 
   def test_to_datetime__from_date
     d = Date.new(2004, 9, 19) + 1.to_r/2
-    d2 = d.to_datetime
-    assert_equal([2004, 9, 19, 0, 0, 0, 0, 0],
-		 [d2.year, d2.mon, d2.mday, d2.hour, d2.min, d2.sec,
-		  d2.sec_fraction, d2.offset])
+
+    with_tz('Asia/Tokyo') do
+      d2 = d.to_datetime
+      assert_equal([2004, 9, 19, 0, 0, 0, 0, (3.to_r/8)],
+       [d2.year, d2.mon, d2.mday, d2.hour, d2.min, d2.sec,
+        d2.sec_fraction, d2.offset])
+    end
   end
 
   def test_to_datetime__from_datetime
