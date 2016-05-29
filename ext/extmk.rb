@@ -557,7 +557,7 @@ exts.each do |d|
     fails << result unless result == true
   end
 end
-
+p "I will p exts!!!!";p exts; p "I will p fails!!!!";p fails
 $top_srcdir = srcdir
 $topdir = "."
 $hdrdir = hdrdir
@@ -757,7 +757,7 @@ if $configure_only and $command_output
         if e
           d << " " << e
         end
-        mf.puts %Q<\t@echo "#{d}">
+        mf.puts %Q<\t@echo "#{d.gsub("\n", "\\\n\t")}">
       end
       mf.puts %Q<\t@echo "*** Fix the problems, then remove these directories and try again if you want.">
     end
