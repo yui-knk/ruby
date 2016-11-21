@@ -406,6 +406,11 @@ class TestFloat < Test::Unit::TestCase
     assert_equal(2, 2.0.round)
     assert_equal(2, 2.0.truncate)
 
+    assert_equal(2, 2.5.floor)
+    assert_equal(3, 2.5.ceil)
+    assert_equal(2, 2.5.round)
+    assert_equal(2, 2.5.truncate)
+
     assert_equal(-2, (-1.5).floor)
     assert_equal(-1, (-1.5).ceil)
     assert_equal(-2, (-1.5).round)
@@ -415,6 +420,11 @@ class TestFloat < Test::Unit::TestCase
     assert_equal(-2, (-2.0).ceil)
     assert_equal(-2, (-2.0).round)
     assert_equal(-2, (-2.0).truncate)
+
+    assert_equal(-3, (-2.5).floor)
+    assert_equal(-2, (-2.5).ceil)
+    assert_equal(-2, (-2.5).round)
+    assert_equal(-2, (-2.5).truncate)
 
     inf = Float::INFINITY
     assert_raise(FloatDomainError) { inf.floor }
