@@ -704,6 +704,7 @@ symbol2event_flag(VALUE v)
     C(thread_end, THREAD_END);
     C(fiber_switch, FIBER_SWITCH);
     C(specified_line, SPECIFIED_LINE);
+    C(get_instance_variable, GET_INSTANCE_VARIABLE);
     C(a_call, A_CALL);
     C(a_return, A_RETURN);
 #undef C

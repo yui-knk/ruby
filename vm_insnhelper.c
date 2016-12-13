@@ -880,9 +880,10 @@ ALWAYS_INLINE(static VALUE vm_getivar(VALUE, ID, IC, struct rb_call_cache *, int
 static inline VALUE
 vm_getivar(VALUE obj, ID id, IC ic, struct rb_call_cache *cc, int is_attr)
 {
+VALUE val;
 #if USE_IC_FOR_IVAR
     if (LIKELY(RB_TYPE_P(obj, T_OBJECT))) {
-	VALUE val = Qundef;
+	val = Qundef;
 	if (LIKELY(is_attr ? cc->aux.index > 0 : ic->ic_serial == RCLASS_SERIAL(RBASIC(obj)->klass))) {
 	    st_index_t index = !is_attr ? ic->ic_value.index : (cc->aux.index - 1);
 	    if (LIKELY(index < ROBJECT_NUMIV(obj))) {
@@ -894,6 +895,7 @@ vm_getivar(VALUE obj, ID id, IC ic, struct rb_call_cache *cc, int is_attr)
 		    rb_warning("instance variable %"PRIsVALUE" not initialized", QUOTE_ID(id));
 		val = Qnil;
 	    }
+	    EXEC_EVENT_HOOK(GET_THREAD(), RUBY_EVENT_GET_INSTANCE_VARIABLE, obj, 0, 0, 0, val);
 	    return val;
 	}
 	else {
@@ -919,8 +921,11 @@ vm_getivar(VALUE obj, ID id, IC ic, struct rb_call_cache *cc, int is_attr)
     }
 #endif	/* USE_IC_FOR_IVAR */
     if (is_attr)
-	return rb_attr_get(obj, id);
-    return rb_ivar_get(obj, id);
+	val = rb_attr_get(obj, id);
+    val = rb_ivar_get(obj, id);
+
+    EXEC_EVENT_HOOK(GET_THREAD(), RUBY_EVENT_GET_INSTANCE_VARIABLE, obj, 0, 0, 0, val);
+    return val;
 }
 
 static inline VALUE
