@@ -895,7 +895,7 @@ VALUE val;
 		    rb_warning("instance variable %"PRIsVALUE" not initialized", QUOTE_ID(id));
 		val = Qnil;
 	    }
-	    EXEC_EVENT_HOOK(GET_THREAD(), RUBY_EVENT_GET_INSTANCE_VARIABLE, obj, 0, 0, 0, val);
+	    EXEC_EVENT_HOOK(GET_THREAD(), RUBY_EVENT_GET_INSTANCE_VARIABLE, obj, id, 0, 0, val);
 	    return val;
 	}
 	else {
@@ -924,7 +924,7 @@ VALUE val;
 	val = rb_attr_get(obj, id);
     val = rb_ivar_get(obj, id);
 
-    EXEC_EVENT_HOOK(GET_THREAD(), RUBY_EVENT_GET_INSTANCE_VARIABLE, obj, 0, 0, 0, val);
+    EXEC_EVENT_HOOK(GET_THREAD(), RUBY_EVENT_GET_INSTANCE_VARIABLE, obj, id, 0, 0, val);
     return val;
 }
 
