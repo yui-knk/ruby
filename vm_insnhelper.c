@@ -920,9 +920,12 @@ VALUE val;
 	}
     }
 #endif	/* USE_IC_FOR_IVAR */
-    if (is_attr)
+    if (is_attr) {
 	val = rb_attr_get(obj, id);
-    val = rb_ivar_get(obj, id);
+    }
+    else {
+	val = rb_ivar_get(obj, id);
+    }
 
     EXEC_EVENT_HOOK(GET_THREAD(), RUBY_EVENT_GET_INSTANCE_VARIABLE, obj, id, 0, 0, val);
     return val;
