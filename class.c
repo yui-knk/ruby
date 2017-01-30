@@ -1200,7 +1200,7 @@ class_instance_method_list(int argc, const VALUE *argv, VALUE mod, int obj, int 
     for (; mod; mod = RCLASS_SUPER(mod)) {
 	if (RCLASS_M_TBL(mod)) rb_id_table_foreach(RCLASS_M_TBL(mod), method_entry_i, &me_arg);
 	if (BUILTIN_TYPE(mod) == T_ICLASS && !prepended) continue;
-	if (obj && FL_TEST(mod, FL_SINGLETON)) continue;
+	if (obj && recur && FL_TEST(mod, FL_SINGLETON)) continue;
 	if (!recur) break;
     }
     ary = rb_ary_new();
