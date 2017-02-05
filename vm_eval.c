@@ -2280,6 +2280,9 @@ node_u1(VALUE klass, NODE *node)
 	return ast_new_internal(klass, node->nd_head); /* u1.node */
       case NODE_CALL:
         return ast_new_internal(klass, node->nd_recv); /* u1.node */
+      case NODE_GASGN:
+        /* Should return Qnil? */
+        return rb_id2sym(node->nd_vid); /* u1.id */
       case NODE_LASGN:
       case NODE_DASGN:
       case NODE_DASGN_CURR:
@@ -2301,6 +2304,8 @@ node_u2(VALUE klass, NODE *node)
 	return ast_new_internal(klass, node->nd_body); /* u2.node */
       case NODE_CALL:
         return rb_id2sym(node->nd_mid); /* u2.id */
+      case NODE_GASGN:
+        return ast_new_internal(klass, node->nd_value); /* u2.node */
       case NODE_LASGN:
       case NODE_DASGN:
       case NODE_DASGN_CURR:
@@ -2323,6 +2328,8 @@ node_u3(VALUE klass, NODE *node)
         return nd_compile_option2hash(node->u3.value); /* nd_compile_option */
       case NODE_CALL:
         return ast_new_internal(klass, node->nd_args); /* u3.node */
+      case NODE_GASGN:
+        return rb_id2sym(node->nd_entry->id); /* u3.entry */
       case NODE_LASGN:
       case NODE_DASGN:
       case NODE_DASGN_CURR:
@@ -2432,7 +2439,8 @@ node_type_to_str(NODE *obj)
       // case NODE_ALIAS:
       // case NODE_VALIAS:
       // case NODE_ARGSCAT:
-      // case NODE_GASGN:	/* 2 */
+      case NODE_GASGN:	/* 2 */
+        return rb_str_new_cstr("GASGN");
       case NODE_LASGN:
         return rb_str_new_cstr("LASGN");
       case NODE_DASGN:
