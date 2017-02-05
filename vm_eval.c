@@ -2289,6 +2289,11 @@ node_u1(VALUE klass, NODE *node)
       case NODE_IASGN:
       case NODE_CVASGN:
         return rb_id2sym(node->nd_vid); /* u1.id */
+      case NODE_SELF:
+      case NODE_NIL:
+      case NODE_TRUE:
+      case NODE_FALSE:
+        return Qnil; /* u1 is not used */
       default:	/* unlisted NODE */
 	return Qnil;
     }
@@ -2312,6 +2317,11 @@ node_u2(VALUE klass, NODE *node)
       case NODE_IASGN:
       case NODE_CVASGN:
         return ast_new_internal(klass, node->nd_value); /* u2.node */
+      case NODE_SELF:
+      case NODE_NIL:
+      case NODE_TRUE:
+      case NODE_FALSE:
+        return Qnil; /* u2 is not used */
       default:	/* unlisted NODE */
 	return Qnil;
     }
@@ -2335,6 +2345,11 @@ node_u3(VALUE klass, NODE *node)
       case NODE_DASGN_CURR:
       case NODE_IASGN:
       case NODE_CVASGN:
+        return Qnil; /* u3 is not used */
+      case NODE_SELF:
+      case NODE_NIL:
+      case NODE_TRUE:
+      case NODE_FALSE:
         return Qnil; /* u3 is not used */
       default:        /* unlisted NODE */
         return Qnil;
@@ -2488,9 +2503,12 @@ node_type_to_str(NODE *obj)
       // case NODE_BACK_REF:
       // case NODE_REDO:
       // case NODE_RETRY:
-      // case NODE_SELF:
-      // case NODE_NIL:
-      // case NODE_TRUE:
+      case NODE_SELF:
+        return rb_str_new_cstr("SELF");
+      case NODE_NIL:
+        return rb_str_new_cstr("NIL");
+      case NODE_TRUE:
+        return rb_str_new_cstr("TRUE");
       case NODE_FALSE:
         return rb_str_new_cstr("FALSE");
       case NODE_ERRINFO:
