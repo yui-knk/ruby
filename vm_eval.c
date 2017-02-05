@@ -2278,6 +2278,9 @@ node_u1(VALUE klass, NODE *node)
 	return node->nd_tbl ? rb_id2sym(*(node->nd_tbl)) : Qnil; /* u1.tbl */
       case NODE_PRELUDE:
 	return ast_new_internal(klass, node->nd_head); /* u1.node */
+      case NODE_AND:
+      case NODE_OR:
+        return ast_new_internal(klass, node->nd_1st); /* u1.node */
       case NODE_CALL:
         return ast_new_internal(klass, node->nd_recv); /* u1.node */
       case NODE_GASGN:
@@ -2307,6 +2310,9 @@ node_u2(VALUE klass, NODE *node)
 	return ast_new_internal(klass, node->nd_body); /* u2.node */
       case NODE_PRELUDE:
 	return ast_new_internal(klass, node->nd_body); /* u2.node */
+      case NODE_AND:
+      case NODE_OR:
+        return ast_new_internal(klass, node->nd_2nd); /* u2.node */
       case NODE_CALL:
         return rb_id2sym(node->nd_mid); /* u2.id */
       case NODE_GASGN:
@@ -2336,6 +2342,9 @@ node_u3(VALUE klass, NODE *node)
       case NODE_PRELUDE:
         /* nd_compile_option is hidden, so we should dup it */
         return nd_compile_option2hash(node->u3.value); /* nd_compile_option */
+      case NODE_AND:
+      case NODE_OR:
+        return Qnil; /* u3 is not used */
       case NODE_CALL:
         return ast_new_internal(klass, node->nd_args); /* u3.node */
       case NODE_GASGN:
@@ -2439,8 +2448,10 @@ node_type_to_str(NODE *obj)
       // case NODE_ARGS_AUX:
       // case NODE_WHILE:	/* 1,2 */
       // case NODE_UNTIL:
-      // case NODE_AND:
-      // case NODE_OR:
+      case NODE_AND:
+        return rb_str_new_cstr("AND");
+      case NODE_OR:
+        return rb_str_new_cstr("OR");
       // case NODE_CASE:
       // case NODE_SCLASS:
       // case NODE_DOT2:
