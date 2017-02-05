@@ -2280,6 +2280,12 @@ node_u1(VALUE klass, NODE *node)
 	return ast_new_internal(klass, node->nd_head); /* u1.node */
       case NODE_CALL:
         return ast_new_internal(klass, node->nd_recv); /* u1.node */
+      case NODE_LASGN:
+      case NODE_DASGN:
+      case NODE_DASGN_CURR:
+      case NODE_IASGN:
+      case NODE_CVASGN:
+        return rb_id2sym(node->nd_vid); /* u1.id */
       default:	/* unlisted NODE */
 	return Qnil;
     }
@@ -2295,6 +2301,12 @@ node_u2(VALUE klass, NODE *node)
 	return ast_new_internal(klass, node->nd_body); /* u2.node */
       case NODE_CALL:
         return rb_id2sym(node->nd_mid); /* u2.id */
+      case NODE_LASGN:
+      case NODE_DASGN:
+      case NODE_DASGN_CURR:
+      case NODE_IASGN:
+      case NODE_CVASGN:
+        return ast_new_internal(klass, node->nd_value); /* u2.node */
       default:	/* unlisted NODE */
 	return Qnil;
     }
@@ -2311,6 +2323,12 @@ node_u3(VALUE klass, NODE *node)
         return nd_compile_option2hash(node->u3.value); /* nd_compile_option */
       case NODE_CALL:
         return ast_new_internal(klass, node->nd_args); /* u3.node */
+      case NODE_LASGN:
+      case NODE_DASGN:
+      case NODE_DASGN_CURR:
+      case NODE_IASGN:
+      case NODE_CVASGN:
+        return Qnil; /* u3 is not used */
       default:        /* unlisted NODE */
         return Qnil;
     }
@@ -2415,12 +2433,17 @@ node_type_to_str(NODE *obj)
       // case NODE_VALIAS:
       // case NODE_ARGSCAT:
       // case NODE_GASGN:	/* 2 */
-      // case NODE_LASGN:
-      // case NODE_DASGN:
-      // case NODE_DASGN_CURR:
-      // case NODE_IASGN:
+      case NODE_LASGN:
+        return rb_str_new_cstr("LASGN");
+      case NODE_DASGN:
+        return rb_str_new_cstr("DASGN");
+      case NODE_DASGN_CURR:
+        return rb_str_new_cstr("DASGN_CURR");
+      case NODE_IASGN:
+        return rb_str_new_cstr("IASGN");
       // case NODE_IASGN2:
-      // case NODE_CVASGN:
+      case NODE_CVASGN:
+        return rb_str_new_cstr("CVASGN");
       // case NODE_COLON3:
       // case NODE_OPT_N:
       // case NODE_EVSTR:
