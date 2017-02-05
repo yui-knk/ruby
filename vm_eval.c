@@ -2181,6 +2181,298 @@ rb_current_realfilepath(void)
     return Qnil;
 }
 
+// AST
+// see node.h
+struct ASTNodeData {
+    VALUE node;
+};
+
+static void
+node_gc_mark(void *ptr)
+{
+    struct ASTNodeData *dat = ptr;
+    rb_gc_mark(dat->node);
+}
+
+static const rb_data_type_t rb_node_type = {
+    "AST/node",
+    {node_gc_mark, RUBY_TYPED_DEFAULT_FREE, 0,},
+    0, 0,
+    RUBY_TYPED_FREE_IMMEDIATELY,
+};
+
+// class
+VALUE rb_cAST;
+
+static VALUE rb_ast_s_alloc(VALUE klass);
+
+static void
+set_node(VALUE obj, NODE *node)
+{
+	struct ASTNodeData *data;
+
+	TypedData_Get_Struct(obj, struct ASTNodeData, &rb_node_type, data);
+	data->node = (VALUE)node;
+}
+
+static VALUE
+ast_new_internal(VALUE klass, NODE *node)
+{
+	VALUE obj;
+
+	obj = rb_ast_s_alloc(klass);
+	set_node(obj, node);
+
+	return obj;
+}
+
+static VALUE
+rb_ast_s_parse(VALUE klass, VALUE str)
+{
+    VALUE obj;
+    NODE *node = 0;
+
+    const VALUE parser = rb_parser_new();
+
+    str = rb_check_string_type(str);
+    rb_parser_set_context(parser, NULL, FALSE);
+    node = rb_parser_compile_string_path(parser, rb_str_new_cstr("no file name"), str, 1);
+
+    obj = ast_new_internal(klass, node);
+
+    return obj;
+}
+
+static VALUE
+rb_ast_s_alloc(VALUE klass)
+{
+    struct ASTNodeData *node;
+    VALUE obj = TypedData_Make_Struct(klass, struct ASTNodeData, &rb_node_type, node);
+
+    return obj;
+}
+
+static int
+nd_compile_option_i(VALUE key, VALUE value, VALUE result)
+{
+    rb_hash_aset(result, key, value);
+    return ST_CONTINUE;
+}
+
+static VALUE
+nd_compile_option2hash(VALUE opt)
+{
+    VALUE result;
+
+    result = rb_hash_new();
+    rb_hash_foreach(opt, nd_compile_option_i, result);
+
+    return result;
+}
+
+static VALUE
+node_u1(VALUE klass, NODE *node)
+{
+    switch (nd_type(node)) {
+      case NODE_SCOPE:
+	return node->nd_tbl ? rb_id2sym(*(node->nd_tbl)) : Qnil; /* u1.tbl */
+      case NODE_PRELUDE:
+	return ast_new_internal(klass, node->nd_head); /* u1.node */
+      default:	/* unlisted NODE */
+	return Qnil;
+    }
+}
+
+static VALUE
+node_u2(VALUE klass, NODE *node)
+{
+    switch (nd_type(node)) {
+      case NODE_SCOPE:
+	return ast_new_internal(klass, node->nd_body); /* u2.node */
+      case NODE_PRELUDE:
+	return ast_new_internal(klass, node->nd_body); /* u2.node */
+      default:	/* unlisted NODE */
+	return Qnil;
+    }
+}
+
+static VALUE
+node_u3(VALUE klass, NODE *node)
+{
+    switch (nd_type(node)) {
+      case NODE_SCOPE:
+        return ast_new_internal(klass, node->nd_args); /* u3.node */
+      case NODE_PRELUDE:
+        /* nd_compile_option is hidden, so we should dup it */
+        return nd_compile_option2hash(node->u3.value); /* nd_compile_option */
+      default:        /* unlisted NODE */
+        return Qnil;
+    }
+}
+
+static VALUE
+rb_ast_u1(VALUE self) {
+    struct ASTNodeData *data;
+
+    TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, data);
+    return node_u1(CLASS_OF(self), (NODE *)data->node);
+}
+
+static VALUE
+rb_ast_u2(VALUE self) {
+    struct ASTNodeData *data;
+
+    TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, data);
+    return node_u2(CLASS_OF(self), (NODE *)data->node);
+}
+
+static VALUE
+rb_ast_u3(VALUE self) {
+    struct ASTNodeData *data;
+
+    TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, data);
+    return node_u3(CLASS_OF(self), (NODE *)data->node);
+}
+
+static VALUE
+node_type_to_str(NODE *obj)
+{
+    if (obj == NULL) {
+    	return rb_str_new_cstr("NULL");
+    }
+
+    switch (nd_type(obj)) {
+      case NODE_IF:		/* 1,2,3 */
+	return rb_str_new_cstr("IF");
+      case NODE_FOR:
+	return rb_str_new_cstr("FOR");
+      case NODE_ITER:
+	return rb_str_new_cstr("ITER");
+      case NODE_WHEN:
+	return rb_str_new_cstr("WHEN");
+      case NODE_MASGN:
+	return rb_str_new_cstr("MASGN");
+      case NODE_RESCUE:
+	return rb_str_new_cstr("RESCUE");
+      case NODE_RESBODY:
+	return rb_str_new_cstr("RESBODY");
+      case NODE_CLASS:
+	return rb_str_new_cstr("CLASS");
+      case NODE_BLOCK_PASS:
+	return rb_str_new_cstr("BLOCK_PASS");
+      case NODE_MATCH2:
+	return rb_str_new_cstr("MATCH2");
+      case NODE_BLOCK:	/* 1,3 */
+	return rb_str_new_cstr("BLOCK");
+      case NODE_ARRAY:
+	return rb_str_new_cstr("ARRAY");
+      case NODE_DSTR:
+	return rb_str_new_cstr("DSTR");
+      case NODE_DXSTR:
+	return rb_str_new_cstr("DXSTR");
+      case NODE_DREGX:
+	return rb_str_new_cstr("DREGX");
+      case NODE_DREGX_ONCE:
+	return rb_str_new_cstr("DREGX_ONCE");
+      case NODE_ENSURE:
+	return rb_str_new_cstr("ENSURE");
+      case NODE_CALL:
+	return rb_str_new_cstr("CALL");
+      case NODE_DEFS:
+	return rb_str_new_cstr("DEFS");
+      case NODE_OP_ASGN1:
+	return rb_str_new_cstr("ENSURE");
+      case NODE_SUPER:	/* 3 */
+	return rb_str_new_cstr("SUPER");
+      case NODE_FCALL:
+	return rb_str_new_cstr("FCALL");
+      case NODE_DEFN:
+	return rb_str_new_cstr("DEFN");
+      case NODE_PRELUDE:
+	return rb_str_new_cstr("PRELUDE");
+      // case NODE_ARGS_AUX:
+      // case NODE_WHILE:	/* 1,2 */
+      // case NODE_UNTIL:
+      // case NODE_AND:
+      // case NODE_OR:
+      // case NODE_CASE:
+      // case NODE_SCLASS:
+      // case NODE_DOT2:
+      // case NODE_DOT3:
+      // case NODE_FLIP2:
+      // case NODE_FLIP3:
+      // case NODE_MATCH3:
+      // case NODE_OP_ASGN_OR:
+      // case NODE_OP_ASGN_AND:
+      // case NODE_MODULE:
+      // case NODE_ALIAS:
+      // case NODE_VALIAS:
+      // case NODE_ARGSCAT:
+      // case NODE_GASGN:	/* 2 */
+      // case NODE_LASGN:
+      // case NODE_DASGN:
+      // case NODE_DASGN_CURR:
+      // case NODE_IASGN:
+      // case NODE_IASGN2:
+      // case NODE_CVASGN:
+      // case NODE_COLON3:
+      // case NODE_OPT_N:
+      // case NODE_EVSTR:
+      // case NODE_UNDEF:
+      // case NODE_POSTEXE:
+      // case NODE_HASH:	/* 1 */
+      // case NODE_LIT:
+      // case NODE_STR:
+      // case NODE_XSTR:
+      // case NODE_DEFINED:
+      // case NODE_MATCH:
+      // case NODE_RETURN:
+      // case NODE_BREAK:
+      // case NODE_NEXT:
+      // case NODE_YIELD:
+      // case NODE_COLON2:
+      // case NODE_SPLAT:
+      // case NODE_TO_ARY:
+      case NODE_SCOPE:	/* 2,3 */
+	return rb_str_new_cstr("SCOPE");
+      // case NODE_CDECL:
+      // case NODE_OPT_ARG:
+      // case NODE_ARGS:	/* custom */
+      // case NODE_ZARRAY:	/* - */
+      // case NODE_ZSUPER:
+      // case NODE_VCALL:
+      // case NODE_GVAR:
+      // case NODE_LVAR:
+      // case NODE_DVAR:
+      // case NODE_IVAR:
+      // case NODE_CVAR:
+      // case NODE_NTH_REF:
+      // case NODE_BACK_REF:
+      // case NODE_REDO:
+      // case NODE_RETRY:
+      // case NODE_SELF:
+      // case NODE_NIL:
+      // case NODE_TRUE:
+      case NODE_FALSE:
+        return rb_str_new_cstr("False");
+      case NODE_ERRINFO:
+      case NODE_BLOCK_ARG:
+      case NODE_ALLOCA:
+      default:		/* unlisted NODE */
+	return rb_str_new_cstr("Unknown");
+    }
+}
+
+static VALUE
+rb_ast_type(VALUE self)
+{
+    struct ASTNodeData *node;
+    TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, node);
+
+    return node_type_to_str((NODE *)node->node);
+}
+
+
 void
 Init_vm_eval(void)
 {
@@ -2223,4 +2515,12 @@ Init_vm_eval(void)
     id_result = rb_intern_const("result");
     id_tag = rb_intern_const("tag");
     id_value = rb_intern_const("value");
+
+    rb_cAST = rb_define_class("AST", rb_cObject);
+    rb_define_alloc_func(rb_cAST, rb_ast_s_alloc);
+    rb_define_singleton_method(rb_cAST, "parse", rb_ast_s_parse, 1);
+    rb_define_method(rb_cAST, "type", rb_ast_type, 0);
+    rb_define_method(rb_cAST, "u1", rb_ast_u1, 0);
+    rb_define_method(rb_cAST, "u2", rb_ast_u2, 0);
+    rb_define_method(rb_cAST, "u3", rb_ast_u3, 0);
 }
