@@ -2292,6 +2292,10 @@ node_u1(VALUE klass, NODE *node)
       case NODE_IASGN:
       case NODE_CVASGN:
         return rb_id2sym(node->nd_vid); /* u1.id */
+      case NODE_LIT:
+      case NODE_STR:
+      case NODE_XSTR:
+        return node->nd_lit; /* u1.value */
       case NODE_SELF:
       case NODE_NIL:
       case NODE_TRUE:
@@ -2323,6 +2327,10 @@ node_u2(VALUE klass, NODE *node)
       case NODE_IASGN:
       case NODE_CVASGN:
         return ast_new_internal(klass, node->nd_value); /* u2.node */
+      case NODE_LIT:
+      case NODE_STR:
+      case NODE_XSTR:
+        return Qnil; /* u2 is not used */
       case NODE_SELF:
       case NODE_NIL:
       case NODE_TRUE:
@@ -2355,6 +2363,10 @@ node_u3(VALUE klass, NODE *node)
       case NODE_IASGN:
       case NODE_CVASGN:
         return Qnil; /* u3 is not used */
+      case NODE_LIT:
+      case NODE_STR:
+      case NODE_XSTR:
+        return Qnil; /* u2 is not used */
       case NODE_SELF:
       case NODE_NIL:
       case NODE_TRUE:
@@ -2486,8 +2498,10 @@ node_type_to_str(NODE *obj)
       // case NODE_HASH:	/* 1 */
       case NODE_LIT:
         return rb_str_new_cstr("LIT");
-      // case NODE_STR:
-      // case NODE_XSTR:
+      case NODE_STR:
+        return rb_str_new_cstr("STR");
+      case NODE_XSTR:
+        return rb_str_new_cstr("XSTR");
       // case NODE_DEFINED:
       // case NODE_MATCH:
       // case NODE_RETURN:
