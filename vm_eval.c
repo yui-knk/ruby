@@ -2276,6 +2276,8 @@ node_u1(VALUE klass, NODE *node)
     switch (nd_type(node)) {
       case NODE_IF:
         return ast_new_internal(klass, node->nd_cond); /* u1.node */
+      case NODE_CASE:
+        return ast_new_internal(klass, node->nd_head); /* u1.node */
       case NODE_SCOPE:
 	return node->nd_tbl ? rb_id2sym(*(node->nd_tbl)) : Qnil; /* u1.tbl */
       case NODE_PRELUDE:
@@ -2314,6 +2316,8 @@ node_u2(VALUE klass, NODE *node)
     switch (nd_type(node)) {
       case NODE_IF:
         return ast_new_internal(klass, node->nd_body); /* u2.node */
+      case NODE_CASE:
+        return ast_new_internal(klass, node->nd_body); /* u2.node */
       case NODE_SCOPE:
 	return ast_new_internal(klass, node->nd_body); /* u2.node */
       case NODE_PRELUDE:
@@ -2351,6 +2355,8 @@ node_u3(VALUE klass, NODE *node)
     switch (nd_type(node)) {
       case NODE_IF:
         return ast_new_internal(klass, node->nd_else); /* u3.node */
+      case NODE_CASE:
+        return Qnil; /* u3 is not used */
       case NODE_SCOPE:
         return ast_new_internal(klass, node->nd_args); /* u3.node */
       case NODE_PRELUDE:
@@ -2470,7 +2476,8 @@ node_type_to_str(NODE *obj)
         return rb_str_new_cstr("AND");
       case NODE_OR:
         return rb_str_new_cstr("OR");
-      // case NODE_CASE:
+      case NODE_CASE:
+        return rb_str_new_cstr("CASE");
       // case NODE_SCLASS:
       // case NODE_DOT2:
       // case NODE_DOT3:
