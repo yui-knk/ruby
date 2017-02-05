@@ -2278,6 +2278,8 @@ node_u1(VALUE klass, NODE *node)
 	return node->nd_tbl ? rb_id2sym(*(node->nd_tbl)) : Qnil; /* u1.tbl */
       case NODE_PRELUDE:
 	return ast_new_internal(klass, node->nd_head); /* u1.node */
+      case NODE_CALL:
+        return ast_new_internal(klass, node->nd_recv); /* u1.node */
       default:	/* unlisted NODE */
 	return Qnil;
     }
@@ -2291,6 +2293,8 @@ node_u2(VALUE klass, NODE *node)
 	return ast_new_internal(klass, node->nd_body); /* u2.node */
       case NODE_PRELUDE:
 	return ast_new_internal(klass, node->nd_body); /* u2.node */
+      case NODE_CALL:
+        return rb_id2sym(node->nd_mid); /* u2.id */
       default:	/* unlisted NODE */
 	return Qnil;
     }
@@ -2305,6 +2309,8 @@ node_u3(VALUE klass, NODE *node)
       case NODE_PRELUDE:
         /* nd_compile_option is hidden, so we should dup it */
         return nd_compile_option2hash(node->u3.value); /* nd_compile_option */
+      case NODE_CALL:
+        return ast_new_internal(klass, node->nd_args); /* u3.node */
       default:        /* unlisted NODE */
         return Qnil;
     }
@@ -2421,7 +2427,8 @@ node_type_to_str(NODE *obj)
       // case NODE_UNDEF:
       // case NODE_POSTEXE:
       // case NODE_HASH:	/* 1 */
-      // case NODE_LIT:
+      case NODE_LIT:
+        return rb_str_new_cstr("LIT");
       // case NODE_STR:
       // case NODE_XSTR:
       // case NODE_DEFINED:
@@ -2454,12 +2461,12 @@ node_type_to_str(NODE *obj)
       // case NODE_NIL:
       // case NODE_TRUE:
       case NODE_FALSE:
-        return rb_str_new_cstr("False");
+        return rb_str_new_cstr("FALSE");
       case NODE_ERRINFO:
       case NODE_BLOCK_ARG:
       case NODE_ALLOCA:
       default:		/* unlisted NODE */
-	return rb_str_new_cstr("Unknown");
+	return rb_str_new_cstr("UNKNOWN");
     }
 }
 
