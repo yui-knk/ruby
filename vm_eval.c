@@ -2479,6 +2479,24 @@ rb_ast_type(VALUE self)
     return node_type_to_str((NODE *)node->node);
 }
 
+static VALUE
+rb_ast_inspect(VALUE self)
+{
+    VALUE str;
+    VALUE cname;
+
+    cname = rb_class_path(rb_obj_class(self));
+    str = rb_str_new2("#<");
+
+    rb_str_append(str, cname);
+    rb_str_cat2(str, "(");
+    rb_str_append(str, rb_ast_type(self));
+    rb_str_cat2(str, ")");
+    rb_str_cat2(str, ": ");
+    rb_str_cat2(str, ">");
+
+    return str;
+}
 
 void
 Init_vm_eval(void)
@@ -2530,4 +2548,6 @@ Init_vm_eval(void)
     rb_define_method(rb_cAST, "u1", rb_ast_u1, 0);
     rb_define_method(rb_cAST, "u2", rb_ast_u2, 0);
     rb_define_method(rb_cAST, "u3", rb_ast_u3, 0);
+    rb_define_method(rb_cAST, "inspect", rb_ast_inspect, 0);
+    rb_define_alias(rb_cAST, "to_s", "inspect");
 }
