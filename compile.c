@@ -183,7 +183,7 @@ r_value(VALUE value)
 #define LVAR_ERRINFO (1)
 
 /* create new label */
-#define NEW_LABEL(l) new_label_body(iseq, (l))
+#define NEW_LABEL(l) new_label_body(iseq)
 
 #define iseq_path(iseq) ((iseq)->body->location.path)
 #define iseq_absolute_path(iseq) ((iseq)->body->location.absolute_path)
@@ -445,7 +445,7 @@ static int insn_data_length(INSN *iobj);
 static int calc_sp_depth(int depth, INSN *iobj);
 
 static INSN *new_insn_body(rb_iseq_t *iseq, int line_no, enum ruby_vminsn_type insn_id, int argc, ...);
-static LABEL *new_label_body(rb_iseq_t *iseq, long line);
+static LABEL *new_label_body(rb_iseq_t *iseq);
 static ADJUST *new_adjust_body(rb_iseq_t *iseq, LABEL *label, int line);
 
 static int iseq_compile_each(rb_iseq_t *iseq, LINK_ANCHOR *const anchor, NODE *n, int);
@@ -1013,7 +1013,7 @@ debug_list(ISEQ_ARG_DECLARE LINK_ANCHOR *const anchor)
 #endif
 
 static LABEL *
-new_label_body(rb_iseq_t *iseq, long line)
+new_label_body(rb_iseq_t *iseq)
 {
     LABEL *labelobj = compile_data_alloc_label(iseq);
 
