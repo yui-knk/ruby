@@ -3050,7 +3050,7 @@ id2ref(VALUE obj, VALUE objid)
     if (!is_live_object(objspace, ptr)) {
 	rb_raise(rb_eRangeError, "%p is recycled object", p0);
     }
-    if (RBASIC(ptr)->klass == 0) {
+    if (rb_obj_hidden(ptr)) {
 	rb_raise(rb_eRangeError, "%p is internal object", p0);
     }
     return (VALUE)ptr;
@@ -9229,7 +9229,7 @@ rb_raw_obj_info(char *buff, const int buff_size, VALUE obj)
 	if (internal_object_p(obj)) {
 	    /* ignore */
 	}
-	else if (RBASIC(obj)->klass == 0) {
+	else if (rb_obj_hide(obj)) {
 	    snprintf(buff, buff_size, "%s (temporary internal)", buff);
 	}
 	else {
