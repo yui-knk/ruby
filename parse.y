@@ -5164,7 +5164,7 @@ static VALUE
 coverage(VALUE fname, int n)
 {
     VALUE coverages = rb_get_coverages();
-    if (RTEST(coverages) && RBASIC(coverages)->klass == 0) {
+    if (RTEST(coverages)) {
 	VALUE lines = n > 0 ? rb_ary_tmp_new_fill(n) : rb_ary_tmp_new(0);
 	rb_hash_aset(coverages, fname, lines);
 	return lines;
