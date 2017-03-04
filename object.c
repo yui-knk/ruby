@@ -57,6 +57,12 @@ rb_obj_hide(VALUE obj)
 }
 
 VALUE
+rb_obj_hidden_p(VALUE obj)
+{
+    return RBASIC(obj)->klass == 0 ? Qtrue : Qfalse;
+}
+
+VALUE
 rb_obj_reveal(VALUE obj, VALUE klass)
 {
     if (!SPECIAL_CONST_P(obj)) {
