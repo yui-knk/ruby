@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 begin
-  require_relative 'dummyparser'
+  require 'ripper'
   require 'test/unit'
-  ripper_test = true
   module TestRipper; end
 rescue LoadError
 end
