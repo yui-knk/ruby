@@ -223,7 +223,7 @@ rb_check_inheritable(VALUE super)
 	rb_raise(rb_eTypeError, "superclass must be a Class (%"PRIsVALUE" given)",
 		 rb_obj_class(super));
     }
-    if (RBASIC(super)->flags & FL_SINGLETON) {
+    if (FL_TEST(super, FL_SINGLETON)) {
 	rb_raise(rb_eTypeError, "can't make subclass of singleton class");
     }
     if (super == rb_cClass) {
