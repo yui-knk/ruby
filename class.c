@@ -226,9 +226,9 @@ rb_check_inheritable(VALUE super)
     if (RBASIC(super)->flags & FL_SINGLETON) {
 	rb_raise(rb_eTypeError, "can't make subclass of singleton class");
     }
-    if (super == rb_cClass) {
-	rb_raise(rb_eTypeError, "can't make subclass of Class");
-    }
+ //    if (super == rb_cClass) {
+	// rb_raise(rb_eTypeError, "can't make subclass of Class");
+ //    }
 }
 
 
