@@ -2639,6 +2639,41 @@ rb_mod_singleton_p(VALUE klass)
     return Qfalse;
 }
 
+static VALUE
+rb_mod_ancestor_class_types(VALUE mod)
+{
+    VALUE p, ary = rb_ary_new();
+
+    for (p = mod; p; p = RCLASS_SUPER(p)) {
+    VALUE pair = rb_ary_new();
+
+    if (BUILTIN_TYPE(p) == T_ICLASS) {
+        rb_ary_push(pair, RBASIC(p)->klass);
+        rb_ary_push(pair, rb_str_new_cstr("T_ICLASS"));
+        if (rb_respond_to(p, rb_intern("object_id"))) {
+            rb_ary_push(pair, rb_funcall(p, rb_intern("object_id"), 0));
+        }
+        else {
+            rb_ary_push(pair, Qnil);
+        }
+        rb_ary_push(ary, pair);
+    }
+    else if (p == RCLASS_ORIGIN(p)) {
+        rb_ary_push(pair, p);
+        rb_ary_push(pair, rb_str_new_cstr("Normal"));
+        rb_ary_push(pair, rb_funcall(p, rb_intern("object_id"), 0));
+        rb_ary_push(ary, pair);
+    }
+    else {
+        rb_ary_push(pair, p);
+        rb_ary_push(pair, rb_str_new_cstr("Not Original"));
+        rb_ary_push(pair, rb_funcall(p, rb_intern("object_id"), 0));
+        rb_ary_push(ary, pair);
+    }
+    }
+    return ary;
+}
+
 static const struct conv_method_tbl {
     const char method[6];
     unsigned short id;
@@ -3690,6 +3725,7 @@ InitVM_Object(void)
     rb_define_method(rb_cModule, "private_constant", rb_mod_private_constant, -1); /* in variable.c */
     rb_define_method(rb_cModule, "deprecate_constant", rb_mod_deprecate_constant, -1); /* in variable.c */
     rb_define_method(rb_cModule, "singleton_class?", rb_mod_singleton_p, 0);
+    rb_define_method(rb_cModule, "ancestor_class_types", rb_mod_ancestor_class_types, 0);
 
     rb_define_method(rb_cClass, "allocate", rb_class_alloc, 0);
     rb_define_method(rb_cClass, "new", rb_class_s_new, -1);
