@@ -2639,37 +2639,46 @@ rb_mod_singleton_p(VALUE klass)
     return Qfalse;
 }
 
+
+/*
+ * [[klass, String, object_id, FL_SINGLETON], ... ]
+ */
 static VALUE
 rb_mod_ancestor_class_types(VALUE mod)
 {
     VALUE p, ary = rb_ary_new();
 
     for (p = mod; p; p = RCLASS_SUPER(p)) {
-    VALUE pair = rb_ary_new();
+        VALUE pair = rb_ary_new();
+        VALUE flag = (FL_TEST(p, FL_SINGLETON)) ? Qtrue : Qfalse;
 
-    if (BUILTIN_TYPE(p) == T_ICLASS) {
-        rb_ary_push(pair, RBASIC(p)->klass);
-        rb_ary_push(pair, rb_str_new_cstr("T_ICLASS"));
-        if (rb_respond_to(p, rb_intern("object_id"))) {
+        if (BUILTIN_TYPE(p) == T_ICLASS) {
+            rb_ary_push(pair, RBASIC(p)->klass);
+            if (rb_respond_to(p, rb_intern("object_id"))) {
+                rb_ary_push(pair, rb_str_new_cstr("T_ICLASS (object_id of p)"));
+                rb_ary_push(pair, rb_funcall(p, rb_intern("object_id"), 0));
+            }
+            else {
+                rb_ary_push(pair, rb_str_new_cstr("T_ICLASS (object_id of p->klass)"));
+                rb_ary_push(pair, rb_funcall(RBASIC(p)->klass, rb_intern("object_id"), 0));
+            }
+            rb_ary_push(pair, flag);
+            rb_ary_push(ary, pair);
+        }
+        else if (p == RCLASS_ORIGIN(p)) {
+            rb_ary_push(pair, p);
+            rb_ary_push(pair, rb_str_new_cstr("Normal"));
             rb_ary_push(pair, rb_funcall(p, rb_intern("object_id"), 0));
+            rb_ary_push(pair, flag);
+            rb_ary_push(ary, pair);
         }
         else {
-            rb_ary_push(pair, Qnil);
+            rb_ary_push(pair, p);
+            rb_ary_push(pair, rb_str_new_cstr("Not Original"));
+            rb_ary_push(pair, rb_funcall(p, rb_intern("object_id"), 0));
+            rb_ary_push(pair, flag);
+            rb_ary_push(ary, pair);
         }
-        rb_ary_push(ary, pair);
-    }
-    else if (p == RCLASS_ORIGIN(p)) {
-        rb_ary_push(pair, p);
-        rb_ary_push(pair, rb_str_new_cstr("Normal"));
-        rb_ary_push(pair, rb_funcall(p, rb_intern("object_id"), 0));
-        rb_ary_push(ary, pair);
-    }
-    else {
-        rb_ary_push(pair, p);
-        rb_ary_push(pair, rb_str_new_cstr("Not Original"));
-        rb_ary_push(pair, rb_funcall(p, rb_intern("object_id"), 0));
-        rb_ary_push(ary, pair);
-    }
     }
     return ary;
 }
