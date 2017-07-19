@@ -2822,7 +2822,7 @@ static VALUE
 cvar_front_klass(VALUE klass)
 {
     if (FL_TEST(klass, FL_SINGLETON)) {
-	VALUE obj = rb_ivar_get(klass, id__attached__);
+	VALUE obj = rb_attr_get(klass, id__attached__);
 	if (RB_TYPE_P(obj, T_MODULE) || RB_TYPE_P(obj, T_CLASS)) {
 	    return obj;
 	}

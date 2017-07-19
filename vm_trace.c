@@ -606,7 +606,7 @@ call_trace_func(rb_event_flag_t event, VALUE proc, VALUE self, ID id, VALUE klas
 	    klass = RBASIC(klass)->klass;
 	}
 	else if (FL_TEST(klass, FL_SINGLETON)) {
-	    klass = rb_ivar_get(klass, id__attached__);
+	    klass = rb_attr_get(klass, id__attached__);
 	}
     }
 

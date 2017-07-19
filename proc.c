@@ -1643,7 +1643,7 @@ rb_method_name_error(VALUE klass, VALUE str)
     VALUE s;
 
     if (FL_TEST(c, FL_SINGLETON)) {
-	VALUE obj = rb_ivar_get(klass, attached);
+	VALUE obj = rb_attr_get(klass, attached);
 
 	switch (BUILTIN_TYPE(obj)) {
 	  case T_MODULE:
@@ -2591,7 +2591,7 @@ method_inspect(VALUE method)
     }
 
     if (FL_TEST(mklass, FL_SINGLETON)) {
-	VALUE v = rb_ivar_get(mklass, attached);
+	VALUE v = rb_attr_get(mklass, attached);
 
 	if (data->recv == Qundef) {
 	    rb_str_buf_append(str, rb_inspect(mklass));

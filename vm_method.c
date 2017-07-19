@@ -606,7 +606,7 @@ rb_method_entry_make(VALUE klass, ID mid, VALUE defined_class, rb_method_visibil
 	VALUE recv_class = (klass);			\
 	ID hook_id = (hook);				\
 	if (FL_TEST((klass), FL_SINGLETON)) {		\
-	    recv_class = rb_ivar_get((klass), attached);	\
+	    recv_class = rb_attr_get((klass), attached);	\
 	    hook_id = singleton_##hook;			\
 	}						\
 	rb_funcallv(recv_class, hook_id, 1, &arg);	\
