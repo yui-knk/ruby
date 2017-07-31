@@ -2487,6 +2487,20 @@ method_def_location(const rb_method_definition_t *def)
     return iseq_location(method_def_iseq(def));
 }
 
+static VALUE
+rb_method_locations(VALUE method)
+{
+    const rb_method_definition_t *def = method_def(method);
+    VALUE ary = rb_ary_new();
+
+    for (; def; def = def->next) {
+        rb_ary_push(ary, method_def_location(def));
+    }
+
+    return ary;
+}
+
+
 VALUE
 rb_method_entry_location(const rb_method_entry_t *me)
 {
@@ -3118,6 +3132,7 @@ Init_Proc(void)
     rb_define_method(rb_cMethod, "source_location", rb_method_location, 0);
     rb_define_method(rb_cMethod, "parameters", rb_method_parameters, 0);
     rb_define_method(rb_cMethod, "super_method", method_super_method, 0);
+    rb_define_method(rb_cMethod, "method_locations", rb_method_locations, 0);
     rb_define_method(rb_mKernel, "method", rb_obj_method, 1);
     rb_define_method(rb_mKernel, "public_method", rb_obj_public_method, 1);
     rb_define_method(rb_mKernel, "singleton_method", rb_obj_singleton_method, 1);
@@ -3140,6 +3155,7 @@ Init_Proc(void)
     rb_define_method(rb_cUnboundMethod, "source_location", rb_method_location, 0);
     rb_define_method(rb_cUnboundMethod, "parameters", rb_method_parameters, 0);
     rb_define_method(rb_cUnboundMethod, "super_method", method_super_method, 0);
+    rb_define_method(rb_cUnboundMethod, "method_locations", rb_method_locations, 0);
 
     /* Module#*_method */
     rb_define_method(rb_cModule, "instance_method", rb_mod_instance_method, 1);
