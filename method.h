@@ -167,6 +167,7 @@ PACKED_STRUCT_UNALIGNED(struct rb_method_definition_struct {
     } body;
 
     ID original_id;
+    struct rb_method_definition_struct * next;
 });
 
 typedef struct rb_method_definition_struct rb_method_definition_t;

@@ -337,12 +337,13 @@ method_definition_reset(const rb_method_entry_t *me)
 }
 
 static rb_method_definition_t *
-method_definition_create(rb_method_type_t type, ID mid)
+method_definition_create(rb_method_type_t type, ID mid, rb_method_definition_t *next)
 {
     rb_method_definition_t *def;
     def = ZALLOC(rb_method_definition_t);
     def->type = type;
     def->original_id = mid;
+    def->next = next;
     return def;
 }
 
@@ -447,7 +448,7 @@ make_method_entry_refined(VALUE owner, rb_method_entry_t *me)
 	METHOD_ENTRY_FLAGS_COPY(refined.orig_me, me);
 	refined.owner = owner;
 
-	method_definition_set(me, method_definition_create(VM_METHOD_TYPE_REFINED, me->called_id), (void *)&refined);
+	method_definition_set(me, method_definition_create(VM_METHOD_TYPE_REFINED, me->called_id, (rb_method_definition_t *)NULL), (void *)&refined);
 	METHOD_ENTRY_VISI_SET(me, METHOD_VISI_PUBLIC);
     }
 }
@@ -493,9 +494,11 @@ rb_method_entry_make(VALUE klass, ID mid, VALUE defined_class, rb_method_visibil
 		     rb_method_type_t type, rb_method_definition_t *def, ID original_id, void *opts)
 {
     rb_method_entry_t *me;
+    rb_method_entry_t *old_me;
     struct rb_id_table *mtbl;
     st_data_t data;
     int make_refined = 0;
+    rb_method_definition_t *old_def = NULL;
 
     if (NIL_P(klass)) {
 	klass = rb_cObject;
@@ -520,7 +523,7 @@ rb_method_entry_make(VALUE klass, ID mid, VALUE defined_class, rb_method_visibil
 	rb_add_refined_method_entry(refined_class, mid);
     }
     if (type == VM_METHOD_TYPE_REFINED) {
-	rb_method_entry_t *old_me = lookup_method_table(RCLASS_ORIGIN(klass), mid);
+	old_me = lookup_method_table(RCLASS_ORIGIN(klass), mid);
 	if (old_me) rb_vm_check_redefinition_opt_method(old_me, klass);
     }
     else {
@@ -530,8 +533,8 @@ rb_method_entry_make(VALUE klass, ID mid, VALUE defined_class, rb_method_visibil
 
     /* check re-definition */
     if (rb_id_table_lookup(mtbl, mid, &data)) {
-	rb_method_entry_t *old_me = (rb_method_entry_t *)data;
-	rb_method_definition_t *old_def = old_me->def;
+	old_me = (rb_method_entry_t *)data;
+	old_def = old_me->def;
 
 	if (rb_method_definition_eq(old_def, def)) return old_me;
 	rb_vm_check_redefinition_opt_method(old_me, klass);
@@ -568,7 +571,7 @@ rb_method_entry_make(VALUE klass, ID mid, VALUE defined_class, rb_method_visibil
 
     /* create method entry */
     me = rb_method_entry_create(mid, defined_class, visi, NULL);
-    if (def == NULL) def = method_definition_create(type, original_id);
+    if (def == NULL) def = method_definition_create(type, original_id, old_def);
     method_definition_set(me, def, opts);
 
     rb_clear_method_cache_by_class(klass);

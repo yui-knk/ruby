@@ -1542,7 +1542,7 @@ static inline VALUE vm_call_method(rb_thread_t *th, rb_control_frame_t *cfp, str
 
 static vm_call_handler vm_call_iseq_setup_func(const struct rb_call_info *ci, const int param_size, const int local_size);
 
-static rb_method_definition_t *method_definition_create(rb_method_type_t type, ID mid);
+static rb_method_definition_t *method_definition_create(rb_method_type_t type, ID mid, rb_method_definition_t *next);
 static void method_definition_set(const rb_method_entry_t *me, rb_method_definition_t *def, void *opts);
 static int rb_method_definition_eq(const rb_method_definition_t *d1, const rb_method_definition_t *d2);
 
@@ -2154,7 +2154,7 @@ aliased_callable_method_entry(const rb_callable_method_entry_t *me)
 	}
 	else {
 	    method_definition_set((rb_method_entry_t *)me,
-				  method_definition_create(VM_METHOD_TYPE_ALIAS, me->def->original_id),
+				  method_definition_create(VM_METHOD_TYPE_ALIAS, me->def->original_id, (rb_method_definition_t *)NULL),
 				  (void *)cme);
 	}
     }
