@@ -462,7 +462,7 @@ rb_add_refined_method_entry(VALUE refined_class, ID mid)
 	rb_clear_method_cache_by_class(refined_class);
     }
     else {
-	rb_add_method(refined_class, mid, VM_METHOD_TYPE_REFINED, 0, METHOD_VISI_PUBLIC);
+	rb_add_method(refined_class, mid, VM_METHOD_TYPE_REFINED, NULL, METHOD_VISI_PUBLIC);
     }
 }
 
@@ -1055,7 +1055,7 @@ rb_export_method(VALUE klass, ID name, rb_method_visibility_t visi)
 	    rb_clear_method_cache_by_class(klass);
 	}
 	else {
-	    rb_add_method(klass, name, VM_METHOD_TYPE_ZSUPER, 0, visi);
+	    rb_add_method(klass, name, VM_METHOD_TYPE_ZSUPER, NULL, visi);
 	}
     }
 }
@@ -1190,7 +1190,7 @@ rb_undef(VALUE klass, ID id)
 	rb_method_name_error(klass, rb_id2str(id));
     }
 
-    rb_add_method(klass, id, VM_METHOD_TYPE_UNDEF, 0, METHOD_VISI_PUBLIC);
+    rb_add_method(klass, id, VM_METHOD_TYPE_UNDEF, NULL, METHOD_VISI_PUBLIC);
 
     CALL_METHOD_HOOK(klass, undefined, id);
 }

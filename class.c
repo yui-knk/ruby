@@ -1532,14 +1532,14 @@ rb_define_private_method(VALUE klass, const char *name, VALUE (*func)(ANYARGS), 
 void
 rb_undef_method(VALUE klass, const char *name)
 {
-    rb_add_method(klass, rb_intern(name), VM_METHOD_TYPE_UNDEF, 0, METHOD_VISI_UNDEF);
+    rb_add_method(klass, rb_intern(name), VM_METHOD_TYPE_UNDEF, NULL, METHOD_VISI_UNDEF);
 }
 
 static enum rb_id_table_iterator_result
 undef_method_i(ID name, VALUE value, void *data)
 {
     VALUE klass = (VALUE)data;
-    rb_add_method(klass, name, VM_METHOD_TYPE_UNDEF, 0, METHOD_VISI_UNDEF);
+    rb_add_method(klass, name, VM_METHOD_TYPE_UNDEF, NULL, METHOD_VISI_UNDEF);
     return ID_TABLE_CONTINUE;
 }
 
