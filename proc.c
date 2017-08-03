@@ -2267,6 +2267,27 @@ umethod_bind(VALUE method, VALUE recv)
     return method;
 }
 
+static VALUE
+method_convert_to_hash(VALUE method, VALUE opts)
+{
+    return rb_convert_type(opts, T_HASH, "Hash", "to_hash");
+}
+
+static VALUE
+method_convert_to_h(VALUE method, VALUE opts)
+{
+    return rb_convert_type(opts, T_HASH, "Hash", "to_h");
+}
+
+static VALUE
+method_convert_via_rb_scan_args(int argc, VALUE *argv, VALUE self)
+{
+    VALUE opts;
+
+    rb_scan_args(argc, argv, "0:", &opts);
+    return opts;
+}
+
 /*
  * Returns the number of required parameters and stores the maximum
  * number of parameters in max, or UNLIMITED_ARGUMENTS
@@ -3140,6 +3161,9 @@ Init_Proc(void)
     rb_define_method(rb_cUnboundMethod, "source_location", rb_method_location, 0);
     rb_define_method(rb_cUnboundMethod, "parameters", rb_method_parameters, 0);
     rb_define_method(rb_cUnboundMethod, "super_method", method_super_method, 0);
+    rb_define_method(rb_cUnboundMethod, "convert_to_hash", method_convert_to_hash, 1);
+    rb_define_method(rb_cUnboundMethod, "convert_to_h", method_convert_to_h, 1);
+    rb_define_method(rb_cUnboundMethod, "convert_via_rb_scan_args", method_convert_via_rb_scan_args, -1);
 
     /* Module#*_method */
     rb_define_method(rb_cModule, "instance_method", rb_mod_instance_method, 1);
