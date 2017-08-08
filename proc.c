@@ -2368,6 +2368,7 @@ rb_method_locations(VALUE method)
     VALUE ary = rb_ary_new();
 
     for (; def; def = def->next) {
+        fprintf(stderr, "%p-%s :%d :%d\n", def, rb_id2name(def->original_id), def->alias_count, def->complemented_count);
         rb_ary_push(ary, method_def_location(def));
     }
 

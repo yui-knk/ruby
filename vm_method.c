@@ -4,7 +4,7 @@
 
 #include "id_table.h"
 
-#define METHOD_DEBUG 0
+#define METHOD_DEBUG 1
 
 #if OPT_GLOBAL_METHOD_CACHE
 #ifndef GLOBAL_METHOD_CACHE_SIZE
@@ -27,6 +27,8 @@
 
 static int vm_redefinition_check_flag(VALUE klass);
 static void rb_vm_check_redefinition_opt_method(const rb_method_entry_t *me, VALUE klass);
+static rb_method_definition_t * method_definition_addref_complement(rb_method_definition_t *def);
+
 
 #define object_id           idObject_id
 #define added               idMethod_added
@@ -352,6 +354,11 @@ method_definition_create(rb_method_type_t type, ID mid, rb_method_definition_t *
     def->type = type;
     def->original_id = mid;
     def->next = next;
+
+    if (next) {
+    	method_definition_addref_complement(next);
+    }
+    fprintf(stderr, "%p-%s:%d,%d,%d (create)\n", def, rb_id2name(def->original_id), def->type, def->alias_count, def->complemented_count);
     return def;
 }
 
@@ -359,7 +366,7 @@ static rb_method_definition_t *
 method_definition_addref(rb_method_definition_t *def)
 {
     def->alias_count++;
-    if (METHOD_DEBUG) fprintf(stderr, "+%p-%s:%d\n", def, rb_id2name(def->original_id), def->alias_count);
+    if (METHOD_DEBUG) fprintf(stderr, "+%p-%s:%d (alias_count up)\n", def, rb_id2name(def->original_id), def->alias_count);
     return def;
 }
 
@@ -367,7 +374,7 @@ static rb_method_definition_t *
 method_definition_addref_complement(rb_method_definition_t *def)
 {
     def->complemented_count++;
-    if (METHOD_DEBUG) fprintf(stderr, "+%p-%s:%d\n", def, rb_id2name(def->original_id), def->alias_count);
+    if (METHOD_DEBUG) fprintf(stderr, "+%p-%s:%d (complemented_count up)\n", def, rb_id2name(def->original_id), def->complemented_count);
     return def;
 }
 
