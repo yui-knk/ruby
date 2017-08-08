@@ -2521,6 +2521,45 @@ rb_method_location(VALUE method)
     return method_def_location(method_def(method));
 }
 
+static VALUE
+method_type_str(const rb_method_definition_t *def)
+{
+    switch (def->type) {
+      case VM_METHOD_TYPE_CFUNC:
+        return rb_str_new2("VM_METHOD_TYPE_CFUNC");
+      case VM_METHOD_TYPE_ZSUPER:
+        return rb_str_new2("VM_METHOD_TYPE_ZSUPER");
+      case VM_METHOD_TYPE_ATTRSET:
+        return rb_str_new2("VM_METHOD_TYPE_ATTRSET");
+      case VM_METHOD_TYPE_IVAR:
+        return rb_str_new2("VM_METHOD_TYPE_IVAR");
+      case VM_METHOD_TYPE_ALIAS:
+        return rb_str_new2("VM_METHOD_TYPE_ALIAS");
+      case VM_METHOD_TYPE_BMETHOD:
+        return rb_str_new2("VM_METHOD_TYPE_BMETHOD");
+      case VM_METHOD_TYPE_ISEQ:
+        return rb_str_new2("VM_METHOD_TYPE_ISEQ");
+      case VM_METHOD_TYPE_UNDEF:
+        return rb_str_new2("VM_METHOD_TYPE_UNDEF");
+      case VM_METHOD_TYPE_NOTIMPLEMENTED:
+        return rb_str_new2("VM_METHOD_TYPE_NOTIMPLEMENTED");
+      case VM_METHOD_TYPE_MISSING:
+        return rb_str_new2("VM_METHOD_TYPE_MISSING");
+      case VM_METHOD_TYPE_OPTIMIZED:
+        return rb_str_new2("VM_METHOD_TYPE_OPTIMIZED");
+      case VM_METHOD_TYPE_REFINED:
+        return rb_str_new2("VM_METHOD_TYPE_REFINED");
+    }
+    rb_bug("method_type_str: invalid method entry type (%d)", def->type);
+    UNREACHABLE;
+}
+
+static VALUE
+method_method_type(VALUE method)
+{
+    return method_type_str(method_def(method));
+}
+
 /*
  * call-seq:
  *    meth.parameters  -> array
@@ -3118,6 +3157,7 @@ Init_Proc(void)
     rb_define_method(rb_cMethod, "source_location", rb_method_location, 0);
     rb_define_method(rb_cMethod, "parameters", rb_method_parameters, 0);
     rb_define_method(rb_cMethod, "super_method", method_super_method, 0);
+    rb_define_method(rb_cMethod, "method_type", method_method_type, 0);
     rb_define_method(rb_mKernel, "method", rb_obj_method, 1);
     rb_define_method(rb_mKernel, "public_method", rb_obj_public_method, 1);
     rb_define_method(rb_mKernel, "singleton_method", rb_obj_singleton_method, 1);
@@ -3140,6 +3180,7 @@ Init_Proc(void)
     rb_define_method(rb_cUnboundMethod, "source_location", rb_method_location, 0);
     rb_define_method(rb_cUnboundMethod, "parameters", rb_method_parameters, 0);
     rb_define_method(rb_cUnboundMethod, "super_method", method_super_method, 0);
+    rb_define_method(rb_cUnboundMethod, "method_type", method_method_type, 0);
 
     /* Module#*_method */
     rb_define_method(rb_cModule, "instance_method", rb_mod_instance_method, 1);
