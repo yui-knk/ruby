@@ -166,6 +166,7 @@ typedef struct rb_method_definition_struct {
     } body;
 
     ID original_id;
+    struct rb_method_definition_struct * next;
 } rb_method_definition_t;
 
 #define UNDEFINED_METHOD_ENTRY_P(me) (!(me) || !(me)->def || (me)->def->type == VM_METHOD_TYPE_UNDEF)
