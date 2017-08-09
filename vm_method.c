@@ -278,6 +278,9 @@ method_definition_set(const rb_method_entry_t *me, rb_method_definition_t *def, 
 		if (cfp && (line = rb_vm_get_sourceline(cfp))) {
 		    VALUE location = rb_ary_new3(2, cfp->iseq->body->location.path, INT2FIX(line));
 		    RB_OBJ_WRITE(me, &def->body.attr.location, rb_ary_freeze(location));
+
+            // printf("method_definition_set class name (%s)\n", rb_class2name(CLASS_OF(location)));
+            if (location != def->body.attr.location) printf("method_definition_set pointers (%p) (%p)\n", (void *)location, (void *)def->body.attr.location);
 		}
 		else {
 		    VM_ASSERT(def->body.attr.location == 0);
@@ -1100,6 +1103,18 @@ rb_scope_visibility_get(void)
     }
 }
 
+static VALUE
+rb_mod_scope_visibility(VALUE klass) {
+    switch (rb_scope_visibility_get()) {
+      case METHOD_VISI_PRIVATE:
+        return ID2SYM(rb_intern("private"));
+      case METHOD_VISI_PROTECTED:
+        return ID2SYM(rb_intern("protected"));
+      default:
+        return ID2SYM(rb_intern("public"));
+    }
+}
+
 static int
 rb_scope_module_func_check(void)
 {
@@ -1118,6 +1133,17 @@ static void
 vm_cref_set_visibility(rb_method_visibility_t method_visi, int module_func)
 {
     rb_scope_visibility_t *scope_visi = (rb_scope_visibility_t *)&rb_vm_cref()->scope_visi;
+
+    if (scope_visi->method_visi == method_visi) {
+	switch (method_visi & METHOD_VISI_MASK) {
+	  case METHOD_VISI_UNDEF:
+	  case METHOD_VISI_PUBLIC:    rb_warning("public is called in public context."); break;
+	  case METHOD_VISI_PRIVATE:   rb_warning("private is called in private context."); break;
+	  case METHOD_VISI_PROTECTED: rb_warning("protected is called in protected context."); break;
+	  default: UNREACHABLE;
+	}
+    }
+
     scope_visi->method_visi = method_visi;
     scope_visi->module_func = module_func;
 }
@@ -2083,6 +2109,7 @@ Init_eval_method(void)
     rb_define_private_method(rb_cModule, "protected", rb_mod_protected, -1);
     rb_define_private_method(rb_cModule, "private", rb_mod_private, -1);
     rb_define_private_method(rb_cModule, "module_function", rb_mod_modfunc, -1);
+    rb_define_private_method(rb_cModule, "scope_visibility", rb_mod_scope_visibility, -1);
 
     rb_define_method(rb_cModule, "method_defined?", rb_mod_method_defined, 1);
     rb_define_method(rb_cModule, "public_method_defined?", rb_mod_public_method_defined, 1);

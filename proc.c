@@ -2350,13 +2350,35 @@ method_cref(VALUE method)
     }
 }
 
+/* array.c */
+#define ARY_MAX_SIZE (LONG_MAX / (int)sizeof(VALUE))
+
 static VALUE
 method_def_location(const rb_method_definition_t *def)
 {
+    long len;
+    VALUE args[2];
+
     if (def->type == VM_METHOD_TYPE_ATTRSET || def->type == VM_METHOD_TYPE_IVAR) {
 	if (!def->body.attr.location)
 	    return Qnil;
-	return rb_ary_dup(def->body.attr.location);
+
+        len = RARRAY_LEN(def->body.attr.location);
+        // printf("rb_ary_dup (%s)\n", rb_id2name(def->original_id));
+        // printf("rb_ary_dup :%ld\n", len);
+        if (len > 100) {
+            args[0] = INT2FIX(0);
+            args[1] = INT2FIX(99);
+            if (def->type == VM_METHOD_TYPE_ATTRSET) printf("method_def_location def->type (VM_METHOD_TYPE_ATTRSET)\n");
+            if (def->type == VM_METHOD_TYPE_IVAR) printf("method_def_location def->type (VM_METHOD_TYPE_IVAR)\n");
+            printf("method_def_location def->body.attr.location (%p)\n", (void *)def->body.attr.location);
+            printf("method_def_location slice '%s' :%ld -> %d\n", rb_id2name(def->original_id), len, 100);
+            printf("method_def_location class name (%s)\n", rb_class2name(CLASS_OF(def->body.attr.location)));
+            return rb_funcallv(def->body.attr.location, rb_intern("slice"), 2, args);
+        }
+        else {
+            return rb_ary_dup(def->body.attr.location);
+        }
     }
     return iseq_location(method_def_iseq(def));
 }
@@ -2365,10 +2387,20 @@ static VALUE
 rb_method_locations(VALUE method)
 {
     const rb_method_definition_t *def = method_def(method);
-    VALUE ary = rb_ary_new();
+    int i = 0;
+    VALUE ary;
+
+
+    // printf("%s\n", rb_id2name(def->original_id));
+    // printf("rb_ary_new(before)\n");
+    ary = rb_ary_new();
+    // printf("rb_ary_new(after) %p\n", (void *)ary);
 
     for (; def; def = def->next) {
+        // printf("%d\n", i);
         rb_ary_push(ary, method_def_location(def));
+        // printf("%ld\n", RARRAY_LEN(ary));
+        i++;
     }
 
     return ary;

@@ -466,7 +466,9 @@ ary_new(VALUE klass, long capa)
 	rb_raise(rb_eArgError, "negative array size (or size too big)");
     }
     if (capa > ARY_MAX_SIZE) {
-	rb_raise(rb_eArgError, "array size too big");
+        rb_backtrace();
+        rb_print_backtrace();
+	rb_raise(rb_eArgError, "array size too big (ary_new) %ld, %ld", capa, ARY_MAX_SIZE);
     }
 
     RUBY_DTRACE_CREATE_HOOK(ARRAY, capa);
@@ -752,7 +754,7 @@ rb_ary_initialize(int argc, VALUE *argv, VALUE ary)
 	rb_raise(rb_eArgError, "negative array size");
     }
     if (len > ARY_MAX_SIZE) {
-	rb_raise(rb_eArgError, "array size too big");
+	rb_raise(rb_eArgError, "array size too big (rb_ary_initialize) %ld, %ld", len, ARY_MAX_SIZE);
     }
     /* recheck after argument conversion */
     rb_ary_modify(ary);
