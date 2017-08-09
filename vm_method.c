@@ -27,6 +27,7 @@
 
 static int vm_redefinition_check_flag(VALUE klass);
 static void rb_vm_check_redefinition_opt_method(const rb_method_entry_t *me, VALUE klass);
+static rb_method_definition_t *method_definition_addref_complement(rb_method_definition_t *def);
 
 #define object_id           idObject_id
 #define added               idMethod_added
@@ -352,6 +353,9 @@ method_definition_create(rb_method_type_t type, ID mid, rb_method_definition_t *
     def->type = type;
     def->original_id = mid;
     def->next = next;
+    if (next) {
+       method_definition_addref_complement(next);
+    }
     return def;
 }
 
