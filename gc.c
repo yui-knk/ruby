@@ -4001,6 +4001,42 @@ rb_mark_hash(st_table *tbl)
 }
 
 static void
+mark_method_entry_def(rb_objspace_t *objspace, const rb_method_definition_t *def)
+{
+    switch (def->type) {
+      case VM_METHOD_TYPE_ISEQ:
+        if (def->body.iseq.iseqptr) gc_mark(objspace, (VALUE)def->body.iseq.iseqptr);
+        gc_mark(objspace, (VALUE)def->body.iseq.cref);
+        break;
+      case VM_METHOD_TYPE_ATTRSET:
+      case VM_METHOD_TYPE_IVAR:
+        gc_mark(objspace, def->body.attr.location);
+        break;
+      case VM_METHOD_TYPE_BMETHOD:
+        gc_mark(objspace, def->body.proc);
+        break;
+      case VM_METHOD_TYPE_ALIAS:
+        gc_mark(objspace, (VALUE)def->body.alias.original_me);
+        return;
+      case VM_METHOD_TYPE_REFINED:
+        gc_mark(objspace, (VALUE)def->body.refined.orig_me);
+        gc_mark(objspace, (VALUE)def->body.refined.owner);
+        break;
+      case VM_METHOD_TYPE_CFUNC:
+      case VM_METHOD_TYPE_ZSUPER:
+      case VM_METHOD_TYPE_MISSING:
+      case VM_METHOD_TYPE_OPTIMIZED:
+      case VM_METHOD_TYPE_UNDEF:
+      case VM_METHOD_TYPE_NOTIMPLEMENTED:
+        break;
+    }
+
+    if (def->next) {
+        mark_method_entry_def(objspace, def->next);
+    }
+}
+
+static void
 mark_method_entry(rb_objspace_t *objspace, const rb_method_entry_t *me)
 {
     const rb_method_definition_t *def = me->def;
@@ -4009,33 +4045,7 @@ mark_method_entry(rb_objspace_t *objspace, const rb_method_entry_t *me)
     gc_mark(objspace, me->defined_class);
 
     if (def) {
-	switch (def->type) {
-	  case VM_METHOD_TYPE_ISEQ:
-	    if (def->body.iseq.iseqptr) gc_mark(objspace, (VALUE)def->body.iseq.iseqptr);
-	    gc_mark(objspace, (VALUE)def->body.iseq.cref);
-	    break;
-	  case VM_METHOD_TYPE_ATTRSET:
-	  case VM_METHOD_TYPE_IVAR:
-	    gc_mark(objspace, def->body.attr.location);
-	    break;
-	  case VM_METHOD_TYPE_BMETHOD:
-	    gc_mark(objspace, def->body.proc);
-	    break;
-	  case VM_METHOD_TYPE_ALIAS:
-	    gc_mark(objspace, (VALUE)def->body.alias.original_me);
-	    return;
-	  case VM_METHOD_TYPE_REFINED:
-	    gc_mark(objspace, (VALUE)def->body.refined.orig_me);
-	    gc_mark(objspace, (VALUE)def->body.refined.owner);
-	    break;
-	  case VM_METHOD_TYPE_CFUNC:
-	  case VM_METHOD_TYPE_ZSUPER:
-	  case VM_METHOD_TYPE_MISSING:
-	  case VM_METHOD_TYPE_OPTIMIZED:
-	  case VM_METHOD_TYPE_UNDEF:
-	  case VM_METHOD_TYPE_NOTIMPLEMENTED:
-	    break;
-	}
+        mark_method_entry_def(objspace, def);
     }
 }
 
