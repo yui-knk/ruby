@@ -75,6 +75,42 @@ rb_coverage_result(VALUE klass)
     return ncoverages;
 }
 
+static int
+reset_counts_i(st_data_t key, st_data_t val, st_data_t dummy)
+{
+    long i;
+    VALUE coverage = (VALUE)val;
+
+    rb_ary_modify(coverage);
+
+    for (i = 0; i < RARRAY_LEN(coverage); i++) {
+        VALUE elem = rb_ary_entry(coverage, i);
+
+        if (NIL_P(elem)) {
+            rb_ary_store(coverage, i, Qnil);
+        }
+        else if (RB_INTEGER_TYPE_P(elem)) {
+            rb_ary_store(coverage, i, INT2FIX(0));
+        }
+        else {
+            rb_bug("reset_counts_i: an unexpected element.");
+        }
+    }
+
+    return ST_CONTINUE;
+}
+
+static VALUE
+rb_coverage_reset_counts(VALUE klass)
+{
+    VALUE coverages = rb_get_coverages();
+    if (!RTEST(coverages)) {
+        rb_raise(rb_eRuntimeError, "coverage measurement is not enabled");
+    }
+    st_foreach(RHASH_TBL(coverages), reset_counts_i, 0);
+    return Qtrue;
+}
+
 /* Coverage provides coverage measurement feature for Ruby.
  * This feature is experimental, so these APIs may be changed in future.
  *
@@ -115,4 +151,5 @@ Init_coverage(void)
     rb_define_module_function(rb_mCoverage, "start", rb_coverage_start, 0);
     rb_define_module_function(rb_mCoverage, "result", rb_coverage_result, 0);
     rb_define_module_function(rb_mCoverage, "peek_result", rb_coverage_peek_result, 0);
+    rb_define_module_function(rb_mCoverage, "reset_counts", rb_coverage_reset_counts, 0);
 }
