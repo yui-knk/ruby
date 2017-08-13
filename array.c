@@ -6260,7 +6260,7 @@ Init_Array(void)
     rb_define_method(rb_cArray, "bsearch_index", rb_ary_bsearch_index, 0);
     rb_define_method(rb_cArray, "any?", rb_ary_any_p, 0);
     rb_define_method(rb_cArray, "dig", rb_ary_dig, -1);
-    rb_define_method(rb_cArray, "sum", rb_ary_sum, -1);
+    RB_DEFINE_METHOD_DETAIL(rb_cArray, "sum", rb_ary_sum, -1);
 
     id_random = rb_intern("random");
     id_div = rb_intern("div");

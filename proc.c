@@ -2481,6 +2481,12 @@ method_def_location(const rb_method_definition_t *def)
 	    return Qnil;
 	return rb_ary_dup(def->body.attr.location);
     }
+
+    if (def->type == VM_METHOD_TYPE_CFUNC) {
+        if (def->body.cfunc.file && def->body.cfunc.line != 0) {
+            return rb_ary_new3(2, rb_str_new2(def->body.cfunc.file), INT2FIX(def->body.cfunc.line));
+        }
+    }
     return iseq_location(method_def_iseq(def));
 }
 

@@ -127,13 +127,15 @@ rb_define_notimplement_method_id(VALUE mod, ID id, rb_method_visibility_t visi)
 }
 
 void
-rb_add_method_cfunc(VALUE klass, ID mid, VALUE (*func)(ANYARGS), int argc, rb_method_visibility_t visi)
+rb_add_method_cfunc(VALUE klass, ID mid, VALUE (*func)(ANYARGS), int argc, char *file, int line, rb_method_visibility_t visi)
 {
     if (argc < -2 || 15 < argc) rb_raise(rb_eArgError, "arity out of range: %d for -2..15", argc);
     if (func != rb_f_notimplement) {
 	rb_method_cfunc_t opt;
 	opt.func = func;
 	opt.argc = argc;
+	opt.file = file;
+	opt.line = line;
 	rb_add_method(klass, mid, VM_METHOD_TYPE_CFUNC, &opt, visi);
     }
     else {
@@ -215,11 +217,13 @@ static VALUE
 }
 
 static void
-setup_method_cfunc_struct(rb_method_cfunc_t *cfunc, VALUE (*func)(), int argc)
+setup_method_cfunc_struct(rb_method_cfunc_t *cfunc, VALUE (*func)(), int argc, char *file, int line)
 {
     cfunc->func = func;
     cfunc->argc = argc;
     cfunc->invoker = call_cfunc_invoker_func(argc);
+    cfunc->file = file;
+    cfunc->line = line;
 }
 
 static void
@@ -252,7 +256,7 @@ method_definition_set(const rb_method_entry_t *me, rb_method_definition_t *def, 
 	  case VM_METHOD_TYPE_CFUNC:
 	    {
 		rb_method_cfunc_t *cfunc = (rb_method_cfunc_t *)opts;
-		setup_method_cfunc_struct(UNALIGNED_MEMBER_PTR(def, body.cfunc), cfunc->func, cfunc->argc);
+		setup_method_cfunc_struct(UNALIGNED_MEMBER_PTR(def, body.cfunc), cfunc->func, cfunc->argc, cfunc->file, cfunc->line);
 		return;
 	    }
 	  case VM_METHOD_TYPE_ATTRSET:
@@ -279,7 +283,7 @@ method_definition_set(const rb_method_entry_t *me, rb_method_definition_t *def, 
 	    RB_OBJ_WRITE(me, &def->body.proc, (VALUE)opts);
 	    return;
 	  case VM_METHOD_TYPE_NOTIMPLEMENTED:
-	    setup_method_cfunc_struct(UNALIGNED_MEMBER_PTR(def, body.cfunc), rb_f_notimplement, -1);
+	    setup_method_cfunc_struct(UNALIGNED_MEMBER_PTR(def, body.cfunc), rb_f_notimplement, -1, NULL, 0);
 	    return;
 	  case VM_METHOD_TYPE_OPTIMIZED:
 	    def->body.optimize_type = (enum method_optimized_type)opts;

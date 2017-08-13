@@ -1508,25 +1508,31 @@ rb_obj_singleton_methods(int argc, const VALUE *argv, VALUE obj)
 void
 rb_define_method_id(VALUE klass, ID mid, VALUE (*func)(ANYARGS), int argc)
 {
-    rb_add_method_cfunc(klass, mid, func, argc, METHOD_VISI_PUBLIC);
+    rb_add_method_cfunc(klass, mid, func, argc, NULL, 0, METHOD_VISI_PUBLIC);
 }
 
 void
 rb_define_method(VALUE klass, const char *name, VALUE (*func)(ANYARGS), int argc)
 {
-    rb_add_method_cfunc(klass, rb_intern(name), func, argc, METHOD_VISI_PUBLIC);
+    rb_add_method_cfunc(klass, rb_intern(name), func, argc, NULL, 0, METHOD_VISI_PUBLIC);
 }
 
 void
 rb_define_protected_method(VALUE klass, const char *name, VALUE (*func)(ANYARGS), int argc)
 {
-    rb_add_method_cfunc(klass, rb_intern(name), func, argc, METHOD_VISI_PROTECTED);
+    rb_add_method_cfunc(klass, rb_intern(name), func, argc, NULL, 0, METHOD_VISI_PROTECTED);
 }
 
 void
 rb_define_private_method(VALUE klass, const char *name, VALUE (*func)(ANYARGS), int argc)
 {
-    rb_add_method_cfunc(klass, rb_intern(name), func, argc, METHOD_VISI_PRIVATE);
+    rb_add_method_cfunc(klass, rb_intern(name), func, argc, NULL, 0, METHOD_VISI_PRIVATE);
+}
+
+void
+rb_define_method_detail(VALUE klass, const char *name, VALUE (*func)(ANYARGS), int argc, char *file, int line)
+{
+    rb_add_method_cfunc(klass, rb_intern(name), func, argc, file, line, METHOD_VISI_PUBLIC);
 }
 
 void

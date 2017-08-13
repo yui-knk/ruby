@@ -128,6 +128,8 @@ typedef struct rb_method_cfunc_struct {
     VALUE (*func)(ANYARGS);
     VALUE (*invoker)(VALUE (*func)(ANYARGS), VALUE recv, int argc, const VALUE *argv);
     int argc;
+    char *file;
+    int line;
 } rb_method_cfunc_t;
 
 typedef struct rb_method_attr_struct {
@@ -176,7 +178,7 @@ typedef struct rb_method_definition_struct rb_method_definition_t;
     ((def)->type == VM_METHOD_TYPE_REFINED && \
      UNDEFINED_METHOD_ENTRY_P((def)->body.refined.orig_me))
 
-void rb_add_method_cfunc(VALUE klass, ID mid, VALUE (*func)(ANYARGS), int argc, rb_method_visibility_t visi);
+void rb_add_method_cfunc(VALUE klass, ID mid, VALUE (*func)(ANYARGS), int argc, char *file, int line, rb_method_visibility_t visi);
 void rb_add_method_iseq(VALUE klass, ID mid, const rb_iseq_t *iseq, rb_cref_t *cref, rb_method_visibility_t visi);
 void rb_add_refined_method_entry(VALUE refined_class, ID mid);
 

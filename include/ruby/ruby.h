@@ -1707,6 +1707,9 @@ void rb_define_method(VALUE,const char*,VALUE(*)(ANYARGS),int);
 void rb_define_module_function(VALUE,const char*,VALUE(*)(ANYARGS),int);
 void rb_define_global_function(const char*,VALUE(*)(ANYARGS),int);
 
+#define RB_DEFINE_METHOD_DETAIL(klass, name, func, argc) rb_define_method_detail(klass, name, func, argc, __FILE__, __LINE__)
+void rb_define_method_detail(VALUE klass, const char *name, VALUE (*func)(ANYARGS), int argc, char *file, int line);
+
 void rb_undef_method(VALUE,const char*);
 void rb_define_alias(VALUE,const char*,const char*);
 void rb_define_attr(VALUE,const char*,int,int);
