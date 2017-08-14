@@ -807,6 +807,19 @@ rb_tracearg_method_id(rb_trace_arg_t *trace_arg)
 }
 
 VALUE
+rb_tracearg_instance_variable_id(rb_trace_arg_t *trace_arg)
+{
+    if (trace_arg->event & (RUBY_EVENT_GET_INSTANCE_VARIABLE)) {
+        /* ok */
+    }
+    else {
+        rb_raise(rb_eRuntimeError, "not supported by this event");
+    }
+
+    return trace_arg->id ? ID2SYM(trace_arg->id) : Qnil;
+}
+
+VALUE
 rb_tracearg_defined_class(rb_trace_arg_t *trace_arg)
 {
     fill_id_and_klass(trace_arg);
@@ -929,6 +942,12 @@ static VALUE
 tracepoint_attr_method_id(VALUE tpval)
 {
     return rb_tracearg_method_id(get_trace_arg());
+}
+
+static VALUE
+tracepoint_attr_instance_variable_id(VALUE tpval)
+{
+    return rb_tracearg_instance_variable_id(get_trace_arg());
 }
 
 /*
@@ -1503,6 +1522,7 @@ Init_vm_trace(void)
     rb_define_method(rb_cTracePoint, "lineno", tracepoint_attr_lineno, 0);
     rb_define_method(rb_cTracePoint, "path", tracepoint_attr_path, 0);
     rb_define_method(rb_cTracePoint, "method_id", tracepoint_attr_method_id, 0);
+    rb_define_method(rb_cTracePoint, "instance_variable_id", tracepoint_attr_instance_variable_id, 0);
     rb_define_method(rb_cTracePoint, "defined_class", tracepoint_attr_defined_class, 0);
     rb_define_method(rb_cTracePoint, "binding", tracepoint_attr_binding, 0);
     rb_define_method(rb_cTracePoint, "self", tracepoint_attr_self, 0);
