@@ -68,6 +68,7 @@ branches:
     - ruby_2_1
     - ruby_2_2
     - ruby_2_3
+    - /^feature\//
 
 # We want to be notified when something happens.
 notifications:
