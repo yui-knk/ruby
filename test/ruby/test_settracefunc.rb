@@ -782,6 +782,37 @@ class TestSetTraceFunc < Test::Unit::TestCase
     }
   end
 
+  def test_tracepoint_get_instance_variable
+    klass = Class.new do
+      attr_reader :a
+
+      def initialize(a, b)
+        @a = a
+        @b = b
+      end
+
+      def b
+        @b
+      end
+    end
+
+    events = []
+    expected = [
+      [:get_instance_variable, :@a, 1],
+      [:get_instance_variable, :@b, :a]
+    ]
+
+    TracePoint.new(:get_instance_variable) {|tp|
+      events << [tp.event, tp.self, tp.instance_variable_id, tp.got_instance_variable]
+    }.enable {
+      obj = klass.new(1, :a)
+      obj.a
+      obj.b
+    }
+
+    assert_equal(expected, events)
+  end
+
   def test_tracepoint_thread
     events = []
     thread_self = nil
