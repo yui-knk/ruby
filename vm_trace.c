@@ -704,6 +704,7 @@ symbol2event_flag(VALUE v)
     C(thread_end, THREAD_END);
     C(fiber_switch, FIBER_SWITCH);
     C(specified_line, SPECIFIED_LINE);
+    C(get_instance_variable, GET_INSTANCE_VARIABLE);
     C(a_call, A_CALL);
     C(a_return, A_RETURN);
 #undef C
@@ -862,6 +863,21 @@ rb_tracearg_raised_exception(rb_trace_arg_t *trace_arg)
 }
 
 VALUE
+rb_tracearg_got_instance_variable(rb_trace_arg_t *trace_arg)
+{
+    if (trace_arg->event & (RUBY_EVENT_GET_INSTANCE_VARIABLE)) {
+        /* ok */
+    }
+    else {
+        rb_raise(rb_eRuntimeError, "not supported by this event");
+    }
+    if (trace_arg->data == Qundef) {
+        rb_bug("rb_tracearg_got_instance_variable: unreachable");
+    }
+    return trace_arg->data;
+}
+
+VALUE
 rb_tracearg_object(rb_trace_arg_t *trace_arg)
 {
     if (trace_arg->event & (RUBY_INTERNAL_EVENT_NEWOBJ | RUBY_INTERNAL_EVENT_FREEOBJ)) {
@@ -991,6 +1007,12 @@ static VALUE
 tracepoint_attr_raised_exception(VALUE tpval)
 {
     return rb_tracearg_raised_exception(get_trace_arg());
+}
+
+static VALUE
+tracepoint_attr_got_instance_variable(VALUE tpval)
+{
+    return rb_tracearg_got_instance_variable(get_trace_arg());
 }
 
 static void
@@ -1485,6 +1507,7 @@ Init_vm_trace(void)
     rb_define_method(rb_cTracePoint, "self", tracepoint_attr_self, 0);
     rb_define_method(rb_cTracePoint, "return_value", tracepoint_attr_return_value, 0);
     rb_define_method(rb_cTracePoint, "raised_exception", tracepoint_attr_raised_exception, 0);
+    rb_define_method(rb_cTracePoint, "got_instance_variable", tracepoint_attr_got_instance_variable, 0);
 
     rb_define_singleton_method(rb_cTracePoint, "stat", tracepoint_stat_s, 0);
 
