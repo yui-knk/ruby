@@ -782,12 +782,15 @@ vm_search_const_defined_class(const VALUE cbase, ID id)
 static inline VALUE
 vm_getivar(VALUE obj, ID id, IC ic, struct rb_call_cache *cc, int is_attr)
 {
+    VALUE val;
+
 #if USE_IC_FOR_IVAR
     if (RB_TYPE_P(obj, T_OBJECT)) {
-	VALUE val = Qundef;
 	VALUE klass = RBASIC(obj)->klass;
 	const long len = ROBJECT_NUMIV(obj);
 	const VALUE *const ptr = ROBJECT_IVPTR(obj);
+
+	val = Qundef;
 
 	if (LIKELY(is_attr ? cc->aux.index > 0 : ic->ic_serial == RCLASS_SERIAL(klass))) {
 	    long index = !is_attr ? (long)ic->ic_value.index : (long)(cc->aux.index - 1);
@@ -824,9 +827,13 @@ vm_getivar(VALUE obj, ID id, IC ic, struct rb_call_cache *cc, int is_attr)
 	return val;
     }
 #endif	/* USE_IC_FOR_IVAR */
-    if (is_attr)
-	return rb_attr_get(obj, id);
-    return rb_ivar_get(obj, id);
+    if (is_attr) {
+	val = rb_attr_get(obj, id);
+    }
+    else {
+	val = rb_ivar_get(obj, id);
+    }
+    return val;
 }
 
 static inline VALUE
