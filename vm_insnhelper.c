@@ -824,6 +824,7 @@ vm_getivar(VALUE obj, ID id, IC ic, struct rb_call_cache *cc, int is_attr)
 		rb_warning("instance variable %"PRIsVALUE" not initialized", QUOTE_ID(id));
 	    val = Qnil;
 	}
+	EXEC_EVENT_HOOK(GET_THREAD(), RUBY_EVENT_GET_INSTANCE_VARIABLE, obj, id, 0, val);
 	return val;
     }
 #endif	/* USE_IC_FOR_IVAR */
@@ -833,6 +834,7 @@ vm_getivar(VALUE obj, ID id, IC ic, struct rb_call_cache *cc, int is_attr)
     else {
 	val = rb_ivar_get(obj, id);
     }
+    EXEC_EVENT_HOOK(GET_THREAD(), RUBY_EVENT_GET_INSTANCE_VARIABLE, obj, id, 0, val);
     return val;
 }
 
