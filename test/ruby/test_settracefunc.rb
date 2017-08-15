@@ -802,12 +802,15 @@ class TestSetTraceFunc < Test::Unit::TestCase
       [:get_instance_variable, :@b, :a]
     ]
 
+    obj = klass.new(1, :a)
+
     TracePoint.new(:get_instance_variable) {|tp|
       events << [tp.event, tp.self, tp.instance_variable_id, tp.got_instance_variable]
     }.enable {
-      obj = klass.new(1, :a)
       obj.a
       obj.b
+      obj.instance_variable_get(:@a)
+      obj.instance_variable_get(:@b)
     }
 
     assert_equal(expected, events)

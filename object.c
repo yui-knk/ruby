@@ -22,6 +22,7 @@
 #include "constant.h"
 #include "id.h"
 #include "probes.h"
+#include "vm_core.h"
 
 VALUE rb_cBasicObject;
 VALUE rb_mKernel;
@@ -2342,12 +2343,15 @@ rb_mod_const_defined(int argc, VALUE *argv, VALUE mod)
 static VALUE
 rb_obj_ivar_get(VALUE obj, VALUE iv)
 {
+    VALUE ivar;
     ID id = id_for_var(obj, iv, an, instance);
 
     if (!id) {
 	return Qnil;
     }
-    return rb_ivar_get(obj, id);
+    ivar = rb_ivar_get(obj, id);
+    EXEC_EVENT_HOOK(GET_THREAD(), RUBY_EVENT_GET_INSTANCE_VARIABLE, obj, id, 0, ivar);
+    return ivar;
 }
 
 /*
