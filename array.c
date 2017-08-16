@@ -5902,6 +5902,46 @@ rb_ary_sum(int argc, VALUE *argv, VALUE ary)
     return v;
 }
 
+static VALUE
+rb_ary_set_a(VALUE ary)
+{
+    VALUE i = INT2FIX(1);
+    rb_iv_set(ary, "a", i);
+    return i;
+}
+
+static VALUE
+rb_ary_set_b(VALUE ary)
+{
+    VALUE i = INT2FIX(10);
+    rb_iv_set(ary, "b", i);
+    return i;
+}
+
+static VALUE
+rb_ary_get_a(VALUE ary, VALUE flag)
+{
+    if (RTEST(flag)) {
+        ID id = rb_intern("a");
+        return rb_attr_get(ary, id);
+    }
+    else {
+        return rb_iv_get(ary, "a");
+    }
+}
+
+static VALUE
+rb_ary_get_b(VALUE ary, VALUE flag)
+{
+    if (RTEST(flag)) {
+        ID id = rb_intern("b");
+        return rb_attr_get(ary, id);
+    }
+    else {
+        return rb_iv_get(ary, "b");
+    }
+}
+
 /*
  *  Arrays are ordered, integer-indexed collections of any object.
  *
@@ -6261,6 +6301,11 @@ Init_Array(void)
     rb_define_method(rb_cArray, "any?", rb_ary_any_p, 0);
     rb_define_method(rb_cArray, "dig", rb_ary_dig, -1);
     rb_define_method(rb_cArray, "sum", rb_ary_sum, -1);
+
+    rb_define_method(rb_cArray, "set_a", rb_ary_set_a, 0);
+    rb_define_method(rb_cArray, "set_b", rb_ary_set_b, 0);
+    rb_define_method(rb_cArray, "get_a", rb_ary_get_a, 1);
+    rb_define_method(rb_cArray, "get_b", rb_ary_get_b, 1);
 
     id_random = rb_intern("random");
     id_div = rb_intern("div");
