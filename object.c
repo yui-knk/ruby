@@ -77,6 +77,12 @@ rb_obj_hide(VALUE obj)
     return obj;
 }
 
+VALUE
+rb_obj_hidden_p(VALUE obj)
+{
+    return (!SPECIAL_CONST_P(obj) && !RBASIC(obj)->klass) ? Qtrue : Qfalse;
+}
+
 /*!
  * Make a hidden object visible again.
  *

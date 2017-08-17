@@ -30,12 +30,10 @@ VALUE rb_cISeq;
 static VALUE iseqw_new(const rb_iseq_t *iseq);
 static const rb_iseq_t *iseqw_check(VALUE iseqw);
 
-#define hidden_obj_p(obj) (!SPECIAL_CONST_P(obj) && !RBASIC(obj)->klass)
-
 static inline VALUE
 obj_resurrect(VALUE obj)
 {
-    if (hidden_obj_p(obj)) {
+    if (RB_OBJ_HIDDEN_P(obj)) {
 	switch (BUILTIN_TYPE(obj)) {
 	  case T_STRING:
 	    obj = rb_str_resurrect(obj);

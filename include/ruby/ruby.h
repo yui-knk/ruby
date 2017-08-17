@@ -861,6 +861,7 @@ struct RBasic {
 ;
 
 VALUE rb_obj_hide(VALUE obj);
+VALUE rb_obj_hidden_p(VALUE obj);
 VALUE rb_obj_reveal(VALUE obj, VALUE klass); /* do not use this API to change klass information */
 
 #if defined(HAVE_BUILTIN___BUILTIN_CHOOSE_EXPR_CONSTANT_P)

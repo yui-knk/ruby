@@ -1453,6 +1453,8 @@ struct RBasicRaw {
     VALUE klass;
 };
 
+#define RB_OBJ_HIDDEN_P(obj)           (RTEST(rb_obj_hidden_p(obj)))
+
 #define RBASIC_CLEAR_CLASS(obj)        memset(&(((struct RBasicRaw *)((VALUE)(obj)))->klass), 0, sizeof(VALUE))
 #define RBASIC_SET_CLASS_RAW(obj, cls) memcpy(&((struct RBasicRaw *)((VALUE)(obj)))->klass, &(cls), sizeof(VALUE))
 #define RBASIC_SET_CLASS(obj, cls)     do { \
