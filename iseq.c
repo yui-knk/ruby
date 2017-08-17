@@ -975,6 +975,67 @@ iseqw_eval(VALUE self)
     return rb_iseq_eval(iseqw_check(self));
 }
 
+static VALUE
+iseqw_type_str(const rb_iseq_t *iseq)
+{
+    switch (iseq->body->type) {
+      case ISEQ_TYPE_TOP:
+        return rb_str_new2("TOP");
+      case ISEQ_TYPE_METHOD:
+        return rb_str_new2("METHOD");
+      case ISEQ_TYPE_BLOCK:
+        return rb_str_new2("BLOCK");
+      case ISEQ_TYPE_CLASS:
+        return rb_str_new2("CLASS");
+      case ISEQ_TYPE_RESCUE:
+        return rb_str_new2("RESCUE");
+      case ISEQ_TYPE_ENSURE:
+        return rb_str_new2("ENSURE");
+      case ISEQ_TYPE_EVAL:
+        return rb_str_new2("EVAL");
+      case ISEQ_TYPE_MAIN:
+        return rb_str_new2("MAIN");
+      case ISEQ_TYPE_DEFINED_GUARD:
+        return rb_str_new2("DEFINED_GUARD");
+      default:
+        rb_bug("insn_operand_intern: unknown operand type: %c", iseq->body->type);
+    }
+}
+
+static VALUE
+iseqw_type(VALUE self)
+{
+    const rb_iseq_t *iseq = iseqw_check(self);
+    return iseqw_type_str(iseq);
+}
+
+static rb_iseq_t *
+iseq_local_iseq(const rb_iseq_t *iseq)
+{
+    return iseq->body->local_iseq;
+}
+
+static VALUE
+iseqw_local_iseq(VALUE self)
+{
+    const rb_iseq_t *iseq = iseqw_check(self);
+    const rb_iseq_t *local_iseq = iseq_local_iseq(iseq);
+
+    if (local_iseq && (iseq != local_iseq)) {
+        return iseqw_new(local_iseq);
+    }
+    else {
+        return Qnil;
+    }
+}
+
+static VALUE
+iseqw_iseq_size(VALUE self)
+{
+    const rb_iseq_t *iseq = iseqw_check(self);
+    return INT2FIX(iseq->body->iseq_size);
+}
+
 /*
  *  Returns a human-readable string representation of this instruction
  *  sequence, including the #label and #path.
@@ -1286,7 +1347,7 @@ id_to_name(ID id, VALUE default_value)
 VALUE
 rb_insn_operand_intern(const rb_iseq_t *iseq,
 		       VALUE insn, int op_no, VALUE op,
-		       int len, size_t pos, const VALUE *pnop, VALUE child)
+		       const int len, size_t pos, const VALUE *pnop, VALUE child)
 {
     const char *types = insn_op_types(insn);
     char type = types[op_no];
@@ -1432,7 +1493,7 @@ rb_iseq_disasm_insn(VALUE ret, const VALUE *code, size_t pos,
 		    const rb_iseq_t *iseq, VALUE child)
 {
     VALUE insn = code[pos];
-    int len = insn_len(insn);
+    const int len = insn_len(insn);
     int j;
     const char *types = insn_op_types(insn);
     VALUE str = rb_str_new(0, 0);
@@ -2468,6 +2529,9 @@ Init_ISeq(void)
     rb_define_method(rb_cISeq, "disassemble", iseqw_disasm, 0);
     rb_define_method(rb_cISeq, "to_a", iseqw_to_a, 0);
     rb_define_method(rb_cISeq, "eval", iseqw_eval, 0);
+    rb_define_method(rb_cISeq, "iseq_type", iseqw_type, 0);
+    rb_define_method(rb_cISeq, "local_iseq", iseqw_local_iseq, 0);
+    rb_define_method(rb_cISeq, "iseq_size", iseqw_iseq_size, 0);
 
     rb_define_method(rb_cISeq, "to_binary", iseqw_to_binary, -1);
     rb_define_singleton_method(rb_cISeq, "load_from_binary", iseqw_s_load_from_binary, 1);
