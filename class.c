@@ -1179,6 +1179,7 @@ class_instance_method_list(int argc, const VALUE *argv, VALUE mod, int obj, int 
 {
     VALUE ary;
     int recur, prepended = 0;
+    int singleton_count = 0;
     struct method_entry_arg me_arg;
 
     if (argc == 0) {
@@ -1198,8 +1199,10 @@ class_instance_method_list(int argc, const VALUE *argv, VALUE mod, int obj, int 
     me_arg.list = st_init_numtable();
     me_arg.recur = recur;
     for (; mod; mod = RCLASS_SUPER(mod)) {
+	if (obj && FL_TEST(mod, FL_SINGLETON) && !recur && singleton_count > 0) break;
 	if (RCLASS_M_TBL(mod)) rb_id_table_foreach(RCLASS_M_TBL(mod), method_entry_i, &me_arg);
 	if (BUILTIN_TYPE(mod) == T_ICLASS && !prepended) continue;
+	if (FL_TEST(mod, FL_SINGLETON)) singleton_count++;
 	if (obj && FL_TEST(mod, FL_SINGLETON)) continue;
 	if (!recur) break;
     }
