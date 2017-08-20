@@ -2498,6 +2498,31 @@ iseqw_s_load_from_binary_extra_data(VALUE self, VALUE str)
     return  iseq_ibf_load_extra_data(str);
 }
 
+static VALUE
+iseqw_s_insns_info(VALUE klass)
+{
+    int i;
+    int count = insns_count();
+    VALUE name, len, types;
+    VALUE ary = rb_ary_new_capa((long)count);
+
+    for (i = 0; i < count; i++) {
+        VALUE ary_t = rb_ary_new_capa(3);
+
+        name = rb_str_new2(insn_name((VALUE)i));
+        len = INT2FIX(insn_len((VALUE)i));
+        types = rb_str_new2(insn_op_types((VALUE)i));
+
+        rb_ary_push(ary_t, name);
+        rb_ary_push(ary_t, len);
+        rb_ary_push(ary_t, types);
+
+        rb_ary_push(ary, ary_t);
+    }
+
+    return ary;
+}
+
 /*
  *  Document-class: RubyVM::InstructionSequence
  *
@@ -2571,6 +2596,8 @@ Init_ISeq(void)
     rb_define_singleton_method(rb_cISeq, "disasm", iseqw_s_disasm, 1);
     rb_define_singleton_method(rb_cISeq, "disassemble", iseqw_s_disasm, 1);
     rb_define_singleton_method(rb_cISeq, "of", iseqw_s_of, 1);
+
+    rb_define_singleton_method(rb_cISeq, "insns_info", iseqw_s_insns_info, 0);
 
     rb_undef_method(CLASS_OF(rb_cISeq), "translate");
     rb_undef_method(CLASS_OF(rb_cISeq), "load_iseq");

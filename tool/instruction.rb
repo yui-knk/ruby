@@ -1033,6 +1033,9 @@ class RubyVM
         }
         EOS
       }
+
+      # count of insns
+      insns_count = @insns.count
       ERB.new(vpath.read('template/insns_info.inc.tmpl')).result(binding)
     end
   end

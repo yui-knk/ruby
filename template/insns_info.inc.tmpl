@@ -81,3 +81,9 @@ insn_ret_num(VALUE insn)
   return insn_stack_push_num_info[(int)insn];
 }
 #endif
+
+static int
+insns_count(void)
+{
+  return <%= insns_count %>;
+}
