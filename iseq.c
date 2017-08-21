@@ -1036,6 +1036,21 @@ iseqw_iseq_size(VALUE self)
     return INT2FIX(iseq->body->iseq_size);
 }
 
+static VALUE
+iseqw_iseq_original_iseq(VALUE self)
+{
+    int i;
+    const rb_iseq_t *iseq = iseqw_check(self);
+    const VALUE *code = rb_iseq_original_iseq(iseq);
+
+    // return rb_str_new2((char *)code);
+    for (i = 0; i < iseq->body->iseq_size; i++) {
+        printf("%d\n", (int)code[i]);
+    }
+    return rb_str_new((char *)code, iseq->body->iseq_size);
+}
+
+
 /*
  *  Returns a human-readable string representation of this instruction
  *  sequence, including the #label and #path.
@@ -2557,6 +2572,7 @@ Init_ISeq(void)
     rb_define_method(rb_cISeq, "iseq_type", iseqw_type, 0);
     rb_define_method(rb_cISeq, "local_iseq", iseqw_local_iseq, 0);
     rb_define_method(rb_cISeq, "iseq_size", iseqw_iseq_size, 0);
+    rb_define_method(rb_cISeq, "iseq_original_iseq", iseqw_iseq_original_iseq, 0);
 
     rb_define_method(rb_cISeq, "to_binary", iseqw_to_binary, -1);
     rb_define_singleton_method(rb_cISeq, "load_from_binary", iseqw_s_load_from_binary, 1);
