@@ -1042,12 +1042,14 @@ iseqw_iseq_original_iseq(VALUE self)
     int i;
     const rb_iseq_t *iseq = iseqw_check(self);
     const VALUE *code = rb_iseq_original_iseq(iseq);
+    unsigned int size = iseq->body->iseq_size;
+    VALUE ary = rb_ary_new_capa((long)size);
 
-    // return rb_str_new2((char *)code);
-    for (i = 0; i < iseq->body->iseq_size; i++) {
-        printf("%d\n", (int)code[i]);
+    for (i = 0; i < (int)size; i++) {
+        rb_ary_push(ary, INT2FIX((int)code[i]));
     }
-    return rb_str_new((char *)code, iseq->body->iseq_size);
+
+    return ary;
 }
 
 
