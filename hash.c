@@ -91,6 +91,25 @@ rb_hash_set_ifnone(VALUE hash, VALUE ifnone)
     return hash;
 }
 
+static VALUE
+rb_hash_updated(VALUE hash)
+{
+    return (RHASH(hash)->updated);
+}
+
+static int
+rb_hash_updated_set_p(VALUE hash)
+{
+    return (rb_hash_updated(hash) != Qnil);
+}
+
+static VALUE
+rb_hash_set_updated(VALUE hash, VALUE updated)
+{
+    RB_OBJ_WRITE(hash, (&RHASH(hash)->updated), updated);
+    return hash;
+}
+
 static int
 rb_any_cmp(VALUE a, VALUE b)
 {
@@ -408,6 +427,7 @@ hash_alloc_flags(VALUE klass, VALUE flags, VALUE ifnone)
     NEWOBJ_OF(hash, struct RHash, klass, T_HASH | wb | flags);
 
     RHASH_SET_IFNONE((VALUE)hash, ifnone);
+    rb_hash_set_updated((VALUE)hash, Qnil);
 
     return (VALUE)hash;
 }
@@ -543,6 +563,17 @@ tbl_update(VALUE hash, VALUE key, tbl_update_func func, st_data_t optional_arg)
     /* write barrier */
     if (arg.new_key)   RB_OBJ_WRITTEN(hash, arg.old_key, arg.new_key);
     if (arg.new_value) RB_OBJ_WRITTEN(hash, arg.old_value, arg.new_value);
+
+    if (rb_hash_updated_set_p(hash)) {
+        VALUE args[3];
+        VALUE updated = rb_hash_updated(hash);
+
+        args[0] = hash;
+        args[1] = key;
+        args[2] = (VALUE)optional_arg;
+
+        rb_funcallv(updated, id_yield, 3, args);
+    }
 
     return result;
 }
@@ -1037,6 +1068,19 @@ rb_hash_set_default_proc(VALUE hash, VALUE proc)
     proc = b;
     SET_PROC_DEFAULT(hash, proc);
     return proc;
+}
+
+static VALUE
+rb_hash_updated_proc(VALUE hash)
+{
+    if (!rb_block_given_p()) {
+        rb_raise(rb_eArgError, "you should pass block");
+    }
+    else {
+        rb_hash_set_updated(hash, rb_block_proc());
+    }
+
+    return hash;
 }
 
 static int
@@ -4563,6 +4607,7 @@ Init_Hash(void)
     rb_define_method(rb_cHash, "size", rb_hash_size, 0);
     rb_define_method(rb_cHash, "length", rb_hash_size, 0);
     rb_define_method(rb_cHash, "empty?", rb_hash_empty_p, 0);
+    rb_define_method(rb_cHash, "updated_callback", rb_hash_updated_proc, 0);
 
     rb_define_method(rb_cHash, "each_value", rb_hash_each_value, 0);
     rb_define_method(rb_cHash, "each_key", rb_hash_each_key, 0);

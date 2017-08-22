@@ -660,6 +660,7 @@ struct RHash {
     struct st_table *ntbl;      /* possibly 0 */
     int iter_lev;
     const VALUE ifnone;
+    const VALUE updated;
 };
 
 #define RHASH(obj)   (R_CAST(RHash)(obj))
