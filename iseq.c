@@ -1118,6 +1118,66 @@ insns_types(VALUE obj)
     return rb_str_new2(insn_op_types(code));
 }
 
+static VALUE
+insns_mid(VALUE obj)
+{
+    struct INSNSData *insns;
+    VALUE code, op;
+    const char *types;
+    int i;
+
+    TypedData_Get_Struct(obj, struct INSNSData, &rb_insns_type, insns);
+    code = rb_ary_entry(insns->code, 0);
+    types = insn_op_types(code);
+
+    for (i = 0; types[i]; i++) {
+        char type = types[i];
+        op = rb_ary_entry(insns->code, i + 1);
+
+        switch (type) {
+          case TS_CALLINFO:
+            {
+                struct rb_call_info *ci = (struct rb_call_info *)op;
+                return rb_id2str(ci->mid);
+            }
+          default:
+            break;
+        }
+    }
+
+    return Qnil;
+}
+
+static VALUE
+insns_argc(VALUE obj)
+{
+    struct INSNSData *insns;
+    VALUE code, op;
+    const char *types;
+    int i;
+
+    TypedData_Get_Struct(obj, struct INSNSData, &rb_insns_type, insns);
+    code = rb_ary_entry(insns->code, 0);
+    types = insn_op_types(code);
+
+    for (i = 0; types[i]; i++) {
+        char type = types[i];
+        op = rb_ary_entry(insns->code, i + 1);
+
+        switch (type) {
+          case TS_CALLINFO:
+            {
+                struct rb_call_info *ci = (struct rb_call_info *)op;
+                return INT2FIX(ci->orig_argc);
+            }
+          default:
+            break;
+        }
+    }
+
+    return Qnil;
+}
+
 static VALUE iseqw_iseq_insns(VALUE self);
 static VALUE iseq2insns(const rb_iseq_t *iseq);
 
@@ -2813,5 +2873,7 @@ Init_ISeq(void)
     rb_define_method(rb_cInsns, "len", insns_len, 0);
     rb_define_method(rb_cInsns, "name", insns_name, 0);
     rb_define_method(rb_cInsns, "types", insns_types, 0);
+    rb_define_method(rb_cInsns, "mid", insns_mid, 0);
+    rb_define_method(rb_cInsns, "argc", insns_argc, 0);
     rb_define_method(rb_cInsns, "children", insns_children, 0);
 }
