@@ -1123,18 +1123,14 @@ iseqw_iseq_original_iseq(VALUE self)
 }
 
 static VALUE
-iseqw_iseq_insns(VALUE self)
+code2insns(const VALUE *code, const int size)
 {
-    int i;
-    const rb_iseq_t *iseq = iseqw_check(self);
-    const VALUE *code = rb_iseq_original_iseq(iseq);
-    unsigned int size = iseq->body->iseq_size;
+    VALUE insns;
+    int i, j;
     VALUE ary = rb_ary_new_capa(3);
 
     for (i = 0; i < (int)size;) {
-        VALUE insns;
         VALUE tmp;
-        int j;
         int len = insn_len(code[i]);
 
         tmp = rb_ary_new_capa(len);
@@ -1148,6 +1144,16 @@ iseqw_iseq_insns(VALUE self)
     }
 
     return ary;
+}
+
+static VALUE
+iseqw_iseq_insns(VALUE self)
+{
+    const rb_iseq_t *iseq = iseqw_check(self);
+    const VALUE *code = rb_iseq_original_iseq(iseq);
+    unsigned int size = iseq->body->iseq_size;
+
+    return code2insns(code, (const int)size);
 }
 
 /*
