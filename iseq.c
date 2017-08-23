@@ -1106,6 +1106,69 @@ insns_types(VALUE obj)
     return rb_str_new2(insn_name(code));
 }
 
+static VALUE iseqw_iseq_insns(VALUE self);
+static VALUE iseq2insns(const rb_iseq_t *iseq);
+
+static VALUE
+insns_children(VALUE obj)
+{
+    struct INSNSData *insns;
+    VALUE code, op;
+    VALUE ary = rb_ary_new_capa(3);
+    const char *types;
+    int i;
+
+    TypedData_Get_Struct(obj, struct INSNSData, &rb_insns_type, insns);
+    code = rb_ary_entry(insns->code, 0);
+    types = insn_op_types(code);
+
+    for (i = 0; types[i]; i++) {
+        char type = types[i];
+        op = rb_ary_entry(insns->code, i + 1);
+
+        switch (type) {
+          case TS_OFFSET:           /* LONG */
+            break;
+          case TS_NUM:              /* ULONG */
+            break;
+          case TS_LINDEX:
+            break;
+          case TS_ID:               /* ID (symbol) */
+            break;
+          case TS_VALUE:            /* VALUE */
+            {
+                op = obj_resurrect(op);
+                if (CLASS_OF(op) == rb_cISeq) {
+                    rb_ary_push(ary, iseqw_iseq_insns(op));
+                }
+            }
+            break;
+          case TS_ISEQ:             /* iseq */
+            {
+                const rb_iseq_t *iseq = rb_iseq_check((rb_iseq_t *)op);
+                rb_ary_push(ary, iseq2insns(iseq));
+            }
+            break;
+          case TS_GENTRY:
+            break;
+          case TS_IC:
+            break;
+          case TS_CALLINFO:
+            break;
+          case TS_CALLCACHE:
+            break;
+          case TS_CDHASH:
+            break;
+          case TS_FUNCPTR:
+            break;
+          default:
+            rb_bug("insn_operand_intern: unknown operand type: %c", type);
+        }
+    }
+
+    return ary;
+}
+
 static VALUE
 iseqw_iseq_original_iseq(VALUE self)
 {
@@ -2737,4 +2800,5 @@ Init_ISeq(void)
     rb_define_alloc_func(rb_cInsns, rb_insns_s_alloc);
     rb_define_method(rb_cInsns, "len", insns_len, 0);
     rb_define_method(rb_cInsns, "types", insns_types, 0);
+    rb_define_method(rb_cInsns, "children", insns_children, 0);
 }
