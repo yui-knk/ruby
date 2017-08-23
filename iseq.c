@@ -1147,13 +1147,21 @@ code2insns(const VALUE *code, const int size)
 }
 
 static VALUE
+iseq2insns(const rb_iseq_t *iseq)
+{
+    const VALUE *code = rb_iseq_original_iseq(iseq);
+    const int size = (int)iseq->body->iseq_size;
+
+    return code2insns(code, size);
+}
+
+
+static VALUE
 iseqw_iseq_insns(VALUE self)
 {
     const rb_iseq_t *iseq = iseqw_check(self);
-    const VALUE *code = rb_iseq_original_iseq(iseq);
-    unsigned int size = iseq->body->iseq_size;
 
-    return code2insns(code, (const int)size);
+    return iseq2insns(iseq);
 }
 
 /*
