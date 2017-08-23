@@ -1096,7 +1096,7 @@ insns_len(VALUE obj)
 }
 
 static VALUE
-insns_types(VALUE obj)
+insns_name(VALUE obj)
 {
     struct INSNSData *insns;
     VALUE code;
@@ -1104,6 +1104,18 @@ insns_types(VALUE obj)
     TypedData_Get_Struct(obj, struct INSNSData, &rb_insns_type, insns);
     code = rb_ary_entry(insns->code, 0);
     return rb_str_new2(insn_name(code));
+}
+
+
+static VALUE
+insns_types(VALUE obj)
+{
+    struct INSNSData *insns;
+    VALUE code;
+
+    TypedData_Get_Struct(obj, struct INSNSData, &rb_insns_type, insns);
+    code = rb_ary_entry(insns->code, 0);
+    return rb_str_new2(insn_op_types(code));
 }
 
 static VALUE iseqw_iseq_insns(VALUE self);
@@ -2799,6 +2811,7 @@ Init_ISeq(void)
     rb_cInsns = rb_define_class_under(rb_cRubyVM, "Insns", rb_cObject);
     rb_define_alloc_func(rb_cInsns, rb_insns_s_alloc);
     rb_define_method(rb_cInsns, "len", insns_len, 0);
+    rb_define_method(rb_cInsns, "name", insns_name, 0);
     rb_define_method(rb_cInsns, "types", insns_types, 0);
     rb_define_method(rb_cInsns, "children", insns_children, 0);
 }
