@@ -30,6 +30,8 @@ VALUE rb_cISeq;
 static VALUE iseqw_new(const rb_iseq_t *iseq);
 static const rb_iseq_t *iseqw_check(VALUE iseqw);
 
+VALUE rb_cInsns;
+
 #define hidden_obj_p(obj) (!SPECIAL_CONST_P(obj) && !RBASIC(obj)->klass)
 
 static inline VALUE
@@ -1036,6 +1038,74 @@ iseqw_iseq_size(VALUE self)
     return INT2FIX(iseq->body->iseq_size);
 }
 
+struct INSNSData {
+    VALUE code; /* array */
+};
+
+static void
+insns_gc_mark(void *ptr)
+{
+    struct INSNSData *dat = ptr;
+    rb_gc_mark(dat->code);
+}
+
+static const rb_data_type_t rb_insns_type = {
+    "INSNSData",
+    {insns_gc_mark, RUBY_TYPED_DEFAULT_FREE, 0,},
+    0, 0,
+    RUBY_TYPED_FREE_IMMEDIATELY,
+};
+
+static VALUE
+rb_insns_s_alloc(VALUE klass)
+{
+    struct INSNSData *insns;
+    VALUE obj = TypedData_Make_Struct(klass, struct INSNSData, &rb_insns_type, insns);
+
+    return obj;
+}
+
+static void
+set_code(VALUE obj, VALUE code)
+{
+    struct INSNSData *insns;
+
+    TypedData_Get_Struct(obj, struct INSNSData, &rb_insns_type, insns);
+    insns->code = code;
+}
+
+static VALUE
+insns_new_internal(VALUE klass, VALUE code)
+{
+  VALUE obj;
+
+  obj = rb_insns_s_alloc(klass);
+  set_code(obj, code);
+  return obj;
+}
+
+static VALUE
+insns_len(VALUE obj)
+{
+    struct INSNSData *insns;
+    VALUE code;
+
+    TypedData_Get_Struct(obj, struct INSNSData, &rb_insns_type, insns);
+    code = rb_ary_entry(insns->code, 0);
+    return INT2FIX(insn_len(code));
+}
+
+static VALUE
+insns_types(VALUE obj)
+{
+    struct INSNSData *insns;
+    VALUE code;
+
+    TypedData_Get_Struct(obj, struct INSNSData, &rb_insns_type, insns);
+    code = rb_ary_entry(insns->code, 0);
+    return rb_str_new2(insn_name(code));
+}
+
 static VALUE
 iseqw_iseq_original_iseq(VALUE self)
 {
@@ -1052,6 +1122,33 @@ iseqw_iseq_original_iseq(VALUE self)
     return ary;
 }
 
+static VALUE
+iseqw_iseq_insns(VALUE self)
+{
+    int i;
+    const rb_iseq_t *iseq = iseqw_check(self);
+    const VALUE *code = rb_iseq_original_iseq(iseq);
+    unsigned int size = iseq->body->iseq_size;
+    VALUE ary = rb_ary_new_capa(3);
+
+    for (i = 0; i < (int)size;) {
+        VALUE insns;
+        VALUE tmp;
+        int j;
+        int len = insn_len(code[i]);
+
+        tmp = rb_ary_new_capa(len);
+        for (j = 0; j < len; j++) {
+            rb_ary_push(tmp, code[i + j]);
+        }
+
+        insns = insns_new_internal(rb_cInsns, tmp);
+        rb_ary_push(ary, insns);
+        i += insn_len(code[i]);
+    }
+
+    return ary;
+}
 
 /*
  *  Returns a human-readable string representation of this instruction
@@ -2575,6 +2672,7 @@ Init_ISeq(void)
     rb_define_method(rb_cISeq, "local_iseq", iseqw_local_iseq, 0);
     rb_define_method(rb_cISeq, "iseq_size", iseqw_iseq_size, 0);
     rb_define_method(rb_cISeq, "iseq_original_iseq", iseqw_iseq_original_iseq, 0);
+    rb_define_method(rb_cISeq, "insns", iseqw_iseq_insns, 0);
 
     rb_define_method(rb_cISeq, "to_binary", iseqw_to_binary, -1);
     rb_define_singleton_method(rb_cISeq, "load_from_binary", iseqw_s_load_from_binary, 1);
@@ -2619,4 +2717,10 @@ Init_ISeq(void)
 
     rb_undef_method(CLASS_OF(rb_cISeq), "translate");
     rb_undef_method(CLASS_OF(rb_cISeq), "load_iseq");
+
+
+    rb_cInsns = rb_define_class_under(rb_cRubyVM, "Insns", rb_cObject);
+    rb_define_alloc_func(rb_cInsns, rb_insns_s_alloc);
+    rb_define_method(rb_cInsns, "len", insns_len, 0);
+    rb_define_method(rb_cInsns, "types", insns_types, 0);
 }
