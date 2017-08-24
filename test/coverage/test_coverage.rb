@@ -154,4 +154,15 @@ class TestCoverage < Test::Unit::TestCase
   ensure
     $".replace loaded_features
   end
+
+  def test_enabled
+    assert_equal false, Coverage.enabled?
+
+    Coverage.start
+    assert_equal true, Coverage.enabled?
+
+    Coverage.result
+    assert_equal false, Coverage.enabled?
+  end
+
 end unless ENV['COVERAGE']

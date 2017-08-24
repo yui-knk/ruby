@@ -75,6 +75,19 @@ rb_coverage_result(VALUE klass)
     return ncoverages;
 }
 
+/*
+ *  call-seq:
+ *     Coverage.enabled?  => true or false
+ *
+ * Returns the current status of the Coverage.
+ */
+static VALUE
+rb_coverage_enabled_p(VALUE klass)
+{
+    VALUE coverages = rb_get_coverages();
+    return RTEST(coverages) ? Qtrue : Qfalse;
+}
+
 /* Coverage provides coverage measurement feature for Ruby.
  * This feature is experimental, so these APIs may be changed in future.
  *
@@ -115,4 +128,5 @@ Init_coverage(void)
     rb_define_module_function(rb_mCoverage, "start", rb_coverage_start, 0);
     rb_define_module_function(rb_mCoverage, "result", rb_coverage_result, 0);
     rb_define_module_function(rb_mCoverage, "peek_result", rb_coverage_peek_result, 0);
+    rb_define_module_function(rb_mCoverage, "enabled?", rb_coverage_enabled_p, 0);
 }
