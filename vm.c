@@ -438,6 +438,30 @@ vm_stat(int argc, VALUE *argv, VALUE self)
     return hash;
 }
 
+static VALUE
+vm_print_internal(VALUE klass)
+{
+    rb_thread_t *th = GET_THREAD();
+    rb_control_frame_t *cfp = th->ec.cfp;
+    long c = VM_CFP_CNT(th, cfp);
+
+    printf("vm_stack (%p), vm_stack_size: %ld, stack_end (%p) (%p)\n\n", (void *)th->ec.vm_stack, th->ec.vm_stack_size, (void *)(th->ec.vm_stack + th->ec.vm_stack_size), (void *)(th->ec.vm_stack + 1));
+
+    for (; c > 0; c--) {
+        printf("frame (%p). cfp_count: %ld, sp (%p), ep (%p)\n", (void *)cfp, VM_CFP_CNT(th, cfp), (void *)cfp->sp, (void *)cfp->ep);
+        printf("ep (%p), ep+2 (%p), ep-2 (%p)\n", (void *)cfp->ep, (void *)(cfp->ep + 2), (void *)(cfp->ep - 2));
+        printf("ep FLAGS: %lx\n", (long)cfp->ep[VM_ENV_DATA_INDEX_FLAGS]);
+        printf("ep SPECVAL: %lx\n", (long)cfp->ep[VM_ENV_DATA_INDEX_SPECVAL]);
+        printf("ep SPECVAL & ~0x03: %lx\n", (long)(cfp->ep[VM_ENV_DATA_INDEX_SPECVAL]) & ~0x03);
+        printf("%s %s %s\n", vm_frame_type_char(cfp), vm_frame_env_char(cfp), vm_frame_func_name(cfp));
+        printf("\n");
+
+        cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
+    }
+
+    return klass;
+}
+
 /* control stack frame */
 
 static void
@@ -2822,6 +2846,7 @@ Init_VM(void)
     rb_undef_alloc_func(rb_cRubyVM);
     rb_undef_method(CLASS_OF(rb_cRubyVM), "new");
     rb_define_singleton_method(rb_cRubyVM, "stat", vm_stat, -1);
+    rb_define_singleton_method(rb_cRubyVM, "print_internal", vm_print_internal, -1);
 
     /* FrozenCore (hidden) */
     fcore = rb_class_new(rb_cBasicObject);

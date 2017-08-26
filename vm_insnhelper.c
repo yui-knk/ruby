@@ -196,6 +196,76 @@ vm_check_frame(VALUE type,
 #define vm_check_frame(a, b, c, d)
 #endif /* VM_CHECK_MODE > 0 */
 
+#define VM_CFP_CNT(th, cfp) \
+  ((rb_control_frame_t *)((th)->ec.vm_stack + (th)->ec.vm_stack_size) - \
+   (rb_control_frame_t *)(cfp))
+
+
+static char*
+vm_frame_type_char(rb_control_frame_t *cfp)
+{
+    switch (VM_FRAME_TYPE(cfp)) {
+        case VM_FRAME_MAGIC_METHOD:
+            return "METHOD";
+        case VM_FRAME_MAGIC_BLOCK:
+            return "BLOCK";
+        case VM_FRAME_MAGIC_CLASS:
+            return "CLASS";
+        case VM_FRAME_MAGIC_TOP:
+            return "TOP";
+        case VM_FRAME_MAGIC_CFUNC:
+            return "CFUNC";
+        case VM_FRAME_MAGIC_IFUNC:
+            return "IFUNC";
+        case VM_FRAME_MAGIC_EVAL:
+            return "EVAL";
+        case VM_FRAME_MAGIC_RESCUE:
+            return "RESCUE";
+        case VM_FRAME_MAGIC_DUMMY:
+            return "DUMMY";
+        default:
+            rb_bug("unknown type %lu", VM_FRAME_TYPE(cfp));
+            return "";
+    }
+}
+
+static char*
+vm_frame_env_char(rb_control_frame_t *cfp)
+{
+    if (VM_ENV_FLAGS(cfp->ep, VM_ENV_FLAG_LOCAL) != 0)
+    	return "LOCAL";
+
+    if (VM_ENV_FLAGS(cfp->ep, VM_ENV_FLAG_ESCAPED) != 0)
+    	return "ESCAPED";
+
+    if (VM_ENV_FLAGS(cfp->ep, VM_ENV_FLAG_WB_REQUIRED) != 0)
+    	return "WB_REQUIRED";
+
+    return "";
+}
+
+static char*
+vm_frame_func_name(rb_control_frame_t *cfp)
+{
+    if (RUBYVM_CFUNC_FRAME_P(cfp)) {
+    	/* get me from ep[VM_ENV_DATA_INDEX_ME_CREF] !? */
+        const rb_callable_method_entry_t *me = rb_vm_frame_method_entry(cfp);
+        ID mid = me->def->original_id;
+        return (char *)rb_id2name(mid);
+    }
+
+    return "";
+}
+
+
+static void
+vm_frame_pushed(rb_thread_t *th, rb_control_frame_t *cfp)
+{
+    printf("frame pushed (%p). cfp_count: %ld\n", (void *)cfp, VM_CFP_CNT(th, cfp));
+    printf("%s %s %s\n", vm_frame_type_char(cfp), vm_frame_env_char(cfp), vm_frame_func_name(cfp));
+    printf("\n");
+}
+
 static inline rb_control_frame_t *
 vm_push_frame(rb_thread_t *th,
 	      const rb_iseq_t *iseq,
@@ -251,6 +321,8 @@ vm_push_frame(rb_thread_t *th,
 	SDR();
     }
 
+    // vm_frame_pushed(th, cfp);
+
     return cfp;
 }
 
@@ -269,6 +341,14 @@ rb_vm_push_frame(rb_thread_t *th,
     return vm_push_frame(th, iseq, type, self, specval, cref_or_me, pc, sp, local_size, stack_max);
 }
 
+
+static void
+vm_frame_poped(rb_thread_t *th, rb_control_frame_t *cfp)
+{
+    printf("frame poped  (%p). cfp_count: %ld\n", (void *)cfp, VM_CFP_CNT(th, cfp));
+    printf("\n");
+}
+
 /* return TRUE if the frame is finished */
 static inline int
 vm_pop_frame(rb_thread_t *th, rb_control_frame_t *cfp, const VALUE *ep)
@@ -279,6 +359,8 @@ vm_pop_frame(rb_thread_t *th, rb_control_frame_t *cfp, const VALUE *ep)
     if (VMDEBUG == 2)       SDR();
 
     th->ec.cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
+
+    // vm_frame_poped(th, th->ec.cfp);
 
     return flags & VM_FRAME_FLAG_FINISH;
 }
