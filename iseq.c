@@ -1410,7 +1410,7 @@ rb_iseq_disasm_insn(VALUE ret, const VALUE *code, size_t pos,
 	}
     }
 
-    {
+/*    {
 	unsigned int line_no = find_line_no(iseq, pos);
 	unsigned int prev = pos == 0 ? 0 : find_line_no(iseq, pos - 1);
 	if (line_no && line_no != prev) {
@@ -1419,7 +1419,7 @@ rb_iseq_disasm_insn(VALUE ret, const VALUE *code, size_t pos,
 	    str = rb_str_catf(str, "%*s(%4d)", (int)slen, "", line_no);
 	}
     }
-
+*/
     if (ret) {
 	rb_str_cat2(str, "\n");
 	rb_str_concat(ret, str);
