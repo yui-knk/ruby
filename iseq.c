@@ -2822,6 +2822,7 @@ Init_ISeq(void)
     rb_define_method(rb_cISeq, "iseq_size", iseqw_iseq_size, 0);
     rb_define_method(rb_cISeq, "iseq_original_iseq", iseqw_iseq_original_iseq, 0);
     rb_define_method(rb_cISeq, "insns", iseqw_iseq_insns, 0);
+    rb_define_method(rb_cISeq, "local_variables", rb_iseqw_local_variables, 0);
 
     rb_define_method(rb_cISeq, "to_binary", iseqw_to_binary, -1);
     rb_define_singleton_method(rb_cISeq, "load_from_binary", iseqw_s_load_from_binary, 1);
