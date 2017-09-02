@@ -150,15 +150,18 @@ iseq = ::RubyVM::InstructionSequence.compile("p Object.new") # OK p(Object.new()
 # iseq = ::RubyVM::InstructionSequence.compile("a = 10; b = a + 2")
 insns = iseq.insns
 
-puts iseq.disasm
-p iseq.local_variables
 
-insns.each do |i|
-  p [i.name, i.types, i.len, i.operands, i.ret_num, i.pop_num, i.stack_increase]
+if ENV["DEBUG_DECOMPILE"]
+  puts iseq.disasm
+  p iseq.local_variables
+
+  insns.each do |i|
+    p [i.name, i.types, i.len, i.operands, i.ret_num, i.pop_num, i.stack_increase]
+  end
+
+  puts ""
+  puts "==================="
+  puts ""
 end
-
-puts ""
-puts "==================="
-puts ""
 
 puts RubyDecompiler.new(iseq, "; ").decompile
