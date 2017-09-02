@@ -30,7 +30,7 @@ VALUE rb_cISeq;
 static VALUE iseqw_new(const rb_iseq_t *iseq);
 static const rb_iseq_t *iseqw_check(VALUE iseqw);
 
-VALUE rb_cInsns;
+VALUE rb_cInsn;
 
 #define hidden_obj_p(obj) (!SPECIAL_CONST_P(obj) && !RBASIC(obj)->klass)
 
@@ -1355,7 +1355,7 @@ code2insns(const VALUE *code, const int size)
             rb_ary_push(tmp, code[i + j]);
         }
 
-        insns = insns_new_internal(rb_cInsns, tmp);
+        insns = insns_new_internal(rb_cInsn, tmp);
         rb_ary_push(ary, insns);
         i += insn_len(code[i]);
     }
@@ -2951,13 +2951,13 @@ Init_ISeq(void)
     rb_undef_method(CLASS_OF(rb_cISeq), "load_iseq");
 
 
-    rb_cInsns = rb_define_class_under(rb_cRubyVM, "Insns", rb_cObject);
-    rb_define_alloc_func(rb_cInsns, rb_insns_s_alloc);
-    rb_define_method(rb_cInsns, "len", insns_len, 0);
-    rb_define_method(rb_cInsns, "name", insns_name, 0);
-    rb_define_method(rb_cInsns, "types", insns_types, 0);
-    rb_define_method(rb_cInsns, "mid", insns_mid, 0);
-    rb_define_method(rb_cInsns, "argc", insns_argc, 0);
-    rb_define_method(rb_cInsns, "children", insns_children, 0);
-    rb_define_method(rb_cInsns, "operands", insns_operands, 0);
+    rb_cInsn = rb_define_class_under(rb_cRubyVM, "Insn", rb_cObject);
+    rb_define_alloc_func(rb_cInsn, rb_insns_s_alloc);
+    rb_define_method(rb_cInsn, "len", insns_len, 0);
+    rb_define_method(rb_cInsn, "name", insns_name, 0);
+    rb_define_method(rb_cInsn, "types", insns_types, 0);
+    rb_define_method(rb_cInsn, "mid", insns_mid, 0);
+    rb_define_method(rb_cInsn, "argc", insns_argc, 0);
+    rb_define_method(rb_cInsn, "children", insns_children, 0);
+    rb_define_method(rb_cInsn, "operands", insns_operands, 0);
 }
