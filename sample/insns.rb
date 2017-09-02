@@ -22,14 +22,19 @@ class RubyDecompiler
   end
 
   class MethodCall
-    def initialize(receiver:, args:, mid:)
+    def initialize(receiver:, args:, mid:, flags:)
       @receiver = receiver
       @args = args
       @mid = mid
+      @flags = flags
     end
 
     def to_ruby
-      "#{receiver_to_ruby}.#{@mid}(#{args_to_ruby})"
+      if @flags[:FCALL]
+        "#{@mid}(#{args_to_ruby})"
+      else
+        "#{receiver_to_ruby}.#{@mid}(#{args_to_ruby})"
+      end
     end
 
     private
@@ -100,7 +105,9 @@ class RubyDecompiler
         mid = insn.operands[0][:mid]
         args = @vm_stack.pop insn.operands[0][:argc]
         receiver = @vm_stack.pop
-        mc = MethodCall.new(receiver: receiver, args: args, mid: mid)
+        flags = insn.operands[0][:flags]
+
+        mc = MethodCall.new(receiver: receiver, args: args, mid: mid, flags: flags)
         @vm_stack.push mc
       when "leave"
         @vm_stack.reverse.each do |elem|
@@ -116,8 +123,6 @@ class RubyDecompiler
 
   def generate_ruby_code
     @generated_ruby_code ||= begin
-      p @method_calls
-
       str = ""
 
       @method_calls.each do |mc|
@@ -139,9 +144,9 @@ end
 
 # iseq = ::RubyVM::InstructionSequence.compile("p 10") # OK self.p(10)
 # iseq = ::RubyVM::InstructionSequence.compile("p 10, 11") # OK self.p(10, 11)
-# iseq = ::RubyVM::InstructionSequence.compile("p 11; p 10") # OK self.p(11); self.p(10);
+# iseq = ::RubyVM::InstructionSequence.compile("p 11; p 10") # OK p(11); p(10);
 # iseq = ::RubyVM::InstructionSequence.compile("p p 10") # OK self.p(self.p(10));
-# iseq = ::RubyVM::InstructionSequence.compile("p Object.new") # OK self.p(Object.new());
+iseq = ::RubyVM::InstructionSequence.compile("p Object.new") # OK p(Object.new());
 # iseq = ::RubyVM::InstructionSequence.compile("a = 10; b = a + 2")
 insns = iseq.insns
 
