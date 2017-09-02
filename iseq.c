@@ -1242,6 +1242,88 @@ insns_children(VALUE obj)
 }
 
 static VALUE
+insns_operands(VALUE obj)
+{
+    struct INSNSData *insns;
+    VALUE code, op;
+    VALUE ary = rb_ary_new_capa(3);
+    const char *types;
+    int i;
+
+    TypedData_Get_Struct(obj, struct INSNSData, &rb_insns_type, insns);
+    code = rb_ary_entry(insns->code, 0);
+    types = insn_op_types(code);
+
+    for (i = 0; types[i]; i++) {
+        char type = types[i];
+        op = rb_ary_entry(insns->code, i + 1);
+
+        switch (type) {
+          case TS_OFFSET:           /* LONG */
+            rb_ary_push(ary, Qnil);
+            break;
+          case TS_NUM:              /* ULONG */
+          case TS_LINDEX:
+            rb_ary_push(ary, INT2FIX(op));
+            break;
+          case TS_ID:               /* ID (symbol) */
+            rb_ary_push(ary, ID2SYM(op));
+            break;
+          case TS_VALUE:            /* VALUE */
+            {
+                op = obj_resurrect(op);
+                if (CLASS_OF(op) == rb_cISeq) {
+                    rb_ary_push(ary, iseqw_iseq_insns(op));
+                } else {
+                    rb_ary_push(ary, op);
+                }
+            }
+            break;
+          case TS_ISEQ:             /* iseq */
+            {
+                const rb_iseq_t *iseq = rb_iseq_check((rb_iseq_t *)op);
+                rb_ary_push(ary, iseq2insns(iseq));
+            }
+            break;
+          case TS_GENTRY:
+            rb_ary_push(ary, Qnil);
+            break;
+          case TS_IC:
+            rb_ary_push(ary, Qnil);
+            break;
+          case TS_CALLINFO:
+            {
+                struct rb_call_info *ci = (struct rb_call_info *)op;
+                VALUE hash = rb_hash_new();
+
+                rb_hash_aset(hash, ID2SYM(rb_intern("mid")), ci->mid ? ID2SYM(ci->mid) : Qnil);
+                rb_hash_aset(hash, ID2SYM(rb_intern("argc")), INT2FIX(ci->orig_argc));
+                rb_hash_aset(hash, ID2SYM(rb_intern("args")), rb_hash_new());
+
+                rb_ary_push(ary, hash);
+            }
+            break;
+          case TS_CALLCACHE:
+            rb_ary_push(ary, Qnil);
+            break;
+          case TS_CDHASH:
+            rb_ary_push(ary, Qnil);
+            break;
+          case TS_VARIABLE:
+            rb_ary_push(ary, Qnil);
+            break;
+          case TS_FUNCPTR:
+            rb_ary_push(ary, Qnil);
+            break;
+          default:
+            rb_bug("insn_operand_intern: unknown operand type: %c", type);
+        }
+    }
+
+    return ary;
+}
+
+static VALUE
 iseqw_iseq_original_iseq(VALUE self)
 {
     int i;
@@ -2877,4 +2959,5 @@ Init_ISeq(void)
     rb_define_method(rb_cInsns, "mid", insns_mid, 0);
     rb_define_method(rb_cInsns, "argc", insns_argc, 0);
     rb_define_method(rb_cInsns, "children", insns_children, 0);
+    rb_define_method(rb_cInsns, "operands", insns_operands, 0);
 }
