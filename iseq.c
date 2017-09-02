@@ -1244,6 +1244,28 @@ insns_children(VALUE obj)
 }
 
 static VALUE
+call_info_flag_hash(struct rb_call_info *ci)
+{
+    VALUE hash = rb_hash_new();
+
+    if (ci->flag) {
+        if (ci->flag & VM_CALL_ARGS_SPLAT) rb_hash_aset(hash, ID2SYM(rb_intern("ARGS_SPLAT")), Qtrue);
+        if (ci->flag & VM_CALL_ARGS_BLOCKARG) rb_hash_aset(hash, ID2SYM(rb_intern("ARGS_BLOCKARG")), Qtrue);
+        if (ci->flag & VM_CALL_FCALL) rb_hash_aset(hash, ID2SYM(rb_intern("FCALL")), Qtrue);
+        if (ci->flag & VM_CALL_VCALL) rb_hash_aset(hash, ID2SYM(rb_intern("VCALL")), Qtrue);
+        if (ci->flag & VM_CALL_TAILCALL) rb_hash_aset(hash, ID2SYM(rb_intern("TAILCALL")), Qtrue);
+        if (ci->flag & VM_CALL_SUPER) rb_hash_aset(hash, ID2SYM(rb_intern("SUPER")), Qtrue);
+        if (ci->flag & VM_CALL_KWARG) rb_hash_aset(hash, ID2SYM(rb_intern("KWARG")), Qtrue);
+        if (ci->flag & VM_CALL_OPT_SEND) rb_hash_aset(hash, ID2SYM(rb_intern("SNED")), Qtrue); /* maybe not reachable */
+        if (ci->flag & VM_CALL_ARGS_SIMPLE) rb_hash_aset(hash, ID2SYM(rb_intern("ARGS_SIMPLE")), Qtrue); /* maybe not reachable */
+        if (ci->flag & VM_CALL_BLOCKISEQ) rb_hash_aset(hash, ID2SYM(rb_intern("ARGS_SIMPLE")), Qtrue); /* maybe not reachable */
+        if (ci->flag & VM_CALL_KW_SPLAT) rb_hash_aset(hash, ID2SYM(rb_intern("ARGS_SIMPLE")), Qtrue); /* maybe not reachable */
+    }
+
+    return hash;
+}
+
+static VALUE
 insns_operands(VALUE obj)
 {
     struct INSNSData *insns;
@@ -1301,6 +1323,7 @@ insns_operands(VALUE obj)
                 rb_hash_aset(hash, ID2SYM(rb_intern("mid")), ci->mid ? ID2SYM(ci->mid) : Qnil);
                 rb_hash_aset(hash, ID2SYM(rb_intern("argc")), INT2FIX(ci->orig_argc));
                 rb_hash_aset(hash, ID2SYM(rb_intern("args")), rb_hash_new());
+                rb_hash_aset(hash, ID2SYM(rb_intern("flags")), call_info_flag_hash(ci));
 
                 rb_ary_push(ary, hash);
             }
