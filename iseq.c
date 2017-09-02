@@ -1306,7 +1306,7 @@ insns_operands(VALUE obj)
           case TS_ISEQ:             /* iseq */
             {
                 const rb_iseq_t *iseq = rb_iseq_check((rb_iseq_t *)op);
-                rb_ary_push(ary, iseq2insns(iseq));
+                rb_ary_push(ary, iseqw_new(iseq));
             }
             break;
           case TS_GENTRY:
