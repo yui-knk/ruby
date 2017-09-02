@@ -24,6 +24,7 @@
 #include "id_table.h"
 
 #include "insns.inc"
+#define USE_INSN_STACK_INCREASE 1
 #include "insns_info.inc"
 
 VALUE rb_cISeq;
@@ -1337,6 +1338,31 @@ iseqw_iseq_original_iseq(VALUE self)
     }
 
     return ary;
+}
+
+static VALUE
+insns_stack_increase(VALUE obj)
+{
+    struct INSNSData *insns;
+    VALUE code, increase;
+    VALUE *opes;
+    const char *types;
+    int i;
+
+    TypedData_Get_Struct(obj, struct INSNSData, &rb_insns_type, insns);
+    code = rb_ary_entry(insns->code, 0);
+    types = insn_op_types(code);
+    opes = ALLOC_N(VALUE, insn_len(code));
+
+    for (i = 0; types[i]; i++) {
+        opes[i] = rb_ary_entry(insns->code, i + 1);
+    }
+
+    increase = INT2FIX(insn_stack_increase(0, (int)code, opes));
+
+    ruby_xfree((VALUE *)opes);
+
+    return increase;
 }
 
 static VALUE
@@ -2960,4 +2986,5 @@ Init_ISeq(void)
     rb_define_method(rb_cInsn, "argc", insns_argc, 0);
     rb_define_method(rb_cInsn, "children", insns_children, 0);
     rb_define_method(rb_cInsn, "operands", insns_operands, 0);
+    rb_define_method(rb_cInsn, "stack_increase", insns_stack_increase, 0);
 }
