@@ -796,13 +796,15 @@ class TestSetTraceFunc < Test::Unit::TestCase
       end
     end
 
+    obj = klass.new(1, :a)
+
     events = []
     expected = [
-      [:get_instance_variable, :@a, 1],
-      [:get_instance_variable, :@b, :a]
+      [:get_instance_variable, obj, :@a, 1],
+      [:get_instance_variable, obj, :@b, :a],
+      [:get_instance_variable, obj, :@a, 1],
+      [:get_instance_variable, obj, :@b, :a]
     ]
-
-    obj = klass.new(1, :a)
 
     TracePoint.new(:get_instance_variable) {|tp|
       events << [tp.event, tp.self, tp.instance_variable_id, tp.got_instance_variable]
