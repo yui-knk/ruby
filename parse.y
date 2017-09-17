@@ -361,6 +361,7 @@ static NODE *logop_gen(struct parser_params*,enum node_type,NODE*,NODE*);
 
 static NODE *newline_node(NODE*);
 static void fixpos(NODE*,NODE*);
+static void fixoffset(NODE*,NODE*);
 
 static int value_expr_gen(struct parser_params*,NODE*);
 static void void_expr_gen(struct parser_params*,NODE*);
@@ -555,6 +556,7 @@ static VALUE assign_error_gen(struct parser_params *parser, VALUE a);
 
 #define block_dup_check(n1,n2) ((void)(n1), (void)(n2))
 #define fixpos(n1,n2) ((void)(n1), (void)(n2))
+#define fixoffset(n1,n2) ((void)(n1), (void)(n2))
 #undef nd_set_line
 #define nd_set_line(n,l) ((void)(n))
 
@@ -1243,6 +1245,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    /*%%%*/
 			$$ = new_unless($3, remove_begin($1), 0);
 			fixpos($$, $3);
+			// fixoffset($$, $3);
 		    /*%
 			$$ = dispatch2(unless_mod, $3, $1);
 		    %*/
@@ -8630,6 +8633,18 @@ fixpos(NODE *node, NODE *orig)
     nd_set_line(node, nd_line(orig));
 }
 
+static void
+fixoffset(NODE *node, NODE *orig)
+{
+    VALUE offset;
+    return;
+    if (!node) return;
+    if (!orig) return;
+    if (orig == (NODE*)1) return;
+
+    offset = nd_offset(orig);
+    nd_set_offset(node, INT2FIX(FIX2INT(offset) + 10));
+}
 static void
 parser_warning(struct parser_params *parser, NODE *node, const char *mesg)
 {
