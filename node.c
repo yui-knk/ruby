@@ -184,7 +184,7 @@ dump_node(VALUE buf, VALUE indent, int comment, NODE *node)
 	    D_DEDENT;
 	} while (node->nd_next &&
 		 nd_type(node->nd_next) == NODE_BLOCK &&
-		 (node = node->nd_next, 1));
+		 (node = node->nd_next));
 	if (!node->nd_next) break;
 	LAST_NODE;
 	F_NODE(nd_next, "next block");
