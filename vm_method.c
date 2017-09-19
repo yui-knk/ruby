@@ -482,6 +482,19 @@ check_override_opt_method(VALUE klass, VALUE arg)
     rb_class_foreach_subclass(klass, check_override_opt_method, (VALUE)mid);
 }
 
+static void
+add_method_coverage_entry(const rb_iseq_t *iseq, ID id)
+{
+    if (ISEQ_COVERAGE(iseq) && ISEQ_METHOD_COVERAGE(iseq)) {
+    	VALUE methods = ISEQ_METHOD_COVERAGE(iseq);
+    	VALUE line = iseq->body->location.first_lineno;
+    	long counter_idx = RARRAY_LEN(methods) / 3;
+	rb_ary_push(methods, ID2SYM(id));
+	rb_ary_push(methods, line);
+	rb_ary_push(methods, INT2FIX(0));
+    }
+}
+
 /*
  * klass->method_table[mid] = method_entry(defined_class, visi, def)
  *
@@ -587,6 +600,13 @@ rb_method_entry_make(VALUE klass, ID mid, VALUE defined_class, rb_method_visibil
 
     if (make_refined) {
 	make_method_entry_refined(klass, me);
+    }
+
+    if (type == VM_METHOD_TYPE_BMETHOD) {
+    	const rb_iseq_t *iseq = 0;
+    	iseq = rb_proc_get_iseq(def->body.proc, 0);
+
+    	add_method_coverage_entry(iseq, mid);
     }
 
     rb_id_table_insert(mtbl, mid, (VALUE)me);
