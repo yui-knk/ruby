@@ -1832,6 +1832,10 @@ vm_exec(rb_thread_t *th)
 	cfp = th->ec.cfp;
 	epc = cfp->pc - cfp->iseq->body->iseq_encoded;
 
+        if (RTEST(ruby_verbose)) {
+            printf("(sp: %"PRIdPTRDIFF", bp: %"PRIdPTRDIFF", pc: %i)\n", VM_SP_CNT(th, cfp->sp), VM_SP_CNT(th, vm_base_ptr(cfp)), epc);
+        }
+
 	escape_cfp = NULL;
 	if (state == TAG_BREAK || state == TAG_RETURN) {
 	    escape_cfp = THROW_DATA_CATCH_FRAME(err);
