@@ -191,7 +191,7 @@ class TestISeq < Test::Unit::TestCase
     body = compile(src, __LINE__, {peephole_optimization: true}).to_a[13]
     labels = body.select {|op, arg| op == :branchnil}.map {|op, arg| arg}
     assert_equal(1, labels.uniq.size)
-  end
+  end if !defined?(Coverage) || !Coverage.running?
 
   def test_parent_iseq_mark
     assert_separately([], <<-'end;', timeout: 20)
