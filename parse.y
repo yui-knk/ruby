@@ -2189,9 +2189,16 @@ arg		: lhs '=' arg_rhs
 			nd_set_offset($$, INT2FIX($<num>3));
 		    /*% %*/
 		    }
-		| arg tOROP arg
+		| arg tOROP
 		    {
-			$$ = logop(idOROP, $1, $3);
+			$<num>$ = (int)(parser->tokp - lex_pbeg);
+		    }
+		  arg
+		    {
+			$$ = logop(idOROP, $1, $4);
+		    /*%%%*/
+			nd_set_offset($$, INT2FIX($<num>3));
+		    /*% %*/
 		    }
 		| keyword_defined opt_nl {in_defined = 1;} arg
 		    {
