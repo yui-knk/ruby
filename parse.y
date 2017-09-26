@@ -8636,14 +8636,11 @@ fixpos(NODE *node, NODE *orig)
 static void
 fixoffset(NODE *node, NODE *orig)
 {
-    VALUE offset;
-    return;
     if (!node) return;
     if (!orig) return;
     if (orig == (NODE*)1) return;
 
-    offset = nd_offset(orig);
-    nd_set_offset(node, INT2FIX(FIX2INT(offset) + 10));
+    nd_set_offset(node, nd_offset(orig));
 }
 static void
 parser_warning(struct parser_params *parser, NODE *node, const char *mesg)
