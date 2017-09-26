@@ -1245,14 +1245,18 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			$$ = dispatch2(if_mod, $4, $1);
 		    %*/
 		    }
-		| stmt modifier_unless expr_value
+		| stmt modifier_unless
+		    {
+			$<num>$ = (int)(parser->tokp - lex_pbeg);
+		    }
+		  expr_value
 		    {
 		    /*%%%*/
-			$$ = new_unless($3, remove_begin($1), 0);
-			fixpos($$, $3);
-			// fixoffset($$, $3);
+			$$ = new_unless($4, remove_begin($1), 0);
+			nd_set_offset($$, INT2FIX($<num>3));
+			fixpos($$, $4);
 		    /*%
-			$$ = dispatch2(unless_mod, $3, $1);
+			$$ = dispatch2(unless_mod, $4, $1);
 		    %*/
 		    }
 		| stmt modifier_while expr_value
