@@ -129,9 +129,10 @@ typedef VALUE stack_type;
 #define CMDARG_P()	BITSTACK_SET_P(cmdarg_stack)
 #define CMDARG_SET(n)	BITSTACK_SET(cmdarg_stack, (n))
 
-#define CALL_OP_ID(n)     (RARRAY_AREF(n, 0))
-#define CALL_OP_OFFSET(n) (RARRAY_AREF(n, 1))
-#define CALL_OP_NEW(id,offset) (rb_ary_new3(2, (VALUE)id, (VALUE)offset))
+#define CALL_OP_ID(node)     (((node)->u1.id))
+#define CALL_OP_OFFSET(node) ((int)((node)->u3.cnt))
+#define CALL_OP_NEW(id,offset) \
+	rb_node_newnode(NODE_CALL_OP, id, 0, offset)
 
 struct vtable {
     ID *tbl;
@@ -631,6 +632,7 @@ static int lvar_defined_gen(struct parser_params*, ID);
 #define RE_OPTION_ARG_ENCODING_NONE 32
 
 #define NODE_STRTERM NODE_ZARRAY	/* nothing to gc */
+#define NODE_CALL_OP NODE_ZARRAY	/* nothing to gc */
 #define NODE_HEREDOC NODE_ARRAY 	/* 1, 3 to gc */
 #define SIGN_EXTEND(x,n) (((1<<(n)-1)^((x)&~(~0<<(n))))-(1<<(n)-1))
 #define nd_func u1.id
@@ -922,7 +924,7 @@ static void token_info_pop_gen(struct parser_params*, const char *token, size_t 
 %type <id>   fsym keyword_variable user_variable sym symbol operation operation2 operation3
 %type <id>   cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg f_bad_arg
 %type <id>   f_kwrest f_label f_arg_asgn call_op2
-%type <val>  call_op
+%type <node> call_op
 /*%%%*/
 /*%
 %type <val> program reswords then do
