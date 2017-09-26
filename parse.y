@@ -129,6 +129,10 @@ typedef VALUE stack_type;
 #define CMDARG_P()	BITSTACK_SET_P(cmdarg_stack)
 #define CMDARG_SET(n)	BITSTACK_SET(cmdarg_stack, (n))
 
+#define CALL_OP_ID(n)     (RARRAY_AREF(n, 0))
+#define CALL_OP_OFFSET(n) (RARRAY_AREF(n, 1))
+#define CALL_OP_NEW(id,offset) (rb_ary_new3(2, (VALUE)id, (VALUE)offset))
+
 struct vtable {
     ID *tbl;
     int pos;
@@ -917,7 +921,8 @@ static void token_info_pop_gen(struct parser_params*, const char *token, size_t 
 %type <node> mlhs mlhs_head mlhs_basic mlhs_item mlhs_node mlhs_post mlhs_inner
 %type <id>   fsym keyword_variable user_variable sym symbol operation operation2 operation3
 %type <id>   cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg f_bad_arg
-%type <id>   f_kwrest f_label f_arg_asgn call_op call_op2
+%type <id>   f_kwrest f_label f_arg_asgn call_op2
+%type <val>  call_op
 /*%%%*/
 /*%
 %type <val> program reswords then do
@@ -1368,12 +1373,14 @@ command_asgn	: lhs '=' command_rhs
 		| primary_value call_op tIDENTIFIER tOP_ASGN command_rhs
 		    {
 			value_expr($5);
-			$$ = new_attr_op_assign($1, $2, $3, $4, $5);
+			$$ = new_attr_op_assign($1, CALL_OP_ID($2), $3, $4, $5);
+			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
 		    }
 		| primary_value call_op tCONSTANT tOP_ASGN command_rhs
 		    {
 			value_expr($5);
-			$$ = new_attr_op_assign($1, $2, $3, $4, $5);
+			$$ = new_attr_op_assign($1, CALL_OP_ID($2), $3, $4, $5);
+			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
 		    }
 		| primary_value tCOLON2 tCONSTANT tOP_ASGN command_rhs
 		    {
@@ -1513,15 +1520,17 @@ command		: fcall command_args       %prec tLOWEST
 		    }
 		| primary_value call_op operation2 command_args	%prec tLOWEST
 		    {
-			$$ = new_command_qcall($2, $1, $3, $4);
+			$$ = new_command_qcall(CALL_OP_ID($2), $1, $3, $4);
 			fixpos($$, $1);
+			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
 		    }
 		| primary_value call_op operation2 command_args cmd_brace_block
 		    {
 			block_dup_check($4,$5);
-			$$ = new_command_qcall($2, $1, $3, $4);
+			$$ = new_command_qcall(CALL_OP_ID($2), $1, $3, $4);
 			$$ = method_add_block($$, $5);
 			fixpos($$, $1);
+			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
 		   }
 		| primary_value tCOLON2 operation2 command_args	%prec tLOWEST
 		    {
@@ -1753,9 +1762,10 @@ mlhs_node	: user_variable
 		| primary_value call_op tIDENTIFIER
 		    {
 		    /*%%%*/
-			$$ = attrset($1, $2, $3);
+			$$ = attrset($1, CALL_OP_ID($2), $3);
+			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
 		    /*%
-			$$ = dispatch3(field, $1, $2, $3);
+			$$ = dispatch3(field, $1, CALL_OP_ID($2), $3);
 		    %*/
 		    }
 		| primary_value tCOLON2 tIDENTIFIER
@@ -1769,9 +1779,10 @@ mlhs_node	: user_variable
 		| primary_value call_op tCONSTANT
 		    {
 		    /*%%%*/
-			$$ = attrset($1, $2, $3);
+			$$ = attrset($1, CALL_OP_ID($2), $3);
+			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
 		    /*%
-			$$ = dispatch3(field, $1, $2, $3);
+			$$ = dispatch3(field, $1, CALL_OP_ID($2), $3);
 		    %*/
 		    }
 		| primary_value tCOLON2 tCONSTANT
@@ -1818,9 +1829,10 @@ lhs		: user_variable
 		| primary_value call_op tIDENTIFIER
 		    {
 		    /*%%%*/
-			$$ = attrset($1, $2, $3);
+			$$ = attrset($1, CALL_OP_ID($2), $3);
+			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
 		    /*%
-			$$ = dispatch3(field, $1, $2, $3);
+			$$ = dispatch3(field, $1, CALL_OP_ID($2), $3);
 		    %*/
 		    }
 		| primary_value tCOLON2 tIDENTIFIER
@@ -1834,9 +1846,10 @@ lhs		: user_variable
 		| primary_value call_op tCONSTANT
 		    {
 		    /*%%%*/
-			$$ = attrset($1, $2, $3);
+			$$ = attrset($1, CALL_OP_ID($2), $3);
+			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
 		    /*%
-			$$ = dispatch3(field, $1, $2, $3);
+			$$ = dispatch3(field, $1, CALL_OP_ID($2), $3);
 		    %*/
 		    }
 		| primary_value tCOLON2 tCONSTANT
@@ -2027,12 +2040,14 @@ arg		: lhs '=' arg_rhs
 		| primary_value call_op tIDENTIFIER tOP_ASGN arg_rhs
 		    {
 			value_expr($5);
-			$$ = new_attr_op_assign($1, $2, $3, $4, $5);
+			$$ = new_attr_op_assign($1, CALL_OP_ID($2), $3, $4, $5);
+			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
 		    }
 		| primary_value call_op tCONSTANT tOP_ASGN arg_rhs
 		    {
 			value_expr($5);
-			$$ = new_attr_op_assign($1, $2, $3, $4, $5);
+			$$ = new_attr_op_assign($1, CALL_OP_ID($2), $3, $4, $5);
+			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
 		    }
 		| primary_value tCOLON2 tIDENTIFIER tOP_ASGN arg_rhs
 		    {
@@ -3499,8 +3514,9 @@ method_call	: fcall paren_args
 		    }
 		  opt_paren_args
 		    {
-			$$ = new_qcall($2, $1, $3, $5);
+			$$ = new_qcall(CALL_OP_ID($2), $1, $3, $5);
 			nd_set_line($$, $<num>4);
+			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
 		    }
 		| primary_value tCOLON2 operation2
 		    {
@@ -3525,8 +3541,9 @@ method_call	: fcall paren_args
 		    }
 		  paren_args
 		    {
-			$$ = new_qcall($2, $1, ID2VAL(idCall), $4);
+			$$ = new_qcall(CALL_OP_ID($2), $1, ID2VAL(idCall), $4);
 			nd_set_line($$, $<num>3);
+			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
 		    }
 		| primary_value tCOLON2
 		    {
@@ -4840,15 +4857,18 @@ dot_or_colon	: '.'
 
 call_op 	: '.'
 		    {
-			$$ = TOKEN2VAL('.');
+			$$ = CALL_OP_NEW(TOKEN2VAL('.'), (int)(parser->tokp - lex_pbeg));
 		    }
 		| tANDDOT
 		    {
-			$$ = ID2VAL(idANDDOT);
+			$$ = CALL_OP_NEW(ID2VAL(idANDDOT), (int)(parser->tokp - lex_pbeg));
 		    }
 		;
 
 call_op2	: call_op
+		    {
+			$$ = CALL_OP_ID($1);
+		    }
 		| tCOLON2
 		    {
 			$$ = ID2VAL(idCOLON2);
