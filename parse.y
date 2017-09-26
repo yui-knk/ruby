@@ -1413,9 +1413,16 @@ command_rhs	: command_call   %prec tOP_ASGN
 		;
 
 expr		: command_call
-		| expr keyword_and expr
+		| expr keyword_and
 		    {
-			$$ = logop(idAND, $1, $3);
+			$<num>$ = (int)(parser->tokp - lex_pbeg);
+		    }
+		  expr
+		    {
+			$$ = logop(idAND, $1, $4);
+		    /*%%%*/
+			nd_set_offset($$, INT2FIX($<num>3));
+		    /*% %*/
 		    }
 		| expr keyword_or expr
 		    {
