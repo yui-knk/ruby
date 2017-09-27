@@ -1382,13 +1382,17 @@ command_asgn	: lhs '=' command_rhs
 		    {
 			value_expr($5);
 			$$ = new_attr_op_assign($1, CALL_OP_ID($2), $3, $4, $5);
+		    /*%%%*/
 			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
+		    /*% %*/
 		    }
 		| primary_value call_op tCONSTANT tOP_ASGN command_rhs
 		    {
 			value_expr($5);
 			$$ = new_attr_op_assign($1, CALL_OP_ID($2), $3, $4, $5);
+		    /*%%%*/
 			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
+		    /*% %*/
 		    }
 		| primary_value tCOLON2 tCONSTANT tOP_ASGN command_rhs
 		    {
@@ -1530,7 +1534,9 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 			$$ = new_command_qcall(CALL_OP_ID($2), $1, $3, $4);
 			fixpos($$, $1);
+		    /*%%%*/
 			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
+		    /*% %*/
 		    }
 		| primary_value call_op operation2 command_args cmd_brace_block
 		    {
@@ -1538,7 +1544,9 @@ command		: fcall command_args       %prec tLOWEST
 			$$ = new_command_qcall(CALL_OP_ID($2), $1, $3, $4);
 			$$ = method_add_block($$, $5);
 			fixpos($$, $1);
+		    /*%%%*/
 			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
+		    /*% %*/
 		   }
 		| primary_value tCOLON2 operation2 command_args	%prec tLOWEST
 		    {
@@ -2049,13 +2057,17 @@ arg		: lhs '=' arg_rhs
 		    {
 			value_expr($5);
 			$$ = new_attr_op_assign($1, CALL_OP_ID($2), $3, $4, $5);
+		    /*%%%*/
 			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
+		    /*% %*/
 		    }
 		| primary_value call_op tCONSTANT tOP_ASGN arg_rhs
 		    {
 			value_expr($5);
 			$$ = new_attr_op_assign($1, CALL_OP_ID($2), $3, $4, $5);
+		    /*%%%*/
 			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
+		    /*% %*/
 		    }
 		| primary_value tCOLON2 tIDENTIFIER tOP_ASGN arg_rhs
 		    {
@@ -3524,7 +3536,9 @@ method_call	: fcall paren_args
 		    {
 			$$ = new_qcall(CALL_OP_ID($2), $1, $3, $5);
 			nd_set_line($$, $<num>4);
+		    /*%%%*/
 			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
+		    /*% %*/
 		    }
 		| primary_value tCOLON2 operation2
 		    {
@@ -3551,7 +3565,9 @@ method_call	: fcall paren_args
 		    {
 			$$ = new_qcall(CALL_OP_ID($2), $1, ID2VAL(idCall), $4);
 			nd_set_line($$, $<num>3);
+		    /*%%%*/
 			nd_set_offset($$, INT2FIX(CALL_OP_OFFSET($2)));
+		    /*% %*/
 		    }
 		| primary_value tCOLON2
 		    {
