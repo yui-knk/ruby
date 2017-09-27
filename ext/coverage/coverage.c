@@ -81,10 +81,11 @@ branch_coverage(VALUE branches)
     for (i = 0; i < RARRAY_LEN(structure); i++) {
 	VALUE branches = RARRAY_AREF(structure, i);
 	VALUE base_type = RARRAY_AREF(branches, 0);
-	VALUE base_lineno = RARRAY_AREF(branches, 1);
+    VALUE base_lineno = RARRAY_AREF(branches, 1);
+	VALUE base_offset = RARRAY_AREF(branches, 2);
 	VALUE children = rb_hash_new();
-	rb_hash_aset(ret, rb_ary_new_from_args(3, base_type, LONG2FIX(id++), base_lineno), children);
-	for (j = 2; j < RARRAY_LEN(branches); j += 4) {
+	rb_hash_aset(ret, rb_ary_new_from_args(4, base_type, LONG2FIX(id++), base_lineno, base_offset), children);
+	for (j = 3; j < RARRAY_LEN(branches); j += 4) {
 	    VALUE target_label = RARRAY_AREF(branches, j);
 	    VALUE target_lineno = RARRAY_AREF(branches, j + 1);
             int idx = FIX2INT(RARRAY_AREF(branches, j + 2));
