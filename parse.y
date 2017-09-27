@@ -129,10 +129,16 @@ typedef VALUE stack_type;
 #define CMDARG_P()	BITSTACK_SET_P(cmdarg_stack)
 #define CMDARG_SET(n)	BITSTACK_SET(cmdarg_stack, (n))
 
+#ifndef RIPPER
 #define CALL_OP_ID(node)     (((node)->u1.id))
 #define CALL_OP_OFFSET(node) ((int)((node)->u3.cnt))
 #define CALL_OP_NEW(id,offset) \
 	rb_node_newnode(NODE_CALL_OP, id, 0, offset)
+#else
+#define CALL_OP_ID(n)          (n)
+#define CALL_OP_OFFSET(n)      (0)
+#define CALL_OP_NEW(id,offset) (id)
+#endif
 
 struct vtable {
     ID *tbl;
