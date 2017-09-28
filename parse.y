@@ -2178,9 +2178,16 @@ arg		: lhs '=' arg_rhs
 		    {
 			$$ = call_bin_op($1, idGTGT, $3);
 		    }
-		| arg tANDOP arg
+		| arg tANDOP
 		    {
-			$$ = logop(idANDOP, $1, $3);
+			$<num>$ = token_offset;
+		    }
+		  arg
+		    {
+			$$ = logop(idANDOP, $1, $4);
+		    /*%%%*/
+			nd_set_offset($$, $<num>3);
+		    /*% %*/
 		    }
 		| arg tOROP arg
 		    {
