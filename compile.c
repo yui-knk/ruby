@@ -251,7 +251,7 @@ struct iseq_compile_data_ensure_node_stack {
 	  ADD_INSN2((seq), (line), trace2, INT2FIX(RUBY_EVENT_COVERAGE), INT2FIX(COVERAGE_INDEX_LINES)); \
       } \
   } while (0)
-#define DECL_BRANCH_BASE(branches, line, type) \
+#define DECL_BRANCH_BASE(branches, line, offset, type) \
   do { \
       if (ISEQ_COVERAGE(iseq) && \
 	  ISEQ_BRANCH_COVERAGE(iseq) && \
@@ -261,6 +261,7 @@ struct iseq_compile_data_ensure_node_stack {
 	  rb_ary_push(structure, branches); \
 	  rb_ary_push(branches, ID2SYM(rb_intern(type))); \
 	  rb_ary_push(branches, INT2FIX(line)); \
+	  rb_ary_push(branches, INT2FIX(offset)); \
       } \
   } while (0)
 #define ADD_TRACE_BRANCH_COVERAGE(seq, line, type, branches) \
@@ -4220,6 +4221,7 @@ compile_if(rb_iseq_t *iseq, LINK_ANCHOR *const ret, NODE *node, int popped, cons
     NODE *node_else = type == NODE_IF ? node->nd_else : node->nd_body;
 
     const int line = nd_line(node);
+    const int offset = nd_offset(node);
     DECL_ANCHOR(cond_seq);
     DECL_ANCHOR(then_seq);
     DECL_ANCHOR(else_seq);
@@ -4241,7 +4243,7 @@ compile_if(rb_iseq_t *iseq, LINK_ANCHOR *const ret, NODE *node, int popped, cons
     ADD_SEQ(ret, cond_seq);
 
     if (then_label->refcnt && else_label->refcnt) {
-	DECL_BRANCH_BASE(branches, line, type == NODE_IF ? "if" : "unless");
+	DECL_BRANCH_BASE(branches, line, offset, type == NODE_IF ? "if" : "unless");
     }
 
     if (then_label->refcnt) {
@@ -4296,7 +4298,7 @@ compile_case(rb_iseq_t *iseq, LINK_ANCHOR *const ret, NODE *node, int popped)
     }
     CHECK(COMPILE(head, "case base", node->nd_head));
 
-    DECL_BRANCH_BASE(branches, nd_line(node), "case");
+    DECL_BRANCH_BASE(branches, nd_line(node), nd_offset(node), "case");
 
     node = node->nd_body;
     type = nd_type(node);
@@ -4395,7 +4397,7 @@ compile_when(rb_iseq_t *iseq, LINK_ANCHOR *const ret, NODE *node, int popped)
     DECL_ANCHOR(body_seq);
     VALUE branches = 0;
 
-    DECL_BRANCH_BASE(branches, nd_line(node), "case");
+    DECL_BRANCH_BASE(branches, nd_line(node), nd_offset(node), "case");
 
     INIT_ANCHOR(body_seq);
     endlabel = NEW_LABEL(nd_line(node));
@@ -4449,6 +4451,7 @@ static int
 compile_loop(rb_iseq_t *iseq, LINK_ANCHOR *const ret, NODE *node, int popped, const enum node_type type)
 {
     const int line = (int)nd_line(node);
+    const int offset = (int)nd_offset(node);
     LABEL *prev_start_label = ISEQ_COMPILE_DATA(iseq)->start_label;
     LABEL *prev_end_label = ISEQ_COMPILE_DATA(iseq)->end_label;
     LABEL *prev_redo_label = ISEQ_COMPILE_DATA(iseq)->redo_label;
@@ -4484,7 +4487,7 @@ compile_loop(rb_iseq_t *iseq, LINK_ANCHOR *const ret, NODE *node, int popped, co
     if (tmp_label) ADD_LABEL(ret, tmp_label);
 
     ADD_LABEL(ret, redo_label);
-    DECL_BRANCH_BASE(branches, line, type == NODE_WHILE ? "while" : "until");
+    DECL_BRANCH_BASE(branches, line, offset, type == NODE_WHILE ? "while" : "until");
     ADD_TRACE_BRANCH_COVERAGE(ret, node->nd_body ? nd_line(node->nd_body) : line, "body", branches);
     CHECK(COMPILE_POPPED(ret, "while body", node->nd_body));
     ADD_LABEL(ret, next_label);	/* next */
@@ -5665,7 +5668,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, NODE *node, int popp
 		else_label = NEW_LABEL(line);
 		end_label = NEW_LABEL(line);
 
-		DECL_BRANCH_BASE(branches, nd_line(node), "&.");
+		DECL_BRANCH_BASE(branches, nd_line(node), nd_offset(node), "&.");
 		ADD_INSN(recv, line, dup);
 		ADD_INSNL(recv, line, branchnil, else_label);
 		ADD_TRACE_BRANCH_COVERAGE(recv, nd_line(node), "then", branches);
