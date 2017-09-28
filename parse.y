@@ -1424,9 +1424,16 @@ expr		: command_call
 			nd_set_offset($$, $<num>3);
 		    /*% %*/
 		    }
-		| expr keyword_or expr
+		| expr keyword_or
 		    {
-			$$ = logop(idOR, $1, $3);
+			$<num>$ = token_offset;
+		    }
+		  expr
+		    {
+			$$ = logop(idOR, $1, $4);
+		    /*%%%*/
+			nd_set_offset($$, $<num>3);
+		    /*% %*/
 		    }
 		| keyword_not opt_nl expr
 		    {
