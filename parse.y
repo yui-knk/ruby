@@ -315,6 +315,8 @@ static int parser_yyerror(struct parser_params*, const char*);
 #endif
 #define tokp			lex.ptok
 
+#define token_offset		((int)(parser->tokp - lex_pbeg))
+
 #define CALL_Q_P(q) ((q) == TOKEN2VAL(tANDDOT))
 #define NODE_CALL_Q(q) (CALL_Q_P(q) ? NODE_QCALL : NODE_CALL)
 #define NEW_QCALL(q,r,m,a) NEW_NODE(NODE_CALL_Q(q),r,m,a)
