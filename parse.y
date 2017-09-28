@@ -8597,6 +8597,7 @@ node_newnode(struct parser_params *parser, enum node_type type, VALUE a0, VALUE 
 {
     NODE *n = (rb_node_newnode)(type, a0, a1, a2);
     nd_set_line(n, ruby_sourceline);
+    nd_set_offset(n, token_offset);
     return n;
 }
 
