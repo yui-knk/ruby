@@ -1231,13 +1231,18 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			$$ = dispatch1(undef, $2);
 		    %*/
 		    }
-		| stmt modifier_if expr_value
+		| stmt modifier_if
+		    {
+			$<num>$ = token_offset;
+		    }
+		  expr_value
 		    {
 		    /*%%%*/
-			$$ = new_if($3, remove_begin($1), 0);
-			fixpos($$, $3);
+			$$ = new_if($4, remove_begin($1), 0);
+			fixpos($$, $4);
+			nd_set_offset($$, $<num>3);
 		    /*%
-			$$ = dispatch2(if_mod, $3, $1);
+			$$ = dispatch2(if_mod, $4, $1);
 		    %*/
 		    }
 		| stmt modifier_unless expr_value
