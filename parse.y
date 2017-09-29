@@ -266,7 +266,8 @@ struct parser_params {
 #define TOK_INTERN() intern_cstr(tok(), toklen(), current_enc)
 
 static int parser_yyerror(struct parser_params*, const char*);
-#define yyerror(msg) parser_yyerror(parser, (msg))
+#define yyerror0(msg) parser_yyerror(parser, (msg))
+#define yyerror(yylloc, parser, msg) yyerror0(msg)
 #define token_flush(p) ((p)->lex.ptok = (p)->lex.pcur)
 
 #define lex_strterm		(parser->lex.strterm)
@@ -321,7 +322,7 @@ static int parser_yyerror(struct parser_params*, const char*);
 
 #define lambda_beginning_p() (lpar_beg && lpar_beg == paren_nest)
 
-static enum yytokentype yylex(YYSTYPE*, struct parser_params*);
+static enum yytokentype yylex(YYSTYPE*, YYLTYPE*, struct parser_params*);
 
 static inline void
 parser_set_line(NODE *n, int l)
@@ -1162,7 +1163,7 @@ stmt_or_begin	: stmt
 		    }
                 | keyword_BEGIN
 		    {
-			yyerror("BEGIN is permitted only at toplevel");
+			yyerror0("BEGIN is permitted only at toplevel");
 		    /*%%%*/
 			/* local_push(0); */
 		    /*%
@@ -1211,7 +1212,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		| keyword_alias tGVAR tNTH_REF
 		    {
 		    /*%%%*/
-			yyerror("can't make alias for the number variables");
+			yyerror0("can't make alias for the number variables");
 			$$ = NEW_BEGIN(0);
 		    /*%
 			$$ = dispatch2(var_alias, $2, $3);
@@ -1829,7 +1830,7 @@ lhs		: user_variable
 cname		: tIDENTIFIER
 		    {
 		    /*%%%*/
-			yyerror("class/module name must be CONSTANT");
+			yyerror0("class/module name must be CONSTANT");
 		    /*%
 			$$ = dispatch1(class_name_error, $1);
 			ripper_error();
@@ -2153,6 +2154,7 @@ arg		: lhs '=' arg_rhs
 		| arg tANDOP arg
 		    {
 			$$ = logop(idANDOP, $1, $3);
+			fprintf(stderr, "arg tANDOP arg %d\n", @2.first_column);
 		    }
 		| arg tOROP arg
 		    {
@@ -2744,7 +2746,7 @@ primary		: literal
 		| k_class cpath superclass
 		    {
 			if (in_def || in_single)
-			    yyerror("class definition in method body");
+			    yyerror0("class definition in method body");
 			local_push(0);
 		    /*%%%*/
 			$<num>$ = ruby_sourceline;
@@ -2788,7 +2790,7 @@ primary		: literal
 		| k_module cpath
 		    {
 			if (in_def || in_single)
-			    yyerror("module definition in method body");
+			    yyerror0("module definition in method body");
 			local_push(0);
 		    /*%%%*/
 			$<num>$ = ruby_sourceline;
@@ -4300,7 +4302,7 @@ f_args		: f_arg ',' f_optarg ',' f_rest_arg opt_args_tail
 f_bad_arg	: tCONSTANT
 		    {
 		    /*%%%*/
-			yyerror("formal argument cannot be a constant");
+			yyerror0("formal argument cannot be a constant");
 			$$ = 0;
 		    /*%
 			$$ = dispatch1(param_error, $1);
@@ -4310,7 +4312,7 @@ f_bad_arg	: tCONSTANT
 		| tIVAR
 		    {
 		    /*%%%*/
-			yyerror("formal argument cannot be an instance variable");
+			yyerror0("formal argument cannot be an instance variable");
 			$$ = 0;
 		    /*%
 			$$ = dispatch1(param_error, $1);
@@ -4320,7 +4322,7 @@ f_bad_arg	: tCONSTANT
 		| tGVAR
 		    {
 		    /*%%%*/
-			yyerror("formal argument cannot be a global variable");
+			yyerror0("formal argument cannot be a global variable");
 			$$ = 0;
 		    /*%
 			$$ = dispatch1(param_error, $1);
@@ -4330,7 +4332,7 @@ f_bad_arg	: tCONSTANT
 		| tCVAR
 		    {
 		    /*%%%*/
-			yyerror("formal argument cannot be a class variable");
+			yyerror0("formal argument cannot be a class variable");
 			$$ = 0;
 		    /*%
 			$$ = dispatch1(param_error, $1);
@@ -4597,7 +4599,7 @@ f_rest_arg	: restarg_mark tIDENTIFIER
 		    {
 		    /*%%%*/
 			if (!is_local_id($2))
-			    yyerror("rest argument must be local variable");
+			    yyerror0("rest argument must be local variable");
 		    /*% %*/
 			arg_var(shadowing_lvar(get_id($2)));
 		    /*%%%*/
@@ -4625,9 +4627,9 @@ f_block_arg	: blkarg_mark tIDENTIFIER
 		    {
 		    /*%%%*/
 			if (!is_local_id($2))
-			    yyerror("block argument must be local variable");
+			    yyerror0("block argument must be local variable");
 			else if (!dyna_in_block() && local_id($2))
-			    yyerror("duplicated block argument name");
+			    yyerror0("duplicated block argument name");
 		    /*% %*/
 			arg_var(shadowing_lvar(get_id($2)));
 		    /*%%%*/
@@ -4666,7 +4668,7 @@ singleton	: var_ref
 		    {
 		    /*%%%*/
 			if ($3 == 0) {
-			    yyerror("can't define singleton method for ().");
+			    yyerror0("can't define singleton method for ().");
 			}
 			else {
 			    switch (nd_type($3)) {
@@ -4678,7 +4680,7 @@ singleton	: var_ref
 			      case NODE_LIT:
 			      case NODE_ARRAY:
 			      case NODE_ZARRAY:
-				yyerror("can't define singleton method for literals");
+				yyerror0("can't define singleton method for literals");
 				break;
 			      default:
 				value_expr($3);
@@ -5659,7 +5661,7 @@ parser_tok_hex(struct parser_params *parser, size_t *numlen)
     c = scan_hex(lex_p, 2, numlen);
     if (!*numlen) {
 	parser->tokp = lex_p;
-	yyerror("invalid hex escape");
+	yyerror0("invalid hex escape");
 	return 0;
     }
     lex_p += *numlen;
@@ -5677,15 +5679,15 @@ parser_tokadd_codepoint(struct parser_params *parser, rb_encoding **encp,
     literal_flush(lex_p);
     lex_p += numlen;
     if (wide ? (numlen == 0 || numlen > 6) : (numlen < 4))  {
-	yyerror("invalid Unicode escape");
+	yyerror0("invalid Unicode escape");
 	return wide && numlen > 0;
     }
     if (codepoint > 0x10ffff) {
-	yyerror("invalid Unicode codepoint (too large)");
+	yyerror0("invalid Unicode codepoint (too large)");
 	return wide;
     }
     if ((codepoint & 0xfffff800) == 0xd800) {
-	yyerror("invalid Unicode codepoint");
+	yyerror0("invalid Unicode codepoint");
 	return wide;
     }
     if (regexp_literal) {
@@ -5698,7 +5700,7 @@ parser_tokadd_codepoint(struct parser_params *parser, rb_encoding **encp,
 	    size_t len = sizeof(mixed_utf8) - 2 + strlen(rb_enc_name(*encp));
 	    char *mesg = alloca(len);
 	    snprintf(mesg, len, mixed_utf8, rb_enc_name(*encp));
-	    yyerror(mesg);
+	    yyerror0(mesg);
 	    return wide;
 	}
 	*encp = utf8;
@@ -5744,7 +5746,7 @@ parser_tokadd_utf8(struct parser_params *parser, rb_encoding **encp,
 	if (c != close_brace) {
 	  unterminated:
 	    literal_flush(lex_p);
-	    yyerror("unterminated Unicode escape");
+	    yyerror0("unterminated Unicode escape");
 	    return 0;
 	}
 
@@ -5844,7 +5846,7 @@ parser_read_escape(struct parser_params *parser, int flags,
 
       eof:
       case -1:
-        yyerror("Invalid escape character syntax");
+        yyerror0("Invalid escape character syntax");
 	pushback(c);
 	return '\0';
 
@@ -5923,7 +5925,7 @@ parser_tokadd_escape(struct parser_params *parser, rb_encoding **encp)
 
       eof:
       case -1:
-        yyerror("Invalid escape character syntax");
+        yyerror0("Invalid escape character syntax");
 	return -1;
 
       default:
@@ -6046,7 +6048,7 @@ parser_tokadd_string(struct parser_params *parser,
 	snprintf(errbuf, len, mixed_msg,	\
 		 rb_enc_name(enc1),		\
 		 rb_enc_name(enc2));		\
-	yyerror(errbuf);			\
+	yyerror0(errbuf);			\
     }
 #define mixed_escape(beg, enc1, enc2) do {	\
 	const char *pos = lex_p;		\
@@ -6304,7 +6306,7 @@ parser_parse_string(struct parser_params *parser, NODE *quote)
 		      &enc) == -1) {
 	if (parser->eofp) {
 #ifndef RIPPER
-# define unterminated_literal(mesg) yyerror(mesg)
+# define unterminated_literal(mesg) yyerror0(mesg)
 #else
 # define unterminated_literal(mesg) compile_error(PARSER_ARG  mesg)
 #endif
@@ -6565,7 +6567,7 @@ parser_number_literal_suffix(struct parser_params *parser, int mask)
 	if (c == '.') {
 	    c = peekc_n(1);
 	    if (ISDIGIT(c)) {
-		yyerror("unexpected fraction part after numeric literal");
+		yyerror0("unexpected fraction part after numeric literal");
 		lex_p += 2;
 		while (parser_is_identchar()) nextc();
 	    }
@@ -6773,19 +6775,19 @@ formal_argument_gen(struct parser_params *parser, ID lhs)
 	break;
 #ifndef RIPPER
       case ID_CONST:
-	yyerror("formal argument cannot be a constant");
+	yyerror0("formal argument cannot be a constant");
 	return 0;
       case ID_INSTANCE:
-	yyerror("formal argument cannot be an instance variable");
+	yyerror0("formal argument cannot be an instance variable");
 	return 0;
       case ID_GLOBAL:
-	yyerror("formal argument cannot be a global variable");
+	yyerror0("formal argument cannot be a global variable");
 	return 0;
       case ID_CLASS:
-	yyerror("formal argument cannot be a class variable");
+	yyerror0("formal argument cannot be a class variable");
 	return 0;
       default:
-	yyerror("formal argument must be local variable");
+	yyerror0("formal argument must be local variable");
 	return 0;
 #else
       default:
@@ -7206,7 +7208,7 @@ parse_numeric(struct parser_params *parser, int c)
 	c = nextc();
     }
     if (c == '0') {
-#define no_digits() do {yyerror("numeric literal without digits"); return 0;} while (0)
+#define no_digits() do {yyerror0("numeric literal without digits"); return 0;} while (0)
 	int start = toklen();
 	c = nextc();
 	if (c == 'x' || c == 'X') {
@@ -7320,7 +7322,7 @@ parse_numeric(struct parser_params *parser, int c)
 	}
 	if (c > '7' && c <= '9') {
 	  invalid_octal:
-	    yyerror("Invalid octal digit");
+	    yyerror0("Invalid octal digit");
 	}
 	else if (c == '.' || c == 'e' || c == 'E') {
 	    tokadd('0');
@@ -7402,7 +7404,7 @@ parse_numeric(struct parser_params *parser, int c)
       trailing_uc:
 	literal_flush(lex_p - 1);
 	snprintf(tmp, sizeof(tmp), "trailing `%c' in number", nondigit);
-	yyerror(tmp);
+	yyerror0(tmp);
     }
     tokfix();
     if (is_float) {
@@ -7539,7 +7541,7 @@ parse_percent(struct parser_params *parser, const int space_seen, const enum lex
 	else {
 	    term = nextc();
 	    if (rb_enc_isalnum(term, current_enc) || !parser_isascii()) {
-		yyerror("unknown type of %string");
+		yyerror0("unknown type of %string");
 		return 0;
 	    }
 	}
@@ -7601,7 +7603,7 @@ parse_percent(struct parser_params *parser, const int space_seen, const enum lex
 	    return tSYMBEG;
 
 	  default:
-	    yyerror("unknown type of %string");
+	    yyerror0("unknown type of %string");
 	    return 0;
 	}
     }
@@ -8351,7 +8353,7 @@ parser_yylex(struct parser_params *parser)
 	}
 	pushback(c);
 	if (c != -1 && ISDIGIT(c)) {
-	    yyerror("no .<digit> floating literal anymore; put 0 before dot");
+	    yyerror0("no .<digit> floating literal anymore; put 0 before dot");
 	}
 	SET_LEX_STATE(EXPR_DOT);
 	return '.';
@@ -8574,7 +8576,7 @@ parser_yylex(struct parser_params *parser)
 }
 
 static enum yytokentype
-yylex(YYSTYPE *lval, struct parser_params *parser)
+yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *parser)
 {
     enum yytokentype t;
 
@@ -8585,6 +8587,8 @@ yylex(YYSTYPE *lval, struct parser_params *parser)
 	dispatch_delayed_token(t);
     else if (t != 0)
 	dispatch_scan_event(t);
+
+    yylloc->first_column = (int)(parser->tokp - lex_pbeg);
 
     return t;
 }
@@ -9265,25 +9269,25 @@ assignable_gen(struct parser_params *parser, ID id, NODE *val)
     if (!id) return assignable_result(0);
     switch (id) {
       case keyword_self:
-	yyerror("Can't change the value of self");
+	yyerror0("Can't change the value of self");
 	goto error;
       case keyword_nil:
-	yyerror("Can't assign to nil");
+	yyerror0("Can't assign to nil");
 	goto error;
       case keyword_true:
-	yyerror("Can't assign to true");
+	yyerror0("Can't assign to true");
 	goto error;
       case keyword_false:
-	yyerror("Can't assign to false");
+	yyerror0("Can't assign to false");
 	goto error;
       case keyword__FILE__:
-	yyerror("Can't assign to __FILE__");
+	yyerror0("Can't assign to __FILE__");
 	goto error;
       case keyword__LINE__:
-	yyerror("Can't assign to __LINE__");
+	yyerror0("Can't assign to __LINE__");
 	goto error;
       case keyword__ENCODING__:
-	yyerror("Can't assign to __ENCODING__");
+	yyerror0("Can't assign to __ENCODING__");
 	goto error;
     }
     switch (id_type(id)) {
@@ -9317,7 +9321,7 @@ assignable_gen(struct parser_params *parser, ID id, NODE *val)
       case ID_CONST:
 	if (!in_def && !in_single)
 	    return assignable_result(NEW_CDECL(id, val, 0));
-	yyerror("dynamic constant assignment");
+	yyerror0("dynamic constant assignment");
 	break;
       case ID_CLASS:
 	return assignable_result(NEW_CVASGN(id, val));
@@ -9347,7 +9351,7 @@ shadowing_lvar_0(struct parser_params *parser, ID name)
     if (is_private_local_id(name)) return 1;
     if (dyna_in_block()) {
 	if (dvar_curr(name)) {
-	    yyerror("duplicated argument name");
+	    yyerror0("duplicated argument name");
 	}
 	else if (dvar_defined(name) || local_id(name)) {
 	    rb_warning1("shadowing outer local variable - %"PRIsWARN, rb_id2str(name));
@@ -9360,7 +9364,7 @@ shadowing_lvar_0(struct parser_params *parser, ID name)
     }
     else {
 	if (local_id(name)) {
-	    yyerror("duplicated argument name");
+	    yyerror0("duplicated argument name");
 	}
     }
     return 1;
@@ -9518,7 +9522,7 @@ value_expr_gen(struct parser_params *parser, NODE *node)
 	  case NODE_NEXT:
 	  case NODE_REDO:
 	  case NODE_RETRY:
-	    if (!cond) yyerror("void value expression");
+	    if (!cond) yyerror0("void value expression");
 	    /* or "control never reach"? */
 	    return FALSE;
 
@@ -10266,7 +10270,7 @@ static NODE *
 const_decl_gen(struct parser_params *parser, NODE *path)
 {
     if (in_def || in_single) {
-	yyerror("dynamic constant assignment");
+	yyerror0("dynamic constant assignment");
     }
     return NEW_CDECL(0, 0, (path));
 }
