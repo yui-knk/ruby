@@ -1244,6 +1244,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    /*%%%*/
 			$$ = new_if($3, remove_begin($1), 0);
 			fixpos($$, $3);
+                        nd_set_modifier($$);
 		    /*%
 			$$ = dispatch2(if_mod, $3, $1);
 		    %*/

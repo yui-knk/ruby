@@ -194,6 +194,10 @@ dump_node(VALUE buf, VALUE indent, int comment, NODE *node)
 	ANN("if statement");
 	ANN("format: if [nd_cond] then [nd_body] else [nd_else] end");
 	ANN("example: if x == 1 then foo else bar end");
+	if nd_modifier(node) {
+	    A_INDENT;
+	    A("modifier if\n");
+	}
 	F_NODE(nd_cond, "condition expr");
 	F_NODE(nd_body, "then clause");
 	LAST_NODE;
