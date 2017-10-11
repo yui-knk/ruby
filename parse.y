@@ -1199,6 +1199,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = NEW_ALIAS($2, $4);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(alias, $2, $4);
 		    %*/
@@ -1207,6 +1208,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = NEW_VALIAS($2, $3);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(var_alias, $2, $3);
 		    %*/
@@ -1218,6 +1220,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			buf[0] = '$';
 			buf[1] = (char)$3->nd_nth;
 			$$ = NEW_VALIAS($2, rb_intern2(buf, 2));
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(var_alias, $2, $3);
 		    %*/
@@ -1227,6 +1230,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    /*%%%*/
 			yyerror0("can't make alias for the number variables");
 			$$ = NEW_BEGIN(0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(var_alias, $2, $3);
 			$$ = dispatch1(alias_error, $$);
@@ -1270,6 +1274,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			else {
 			    $$ = NEW_WHILE(cond($3), $1, 1);
 			}
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(while_mod, $3, $1);
 		    %*/
@@ -1283,6 +1288,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			else {
 			    $$ = NEW_UNTIL(cond($3), $1, 1);
 			}
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(until_mod, $3, $1);
 		    %*/
@@ -1292,6 +1298,8 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    /*%%%*/
 			NODE *resq = NEW_RESBODY(0, remove_begin($3), 0);
 			$$ = NEW_RESCUE(remove_begin($1), resq, 0);
+			nd_set_offset(resq, @1.first_column);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(rescue_mod, $1, $3);
 		    %*/
@@ -1302,8 +1310,11 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			    rb_warn0("END in method; use at_exit");
 			}
 		    /*%%%*/
-			$$ = NEW_POSTEXE(NEW_NODE(
-			    NODE_SCOPE, 0 /* tbl */, $3 /* body */, 0 /* args */));
+			NODE *scope = NEW_NODE(
+			    NODE_SCOPE, 0 /* tbl */, $3 /* body */, 0 /* args */);
+			$$ = NEW_POSTEXE(scope);
+			nd_set_offset(scope, @1.first_column);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(END, $3);
 		    %*/
