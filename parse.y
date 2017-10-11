@@ -1489,6 +1489,7 @@ fcall		: operation
 		    /*%%%*/
 			$$ = NEW_FCALL($1, 0);
 			nd_set_line($$, tokline);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 		    %*/
 		    }
