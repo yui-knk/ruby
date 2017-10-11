@@ -1099,6 +1099,7 @@ bodystmt	: compstmt
 			$$ = $1;
 			if ($2) {
 			    $$ = NEW_RESCUE($1, $2, $3);
+			    nd_set_offset($$, @1.first_column);
 			}
 			else if ($3) {
 			    rb_warn0("else without rescue is useless");
@@ -1107,8 +1108,10 @@ bodystmt	: compstmt
 			if ($4) {
 			    if ($$) {
 				$$ = NEW_ENSURE($$, $4);
+				nd_set_offset($$, @1.first_column);
 			    }
 			    else {
+				/* TODO should we do something here? */
 				$$ = block_append($4, NEW_NIL());
 			    }
 			}
