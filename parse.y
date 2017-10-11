@@ -1140,6 +1140,7 @@ stmts		: none
                     {
 		    /*%%%*/
 			$$ = NEW_BEGIN(0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(stmts_add, dispatch0(stmts_new),
 						  dispatch0(void_stmt));
