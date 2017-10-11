@@ -8643,6 +8643,7 @@ parser_warn(struct parser_params *parser, NODE *node, const char *mesg)
 }
 #define parser_warn(node, mesg) parser_warn(parser, (node), (mesg))
 
+/* TODO should we do something here? */
 static NODE*
 block_append_gen(struct parser_params *parser, NODE *head, NODE *tail)
 {
