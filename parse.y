@@ -2479,6 +2479,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_FCALL($1, 0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = method_arg(dispatch1(fcall, $1), arg_new());
 		    %*/
@@ -2499,10 +2500,12 @@ primary		: literal
 		    /*%%%*/
 			if ($3 == NULL) {
 			    $$ = NEW_NIL();
+			    nd_set_offset($$, @1.first_column);
 			}
 			else {
 			    set_line_body($3, $<num>2);
 			    $$ = NEW_BEGIN($3);
+			    nd_set_offset($$, @1.first_column);
 			}
 			nd_set_line($$, $<num>2);
 		    /*%
@@ -2513,6 +2516,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_BEGIN(0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(paren, 0);
 		    %*/
@@ -2543,6 +2547,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON2($1, $3);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(const_path_ref, $1, $3);
 		    %*/
@@ -2551,6 +2556,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON3($2);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(top_const_ref, $2);
 		    %*/
@@ -2560,6 +2566,7 @@ primary		: literal
 		    /*%%%*/
 			if ($2 == 0) {
 			    $$ = NEW_ZARRAY(); /* zero length array*/
+			    nd_set_offset($$, @1.first_column);
 			}
 			else {
 			    $$ = $2;
@@ -2573,6 +2580,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = new_hash($2);
 			$$->nd_alen = TRUE;
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(hash, escape_Qundef($2));
 		    %*/
@@ -2581,6 +2589,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_RETURN(0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch0(return0);
 		    %*/
@@ -2589,6 +2598,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = new_yield($3);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(yield, dispatch1(paren, $3));
 		    %*/
@@ -2597,6 +2607,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_YIELD(0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(yield, dispatch1(paren, arg_new()));
 		    %*/
@@ -2605,6 +2616,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_YIELD(0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch0(yield0);
 		    %*/
@@ -2614,6 +2626,7 @@ primary		: literal
 			in_defined = 0;
 		    /*%%%*/
 			$$ = new_defined($5);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(defined, $5);
 		    %*/
@@ -2621,10 +2634,12 @@ primary		: literal
 		| keyword_not '(' expr rparen
 		    {
 			$$ = call_uni_op(method_cond($3), METHOD_NOT);
+			nd_set_offset($$, @1.first_column);
 		    }
 		| keyword_not '(' rparen
 		    {
 			$$ = call_uni_op(method_cond(new_nil()), METHOD_NOT);
+			nd_set_offset($$, @1.first_column);
 		    }
 		| fcall brace_block
 		    {
@@ -2659,6 +2674,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = new_if($2, $4, $5);
 			fixpos($$, $2);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch3(if, $2, $4, escape_Qundef($5));
 		    %*/
@@ -2671,6 +2687,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = new_unless($2, $4, $5);
 			fixpos($$, $2);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch3(unless, $2, $4, escape_Qundef($5));
 		    %*/
@@ -2682,6 +2699,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = NEW_WHILE(cond($3), $6, 1);
 			fixpos($$, $3);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(while, $3, $6);
 		    %*/
@@ -2693,6 +2711,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = NEW_UNTIL(cond($3), $6, 1);
 			fixpos($$, $3);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(until, $3, $6);
 		    %*/
@@ -2704,6 +2723,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = NEW_CASE($2, $4);
 			fixpos($$, $2);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(case, $2, $4);
 		    %*/
@@ -2713,6 +2733,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = NEW_CASE(0, $3);
 			nd_set_line($3, $<num>1);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(case, Qnil, $3);
 		    %*/
@@ -2734,6 +2755,7 @@ primary		: literal
 			 *  #=>
 			 *  e.each{|x| a, = x}
 			 */
+			/* TODO */
 			ID id = internal_id();
 			ID *tbl = ALLOC_N(ID, 2);
 			NODE *m = NEW_ARGS_AUX(0, 0);
@@ -2782,6 +2804,7 @@ primary		: literal
 			$$ = NEW_CLASS($2, $5, $3);
 			set_line_body($5, $<num>4);
 			nd_set_line($$, $<num>4);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch3(class, $2, $3, $5);
 		    %*/
@@ -2802,6 +2825,7 @@ primary		: literal
 			$$ = NEW_SCLASS($3, $6);
 			set_line_body($6, nd_line($3));
 			fixpos($$, $3);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(sclass, $3, $6);
 		    %*/
@@ -2826,6 +2850,7 @@ primary		: literal
 			$$ = NEW_MODULE($2, $4);
 			set_line_body($4, $<num>3);
 			nd_set_line($$, $<num>3);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(module, $2, $4);
 		    %*/
@@ -2851,6 +2876,7 @@ primary		: literal
 			$$ = NEW_DEFN($2, $5, body, METHOD_VISI_PRIVATE);
 			set_line_body(body, $<num>1);
 			nd_set_line($$, $<num>1);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch3(def, $2, $5, $6);
 		    %*/
@@ -2877,6 +2903,7 @@ primary		: literal
 			$$ = NEW_DEFS($2, $5, $7, body);
 			set_line_body(body, $<num>1);
 			nd_set_line($$, $<num>1);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch5(defs, $2, $<val>3, $5, $7, $8);
 		    %*/
@@ -2888,6 +2915,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_BREAK(0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(break, arg_new());
 		    %*/
@@ -2896,6 +2924,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_NEXT(0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(next, arg_new());
 		    %*/
@@ -2904,6 +2933,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_REDO();
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch0(redo);
 		    %*/
@@ -2912,6 +2942,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_RETRY();
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch0(retry);
 		    %*/
