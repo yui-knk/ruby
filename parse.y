@@ -1038,6 +1038,7 @@ top_stmts	: none
                     {
 		    /*%%%*/
 			$$ = NEW_BEGIN(0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(stmts_add, dispatch0(stmts_new),
 						  dispatch0(void_stmt));
@@ -1054,6 +1055,7 @@ top_stmts	: none
 		| top_stmts terms top_stmt
 		    {
 		    /*%%%*/
+			/* TODO should we do something here? */
 			$$ = block_append($1, newline_node($3));
 		    /*%
 			$$ = dispatch2(stmts_add, $1, $3);
