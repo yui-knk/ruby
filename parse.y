@@ -1083,6 +1083,7 @@ top_stmt	: stmt
 			/* NEW_PREEXE($4)); */
 			/* local_pop(); */
 			$$ = NEW_BEGIN(0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(BEGIN, $4);
 		    %*/
