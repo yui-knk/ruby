@@ -424,8 +424,8 @@ static NODE *new_yield_gen(struct parser_params*,NODE*,int);
 static NODE *dsym_node_gen(struct parser_params*,NODE*);
 #define dsym_node(node) dsym_node_gen(parser, (node))
 
-static NODE *gettable_gen(struct parser_params*,ID);
-#define gettable(id) gettable_gen(parser,(id))
+static NODE *gettable_gen(struct parser_params*,ID,int);
+#define gettable(id,offset) gettable_gen(parser,(id),(offset))
 static NODE *assignable_gen(struct parser_params*,ID,NODE*);
 #define assignable(id,node) assignable_gen(parser, (id), (node))
 
@@ -439,7 +439,7 @@ static void rb_backref_error_gen(struct parser_params*,NODE*);
 static NODE *node_assign_gen(struct parser_params*,NODE*,NODE*);
 #define node_assign(node1, node2) node_assign_gen(parser, (node1), (node2))
 
-static NODE *new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs);
+static NODE *new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int offset);
 static NODE *new_attr_op_assign_gen(struct parser_params *parser, NODE *lhs, ID atype, ID attr, ID op, NODE *rhs);
 #define new_attr_op_assign(lhs, type, attr, op, rhs) new_attr_op_assign_gen(parser, (lhs), (type), (attr), (op), (rhs))
 static NODE *new_const_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs);
@@ -531,7 +531,7 @@ static VALUE new_qcall_gen(struct parser_params *parser, VALUE q, VALUE r, VALUE
 #define new_command(m,a) dispatch2(command, (m), (a));
 
 #define new_nil() Qnil
-static VALUE new_op_assign_gen(struct parser_params *parser, VALUE lhs, VALUE op, VALUE rhs);
+static VALUE new_op_assign_gen(struct parser_params *parser, VALUE lhs, VALUE op, VALUE rhs, int offset);
 static VALUE new_attr_op_assign_gen(struct parser_params *parser, VALUE lhs, VALUE type, VALUE attr, VALUE op, VALUE rhs);
 #define new_attr_op_assign(lhs, type, attr, op, rhs) new_attr_op_assign_gen(parser, (lhs), (type), (attr), (op), (rhs))
 #define new_const_op_assign(lhs, op, rhs) new_op_assign(lhs, op, rhs)
@@ -566,7 +566,7 @@ static VALUE parser_reg_compile(struct parser_params*, VALUE, int, VALUE *);
 
 #endif /* !RIPPER */
 
-#define new_op_assign(lhs, op, rhs) new_op_assign_gen(parser, (lhs), (op), (rhs))
+#define new_op_assign(lhs, op, rhs, offset) new_op_assign_gen(parser, (lhs), (op), (rhs), (offset))
 
 RUBY_SYMBOL_EXPORT_BEGIN
 VALUE rb_parser_reg_compile(struct parser_params* parser, VALUE str, int options);
@@ -1355,7 +1355,7 @@ command_asgn	: lhs '=' command_rhs
 		| var_lhs tOP_ASGN command_rhs
 		    {
 			value_expr($3);
-			$$ = new_op_assign($1, $2, $3);
+			$$ = new_op_assign($1, $2, $3, @1.first_column);
 		    }
 		| primary_value '[' opt_call_args rbracket tOP_ASGN command_rhs
 		    {
@@ -1992,7 +1992,7 @@ arg		: lhs '=' arg_rhs
 		    }
 		| var_lhs tOP_ASGN arg_rhs
 		    {
-			$$ = new_op_assign($1, $2, $3);
+			$$ = new_op_assign($1, $2, $3, @1.first_column);
 		    }
 		| primary_value '[' opt_call_args rbracket tOP_ASGN arg_rhs
 		    {
@@ -2048,7 +2048,7 @@ arg		: lhs '=' arg_rhs
 		| backref tOP_ASGN arg_rhs
 		    {
 			$1 = var_field($1);
-			$$ = backref_assign_error($1, new_op_assign($1, $2, $3));
+			$$ = backref_assign_error($1, new_op_assign($1, $2, $3, @1.first_column));
 		    }
 		| arg tDOT2 arg
 		    {
@@ -4183,7 +4183,7 @@ keyword_variable: keyword_nil {$$ = KWD2EID(nil, $1);}
 var_ref		: user_variable
 		    {
 		    /*%%%*/
-			if (!($$ = gettable($1))) $$ = NEW_BEGIN(0);
+			if (!($$ = gettable($1, @1.first_column))) $$ = NEW_BEGIN(0);
 		    /*%
 			if (id_is_var(get_id($1))) {
 			    $$ = dispatch1(var_ref, $1);
@@ -4196,7 +4196,7 @@ var_ref		: user_variable
 		| keyword_variable
 		    {
 		    /*%%%*/
-			if (!($$ = gettable($1))) $$ = NEW_BEGIN(0);
+			if (!($$ = gettable($1, @1.first_column))) $$ = NEW_BEGIN(0);
 		    /*%
 			$$ = dispatch1(var_ref, $1);
 		    %*/
@@ -9001,24 +9001,39 @@ past_dvar_p(struct parser_params *parser, ID id)
 # endif
 
 static NODE*
-gettable_gen(struct parser_params *parser, ID id)
+gettable_gen(struct parser_params *parser, ID id, int offset)
 {
     ID *vidp = NULL;
+    NODE *node;
     switch (id) {
       case keyword_self:
-	return NEW_SELF();
+	node = NEW_SELF();
+	nd_set_offset(node, offset);
+	return node;
       case keyword_nil:
-	return NEW_NIL();
+	node = NEW_NIL();
+	nd_set_offset(node, offset);
+	return node;
       case keyword_true:
-	return NEW_TRUE();
+	node = NEW_TRUE();
+	nd_set_offset(node, offset);
+	return node;
       case keyword_false:
-	return NEW_FALSE();
+	node = NEW_FALSE();
+	nd_set_offset(node, offset);
+	return node;
       case keyword__FILE__:
-	return NEW_STR(rb_str_dup(ruby_sourcefile_string));
+	node = NEW_STR(rb_str_dup(ruby_sourcefile_string));
+	nd_set_offset(node, offset);
+	return node;
       case keyword__LINE__:
-	return NEW_LIT(INT2FIX(tokline));
+	node = NEW_LIT(INT2FIX(tokline));
+	nd_set_offset(node, offset);
+	return node;
       case keyword__ENCODING__:
-	return NEW_LIT(rb_enc_from_encoding(current_enc));
+	node = NEW_LIT(rb_enc_from_encoding(current_enc));
+	nd_set_offset(node, offset);
+	return node;
     }
     switch (id_type(id)) {
       case ID_LOCAL:
@@ -9027,14 +9042,18 @@ gettable_gen(struct parser_params *parser, ID id)
 		rb_warn1("circular argument reference - %"PRIsWARN, rb_id2str(id));
 	    }
 	    if (vidp) *vidp |= LVAR_USED;
-	    return NEW_DVAR(id);
+	    node = NEW_DVAR(id);
+	    nd_set_offset(node, offset);
+	    return node;
 	}
 	if (local_id_ref(id, vidp)) {
 	    if (id == current_arg) {
 		rb_warn1("circular argument reference - %"PRIsWARN, rb_id2str(id));
 	    }
 	    if (vidp) *vidp |= LVAR_USED;
-	    return NEW_LVAR(id);
+	    node = NEW_LVAR(id);
+	    nd_set_offset(node, offset);
+	    return node;
 	}
 # if WARN_PAST_SCOPE
 	if (!in_defined && RTEST(ruby_verbose) && past_dvar_p(parser, id)) {
@@ -9042,15 +9061,25 @@ gettable_gen(struct parser_params *parser, ID id)
 	}
 # endif
 	/* method call without arguments */
-	return NEW_VCALL(id);
+	node = NEW_VCALL(id);
+	nd_set_offset(node, offset);
+	return node;
       case ID_GLOBAL:
-	return NEW_GVAR(id);
+	node = NEW_GVAR(id);
+	nd_set_offset(node, offset);
+	return node;
       case ID_INSTANCE:
-	return NEW_IVAR(id);
+	node = NEW_IVAR(id);
+	nd_set_offset(node, offset);
+	return node;
       case ID_CONST:
-	return NEW_CONST(id);
+	node = NEW_CONST(id);
+	nd_set_offset(node, offset);
+	return node;
       case ID_CLASS:
-	return NEW_CVAR(id);
+	node = NEW_CVAR(id);
+	nd_set_offset(node, offset);
+	return node;
     }
     compile_error(PARSER_ARG "identifier %"PRIsVALUE" is not valid to get", rb_id2str(id));
     return 0;
@@ -10258,7 +10287,7 @@ new_hash_gen(struct parser_params *parser, NODE *hash, int offset)
 
 #ifndef RIPPER
 static NODE *
-new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs)
+new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int offset)
 {
     NODE *asgn;
 
@@ -10266,7 +10295,7 @@ new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs)
 	ID vid = lhs->nd_vid;
 	if (op == tOROP) {
 	    lhs->nd_value = rhs;
-	    asgn = NEW_OP_ASGN_OR(gettable(vid), lhs);
+	    asgn = NEW_OP_ASGN_OR(gettable(vid, offset), lhs);
 	    if (is_notop_id(vid)) {
 		switch (id_type(vid)) {
 		  case ID_GLOBAL:
@@ -10278,11 +10307,11 @@ new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs)
 	}
 	else if (op == tANDOP) {
 	    lhs->nd_value = rhs;
-	    asgn = NEW_OP_ASGN_AND(gettable(vid), lhs);
+	    asgn = NEW_OP_ASGN_AND(gettable(vid, offset), lhs);
 	}
 	else {
 	    asgn = lhs;
-	    asgn->nd_value = NEW_CALL(gettable(vid), op, NEW_LIST(rhs));
+	    asgn->nd_value = NEW_CALL(gettable(vid, offset), op, NEW_LIST(rhs));
 	}
     }
     else {
@@ -10339,7 +10368,7 @@ const_decl_gen(struct parser_params *parser, NODE *path)
 }
 #else
 static VALUE
-new_op_assign_gen(struct parser_params *parser, VALUE lhs, VALUE op, VALUE rhs)
+new_op_assign_gen(struct parser_params *parser, VALUE lhs, VALUE op, VALUE rhs, int offset)
 {
     return dispatch3(opassign, lhs, op, rhs);
 }
