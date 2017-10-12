@@ -379,8 +379,8 @@ static void reduce_nodes_gen(struct parser_params*,NODE**);
 static void block_dup_check_gen(struct parser_params*,NODE*,NODE*);
 #define block_dup_check(n1,n2) block_dup_check_gen(parser,(n1),(n2))
 
-static NODE *block_append_gen(struct parser_params*,NODE*,NODE*);
-#define block_append(h,t) block_append_gen(parser,(h),(t))
+static NODE *block_append_gen(struct parser_params*,NODE*,NODE*,int);
+#define block_append(h,t,offset) block_append_gen(parser,(h),(t),(offset))
 static NODE *list_append_gen(struct parser_params*,NODE*,NODE*);
 #define list_append(l,i) list_append_gen(parser,(l),(i))
 static NODE *list_concat(NODE*,NODE*);
@@ -455,8 +455,8 @@ static NODE *const_decl_gen(struct parser_params *parser, NODE* path);
 
 static NODE *kwd_append(NODE*, NODE*);
 
-static NODE *new_hash_gen(struct parser_params *parser, NODE *hash);
-#define new_hash(hash) new_hash_gen(parser, (hash))
+static NODE *new_hash_gen(struct parser_params *parser, NODE *hash, int offset);
+#define new_hash(hash, offset) new_hash_gen(parser, (hash), offset)
 
 #define new_defined(expr) NEW_DEFINED(remove_begin_all(expr))
 
@@ -470,8 +470,8 @@ static NODE *new_xstring_gen(struct parser_params *, NODE *);
 #define new_brace_body(param, stmt) NEW_ITER(param, stmt)
 #define new_do_body(param, stmt) NEW_ITER(param, stmt)
 
-static NODE *match_op_gen(struct parser_params*,NODE*,NODE*);
-#define match_op(node1,node2) match_op_gen(parser, (node1), (node2))
+static NODE *match_op_gen(struct parser_params*,NODE*,NODE*,int);
+#define match_op(node1,node2,offset) match_op_gen(parser, (node1), (node2), (offset))
 
 static ID  *local_tbl_gen(struct parser_params*);
 #define local_tbl() local_tbl_gen(parser)
@@ -482,8 +482,8 @@ static void reg_fragment_setenc_gen(struct parser_params*, VALUE, int);
 #define reg_fragment_setenc(str,options) reg_fragment_setenc_gen(parser, (str), (options))
 static int reg_fragment_check_gen(struct parser_params*, VALUE, int);
 #define reg_fragment_check(str,options) reg_fragment_check_gen(parser, (str), (options))
-static NODE *reg_named_capture_assign_gen(struct parser_params* parser, VALUE regexp);
-#define reg_named_capture_assign(regexp) reg_named_capture_assign_gen(parser,(regexp))
+static NODE *reg_named_capture_assign_gen(struct parser_params* parser, VALUE regexp, int offset);
+#define reg_named_capture_assign(regexp,offset) reg_named_capture_assign_gen(parser,(regexp),offset)
 
 static NODE *parser_heredoc_dedent(struct parser_params*,NODE*);
 # define heredoc_dedent(str) parser_heredoc_dedent(parser, (str))
@@ -520,7 +520,7 @@ static int id_is_var_gen(struct parser_params *parser, ID id);
 
 #define method_cond(node) (node)
 #define call_bin_op(recv,id,arg1,offset) dispatch3(binary, (recv), STATIC_ID2SYM(id), (arg1))
-#define match_op(node1,node2) call_bin_op((node1), idEqTilde, (node2), -1)
+#define match_op(node1,node2,offset) call_bin_op((node1), idEqTilde, (node2), -1)
 #define call_uni_op(recv,id) dispatch2(unary, STATIC_ID2SYM(id), (recv))
 #define logop(id,node1,node2) call_bin_op((node1), (id), (node2), -1)
 #define node_assign(node1, node2) dispatch2(assign, (node1), (node2))
@@ -1015,7 +1015,7 @@ program		:  {
 				void_expr(node->nd_head);
 			    }
 			}
-			ruby_eval_tree = NEW_SCOPE(0, block_append(ruby_eval_tree, $2));
+			ruby_eval_tree = NEW_SCOPE(0, block_append(ruby_eval_tree, $2, @1.first_column));
 		    /*%
 			$$ = $2;
 			parser->result = dispatch1(program, $$);
@@ -1055,8 +1055,7 @@ top_stmts	: none
 		| top_stmts terms top_stmt
 		    {
 		    /*%%%*/
-			/* TODO should we do something here? */
-			$$ = block_append($1, newline_node($3));
+			$$ = block_append($1, newline_node($3), @1.first_column);
 		    /*%
 			$$ = dispatch2(stmts_add, $1, $3);
 		    %*/
@@ -1079,7 +1078,7 @@ top_stmt	: stmt
 		    {
 		    /*%%%*/
 			ruby_eval_tree_begin = block_append(ruby_eval_tree_begin,
-							    $4);
+							    $4, @1.first_column);
 			/* NEW_PREEXE($4)); */
 			/* local_pop(); */
 			$$ = NEW_BEGIN(0);
@@ -1103,7 +1102,7 @@ bodystmt	: compstmt
 			}
 			else if ($3) {
 			    rb_warn0("else without rescue is useless");
-			    $$ = block_append($$, $3);
+			    $$ = block_append($$, $3, @1.first_column);
 			}
 			if ($4) {
 			    if ($$) {
@@ -1111,8 +1110,9 @@ bodystmt	: compstmt
 				nd_set_offset($$, @1.first_column);
 			    }
 			    else {
-				/* TODO should we do something here? */
-				$$ = block_append($4, NEW_NIL());
+				NODE *nil = NEW_NIL();
+				nd_set_offset(nil, @1.first_column);
+				$$ = block_append($4, nil, @1.first_column);
 			    }
 			}
 			fixpos($$, $1);
@@ -1157,7 +1157,7 @@ stmts		: none
 		| stmts terms stmt_or_begin
 		    {
 		    /*%%%*/
-			$$ = block_append($1, newline_node($3));
+			$$ = block_append($1, newline_node($3), @1.first_column);
 		    /*%
 			$$ = dispatch2(stmts_add, $1, $3);
 		    %*/
@@ -1184,7 +1184,7 @@ stmt_or_begin	: stmt
 		    {
 		    /*%%%*/
 			ruby_eval_tree_begin = block_append(ruby_eval_tree_begin,
-							    $4);
+							    $4, @1.first_column);
 			/* NEW_PREEXE($4)); */
 			/* local_pop(); */
 			$$ = NEW_BEGIN(0);
@@ -1931,7 +1931,9 @@ undef_list	: fitem
 		| undef_list ',' {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
-			$$ = block_append($1, NEW_UNDEF($4));
+			NODE *undef = NEW_UNDEF($4);
+			nd_set_offset(undef, @1.first_column);
+			$$ = block_append($1, undef, @1.first_column);
 		    /*%
 			rb_ary_push($1, get_value($4));
 		    %*/
@@ -2135,7 +2137,7 @@ arg		: lhs '=' arg_rhs
 		    }
 		| arg tMATCH arg
 		    {
-			$$ = match_op($1, $3);
+			$$ = match_op($1, $3, @1.first_column);
 		    }
 		| arg tNMATCH arg
 		    {
@@ -2227,7 +2229,7 @@ aref_args	: none
 		| args ',' assocs trailer
 		    {
 		    /*%%%*/
-			$$ = $3 ? arg_append($1, new_hash($3)) : $1;
+			$$ = $3 ? arg_append($1, new_hash($3, @1.first_column)) : $1;
 		    /*%
 			$$ = arg_add_assocs($1, $3);
 		    %*/
@@ -2235,7 +2237,7 @@ aref_args	: none
 		| assocs trailer
 		    {
 		    /*%%%*/
-			$$ = $1 ? NEW_LIST(new_hash($1)) : 0;
+			$$ = $1 ? NEW_LIST(new_hash($1, @1.first_column)) : 0;
 		    /*%
 			$$ = arg_add_assocs(arg_new(), $1);
 		    %*/
@@ -2284,7 +2286,7 @@ opt_call_args	: none
 		| args ',' assocs ','
 		    {
 		    /*%%%*/
-			$$ = $3 ? arg_append($1, new_hash($3)) : $1;
+			$$ = $3 ? arg_append($1, new_hash($3, @1.first_column)) : $1;
 		    /*%
 			$$ = arg_add_assocs($1, $3);
 		    %*/
@@ -2292,7 +2294,7 @@ opt_call_args	: none
 		| assocs ','
 		    {
 		    /*%%%*/
-			$$ = $1 ? NEW_LIST(new_hash($1)) : 0;
+			$$ = $1 ? NEW_LIST(new_hash($1, @1.first_column)) : 0;
 		    /*%
 			$$ = arg_add_assocs(arg_new(), $1);
 		    %*/
@@ -2319,7 +2321,7 @@ call_args	: command
 		| assocs opt_block_arg
 		    {
 		    /*%%%*/
-			$$ = $1 ? NEW_LIST(new_hash($1)) : 0;
+			$$ = $1 ? NEW_LIST(new_hash($1, @1.first_column)) : 0;
 			$$ = arg_blk_pass($$, $2);
 		    /*%
 			$$ = arg_add_assocs(arg_new(), $1);
@@ -2329,7 +2331,7 @@ call_args	: command
 		| args ',' assocs opt_block_arg
 		    {
 		    /*%%%*/
-			$$ = $3 ? arg_append($1, new_hash($3)) : $1;
+			$$ = $3 ? arg_append($1, new_hash($3, @1.first_column)) : $1;
 			$$ = arg_blk_pass($$, $4);
 		    /*%
 			$$ = arg_add_optblock(arg_add_assocs($1, $3), $4);
@@ -2578,7 +2580,7 @@ primary		: literal
 		| tLBRACE assoc_list '}'
 		    {
 		    /*%%%*/
-			$$ = new_hash($2);
+			$$ = new_hash($2, @1.first_column);
 			$$->nd_alen = TRUE;
 			nd_set_offset($$, @1.first_column);
 		    /*%
@@ -3653,7 +3655,7 @@ opt_rescue	: keyword_rescue exc_list exc_var then
 		    /*%%%*/
 			if ($3) {
 			    $3 = node_assign($3, NEW_ERRINFO());
-			    $5 = block_append($3, $5);
+			    $5 = block_append($3, $5, @1.first_column);
 			}
 			$$ = NEW_RESBODY($2, $5, $6);
 			fixpos($$, $2?$2:$5);
@@ -4448,7 +4450,7 @@ f_arg		: f_arg_item
 		    /*%%%*/
 			$$ = $1;
 			$$->nd_plen++;
-			$$->nd_next = block_append($$->nd_next, $3->nd_next);
+			$$->nd_next = block_append($$->nd_next, $3->nd_next, @1.first_column);
 			rb_gc_force_recycle((VALUE)$3);
 		    /*%
 			$$ = rb_ary_push($1, get_value($3));
@@ -8699,7 +8701,7 @@ parser_warn(struct parser_params *parser, NODE *node, const char *mesg)
 
 /* TODO should we do something here? */
 static NODE*
-block_append_gen(struct parser_params *parser, NODE *head, NODE *tail)
+block_append_gen(struct parser_params *parser, NODE *head, NODE *tail, int offset)
 {
     NODE *end, *h = head, *nd;
 
@@ -8717,6 +8719,7 @@ block_append_gen(struct parser_params *parser, NODE *head, NODE *tail)
 	return tail;
       default:
 	h = end = NEW_BLOCK(head);
+	nd_set_offset(end, offset);
 	end->nd_end = end;
 	fixpos(end, head);
 	head = end;
@@ -8744,6 +8747,7 @@ block_append_gen(struct parser_params *parser, NODE *head, NODE *tail)
 
     if (nd_type(tail) != NODE_BLOCK) {
 	tail = NEW_BLOCK(tail);
+	nd_set_offset(tail, offset);
 	tail->nd_end = tail;
     }
     end->nd_next = tail;
@@ -8947,7 +8951,7 @@ call_uni_op_gen(struct parser_params *parser, NODE *recv, ID id)
 }
 
 static NODE*
-match_op_gen(struct parser_params *parser, NODE *node1, NODE *node2)
+match_op_gen(struct parser_params *parser, NODE *node1, NODE *node2, int offset)
 {
     value_expr(node1);
     value_expr(node2);
@@ -8961,7 +8965,7 @@ match_op_gen(struct parser_params *parser, NODE *node1, NODE *node2)
 	    if (RB_TYPE_P(node1->nd_lit, T_REGEXP)) {
 		const VALUE lit = node1->nd_lit;
 		NODE *match = NEW_MATCH2(node1, node2);
-		match->nd_args = reg_named_capture_assign(lit);
+		match->nd_args = reg_named_capture_assign(lit, offset);
 		return match;
 	    }
 	}
@@ -10209,7 +10213,7 @@ append_literal_keys(st_data_t k, st_data_t v, st_data_t h)
 }
 
 static NODE *
-remove_duplicate_keys(struct parser_params *parser, NODE *hash)
+remove_duplicate_keys(struct parser_params *parser, NODE *hash, int offset)
 {
     st_table *literal_keys = st_init_numtable_with_size(hash->nd_alen / 2);
     NODE *result = 0;
@@ -10225,7 +10229,7 @@ remove_duplicate_keys(struct parser_params *parser, NODE *hash)
 			    "key %+"PRIsVALUE" is duplicated and overwritten on line %d",
 			    head->nd_lit, nd_line(head));
 	    head = ((NODE *)data)->nd_next;
-	    head->nd_head = block_append(head->nd_head, value->nd_head);
+	    head->nd_head = block_append(head->nd_head, value->nd_head, offset);
 	}
 	else {
 	    st_insert(literal_keys, (st_data_t)key, (st_data_t)hash);
@@ -10242,9 +10246,9 @@ remove_duplicate_keys(struct parser_params *parser, NODE *hash)
 }
 
 static NODE *
-new_hash_gen(struct parser_params *parser, NODE *hash)
+new_hash_gen(struct parser_params *parser, NODE *hash, int offset)
 {
-    if (hash) hash = remove_duplicate_keys(parser, hash);
+    if (hash) hash = remove_duplicate_keys(parser, hash, offset);
     return NEW_HASH(hash);
 }
 #endif /* !RIPPER */
@@ -10676,6 +10680,7 @@ typedef struct {
     struct parser_params* parser;
     rb_encoding *enc;
     NODE *succ_block;
+    int offset;
 } reg_named_capture_assign_t;
 
 static int
@@ -10699,19 +10704,20 @@ reg_named_capture_assign_iter(const OnigUChar *name, const OnigUChar *name_end,
     node = node_assign(assignable(var, 0), NEW_LIT(ID2SYM(var)));
     succ = arg->succ_block;
     if (!succ) succ = NEW_BEGIN(0);
-    succ = block_append(succ, node);
+    succ = block_append(succ, node, arg->offset);
     arg->succ_block = succ;
     return ST_CONTINUE;
 }
 
 static NODE *
-reg_named_capture_assign_gen(struct parser_params* parser, VALUE regexp)
+reg_named_capture_assign_gen(struct parser_params* parser, VALUE regexp, int offset)
 {
     reg_named_capture_assign_t arg;
 
     arg.parser = parser;
     arg.enc = rb_enc_get(regexp);
     arg.succ_block = 0;
+    arg.offset = offset;
     onig_foreach_name(RREGEXP_PTR(regexp), reg_named_capture_assign_iter, &arg);
 
     if (!arg.succ_block) return 0;
@@ -10785,7 +10791,8 @@ rb_parser_append_print(VALUE vparser, NODE *node)
 
     node = block_append(node,
 			NEW_FCALL(rb_intern("print"),
-				  NEW_ARRAY(NEW_GVAR(idLASTLINE))));
+				  NEW_ARRAY(NEW_GVAR(idLASTLINE))),
+			0);
     if (prelude) {
 	prelude->nd_body = node;
 	scope->nd_body = prelude;
@@ -10818,11 +10825,11 @@ rb_parser_while_loop(VALUE vparser, NODE *node, int chomp, int split)
 	node = block_append(NEW_GASGN(rb_intern("$F"),
 				      NEW_CALL(NEW_GVAR(idLASTLINE),
 					       rb_intern("split"), 0)),
-			    node);
+			    node, 0);
     }
     if (chomp) {
 	node = block_append(NEW_CALL(NEW_GVAR(idLASTLINE),
-				     rb_intern("chomp!"), 0), node);
+				     rb_intern("chomp!"), 0), node, 0);
     }
 
     node = NEW_OPT_N(node);
