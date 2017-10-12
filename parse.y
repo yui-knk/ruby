@@ -397,8 +397,8 @@ static NODE *evstr2dstr_gen(struct parser_params*,NODE*);
 #define evstr2dstr(n) evstr2dstr_gen(parser,(n))
 static NODE *splat_array(NODE*);
 
-static NODE *call_bin_op_gen(struct parser_params*,NODE*,ID,NODE*);
-#define call_bin_op(recv,id,arg1) call_bin_op_gen(parser, (recv),(id),(arg1))
+static NODE *call_bin_op_gen(struct parser_params*,NODE*,ID,NODE*,int);
+#define call_bin_op(recv,id,arg1,offset) call_bin_op_gen(parser, (recv),(id),(arg1),(offset))
 static NODE *call_uni_op_gen(struct parser_params*,NODE*,ID);
 #define call_uni_op(recv,id) call_uni_op_gen(parser, (recv),(id))
 #define new_qcall(q,r,m,a) NEW_QCALL(q,r,m,a)
@@ -519,10 +519,10 @@ static int id_is_var_gen(struct parser_params *parser, ID id);
 #define id_is_var(id) id_is_var_gen(parser, (id))
 
 #define method_cond(node) (node)
-#define call_bin_op(recv,id,arg1) dispatch3(binary, (recv), STATIC_ID2SYM(id), (arg1))
-#define match_op(node1,node2) call_bin_op((node1), idEqTilde, (node2))
+#define call_bin_op(recv,id,arg1,offset) dispatch3(binary, (recv), STATIC_ID2SYM(id), (arg1))
+#define match_op(node1,node2) call_bin_op((node1), idEqTilde, (node2), -1)
 #define call_uni_op(recv,id) dispatch2(unary, STATIC_ID2SYM(id), (recv))
-#define logop(id,node1,node2) call_bin_op((node1), (id), (node2))
+#define logop(id,node1,node2) call_bin_op((node1), (id), (node2), -1)
 #define node_assign(node1, node2) dispatch2(assign, (node1), (node2))
 static VALUE new_qcall_gen(struct parser_params *parser, VALUE q, VALUE r, VALUE m, VALUE a);
 #define new_qcall(q,r,m,a) new_qcall_gen(parser, (r), (q), (m), (a))
@@ -2070,31 +2070,31 @@ arg		: lhs '=' arg_rhs
 		    }
 		| arg '+' arg
 		    {
-			$$ = call_bin_op($1, '+', $3);
+			$$ = call_bin_op($1, '+', $3, @1.first_column);
 		    }
 		| arg '-' arg
 		    {
-			$$ = call_bin_op($1, '-', $3);
+			$$ = call_bin_op($1, '-', $3, @1.first_column);
 		    }
 		| arg '*' arg
 		    {
-			$$ = call_bin_op($1, '*', $3);
+			$$ = call_bin_op($1, '*', $3, @1.first_column);
 		    }
 		| arg '/' arg
 		    {
-			$$ = call_bin_op($1, '/', $3);
+			$$ = call_bin_op($1, '/', $3, @1.first_column);
 		    }
 		| arg '%' arg
 		    {
-			$$ = call_bin_op($1, '%', $3);
+			$$ = call_bin_op($1, '%', $3, @1.first_column);
 		    }
 		| arg tPOW arg
 		    {
-			$$ = call_bin_op($1, idPow, $3);
+			$$ = call_bin_op($1, idPow, $3, @1.first_column);
 		    }
 		| tUMINUS_NUM simple_numeric tPOW arg
 		    {
-			$$ = call_uni_op(call_bin_op($2, idPow, $4), idUMinus);
+			$$ = call_uni_op(call_bin_op($2, idPow, $4, @1.first_column), idUMinus);
 		    }
 		| tUPLUS arg
 		    {
@@ -2106,32 +2106,32 @@ arg		: lhs '=' arg_rhs
 		    }
 		| arg '|' arg
 		    {
-			$$ = call_bin_op($1, '|', $3);
+			$$ = call_bin_op($1, '|', $3, @1.first_column);
 		    }
 		| arg '^' arg
 		    {
-			$$ = call_bin_op($1, '^', $3);
+			$$ = call_bin_op($1, '^', $3, @1.first_column);
 		    }
 		| arg '&' arg
 		    {
-			$$ = call_bin_op($1, '&', $3);
+			$$ = call_bin_op($1, '&', $3, @1.first_column);
 		    }
 		| arg tCMP arg
 		    {
-			$$ = call_bin_op($1, idCmp, $3);
+			$$ = call_bin_op($1, idCmp, $3, @1.first_column);
 		    }
 		| rel_expr   %prec tCMP
 		| arg tEQ arg
 		    {
-			$$ = call_bin_op($1, idEq, $3);
+			$$ = call_bin_op($1, idEq, $3, @1.first_column);
 		    }
 		| arg tEQQ arg
 		    {
-			$$ = call_bin_op($1, idEqq, $3);
+			$$ = call_bin_op($1, idEqq, $3, @1.first_column);
 		    }
 		| arg tNEQ arg
 		    {
-			$$ = call_bin_op($1, idNeq, $3);
+			$$ = call_bin_op($1, idNeq, $3, @1.first_column);
 		    }
 		| arg tMATCH arg
 		    {
@@ -2139,7 +2139,7 @@ arg		: lhs '=' arg_rhs
 		    }
 		| arg tNMATCH arg
 		    {
-			$$ = call_bin_op($1, idNeqTilde, $3);
+			$$ = call_bin_op($1, idNeqTilde, $3, @1.first_column);
 		    }
 		| '!' arg
 		    {
@@ -2151,11 +2151,11 @@ arg		: lhs '=' arg_rhs
 		    }
 		| arg tLSHFT arg
 		    {
-			$$ = call_bin_op($1, idLTLT, $3);
+			$$ = call_bin_op($1, idLTLT, $3, @1.first_column);
 		    }
 		| arg tRSHFT arg
 		    {
-			$$ = call_bin_op($1, idGTGT, $3);
+			$$ = call_bin_op($1, idGTGT, $3, @1.first_column);
 		    }
 		| arg tANDOP arg
 		    {
@@ -2198,12 +2198,12 @@ relop		: '>'  {$$ = '>';}
 
 rel_expr	: arg relop arg   %prec '>'
 		    {
-			$$ = call_bin_op($1, $2, $3);
+			$$ = call_bin_op($1, $2, $3, @1.first_column);
 		    }
 		| rel_expr relop arg   %prec '>'
 		    {
 			rb_warning1("comparison '%s' after comparison", WARN_ID($2));
-			$$ = call_bin_op($1, $2, $3);
+			$$ = call_bin_op($1, $2, $3, @1.first_column);
 		    }
 		;
 
@@ -3706,10 +3706,15 @@ opt_ensure	: keyword_ensure compstmt
 		;
 
 literal		: numeric
+		    {
+		    /*%%%*/
+			nd_set_offset($$, @1.first_column);
+		    }
 		| symbol
 		    {
 		    /*%%%*/
 			$$ = NEW_LIT(ID2SYM($1));
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(symbol_literal, $1);
 		    %*/
@@ -8923,13 +8928,14 @@ new_evstr_gen(struct parser_params *parser, NODE *node)
 }
 
 static NODE *
-call_bin_op_gen(struct parser_params *parser, NODE *recv, ID id, NODE *arg1)
+call_bin_op_gen(struct parser_params *parser, NODE *recv, ID id, NODE *arg1, int offset)
 {
     NODE *expr;
     value_expr(recv);
     value_expr(arg1);
     expr = NEW_OPCALL(recv, id, NEW_LIST(arg1));
     fixpos(expr, recv);
+    nd_set_offset(expr, offset);
     return expr;
 }
 
