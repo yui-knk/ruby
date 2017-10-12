@@ -3578,6 +3578,7 @@ method_call	: fcall paren_args
 			else
 			    $$ = NEW_CALL($1, tAREF, $3);
 			fixpos($$, $1);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(aref, $1, escape_Qundef($3));
 		    %*/
