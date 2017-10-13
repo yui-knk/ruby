@@ -2807,6 +2807,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_CLASS($2, $5, $3);
+			nd_set_offset($$->nd_body, @1.first_column);
 			set_line_body($5, $<num>4);
 			nd_set_line($$, $<num>4);
 			nd_set_offset($$, @1.first_column);
