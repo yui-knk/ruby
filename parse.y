@@ -1310,11 +1310,13 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			    rb_warn0("END in method; use at_exit");
 			}
 		    /*%%%*/
-			NODE *scope = NEW_NODE(
-			    NODE_SCOPE, 0 /* tbl */, $3 /* body */, 0 /* args */);
-			$$ = NEW_POSTEXE(scope);
-			nd_set_offset(scope, @1.first_column);
-			nd_set_offset($$, @1.first_column);
+			{
+			    NODE *scope = NEW_NODE(
+				NODE_SCOPE, 0 /* tbl */, $3 /* body */, 0 /* args */);
+			    $$ = NEW_POSTEXE(scope);
+			    nd_set_offset(scope, @1.first_column);
+			    nd_set_offset($$, @1.first_column);
+			}
 		    /*%
 			$$ = dispatch1(END, $3);
 		    %*/
