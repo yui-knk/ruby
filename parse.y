@@ -355,8 +355,8 @@ static NODE *cond_gen(struct parser_params*,NODE*,int);
 #define new_nil() NEW_NIL()
 static NODE *new_if_gen(struct parser_params*,NODE*,NODE*,NODE*,int);
 #define new_if(cc,left,right,offset) new_if_gen(parser, (cc), (left), (right), (offset))
-static NODE *new_unless_gen(struct parser_params*,NODE*,NODE*,NODE*);
-#define new_unless(cc,left,right) new_unless_gen(parser, (cc), (left), (right))
+static NODE *new_unless_gen(struct parser_params*,NODE*,NODE*,NODE*,int);
+#define new_unless(cc,left,right,offset) new_unless_gen(parser, (cc), (left), (right), (offset))
 static NODE *logop_gen(struct parser_params*,enum node_type,NODE*,NODE*);
 #define logop(id,node1,node2) \
     logop_gen(parser, ((id)==idAND||(id)==idANDOP)?NODE_AND:NODE_OR, \
@@ -1259,9 +1259,8 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		| stmt modifier_unless expr_value
 		    {
 		    /*%%%*/
-			$$ = new_unless($3, remove_begin($1), 0);
+			$$ = new_unless($3, remove_begin($1), 0, @1.first_column);
 			fixpos($$, $3);
-			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(unless_mod, $3, $1);
 		    %*/
@@ -2687,9 +2686,8 @@ primary		: literal
 		  k_end
 		    {
 		    /*%%%*/
-			$$ = new_unless($2, $4, $5);
+			$$ = new_unless($2, $4, $5, @1.first_column);
 			fixpos($$, $2);
-			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch3(unless, $2, $4, escape_Qundef($5));
 		    %*/
@@ -10049,11 +10047,15 @@ new_if_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right, int 
 }
 
 static NODE*
-new_unless_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right)
+new_unless_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right, int offset)
 {
+    NODE *node_unless;
+
     if (!cc) return right;
     cc = cond0(parser, cc, FALSE);
-    return newline_node(NEW_UNLESS(cc, left, right));
+    node_unless = NEW_UNLESS(cc, left, right);
+    nd_set_offset(node_unless, offset);
+    return newline_node(node_unless);
 }
 
 static NODE*
