@@ -2855,6 +2855,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_MODULE($2, $4);
+			nd_set_offset($$->nd_body, @1.first_column);
 			set_line_body($4, $<num>3);
 			nd_set_line($$, $<num>3);
 			nd_set_offset($$, @1.first_column);
