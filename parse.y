@@ -1016,6 +1016,7 @@ program		:  {
 			    }
 			}
 			ruby_eval_tree = NEW_SCOPE(0, block_append(ruby_eval_tree, $2, @1.first_column));
+			nd_set_offset(ruby_eval_tree, @1.first_column);
 		    /*%
 			$$ = $2;
 			parser->result = dispatch1(program, $$);
@@ -2782,6 +2783,7 @@ primary		: literal
 			    break;
 			}
 			scope = NEW_NODE(NODE_SCOPE, tbl, $8, args);
+			nd_set_offset(scope, @1.first_column);
 			tbl[0] = 1; tbl[1] = id;
 			$$ = NEW_FOR(0, $5, scope);
 			fixpos($$, $2);
