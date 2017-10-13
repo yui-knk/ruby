@@ -410,8 +410,8 @@ static NODE *method_add_block_gen(struct parser_params*parser, NODE *m, NODE *b)
 
 static NODE *new_args_gen(struct parser_params*,NODE*,NODE*,ID,NODE*,NODE*);
 #define new_args(f,o,r,p,t) new_args_gen(parser, (f),(o),(r),(p),(t))
-static NODE *new_args_tail_gen(struct parser_params*,NODE*,ID,ID);
-#define new_args_tail(k,kr,b) new_args_tail_gen(parser, (k),(kr),(b))
+static NODE *new_args_tail_gen(struct parser_params*,NODE*,ID,ID,int);
+#define new_args_tail(k,kr,b,offset) new_args_tail_gen(parser, (k),(kr),(b),(offset))
 #define new_kw_arg(k) ((k) ? NEW_KW_ARG(0, (k)) : 0)
 
 static VALUE negate_lit_gen(struct parser_params*, VALUE);
@@ -727,7 +727,7 @@ new_args_tail_gen(struct parser_params *parser, VALUE k, VALUE kr, VALUE b)
 {
     return (VALUE)MEMO_NEW(k, kr, b);
 }
-#define new_args_tail(k,kr,b) new_args_tail_gen(parser, (k),(kr),(b))
+#define new_args_tail(k,kr,b,offset) new_args_tail_gen(parser, (k),(kr),(b))
 
 #define new_defined(expr) dispatch1(defined, (expr))
 
@@ -2768,7 +2768,7 @@ primary		: literal
 			switch (nd_type($2)) {
 			  case NODE_MASGN:
 			    m->nd_next = node_assign($2, NEW_FOR(NEW_DVAR(id), 0, 0));
-			    args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0));
+			    args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1.first_column));
 			    break;
 			  case NODE_LASGN:
 			  case NODE_DASGN:
@@ -2776,11 +2776,11 @@ primary		: literal
 			    $2->nd_value = NEW_DVAR(id);
 			    m->nd_plen = 1;
 			    m->nd_next = $2;
-			    args = new_args(m, 0, 0, 0, new_args_tail(0, 0, 0));
+			    args = new_args(m, 0, 0, 0, new_args_tail(0, 0, 0, @1.first_column));
 			    break;
 			  default:
 			    m->nd_next = node_assign(NEW_MASGN(NEW_LIST($2), 0), NEW_DVAR(id));
-			    args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0));
+			    args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1.first_column));
 			    break;
 			}
 			scope = NEW_NODE(NODE_SCOPE, tbl, $8, args);
@@ -3215,19 +3215,19 @@ f_margs		: f_marg_list
 
 block_args_tail	: f_block_kwarg ',' f_kwrest opt_f_block_arg
 		    {
-			$$ = new_args_tail($1, $3, $4);
+			$$ = new_args_tail($1, $3, $4, @1.first_column);
 		    }
 		| f_block_kwarg opt_f_block_arg
 		    {
-			$$ = new_args_tail($1, Qnone, $2);
+			$$ = new_args_tail($1, Qnone, $2, @1.first_column);
 		    }
 		| f_kwrest opt_f_block_arg
 		    {
-			$$ = new_args_tail(Qnone, $1, $2);
+			$$ = new_args_tail(Qnone, $1, $2, @1.first_column);
 		    }
 		| f_block_arg
 		    {
-			$$ = new_args_tail(Qnone, Qnone, $1);
+			$$ = new_args_tail(Qnone, Qnone, $1, @1.first_column);
 		    }
 		;
 
@@ -3237,7 +3237,8 @@ opt_block_args_tail : ',' block_args_tail
 		    }
 		| /* none */
 		    {
-			$$ = new_args_tail(Qnone, Qnone, Qnone);
+			/* TODO */
+			$$ = new_args_tail(Qnone, Qnone, Qnone, -1);
 		    }
 		;
 
@@ -3263,7 +3264,7 @@ block_param	: f_arg ',' f_block_optarg ',' f_rest_arg opt_block_args_tail
 		    }
 		| f_arg ','
 		    {
-			$$ = new_args($1, Qnone, 1, Qnone, new_args_tail(Qnone, Qnone, Qnone));
+			$$ = new_args($1, Qnone, 1, Qnone, new_args_tail(Qnone, Qnone, Qnone, @1.first_column));
 		    /*%%%*/
 		    /*%
                         dispatch1(excessed_comma, $$);
@@ -4272,19 +4273,19 @@ f_arglist	: '(' f_args rparen
 
 args_tail	: f_kwarg ',' f_kwrest opt_f_block_arg
 		    {
-			$$ = new_args_tail($1, $3, $4);
+			$$ = new_args_tail($1, $3, $4, @1.first_column);
 		    }
 		| f_kwarg opt_f_block_arg
 		    {
-			$$ = new_args_tail($1, Qnone, $2);
+			$$ = new_args_tail($1, Qnone, $2, @1.first_column);
 		    }
 		| f_kwrest opt_f_block_arg
 		    {
-			$$ = new_args_tail(Qnone, $1, $2);
+			$$ = new_args_tail(Qnone, $1, $2, @1.first_column);
 		    }
 		| f_block_arg
 		    {
-			$$ = new_args_tail(Qnone, Qnone, $1);
+			$$ = new_args_tail(Qnone, Qnone, $1, @1.first_column);
 		    }
 		;
 
@@ -4294,7 +4295,8 @@ opt_args_tail	: ',' args_tail
 		    }
 		| /* none */
 		    {
-			$$ = new_args_tail(Qnone, Qnone, Qnone);
+			/* TODO */
+			$$ = new_args_tail(Qnone, Qnone, Qnone, -1);
 		    }
 		;
 
@@ -4356,7 +4358,8 @@ f_args		: f_arg ',' f_optarg ',' f_rest_arg opt_args_tail
 		    }
 		| /* none */
 		    {
-			$$ = new_args_tail(Qnone, Qnone, Qnone);
+			/* TODO */
+			$$ = new_args_tail(Qnone, Qnone, Qnone, -1);
 			$$ = new_args(Qnone, Qnone, Qnone, Qnone, $$);
 		    }
 		;
@@ -10166,7 +10169,7 @@ new_args_gen(struct parser_params *parser, NODE *m, NODE *o, ID r, NODE *p, NODE
 }
 
 static NODE*
-new_args_tail_gen(struct parser_params *parser, NODE *k, ID kr, ID b)
+new_args_tail_gen(struct parser_params *parser, NODE *k, ID kr, ID b, int offset)
 {
     int saved_line = ruby_sourceline;
     struct rb_args_info *args;
@@ -10174,6 +10177,7 @@ new_args_tail_gen(struct parser_params *parser, NODE *k, ID kr, ID b)
 
     args = ZALLOC(struct rb_args_info);
     node = NEW_NODE(NODE_ARGS, 0, 0, args);
+    nd_set_offset(node, offset);
     if (parser->error_p) return node;
 
     args->block_arg      = b;
