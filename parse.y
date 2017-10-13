@@ -8972,13 +8972,18 @@ match_op_gen(struct parser_params *parser, NODE *node1, NODE *node2, int offset)
 	switch (nd_type(node1)) {
 	  case NODE_DREGX:
 	  case NODE_DREGX_ONCE:
-	    return NEW_MATCH2(node1, node2);
+	    {
+		NODE *match = NEW_MATCH2(node1, node2);
+		nd_set_offset(match, offset);
+		return match;
+	    }
 
 	  case NODE_LIT:
 	    if (RB_TYPE_P(node1->nd_lit, T_REGEXP)) {
 		const VALUE lit = node1->nd_lit;
 		NODE *match = NEW_MATCH2(node1, node2);
 		match->nd_args = reg_named_capture_assign(lit, offset);
+		nd_set_offset(match, offset);
 		return match;
 	    }
 	}
