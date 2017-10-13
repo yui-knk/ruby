@@ -2829,6 +2829,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_SCLASS($3, $6);
+			nd_set_offset($$->nd_body, @1.first_column);
 			set_line_body($6, nd_line($3));
 			fixpos($$, $3);
 			nd_set_offset($$, @1.first_column);
