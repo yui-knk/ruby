@@ -467,8 +467,9 @@ static NODE *new_xstring_gen(struct parser_params *, NODE *);
 #define new_xstring(node) new_xstring_gen(parser, node)
 #define new_string1(str) (str)
 
-#define new_brace_body(param, stmt) NEW_ITER(param, stmt)
-#define new_do_body(param, stmt) NEW_ITER(param, stmt)
+static NODE *new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt);
+#define new_brace_body(param, stmt) new_body_gen(parser, param, stmt)
+#define new_do_body(param, stmt) new_body_gen(parser, param, stmt)
 
 static NODE *match_op_gen(struct parser_params*,NODE*,NODE*,int);
 #define match_op(node1,node2,offset) match_op_gen(parser, (node1), (node2), (offset))
@@ -9181,6 +9182,12 @@ new_xstring_gen(struct parser_params *parser, NODE *node)
 	break;
     }
     return node;
+}
+
+static NODE *
+new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt)
+{
+    return NEW_ITER(param, stmt);
 }
 #else  /* !RIPPER */
 static int
