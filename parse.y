@@ -2906,6 +2906,7 @@ primary		: literal
 			NODE *body = remove_begin($8);
 			reduce_nodes(&body);
 			$$ = NEW_DEFS($2, $5, $7, body);
+			nd_set_offset($$->nd_defn, @1.first_column);
 			set_line_body(body, $<num>1);
 			nd_set_line($$, $<num>1);
 			nd_set_offset($$, @1.first_column);
