@@ -9193,6 +9193,7 @@ new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt, int offset)
 {
     NODE *iter = NEW_ITER(param, stmt);
     nd_set_offset(iter->nd_body, offset);
+    nd_set_offset(iter, offset);
     return iter;
 
 }
