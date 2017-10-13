@@ -2878,6 +2878,7 @@ primary		: literal
 			NODE *body = remove_begin($6);
 			reduce_nodes(&body);
 			$$ = NEW_DEFN($2, $5, body, METHOD_VISI_PRIVATE);
+			nd_set_offset($$->nd_defn, @1.first_column);
 			set_line_body(body, $<num>1);
 			nd_set_line($$, $<num>1);
 			nd_set_offset($$, @1.first_column);
