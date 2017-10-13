@@ -467,9 +467,9 @@ static NODE *new_xstring_gen(struct parser_params *, NODE *);
 #define new_xstring(node) new_xstring_gen(parser, node)
 #define new_string1(str) (str)
 
-static NODE *new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt);
-#define new_brace_body(param, stmt) new_body_gen(parser, param, stmt)
-#define new_do_body(param, stmt) new_body_gen(parser, param, stmt)
+static NODE *new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt, int offset);
+#define new_brace_body(param, stmt, offset) new_body_gen(parser, param, stmt, offset)
+#define new_do_body(param, stmt, offset) new_body_gen(parser, param, stmt, offset)
 
 static NODE *match_op_gen(struct parser_params*,NODE*,NODE*,int);
 #define match_op(node1,node2,offset) match_op_gen(parser, (node1), (node2), (offset))
@@ -544,8 +544,8 @@ static VALUE new_xstring_gen(struct parser_params *, VALUE);
 #define new_xstring(str) new_xstring_gen(parser, str)
 #define new_string1(str) dispatch1(string_literal, str)
 
-#define new_brace_body(param, stmt) dispatch2(brace_block, escape_Qundef(param), stmt)
-#define new_do_body(param, stmt) dispatch2(do_block, escape_Qundef(param), stmt)
+#define new_brace_body(param, stmt, offset) dispatch2(brace_block, escape_Qundef(param), stmt)
+#define new_do_body(param, stmt, offset) dispatch2(do_block, escape_Qundef(param), stmt)
 
 #define const_path_field(w, n) dispatch2(const_path_field, (w), (n))
 #define top_const_field(n) dispatch1(top_const_field, (n))
@@ -3622,7 +3622,7 @@ brace_body	: {$<vars>$ = dyna_push();}
 		  {$<val>$ = cmdarg_stack >> 1; CMDARG_SET(0);}
 		  opt_block_param compstmt
 		    {
-			$$ = new_brace_body($3, $4);
+			$$ = new_brace_body($3, $4, @1.first_column);
 			dyna_pop($<vars>1);
 			CMDARG_SET($<val>2);
 		    }
@@ -3632,7 +3632,7 @@ do_body 	: {$<vars>$ = dyna_push();}
 		  {$<val>$ = cmdarg_stack; CMDARG_SET(0);}
 		  opt_block_param bodystmt
 		    {
-			$$ = new_do_body($3, $4);
+			$$ = new_do_body($3, $4, @1.first_column);
 			dyna_pop($<vars>1);
 			CMDARG_SET($<val>2);
 		    }
@@ -9185,9 +9185,12 @@ new_xstring_gen(struct parser_params *parser, NODE *node)
 }
 
 static NODE *
-new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt)
+new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt, int offset)
 {
-    return NEW_ITER(param, stmt);
+    NODE *iter = NEW_ITER(param, stmt);
+    nd_set_offset(iter->nd_body, offset);
+    return iter;
+
 }
 #else  /* !RIPPER */
 static int
