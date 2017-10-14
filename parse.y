@@ -445,7 +445,8 @@ static NODE *new_attr_op_assign_gen(struct parser_params *parser, NODE *lhs, ID 
 static NODE *new_const_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int offset);
 #define new_const_op_assign(lhs, op, rhs, offset) new_const_op_assign_gen(parser, (lhs), (op), (rhs), (offset))
 
-#define const_path_field(w, n) NEW_COLON2(w, n)
+static NODE *const_path_field_gen(struct parser_params *parser, NODE *head, ID mid, int offset);
+#define const_path_field(w, n, offset) const_path_field_gen(parser, w, n, offset)
 #define top_const_field(n) NEW_COLON3(n)
 static NODE *const_decl_gen(struct parser_params *parser, NODE* path);
 #define const_decl(path) const_decl_gen(parser, path)
@@ -547,7 +548,7 @@ static VALUE new_xstring_gen(struct parser_params *, VALUE);
 #define new_brace_body(param, stmt, offset) dispatch2(brace_block, escape_Qundef(param), stmt)
 #define new_do_body(param, stmt, offset) dispatch2(do_block, escape_Qundef(param), stmt)
 
-#define const_path_field(w, n) dispatch2(const_path_field, (w), (n))
+#define const_path_field(w, n, offset) dispatch2(const_path_field, (w), (n))
 #define top_const_field(n) dispatch1(top_const_field, (n))
 static VALUE const_decl_gen(struct parser_params *parser, VALUE path);
 #define const_decl(path) const_decl_gen(parser, path)
@@ -1392,7 +1393,7 @@ command_asgn	: lhs '=' command_rhs
 		    }
 		| primary_value tCOLON2 tCONSTANT tOP_ASGN command_rhs
 		    {
-			$$ = const_path_field($1, $3);
+			$$ = const_path_field($1, $3, @1.first_column);
 			$$ = new_const_op_assign($$, $4, $5, @1.first_column);
 		    }
 		| primary_value tCOLON2 tIDENTIFIER tOP_ASGN command_rhs
@@ -1790,7 +1791,7 @@ mlhs_node	: user_variable
 		    }
 		| primary_value tCOLON2 tCONSTANT
 		    {
-			$$ = const_decl(const_path_field($1, $3));
+			$$ = const_decl(const_path_field($1, $3, @1.first_column));
 		    }
 		| tCOLON3 tCONSTANT
 		    {
@@ -1853,7 +1854,7 @@ lhs		: user_variable
 		    }
 		| primary_value tCOLON2 tCONSTANT
 		    {
-			$$ = const_decl(const_path_field($1, $3));
+			$$ = const_decl(const_path_field($1, $3, @1.first_column));
 		    }
 		| tCOLON3 tCONSTANT
 		    {
@@ -1890,6 +1891,7 @@ cpath		: tCOLON3 cname
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON2(0, $$);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(const_ref, $1);
 		    %*/
@@ -1898,6 +1900,7 @@ cpath		: tCOLON3 cname
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON2($1, $3);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(const_path_ref, $1, $3);
 		    %*/
@@ -2051,7 +2054,7 @@ arg		: lhs '=' arg_rhs
 		    }
 		| primary_value tCOLON2 tCONSTANT tOP_ASGN arg_rhs
 		    {
-			$$ = const_path_field($1, $3);
+			$$ = const_path_field($1, $3, @1.first_column);
 			$$ = new_const_op_assign($$, $4, $5, @1.first_column);
 		    }
 		| tCOLON3 tCONSTANT tOP_ASGN arg_rhs
@@ -10439,6 +10442,14 @@ new_const_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rh
     fixpos(asgn, lhs);
     nd_set_offset(asgn, offset);
     return asgn;
+}
+
+static NODE *
+const_path_field_gen(struct parser_params *parser, NODE *head, ID mid, int offset)
+{
+    NODE *colon2 = NEW_COLON2(head, mid);
+    nd_set_offset(colon2, offset);
+    return colon2;
 }
 
 static NODE *
