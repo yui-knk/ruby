@@ -357,10 +357,10 @@ static NODE *new_if_gen(struct parser_params*,NODE*,NODE*,NODE*,int);
 #define new_if(cc,left,right,offset) new_if_gen(parser, (cc), (left), (right), (offset))
 static NODE *new_unless_gen(struct parser_params*,NODE*,NODE*,NODE*,int);
 #define new_unless(cc,left,right,offset) new_unless_gen(parser, (cc), (left), (right), (offset))
-static NODE *logop_gen(struct parser_params*,enum node_type,NODE*,NODE*);
-#define logop(id,node1,node2) \
+static NODE *logop_gen(struct parser_params*,enum node_type,NODE*,NODE*,int);
+#define logop(id,node1,node2,offset) \
     logop_gen(parser, ((id)==idAND||(id)==idANDOP)?NODE_AND:NODE_OR, \
-	      (node1), (node2))
+	      (node1), (node2), (offset))
 
 static NODE *newline_node(NODE*);
 static void fixpos(NODE*,NODE*);
@@ -525,7 +525,7 @@ static int id_is_var_gen(struct parser_params *parser, ID id);
 #define call_bin_op(recv,id,arg1,offset) dispatch3(binary, (recv), STATIC_ID2SYM(id), (arg1))
 #define match_op(node1,node2,offset) call_bin_op((node1), idEqTilde, (node2), -1)
 #define call_uni_op(recv,id,offset) dispatch2(unary, STATIC_ID2SYM(id), (recv))
-#define logop(id,node1,node2) call_bin_op((node1), (id), (node2), -1)
+#define logop(id,node1,node2,offset) call_bin_op((node1), (id), (node2), -1)
 #define node_assign(node1, node2) dispatch2(assign, (node1), (node2))
 static VALUE new_qcall_gen(struct parser_params *parser, VALUE q, VALUE r, VALUE m, VALUE a);
 #define new_qcall(q,r,m,a,offset) new_qcall_gen(parser, (r), (q), (m), (a))
@@ -1432,11 +1432,11 @@ command_rhs	: command_call   %prec tOP_ASGN
 expr		: command_call
 		| expr keyword_and expr
 		    {
-			$$ = logop(idAND, $1, $3);
+			$$ = logop(idAND, $1, $3, @1.first_column);
 		    }
 		| expr keyword_or expr
 		    {
-			$$ = logop(idOR, $1, $3);
+			$$ = logop(idOR, $1, $3, @1.first_column);
 		    }
 		| keyword_not opt_nl expr
 		    {
@@ -2181,11 +2181,11 @@ arg		: lhs '=' arg_rhs
 		    }
 		| arg tANDOP arg
 		    {
-			$$ = logop(idANDOP, $1, $3);
+			$$ = logop(idANDOP, $1, $3, @1.first_column);
 		    }
 		| arg tOROP arg
 		    {
-			$$ = logop(idOROP, $1, $3);
+			$$ = logop(idOROP, $1, $3, @1.first_column);
 		    }
 		| keyword_defined opt_nl {in_defined = 1;} arg
 		    {
@@ -10120,8 +10120,9 @@ new_unless_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right, 
 }
 
 static NODE*
-logop_gen(struct parser_params *parser, enum node_type type, NODE *left, NODE *right)
+logop_gen(struct parser_params *parser, enum node_type type, NODE *left, NODE *right, int offset)
 {
+    NODE *op;
     value_expr(left);
     if (left && (enum node_type)nd_type(left) == type) {
 	NODE *node = left, *second;
@@ -10129,9 +10130,12 @@ logop_gen(struct parser_params *parser, enum node_type type, NODE *left, NODE *r
 	    node = second;
 	}
 	node->nd_2nd = NEW_NODE(type, second, right, 0);
+	nd_set_offset(node->nd_2nd, offset);
 	return left;
     }
-    return NEW_NODE(type, left, right, 0);
+    op = NEW_NODE(type, left, right, 0);
+    nd_set_offset(op, offset);
+    return op;
 }
 
 static void
