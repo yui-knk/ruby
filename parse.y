@@ -388,8 +388,8 @@ static NODE *arg_append_gen(struct parser_params*,NODE*,NODE*,int);
 #define arg_append(h,t,offset) arg_append_gen(parser,(h),(t),(offset))
 static NODE *arg_concat_gen(struct parser_params*,NODE*,NODE*);
 #define arg_concat(h,t) arg_concat_gen(parser,(h),(t))
-static NODE *literal_concat_gen(struct parser_params*,NODE*,NODE*);
-#define literal_concat(h,t) literal_concat_gen(parser,(h),(t))
+static NODE *literal_concat_gen(struct parser_params*,NODE*,NODE*,int);
+#define literal_concat(h,t,offset) literal_concat_gen(parser,(h),(t),(offset))
 static int literal_concat0(struct parser_params *, VALUE, VALUE);
 static NODE *new_evstr_gen(struct parser_params*,NODE*);
 #define new_evstr(n) new_evstr_gen(parser,(n))
@@ -3799,7 +3799,7 @@ string		: tCHAR
 		| string string1
 		    {
 		    /*%%%*/
-			$$ = literal_concat($1, $2);
+			$$ = literal_concat($1, $2, @1.first_column);
 		    /*%
 			$$ = dispatch2(string_concat, $1, $2);
 		    %*/
@@ -3872,7 +3872,7 @@ word		: string_content
 		| word string_content
 		    {
 		    /*%%%*/
-			$$ = literal_concat($1, $2);
+			$$ = literal_concat($1, $2, @1.first_column);
 		    /*%
 			$$ = dispatch2(word_add, $1, $2);
 		    %*/
@@ -4013,7 +4013,7 @@ string_contents : /* none */
 		| string_contents string_content
 		    {
 		    /*%%%*/
-			$$ = literal_concat($1, $2);
+			$$ = literal_concat($1, $2, @1.first_column);
 		    /*%
 			$$ = dispatch2(string_add, $1, $2);
 		    %*/
@@ -4031,7 +4031,7 @@ xstring_contents: /* none */
 		| xstring_contents string_content
 		    {
 		    /*%%%*/
-			$$ = literal_concat($1, $2);
+			$$ = literal_concat($1, $2, @1.first_column);
 		    /*%
 			$$ = dispatch2(xstring_add, $1, $2);
 		    %*/
@@ -8872,7 +8872,7 @@ literal_concat0(struct parser_params *parser, VALUE head, VALUE tail)
 
 /* concat two string literals */
 static NODE *
-literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail)
+literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int offset)
 {
     enum node_type htype;
     NODE *headlast;
@@ -8884,6 +8884,7 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail)
     htype = nd_type(head);
     if (htype == NODE_EVSTR) {
 	NODE *node = NEW_DSTR(STR_NEW0());
+	nd_set_offset(node, offset);
 	head = list_append(node, head);
 	htype = NODE_DSTR;
     }
