@@ -460,7 +460,8 @@ static NODE *kwd_append(NODE*, NODE*);
 static NODE *new_hash_gen(struct parser_params *parser, NODE *hash, int offset);
 #define new_hash(hash, offset) new_hash_gen(parser, (hash), offset)
 
-#define new_defined(expr) NEW_DEFINED(remove_begin_all(expr))
+static NODE *new_defined_gen(struct parser_params *parser, NODE *expr);
+#define new_defined(expr) new_defined_gen(parser, expr)
 
 static NODE *new_regexp_gen(struct parser_params *, NODE *, int, int);
 #define new_regexp(node, opt, offset) new_regexp_gen(parser, node, opt, offset)
@@ -9209,6 +9210,12 @@ kwd_append(NODE *kwlist, NODE *kw)
 	kws->nd_next = kw;
     }
     return kwlist;
+}
+
+static NODE *
+new_defined_gen(struct parser_params *parser, NODE *expr)
+{
+    return NEW_DEFINED(remove_begin_all(expr));
 }
 
 static NODE *
