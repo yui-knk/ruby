@@ -474,6 +474,9 @@ static NODE *new_list_gen(struct parser_params *parser, NODE *item, int offset);
 static NODE *new_str_gen(struct parser_params *parser, VALUE str, int offset);
 #define new_str(s,offset) new_str_gen(parser, s, offset)
 
+static NODE *new_dvar_gen(struct parser_params *parser, ID id);
+#define new_dvar(id) new_dvar_gen(parser, id)
+
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
 #define new_string1(str) (str)
@@ -2797,13 +2800,13 @@ primary		: literal
 
 			switch (nd_type($2)) {
 			  case NODE_MASGN:
-			    m->nd_next = node_assign($2, NEW_FOR(NEW_DVAR(id), 0, 0), @1.first_column);
+			    m->nd_next = node_assign($2, NEW_FOR(new_dvar(id), 0, 0), @1.first_column);
 			    args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1.first_column));
 			    break;
 			  case NODE_LASGN:
 			  case NODE_DASGN:
 			  case NODE_DASGN_CURR:
-			    $2->nd_value = NEW_DVAR(id);
+			    $2->nd_value = new_dvar(id);
 			    m->nd_plen = 1;
 			    m->nd_next = $2;
 			    args = new_args(m, 0, 0, 0, new_args_tail(0, 0, 0, @1.first_column));
@@ -2812,7 +2815,7 @@ primary		: literal
 			    {
 				NODE *masgn = NEW_MASGN(new_list($2, @1.first_column), 0);
 				nd_set_offset(masgn, @1.first_column);
-				m->nd_next = node_assign(masgn, NEW_DVAR(id), @1.first_column);
+				m->nd_next = node_assign(masgn, new_dvar(id), @1.first_column);
 				args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1.first_column));
 				break;
 			    }
@@ -4514,7 +4517,7 @@ f_arg_item	: f_arg_asgn
 			arg_var(tid);
 		    /*%%%*/
 			if (dyna_in_block()) {
-			    $2->nd_value = NEW_DVAR(tid);
+			    $2->nd_value = new_dvar(tid);
 			}
 			else {
 			    $2->nd_value = NEW_LVAR(tid);
@@ -9152,7 +9155,7 @@ gettable_gen(struct parser_params *parser, ID id, int offset)
 		rb_warn1("circular argument reference - %"PRIsWARN, rb_id2str(id));
 	    }
 	    if (vidp) *vidp |= LVAR_USED;
-	    node = NEW_DVAR(id);
+	    node = new_dvar(id);
 	    nd_set_offset(node, offset);
 	    return node;
 	}
@@ -9290,6 +9293,12 @@ new_str_gen(struct parser_params *parser, VALUE str, int offset)
     NODE *nd_str = NEW_STR(str);
     nd_set_offset(nd_str, offset);
     return nd_str;
+}
+
+static NODE *
+new_dvar_gen(struct parser_params *parser, ID id)
+{
+    return NEW_DVAR(id);
 }
 
 static NODE *
@@ -10374,14 +10383,14 @@ new_args_tail_gen(struct parser_params *parser, NODE *k, ID kr, ID b, int offset
 	if (kr) arg_var(kr);
 	if (b) arg_var(b);
 
-	args->kw_rest_arg = NEW_DVAR(kr);
+	args->kw_rest_arg = new_dvar(kr);
 	args->kw_rest_arg->nd_cflag = kw_bits;
     }
     else if (kr) {
 	if (b) vtable_pop(lvtbl->args, 1); /* reorder */
 	arg_var(kr);
 	if (b) arg_var(b);
-	args->kw_rest_arg = NEW_DVAR(kr);
+	args->kw_rest_arg = new_dvar(kr);
     }
 
     ruby_sourceline = saved_line;
