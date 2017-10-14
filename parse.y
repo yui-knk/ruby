@@ -478,6 +478,9 @@ static NODE *new_str_gen(struct parser_params *parser, VALUE str, int offset);
 static NODE *new_dvar_gen(struct parser_params *parser, ID id, int offset);
 #define new_dvar(id, offset) new_dvar_gen(parser, id, offset)
 
+static NODE *new_resbody_gen(struct parser_params *parser, NODE *exc_list, NODE *stmt, NODE *rescue);
+#define new_resbody(e,s,r) new_resbody_gen(parser, (e),(s),(r))
+
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
 #define new_string1(str) (str)
@@ -1311,7 +1314,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		| stmt modifier_rescue stmt
 		    {
 		    /*%%%*/
-			NODE *resq = NEW_RESBODY(0, remove_begin($3), 0);
+			NODE *resq = new_resbody(0, remove_begin($3), 0);
 			$$ = NEW_RESCUE(remove_begin($1), resq, 0);
 			nd_set_offset(resq, @1.first_column);
 			nd_set_offset($$, @1.first_column);
@@ -1434,7 +1437,7 @@ command_rhs	: command_call   %prec tOP_ASGN
 		    {
 		    /*%%%*/
 			value_expr($1);
-			$$ = NEW_RESCUE($1, NEW_RESBODY(0, remove_begin($3), 0), 0);
+			$$ = NEW_RESCUE($1, new_resbody(0, remove_begin($3), 0), 0);
 		    /*%
 			$$ = dispatch2(rescue_mod, $1, $3);
 		    %*/
@@ -2285,7 +2288,7 @@ arg_rhs 	: arg   %prec tOP_ASGN
 		    {
 		    /*%%%*/
 			value_expr($1);
-			$$ = NEW_RESCUE($1, NEW_RESBODY(0, remove_begin($3), 0), 0);
+			$$ = NEW_RESCUE($1, new_resbody(0, remove_begin($3), 0), 0);
 		    /*%
 			$$ = dispatch2(rescue_mod, $1, $3);
 		    %*/
@@ -3709,7 +3712,7 @@ opt_rescue	: keyword_rescue exc_list exc_var then
 			    $3 = node_assign($3, NEW_ERRINFO(), @1.first_column);
 			    $5 = block_append($3, $5, @1.first_column);
 			}
-			$$ = NEW_RESBODY($2, $5, $6);
+			$$ = new_resbody($2, $5, $6);
 			fixpos($$, $2?$2:$5);
 		    /*%
 			$$ = dispatch4(rescue,
@@ -9303,6 +9306,12 @@ new_dvar_gen(struct parser_params *parser, ID id, int offset)
     NODE *dvar = NEW_DVAR(id);
     nd_set_offset(dvar, offset);
     return dvar;
+}
+
+static NODE *
+new_resbody_gen(struct parser_params *parser, NODE *exc_list, NODE *stmt, NODE *rescue)
+{
+   return NEW_RESBODY(exc_list, stmt, rescue);
 }
 
 static NODE *
