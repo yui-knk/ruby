@@ -437,8 +437,8 @@ static NODE *attrset_gen(struct parser_params*,NODE*,ID,ID,int);
 
 static void rb_backref_error_gen(struct parser_params*,NODE*);
 #define rb_backref_error(n) rb_backref_error_gen(parser,(n))
-static NODE *node_assign_gen(struct parser_params*,NODE*,NODE*);
-#define node_assign(node1, node2) node_assign_gen(parser, (node1), (node2))
+static NODE *node_assign_gen(struct parser_params*,NODE*,NODE*,int);
+#define node_assign(node1, node2, offset) node_assign_gen(parser, (node1), (node2), (offset))
 
 static NODE *new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int offset);
 static NODE *new_attr_op_assign_gen(struct parser_params *parser, NODE *lhs, ID atype, ID attr, ID op, NODE *rhs);
@@ -532,7 +532,7 @@ static int id_is_var_gen(struct parser_params *parser, ID id);
 #define match_op(node1,node2,offset) call_bin_op((node1), idEqTilde, (node2), -1)
 #define call_uni_op(recv,id,offset) dispatch2(unary, STATIC_ID2SYM(id), (recv))
 #define logop(id,node1,node2,offset) call_bin_op((node1), (id), (node2), -1)
-#define node_assign(node1, node2) dispatch2(assign, (node1), (node2))
+#define node_assign(node1, node2, offset) dispatch2(assign, (node1), (node2))
 static VALUE new_qcall_gen(struct parser_params *parser, VALUE q, VALUE r, VALUE m, VALUE a);
 #define new_qcall(q,r,m,a,offset) new_qcall_gen(parser, (r), (q), (m), (a))
 #define new_command_qcall(q,r,m,a,offset) dispatch4(command_call, (r), (q), (m), (a))
@@ -1343,7 +1343,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		| lhs '=' mrhs
 		    {
 			value_expr($3);
-			$$ = node_assign($1, $3);
+			$$ = node_assign($1, $3, @1.first_column);
 		    }
 		| mlhs '=' mrhs_arg
 		    {
@@ -1360,7 +1360,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 command_asgn	: lhs '=' command_rhs
 		    {
 			value_expr($3);
-			$$ = node_assign($1, $3);
+			$$ = node_assign($1, $3, @1.first_column);
 		    }
 		| var_lhs tOP_ASGN command_rhs
 		    {
@@ -1411,7 +1411,7 @@ command_asgn	: lhs '=' command_rhs
 		| backref tOP_ASGN command_rhs
 		    {
 			$1 = var_field($1);
-			$$ = backref_assign_error($1, node_assign($1, $3));
+			$$ = backref_assign_error($1, node_assign($1, $3, @1.first_column));
 		    }
 		;
 
@@ -2012,7 +2012,7 @@ reswords	: keyword__LINE__ | keyword__FILE__ | keyword__ENCODING__
 
 arg		: lhs '=' arg_rhs
 		    {
-			$$ = node_assign($1, $3);
+			$$ = node_assign($1, $3, @1.first_column);
 		    }
 		| var_lhs tOP_ASGN arg_rhs
 		    {
@@ -2794,7 +2794,7 @@ primary		: literal
 
 			switch (nd_type($2)) {
 			  case NODE_MASGN:
-			    m->nd_next = node_assign($2, NEW_FOR(NEW_DVAR(id), 0, 0));
+			    m->nd_next = node_assign($2, NEW_FOR(NEW_DVAR(id), 0, 0), @1.first_column);
 			    args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1.first_column));
 			    break;
 			  case NODE_LASGN:
@@ -2809,7 +2809,7 @@ primary		: literal
 			    {
 				NODE *masgn = NEW_MASGN(new_list($2), 0);
 				nd_set_offset(masgn, @1.first_column);
-				m->nd_next = node_assign(masgn, NEW_DVAR(id));
+				m->nd_next = node_assign(masgn, NEW_DVAR(id), @1.first_column);
 				args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1.first_column));
 				break;
 			    }
@@ -3706,7 +3706,7 @@ opt_rescue	: keyword_rescue exc_list exc_var then
 		    {
 		    /*%%%*/
 			if ($3) {
-			    $3 = node_assign($3, NEW_ERRINFO());
+			    $3 = node_assign($3, NEW_ERRINFO(), @1.first_column);
 			    $5 = block_append($3, $5, @1.first_column);
 			}
 			$$ = NEW_RESBODY($2, $5, $6);
@@ -9670,7 +9670,7 @@ splat_array(NODE* node)
 }
 
 static NODE *
-node_assign_gen(struct parser_params *parser, NODE *lhs, NODE *rhs)
+node_assign_gen(struct parser_params *parser, NODE *lhs, NODE *rhs, int offset)
 {
     if (!lhs) return 0;
 
@@ -10866,7 +10866,7 @@ reg_named_capture_assign_iter(const OnigUChar *name, const OnigUChar *name_end,
         return ST_CONTINUE;
     }
     var = intern_cstr(s, len, enc);
-    node = node_assign(assignable(var, 0, arg->offset), new_lit(ID2SYM(var), arg->offset));
+    node = node_assign(assignable(var, 0, arg->offset), new_lit(ID2SYM(var), arg->offset), arg->offset);
     succ = arg->succ_block;
     if (!succ) succ = NEW_BEGIN(0);
     succ = block_append(succ, node, arg->offset);
