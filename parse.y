@@ -465,6 +465,9 @@ static NODE *new_hash_gen(struct parser_params *parser, NODE *hash, int offset);
 static NODE *new_regexp_gen(struct parser_params *, NODE *, int, int);
 #define new_regexp(node, opt, offset) new_regexp_gen(parser, node, opt, offset)
 
+static NODE *new_lit_gen(struct parser_params *parser, VALUE sym);
+#define new_lit(sym) new_lit_gen(parser, sym)
+
 static NODE *new_xstring_gen(struct parser_params *, NODE *);
 #define new_xstring(node) new_xstring_gen(parser, node)
 #define new_string1(str) (str)
@@ -1930,7 +1933,7 @@ fsym		: fname
 fitem		: fsym
 		    {
 		    /*%%%*/
-			$$ = NEW_LIT(ID2SYM($1));
+			$$ = new_lit(ID2SYM($1));
 		    /*%
 			$$ = dispatch1(symbol_literal, $1);
 		    %*/
@@ -3763,7 +3766,7 @@ literal		: numeric
 		| symbol
 		    {
 		    /*%%%*/
-			$$ = NEW_LIT(ID2SYM($1));
+			$$ = new_lit(ID2SYM($1));
 			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(symbol_literal, $1);
@@ -4851,7 +4854,7 @@ assoc		: arg_value tASSOC arg_value
 		| tLABEL arg_value
 		    {
 		    /*%%%*/
-			$$ = list_append(NEW_LIST(NEW_LIT(ID2SYM($1))), $2);
+			$$ = list_append(NEW_LIST(new_lit(ID2SYM($1))), $2);
 		    /*%
 			$$ = dispatch2(assoc_new, $1, $2);
 		    %*/
@@ -9092,11 +9095,11 @@ gettable_gen(struct parser_params *parser, ID id, int offset)
 	nd_set_offset(node, offset);
 	return node;
       case keyword__LINE__:
-	node = NEW_LIT(INT2FIX(tokline));
+	node = new_lit(INT2FIX(tokline));
 	nd_set_offset(node, offset);
 	return node;
       case keyword__ENCODING__:
-	node = NEW_LIT(rb_enc_from_encoding(current_enc));
+	node = new_lit(rb_enc_from_encoding(current_enc));
 	nd_set_offset(node, offset);
 	return node;
     }
@@ -9170,7 +9173,7 @@ new_regexp_gen(struct parser_params *parser, NODE *node, int options, int offset
 
     if (!node) {
 	NODE *lit;
-	lit = NEW_LIT(reg_compile(STR_NEW0(), options));
+	lit = new_lit(reg_compile(STR_NEW0(), options));
 	nd_set_offset(lit, offset);
 	return lit;
     }
@@ -9224,6 +9227,13 @@ new_regexp_gen(struct parser_params *parser, NODE *node, int options, int offset
 	break;
     }
     return node;
+}
+
+static NODE *
+new_lit_gen(struct parser_params *parser, VALUE sym)
+{
+    NODE *lit = NEW_LIT(sym);
+    return lit;
 }
 
 static NODE *
@@ -10321,7 +10331,7 @@ dsym_node_gen(struct parser_params *parser, NODE *node)
     VALUE lit;
 
     if (!node) {
-	return NEW_LIT(ID2SYM(idNULL));
+	return new_lit(ID2SYM(idNULL));
     }
 
     switch (nd_type(node)) {
@@ -10853,7 +10863,7 @@ reg_named_capture_assign_iter(const OnigUChar *name, const OnigUChar *name_end,
         return ST_CONTINUE;
     }
     var = intern_cstr(s, len, enc);
-    node = node_assign(assignable(var, 0, arg->offset), NEW_LIT(ID2SYM(var)));
+    node = node_assign(assignable(var, 0, arg->offset), new_lit(ID2SYM(var)));
     succ = arg->succ_block;
     if (!succ) succ = NEW_BEGIN(0);
     succ = block_append(succ, node, arg->offset);
