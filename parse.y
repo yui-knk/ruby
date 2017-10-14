@@ -3971,6 +3971,7 @@ qword_list	: /* none */
 		    {
 		    /*%%%*/
 			$$ = list_append($1, $2, @1.first_column);
+			nd_set_offset($2, @1.first_column);
 		    /*%
 			$$ = dispatch2(qwords_add, $1, $2);
 		    %*/
@@ -3993,6 +3994,7 @@ qsym_list	: /* none */
 			$2->nd_lit = ID2SYM(rb_intern_str(lit));
 			nd_set_type($2, NODE_LIT);
 			$$ = list_append($1, $2, @1.first_column);
+			nd_set_offset($2, @1.first_column);
 		    /*%
 			$$ = dispatch2(qsymbols_add, $1, $2);
 		    %*/
@@ -4085,6 +4087,12 @@ regexp_contents: /* none */
 		;
 
 string_content	: tSTRING_CONTENT
+		    {
+		    /*%%%*/
+			nd_set_offset($$, @1.first_column);
+		    /*%
+		    %*/
+		    }
 		| tSTRING_DVAR
 		    {
 			$<node>$ = lex_strterm;
