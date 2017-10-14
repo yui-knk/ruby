@@ -3683,6 +3683,7 @@ case_body	: keyword_when args then
 		    {
 		    /*%%%*/
 			$$ = NEW_WHEN($2, $4, $5);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch3(when, $2, $4, escape_Qundef($5));
 		    %*/
