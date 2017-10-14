@@ -4224,6 +4224,12 @@ simple_numeric	: tINTEGER
 		    %*/
 		    }
 		| tRATIONAL
+		    {
+		    /*%%%*/
+			nd_set_offset($$, @1.first_column);
+		    /*%
+		    %*/
+		    }
 		| tIMAGINARY
 		;
 
