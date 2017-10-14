@@ -2419,6 +2419,7 @@ args		: arg_value
 		    {
 		    /*%%%*/
 			$$ = NEW_SPLAT($2);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = arg_add_star(arg_new(), $2);
 		    %*/
@@ -2490,6 +2491,7 @@ mrhs		: args ',' arg_value
 		    {
 		    /*%%%*/
 			$$ = NEW_SPLAT($2);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mrhs_add_star(mrhs_new(), $2);
 		    %*/
