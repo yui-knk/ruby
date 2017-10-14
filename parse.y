@@ -2638,12 +2638,18 @@ primary		: literal
 		| keyword_not '(' expr rparen
 		    {
 			$$ = call_uni_op(method_cond($3), METHOD_NOT);
+		    /*%%%*/
 			nd_set_offset($$, @1.first_column);
+		    /*%
+		    %*/
 		    }
 		| keyword_not '(' rparen
 		    {
 			$$ = call_uni_op(method_cond(new_nil()), METHOD_NOT);
+		    /*%%%*/
 			nd_set_offset($$, @1.first_column);
+		    /*%
+		    %*/
 		    }
 		| fcall brace_block
 		    {
