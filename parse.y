@@ -462,8 +462,8 @@ static NODE *new_hash_gen(struct parser_params *parser, NODE *hash, int offset);
 
 #define new_defined(expr) NEW_DEFINED(remove_begin_all(expr))
 
-static NODE *new_regexp_gen(struct parser_params *, NODE *, int);
-#define new_regexp(node, opt) new_regexp_gen(parser, node, opt)
+static NODE *new_regexp_gen(struct parser_params *, NODE *, int, int);
+#define new_regexp(node, opt, offset) new_regexp_gen(parser, node, opt, offset)
 
 static NODE *new_xstring_gen(struct parser_params *, NODE *);
 #define new_xstring(node) new_xstring_gen(parser, node)
@@ -540,7 +540,7 @@ static VALUE new_attr_op_assign_gen(struct parser_params *parser, VALUE lhs, VAL
 #define new_const_op_assign(lhs, op, rhs, offset) new_op_assign(lhs, op, rhs, offset)
 
 static VALUE new_regexp_gen(struct parser_params *, VALUE, VALUE);
-#define new_regexp(node, opt) new_regexp_gen(parser, node, opt)
+#define new_regexp(node, opt, offset) new_regexp_gen(parser, node, opt)
 
 static VALUE new_xstring_gen(struct parser_params *, VALUE);
 #define new_xstring(str) new_xstring_gen(parser, str)
@@ -3815,7 +3815,7 @@ xstring		: tXSTRING_BEG xstring_contents tSTRING_END
 
 regexp		: tREGEXP_BEG regexp_contents tREGEXP_END
 		    {
-			$$ = new_regexp($2, $3);
+			$$ = new_regexp($2, $3, @1.first_column);
 		    }
 		;
 
@@ -9164,12 +9164,15 @@ kwd_append(NODE *kwlist, NODE *kw)
 }
 
 static NODE *
-new_regexp_gen(struct parser_params *parser, NODE *node, int options)
+new_regexp_gen(struct parser_params *parser, NODE *node, int options, int offset)
 {
     NODE *list, *prev;
 
     if (!node) {
-	return NEW_LIT(reg_compile(STR_NEW0(), options));
+	NODE *lit;
+	lit = NEW_LIT(reg_compile(STR_NEW0(), options));
+	nd_set_offset(lit, offset);
+	return lit;
     }
     switch (nd_type(node)) {
       case NODE_STR:
