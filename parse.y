@@ -8687,6 +8687,7 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *parser)
 	dispatch_scan_event(t);
 
     yylloc->first_column = (int)(parser->tokp - lex_pbeg);
+    yylloc->last_column  = (int)(lex_p - lex_pbeg);
 
     return t;
 }
