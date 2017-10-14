@@ -471,6 +471,9 @@ static NODE *new_lit_gen(struct parser_params *parser, VALUE sym, int offset);
 static NODE *new_list_gen(struct parser_params *parser, NODE *item, int offset);
 #define new_list(item, offset) new_list_gen(parser, item, offset)
 
+static NODE *new_str_gen(struct parser_params *parser, VALUE str);
+#define new_str(s) new_str_gen(parser, s)
+
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
 #define new_string1(str) (str)
@@ -3782,7 +3785,7 @@ strings		: string
 		    /*%%%*/
 			NODE *node = $1;
 			if (!node) {
-			    node = NEW_STR(STR_NEW0());
+			    node = new_str(STR_NEW0());
 			}
 			else {
 			    node = evstr2dstr(node, @1.first_column);
@@ -8948,7 +8951,7 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int off
 	}
 	else {
 	    nd_set_type(tail, NODE_ARRAY);
-	    tail->nd_head = NEW_STR(tail->nd_lit);
+	    tail->nd_head = new_str(tail->nd_lit);
 	    list_concat(head, tail);
 	}
 	break;
@@ -9098,7 +9101,7 @@ gettable_gen(struct parser_params *parser, ID id, int offset)
 	nd_set_offset(node, offset);
 	return node;
       case keyword__FILE__:
-	node = NEW_STR(rb_str_dup(ruby_sourcefile_string));
+	node = new_str(rb_str_dup(ruby_sourcefile_string));
 	nd_set_offset(node, offset);
 	return node;
       case keyword__LINE__:
@@ -9243,6 +9246,12 @@ new_list_gen(struct parser_params *parser, NODE *item, int offset)
     NODE *list = NEW_LIST(item);
     nd_set_offset(list, offset);
     return list;
+}
+
+static NODE *
+new_str_gen(struct parser_params *parser, VALUE str)
+{
+    return NEW_STR(str);
 }
 
 static NODE *
