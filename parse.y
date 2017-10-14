@@ -393,8 +393,8 @@ static NODE *literal_concat_gen(struct parser_params*,NODE*,NODE*,int);
 static int literal_concat0(struct parser_params *, VALUE, VALUE);
 static NODE *new_evstr_gen(struct parser_params*,NODE*);
 #define new_evstr(n) new_evstr_gen(parser,(n))
-static NODE *evstr2dstr_gen(struct parser_params*,NODE*);
-#define evstr2dstr(n) evstr2dstr_gen(parser,(n))
+static NODE *evstr2dstr_gen(struct parser_params*,NODE*,int);
+#define evstr2dstr(n,offset) evstr2dstr_gen(parser,(n),(offset))
 static NODE *splat_array(NODE*);
 
 static NODE *call_bin_op_gen(struct parser_params*,NODE*,ID,NODE*,int);
@@ -3785,7 +3785,7 @@ strings		: string
 			    node = NEW_STR(STR_NEW0());
 			}
 			else {
-			    node = evstr2dstr(node);
+			    node = evstr2dstr(node, @1.first_column);
 			}
 			$$ = node;
 		    /*%
@@ -3854,7 +3854,7 @@ word_list	: /* none */
 		| word_list word ' '
 		    {
 		    /*%%%*/
-			$$ = list_append($1, evstr2dstr($2));
+			$$ = list_append($1, evstr2dstr($2, @1.first_column));
 		    /*%
 			$$ = dispatch2(words_add, $1, $2);
 		    %*/
@@ -3909,7 +3909,7 @@ symbol_list	: /* none */
 		| symbol_list word ' '
 		    {
 		    /*%%%*/
-			$2 = evstr2dstr($2);
+			$2 = evstr2dstr($2, @1.first_column);
 			if (nd_type($2) == NODE_DSTR) {
 			    nd_set_type($2, NODE_DSYM);
 			}
@@ -8964,7 +8964,7 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int off
 }
 
 static NODE *
-evstr2dstr_gen(struct parser_params *parser, NODE *node)
+evstr2dstr_gen(struct parser_params *parser, NODE *node, int offset)
 {
     if (nd_type(node) == NODE_EVSTR) {
 	node = list_append(NEW_DSTR(STR_NEW0()), node);
