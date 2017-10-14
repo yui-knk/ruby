@@ -468,6 +468,9 @@ static NODE *new_regexp_gen(struct parser_params *, NODE *, int, int);
 static NODE *new_lit_gen(struct parser_params *parser, VALUE sym, int offset);
 #define new_lit(sym, offset) new_lit_gen(parser, sym, offset)
 
+static NODE *new_list_gen(struct parser_params *parser, NODE *item);
+#define new_list(item) new_list_gen(parser, item)
+
 static NODE *new_xstring_gen(struct parser_params *, NODE *);
 #define new_xstring(node) new_xstring_gen(parser, node)
 #define new_string1(str) (str)
@@ -1602,7 +1605,7 @@ mlhs_inner	: mlhs_basic
 		| tLPAREN mlhs_inner rparen
 		    {
 		    /*%%%*/
-			$$ = NEW_MASGN(NEW_LIST($2), 0);
+			$$ = NEW_MASGN(new_list($2), 0);
 			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(mlhs_paren, $2);
@@ -1720,7 +1723,7 @@ mlhs_item	: mlhs_node
 mlhs_head	: mlhs_item ','
 		    {
 		    /*%%%*/
-			$$ = NEW_LIST($1);
+			$$ = new_list($1);
 		    /*%
 			$$ = mlhs_add(mlhs_new(), $1);
 		    %*/
@@ -1738,7 +1741,7 @@ mlhs_head	: mlhs_item ','
 mlhs_post	: mlhs_item
 		    {
 		    /*%%%*/
-			$$ = NEW_LIST($1);
+			$$ = new_list($1);
 		    /*%
 			$$ = mlhs_add(mlhs_new(), $1);
 		    %*/
@@ -2260,7 +2263,7 @@ aref_args	: none
 		| assocs trailer
 		    {
 		    /*%%%*/
-			$$ = $1 ? NEW_LIST(new_hash($1, @1.first_column)) : 0;
+			$$ = $1 ? new_list(new_hash($1, @1.first_column)) : 0;
 		    /*%
 			$$ = arg_add_assocs(arg_new(), $1);
 		    %*/
@@ -2317,7 +2320,7 @@ opt_call_args	: none
 		| assocs ','
 		    {
 		    /*%%%*/
-			$$ = $1 ? NEW_LIST(new_hash($1, @1.first_column)) : 0;
+			$$ = $1 ? new_list(new_hash($1, @1.first_column)) : 0;
 		    /*%
 			$$ = arg_add_assocs(arg_new(), $1);
 		    %*/
@@ -2328,7 +2331,7 @@ call_args	: command
 		    {
 		    /*%%%*/
 			value_expr($1);
-			$$ = NEW_LIST($1);
+			$$ = new_list($1);
 		    /*%
 			$$ = arg_add(arg_new(), $1);
 		    %*/
@@ -2344,7 +2347,7 @@ call_args	: command
 		| assocs opt_block_arg
 		    {
 		    /*%%%*/
-			$$ = $1 ? NEW_LIST(new_hash($1, @1.first_column)) : 0;
+			$$ = $1 ? new_list(new_hash($1, @1.first_column)) : 0;
 			$$ = arg_blk_pass($$, $2);
 		    /*%
 			$$ = arg_add_assocs(arg_new(), $1);
@@ -2404,7 +2407,7 @@ opt_block_arg	: ',' block_arg
 args		: arg_value
 		    {
 		    /*%%%*/
-			$$ = NEW_LIST($1);
+			$$ = new_list($1);
 		    /*%
 			$$ = arg_add(arg_new(), $1);
 		    %*/
@@ -2804,7 +2807,7 @@ primary		: literal
 			    break;
 			  default:
 			    {
-				NODE *masgn = NEW_MASGN(NEW_LIST($2), 0);
+				NODE *masgn = NEW_MASGN(new_list($2), 0);
 				nd_set_offset(masgn, @1.first_column);
 				m->nd_next = node_assign(masgn, NEW_DVAR(id));
 				args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1.first_column));
@@ -3143,7 +3146,7 @@ f_marg		: f_norm_arg
 f_marg_list	: f_marg
 		    {
 		    /*%%%*/
-			$$ = NEW_LIST($1);
+			$$ = new_list($1);
 		    /*%
 			$$ = mlhs_add(mlhs_new(), $1);
 		    %*/
@@ -3722,7 +3725,7 @@ opt_rescue	: keyword_rescue exc_list exc_var then
 exc_list	: arg_value
 		    {
 		    /*%%%*/
-			$$ = NEW_LIST($1);
+			$$ = new_list($1);
 		    /*%
 			$$ = rb_ary_new3(1, get_value($1));
 		    %*/
@@ -4845,7 +4848,7 @@ assoc		: arg_value tASSOC arg_value
 			    nd_set_type($1, NODE_LIT);
 			    $1->nd_lit = rb_fstring($1->nd_lit);
 			}
-			$$ = list_append(NEW_LIST($1), $3);
+			$$ = list_append(new_list($1), $3);
 		    /*%
 			$$ = dispatch2(assoc_new, $1, $3);
 		    %*/
@@ -4853,7 +4856,7 @@ assoc		: arg_value tASSOC arg_value
 		| tLABEL arg_value
 		    {
 		    /*%%%*/
-			$$ = list_append(NEW_LIST(new_lit(ID2SYM($1), @1.first_column)), $2);
+			$$ = list_append(new_list(new_lit(ID2SYM($1), @1.first_column)), $2);
 		    /*%
 			$$ = dispatch2(assoc_new, $1, $2);
 		    %*/
@@ -4861,7 +4864,7 @@ assoc		: arg_value tASSOC arg_value
 		| tSTRING_BEG string_contents tLABEL_END arg_value
 		    {
 		    /*%%%*/
-			$$ = list_append(NEW_LIST(dsym_node($2, @1.first_column)), $4);
+			$$ = list_append(new_list(dsym_node($2, @1.first_column)), $4);
 		    /*%
 			$$ = dispatch2(assoc_new, dispatch1(dyna_symbol, $2), $4);
 		    %*/
@@ -4873,7 +4876,7 @@ assoc		: arg_value tASSOC arg_value
 			    !($2->nd_head && $2->nd_head->nd_alen))
 			    $$ = 0;
 			else
-			    $$ = list_append(NEW_LIST(0), $2);
+			    $$ = list_append(new_list(0), $2);
 		    /*%
 			$$ = dispatch1(assoc_splat, $2);
 		    %*/
@@ -8812,7 +8815,7 @@ list_append_gen(struct parser_params *parser, NODE *list, NODE *item)
 {
     NODE *last;
 
-    if (list == 0) return NEW_LIST(item);
+    if (list == 0) return new_list(item);
     if (list->nd_next) {
 	last = list->nd_next->nd_end;
     }
@@ -8821,7 +8824,7 @@ list_append_gen(struct parser_params *parser, NODE *list, NODE *item)
     }
 
     list->nd_alen += 1;
-    last->nd_next = NEW_LIST(item);
+    last->nd_next = new_list(item);
     list->nd_next->nd_end = last->nd_next;
     return list;
 }
@@ -8988,7 +8991,7 @@ call_bin_op_gen(struct parser_params *parser, NODE *recv, ID id, NODE *arg1, int
     NODE *expr;
     value_expr(recv);
     value_expr(arg1);
-    expr = NEW_OPCALL(recv, id, NEW_LIST(arg1));
+    expr = NEW_OPCALL(recv, id, new_list(arg1));
     fixpos(expr, recv);
     nd_set_offset(expr, offset);
     return expr;
@@ -9051,7 +9054,7 @@ match_op_gen(struct parser_params *parser, NODE *node1, NODE *node2, int offset)
 	}
     }
 
-    return NEW_CALL(node1, tMATCH, NEW_LIST(node2));
+    return NEW_CALL(node1, tMATCH, new_list(node2));
 }
 
 # if WARN_PAST_SCOPE
@@ -9178,7 +9181,7 @@ new_regexp_gen(struct parser_params *parser, NODE *node, int options, int offset
 	}
 	break;
       default:
-	node = NEW_NODE(NODE_DSTR, STR_NEW0(), 1, NEW_LIST(node));
+	node = NEW_NODE(NODE_DSTR, STR_NEW0(), 1, new_list(node));
       case NODE_DSTR:
 	if (options & RE_OPTION_ONCE) {
 	    nd_set_type(node, NODE_DREGX_ONCE);
@@ -9230,6 +9233,12 @@ new_lit_gen(struct parser_params *parser, VALUE sym, int offset)
 }
 
 static NODE *
+new_list_gen(struct parser_params *parser, NODE *item)
+{
+    return NEW_LIST(item);
+}
+
+static NODE *
 new_xstring_gen(struct parser_params *parser, NODE *node)
 {
     if (!node) {
@@ -9243,7 +9252,7 @@ new_xstring_gen(struct parser_params *parser, NODE *node)
 	nd_set_type(node, NODE_DXSTR);
 	break;
       default:
-	node = NEW_NODE(NODE_DXSTR, Qnil, 1, NEW_LIST(node));
+	node = NEW_NODE(NODE_DXSTR, Qnil, 1, new_list(node));
 	break;
     }
     return node;
@@ -9618,11 +9627,11 @@ arg_concat_gen(struct parser_params *parser, NODE *node1, NODE *node2)
 	if (node1->nd_head)
 	    node1->nd_head = arg_concat(node1->nd_head, node2);
 	else
-	    node1->nd_head = NEW_LIST(node2);
+	    node1->nd_head = new_list(node2);
 	return node1;
       case NODE_ARGSPUSH:
 	if (nd_type(node2) != NODE_ARRAY) break;
-	node1->nd_body = list_concat(NEW_LIST(node1->nd_body), node2);
+	node1->nd_body = list_concat(new_list(node1->nd_body), node2);
 	nd_set_type(node1, NODE_ARGSCAT);
 	return node1;
       case NODE_ARGSCAT:
@@ -9637,7 +9646,7 @@ arg_concat_gen(struct parser_params *parser, NODE *node1, NODE *node2)
 static NODE *
 arg_append_gen(struct parser_params *parser, NODE *node1, NODE *node2)
 {
-    if (!node1) return NEW_LIST(node2);
+    if (!node1) return new_list(node2);
     switch (nd_type(node1))  {
       case NODE_ARRAY:
 	return list_append(node1, node2);
@@ -9645,7 +9654,7 @@ arg_append_gen(struct parser_params *parser, NODE *node1, NODE *node2)
 	node1->nd_head = arg_append(node1->nd_head, node2);
 	return node1;
       case NODE_ARGSPUSH:
-	node1->nd_body = list_append(NEW_LIST(node1->nd_body), node2);
+	node1->nd_body = list_append(new_list(node1->nd_body), node2);
 	nd_set_type(node1, NODE_ARGSCAT);
 	return node1;
     }
@@ -10003,7 +10012,7 @@ range_op(struct parser_params *parser, NODE *node, int offset)
     value_expr(node);
     if (type == NODE_LIT && FIXNUM_P(node->nd_lit)) {
 	warn_unless_e_option(parser, node, "integer literal in conditional range");
-	return NEW_CALL(node, tEQ, NEW_LIST(NEW_GVAR(rb_intern("$."))));
+	return NEW_CALL(node, tEQ, new_list(NEW_GVAR(rb_intern("$."))));
     }
     return cond0(parser, node, FALSE, offset);
 }
@@ -10337,7 +10346,7 @@ dsym_node_gen(struct parser_params *parser, NODE *node, int offset)
 	nd_set_type(node, NODE_LIT);
 	break;
       default:
-	node = NEW_NODE(NODE_DSYM, Qnil, 1, NEW_LIST(node));
+	node = NEW_NODE(NODE_DSYM, Qnil, 1, new_list(node));
 	nd_set_offset(node, offset);
 	break;
     }
@@ -10426,7 +10435,7 @@ new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int
 	}
 	else {
 	    asgn = lhs;
-	    asgn->nd_value = NEW_CALL(gettable(vid, offset), op, NEW_LIST(rhs));
+	    asgn->nd_value = NEW_CALL(gettable(vid, offset), op, new_list(rhs));
 	}
     }
     else {
