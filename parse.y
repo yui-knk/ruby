@@ -386,8 +386,8 @@ static NODE *list_append_gen(struct parser_params*,NODE*,NODE*,int);
 static NODE *list_concat(NODE*,NODE*);
 static NODE *arg_append_gen(struct parser_params*,NODE*,NODE*,int);
 #define arg_append(h,t,offset) arg_append_gen(parser,(h),(t),(offset))
-static NODE *arg_concat_gen(struct parser_params*,NODE*,NODE*);
-#define arg_concat(h,t) arg_concat_gen(parser,(h),(t))
+static NODE *arg_concat_gen(struct parser_params*,NODE*,NODE*,int);
+#define arg_concat(h,t,offset) arg_concat_gen(parser,(h),(t),(offset))
 static NODE *literal_concat_gen(struct parser_params*,NODE*,NODE*,int);
 #define literal_concat(h,t,offset) literal_concat_gen(parser,(h),(t),(offset))
 static int literal_concat0(struct parser_params *, VALUE, VALUE);
@@ -1374,7 +1374,7 @@ command_asgn	: lhs '=' command_rhs
 
 			value_expr($6);
 			if (!$3) $3 = NEW_ZARRAY();
-			args = arg_concat($3, $6);
+			args = arg_concat($3, $6, @1.first_column);
 			if ($5 == tOROP) {
 			    $5 = 0;
 			}
@@ -2029,7 +2029,7 @@ arg		: lhs '=' arg_rhs
 			    args = NEW_ARGSCAT($3, $6);
 			}
 			else {
-			    args = arg_concat($3, $6);
+			    args = arg_concat($3, $6, @1.first_column);
 			}
 			if ($5 == tOROP) {
 			    $5 = 0;
@@ -2442,7 +2442,7 @@ args		: arg_value
 			    $$ = list_concat(n1, $4);
 			}
 			else {
-			    $$ = arg_concat($1, $4);
+			    $$ = arg_concat($1, $4, @1.first_column);
 			}
 		    /*%
 			$$ = arg_add_star($1, $4);
@@ -2477,7 +2477,7 @@ mrhs		: args ',' arg_value
 			    $$ = list_concat(n1, $4);
 			}
 			else {
-			    $$ = arg_concat($1, $4);
+			    $$ = arg_concat($1, $4, @1.first_column);
 			}
 		    /*%
 			$$ = mrhs_add_star(args2mrhs($1), $4);
@@ -9623,13 +9623,13 @@ rb_backref_error_gen(struct parser_params *parser, NODE *node)
 }
 
 static NODE *
-arg_concat_gen(struct parser_params *parser, NODE *node1, NODE *node2)
+arg_concat_gen(struct parser_params *parser, NODE *node1, NODE *node2, int offset)
 {
     if (!node2) return node1;
     switch (nd_type(node1)) {
       case NODE_BLOCK_PASS:
 	if (node1->nd_head)
-	    node1->nd_head = arg_concat(node1->nd_head, node2);
+	    node1->nd_head = arg_concat(node1->nd_head, node2, offset);
 	else
 	    node1->nd_head = new_list(node2);
 	return node1;
