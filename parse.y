@@ -391,8 +391,8 @@ static NODE *arg_concat_gen(struct parser_params*,NODE*,NODE*,int);
 static NODE *literal_concat_gen(struct parser_params*,NODE*,NODE*,int);
 #define literal_concat(h,t,offset) literal_concat_gen(parser,(h),(t),(offset))
 static int literal_concat0(struct parser_params *, VALUE, VALUE);
-static NODE *new_evstr_gen(struct parser_params*,NODE*);
-#define new_evstr(n) new_evstr_gen(parser,(n))
+static NODE *new_evstr_gen(struct parser_params*,NODE*,int);
+#define new_evstr(n, offset) new_evstr_gen(parser,(n),(offset))
 static NODE *evstr2dstr_gen(struct parser_params*,NODE*,int);
 #define evstr2dstr(n,offset) evstr2dstr_gen(parser,(n),(offset))
 static NODE *splat_array(NODE*);
@@ -4099,6 +4099,7 @@ string_content	: tSTRING_CONTENT
 			lex_strterm = $<node>2;
 		    /*%%%*/
 			$$ = NEW_EVSTR($3);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(string_dvar, $3);
 		    %*/
@@ -4137,7 +4138,7 @@ string_content	: tSTRING_CONTENT
 			heredoc_line_indent = -1;
 		    /*%%%*/
 			if ($7) $7->flags &= ~NODE_FL_NEWLINE;
-			$$ = new_evstr($7);
+			$$ = new_evstr($7, @1.first_column);
 		    /*%
 			$$ = dispatch1(string_embexpr, $7);
 		    %*/
@@ -8973,9 +8974,10 @@ evstr2dstr_gen(struct parser_params *parser, NODE *node, int offset)
 }
 
 static NODE *
-new_evstr_gen(struct parser_params *parser, NODE *node)
+new_evstr_gen(struct parser_params *parser, NODE *node, int offset)
 {
     NODE *head = node;
+    NODE *evstr;
 
     if (node) {
 	switch (nd_type(node)) {
@@ -8983,7 +8985,9 @@ new_evstr_gen(struct parser_params *parser, NODE *node)
 	    return node;
 	}
     }
-    return NEW_EVSTR(head);
+    evstr = NEW_EVSTR(head);
+    nd_set_offset(evstr, offset);
+    return evstr;
 }
 
 static NODE *
