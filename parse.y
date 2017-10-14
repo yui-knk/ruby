@@ -3720,6 +3720,8 @@ literal		: numeric
 		    {
 		    /*%%%*/
 			nd_set_offset($$, @1.first_column);
+		    /*%
+		    %*/
 		    }
 		| symbol
 		    {
