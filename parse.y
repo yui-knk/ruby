@@ -401,7 +401,8 @@ static NODE *call_bin_op_gen(struct parser_params*,NODE*,ID,NODE*,int);
 #define call_bin_op(recv,id,arg1,offset) call_bin_op_gen(parser, (recv),(id),(arg1),(offset))
 static NODE *call_uni_op_gen(struct parser_params*,NODE*,ID);
 #define call_uni_op(recv,id) call_uni_op_gen(parser, (recv),(id))
-#define new_qcall(q,r,m,a) NEW_QCALL(q,r,m,a)
+static NODE *new_qcall_gen(struct parser_params* parser, ID atype, NODE *recv, ID mid, NODE *args, int offset);
+#define new_qcall(q,r,m,a,offset) new_qcall_gen(parser,q,r,m,a,offset)
 #define new_command_qcall(q,r,m,a) NEW_QCALL(q,r,m,a)
 static NODE *new_command_gen(struct parser_params*parser, NODE *m, NODE *a) {m->nd_args = a; return m;}
 #define new_command(m,a) new_command_gen(parser, m, a)
@@ -527,7 +528,7 @@ static int id_is_var_gen(struct parser_params *parser, ID id);
 #define logop(id,node1,node2) call_bin_op((node1), (id), (node2), -1)
 #define node_assign(node1, node2) dispatch2(assign, (node1), (node2))
 static VALUE new_qcall_gen(struct parser_params *parser, VALUE q, VALUE r, VALUE m, VALUE a);
-#define new_qcall(q,r,m,a) new_qcall_gen(parser, (r), (q), (m), (a))
+#define new_qcall(q,r,m,a,offset) new_qcall_gen(parser, (r), (q), (m), (a))
 #define new_command_qcall(q,r,m,a) dispatch4(command_call, (r), (q), (m), (a))
 #define new_command_call(q,r,m,a) dispatch4(command_call, (r), (q), (m), (a))
 #define new_command(m,a) dispatch2(command, (m), (a));
@@ -1467,7 +1468,7 @@ command_call	: command
 block_command	: block_call
 		| block_call call_op2 operation2 command_args
 		    {
-			$$ = new_qcall($2, $1, $3, $4);
+			$$ = new_qcall($2, $1, $3, $4, @1.first_column);
 		    }
 		;
 
@@ -3512,7 +3513,7 @@ block_call	: command do_block
 		    }
 		| block_call call_op2 operation2 opt_paren_args
 		    {
-			$$ = new_qcall($2, $1, $3, $4);
+			$$ = new_qcall($2, $1, $3, $4, @1.first_column);
 		    }
 		| block_call call_op2 operation2 opt_paren_args brace_block
 		    {
@@ -3557,7 +3558,7 @@ method_call	: fcall paren_args
 		    }
 		  opt_paren_args
 		    {
-			$$ = new_qcall($2, $1, $3, $5);
+			$$ = new_qcall($2, $1, $3, $5, @1.first_column);
 			nd_set_line($$, $<num>4);
 		    }
 		| primary_value tCOLON2 operation2
@@ -3568,12 +3569,12 @@ method_call	: fcall paren_args
 		    }
 		  paren_args
 		    {
-			$$ = new_qcall(ID2VAL(idCOLON2), $1, $3, $5);
+			$$ = new_qcall(ID2VAL(idCOLON2), $1, $3, $5, @1.first_column);
 			nd_set_line($$, $<num>4);
 		    }
 		| primary_value tCOLON2 operation3
 		    {
-			$$ = new_qcall(ID2VAL(idCOLON2), $1, $3, Qnull);
+			$$ = new_qcall(ID2VAL(idCOLON2), $1, $3, Qnull, @1.first_column);
 		    }
 		| primary_value call_op
 		    {
@@ -3583,7 +3584,7 @@ method_call	: fcall paren_args
 		    }
 		  paren_args
 		    {
-			$$ = new_qcall($2, $1, ID2VAL(idCall), $4);
+			$$ = new_qcall($2, $1, ID2VAL(idCall), $4, @1.first_column);
 			nd_set_line($$, $<num>3);
 		    }
 		| primary_value tCOLON2
@@ -3594,7 +3595,7 @@ method_call	: fcall paren_args
 		    }
 		  paren_args
 		    {
-			$$ = new_qcall(ID2VAL(idCOLON2), $1, ID2VAL(idCall), $4);
+			$$ = new_qcall(ID2VAL(idCOLON2), $1, ID2VAL(idCall), $4, @1.first_column);
 			nd_set_line($$, $<num>3);
 		    }
 		| keyword_super paren_args
@@ -8997,6 +8998,14 @@ call_uni_op_gen(struct parser_params *parser, NODE *recv, ID id)
 {
     value_expr(recv);
     return NEW_OPCALL(recv, id, 0);
+}
+
+static NODE *
+new_qcall_gen(struct parser_params* parser, ID atype, NODE *recv, ID mid, NODE *args, int offset)
+{
+    NODE *qcall = NEW_QCALL(atype, recv, mid, args);
+    nd_set_offset(qcall, offset);
+    return qcall;
 }
 
 static NODE*
