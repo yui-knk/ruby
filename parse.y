@@ -4210,6 +4210,12 @@ numeric 	: simple_numeric
 		;
 
 simple_numeric	: tINTEGER
+		    {
+		    /*%%%*/
+			nd_set_offset($$, @1.first_column);
+		    /*%
+		    %*/
+		    }
 		| tFLOAT
 		| tRATIONAL
 		| tIMAGINARY
