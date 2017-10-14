@@ -4395,8 +4395,7 @@ f_args		: f_arg ',' f_optarg ',' f_rest_arg opt_args_tail
 		    }
 		| /* none */
 		    {
-			/* TODO */
-			$$ = new_args_tail(Qnone, Qnone, Qnone, -1);
+			$$ = new_args_tail(Qnone, Qnone, Qnone, @0.first_column);
 			$$ = new_args(Qnone, Qnone, Qnone, Qnone, $$);
 		    }
 		;
