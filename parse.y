@@ -471,8 +471,8 @@ static NODE *new_lit_gen(struct parser_params *parser, VALUE sym, int offset);
 static NODE *new_list_gen(struct parser_params *parser, NODE *item);
 #define new_list(item) new_list_gen(parser, item)
 
-static NODE *new_xstring_gen(struct parser_params *, NODE *);
-#define new_xstring(node) new_xstring_gen(parser, node)
+static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
+#define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
 #define new_string1(str) (str)
 
 static NODE *new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt, int offset);
@@ -549,7 +549,7 @@ static VALUE new_regexp_gen(struct parser_params *, VALUE, VALUE);
 #define new_regexp(node, opt, offset) new_regexp_gen(parser, node, opt)
 
 static VALUE new_xstring_gen(struct parser_params *, VALUE);
-#define new_xstring(str) new_xstring_gen(parser, str)
+#define new_xstring(str, offset) new_xstring_gen(parser, str)
 #define new_string1(str) dispatch1(string_literal, str)
 
 #define new_brace_body(param, stmt, offset) dispatch2(brace_block, escape_Qundef(param), stmt)
@@ -3814,7 +3814,7 @@ string1		: tSTRING_BEG string_contents tSTRING_END
 
 xstring		: tXSTRING_BEG xstring_contents tSTRING_END
 		    {
-			$$ = new_xstring(heredoc_dedent($2));
+			$$ = new_xstring(heredoc_dedent($2), @1.first_column);
 		    }
 		;
 
@@ -9240,10 +9240,12 @@ new_list_gen(struct parser_params *parser, NODE *item)
 }
 
 static NODE *
-new_xstring_gen(struct parser_params *parser, NODE *node)
+new_xstring_gen(struct parser_params *parser, NODE *node, int offset)
 {
     if (!node) {
-	return NEW_XSTR(STR_NEW0());
+    	NODE *xstr = NEW_XSTR(STR_NEW0());
+    	nd_set_offset(xstr, offset);
+	return xstr;
     }
     switch (nd_type(node)) {
       case NODE_STR:
@@ -9254,6 +9256,7 @@ new_xstring_gen(struct parser_params *parser, NODE *node)
 	break;
       default:
 	node = NEW_NODE(NODE_DXSTR, Qnil, 1, new_list(node));
+	nd_set_offset(node, offset);
 	break;
     }
     return node;
