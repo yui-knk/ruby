@@ -1598,6 +1598,7 @@ mlhs_inner	: mlhs_basic
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN(NEW_LIST($2), 0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(mlhs_paren, $2);
 		    %*/
@@ -1608,6 +1609,7 @@ mlhs_basic	: mlhs_head
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN($1, 0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = $1;
 		    %*/
@@ -1616,6 +1618,7 @@ mlhs_basic	: mlhs_head
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN(list_append($1,$2), 0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add($1, $2);
 		    %*/
@@ -1624,6 +1627,7 @@ mlhs_basic	: mlhs_head
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN($1, $3);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star($1, $3);
 		    %*/
@@ -1632,6 +1636,7 @@ mlhs_basic	: mlhs_head
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN($1, NEW_POSTARG($3,$5));
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$1 = mlhs_add_star($1, $3);
 			$$ = mlhs_add_post($1, $5);
@@ -1641,6 +1646,7 @@ mlhs_basic	: mlhs_head
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN($1, -1);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star($1, Qnil);
 		    %*/
@@ -1649,6 +1655,7 @@ mlhs_basic	: mlhs_head
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN($1, NEW_POSTARG(-1, $4));
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$1 = mlhs_add_star($1, Qnil);
 			$$ = mlhs_add_post($1, $4);
@@ -1658,6 +1665,7 @@ mlhs_basic	: mlhs_head
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN(0, $2);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), $2);
 		    %*/
@@ -1666,6 +1674,7 @@ mlhs_basic	: mlhs_head
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN(0, NEW_POSTARG($2,$4));
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$2 = mlhs_add_star(mlhs_new(), $2);
 			$$ = mlhs_add_post($2, $4);
@@ -1675,6 +1684,7 @@ mlhs_basic	: mlhs_head
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN(0, -1);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
 		    %*/
@@ -1683,6 +1693,7 @@ mlhs_basic	: mlhs_head
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN(0, NEW_POSTARG(-1, $3));
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
 			$$ = mlhs_add_post($$, $3);
@@ -2783,9 +2794,13 @@ primary		: literal
 			    args = new_args(m, 0, 0, 0, new_args_tail(0, 0, 0, @1.first_column));
 			    break;
 			  default:
-			    m->nd_next = node_assign(NEW_MASGN(NEW_LIST($2), 0), NEW_DVAR(id));
-			    args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1.first_column));
-			    break;
+			    {
+				NODE *masgn = NEW_MASGN(NEW_LIST($2), 0);
+				nd_set_offset(masgn, @1.first_column);
+				m->nd_next = node_assign(masgn, NEW_DVAR(id));
+				args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1.first_column));
+				break;
+			    }
 			}
 			scope = NEW_NODE(NODE_SCOPE, tbl, $8, args);
 			nd_set_offset(scope, @1.first_column);
@@ -3138,6 +3153,7 @@ f_margs		: f_marg_list
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN($1, 0);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = $1;
 		    %*/
@@ -3147,6 +3163,7 @@ f_margs		: f_marg_list
 			$$ = assignable($4, 0, @1.first_column);
 		    /*%%%*/
 			$$ = NEW_MASGN($1, $$);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star($1, $$);
 		    %*/
@@ -3156,6 +3173,7 @@ f_margs		: f_marg_list
 			$$ = assignable($4, 0, @1.first_column);
 		    /*%%%*/
 			$$ = NEW_MASGN($1, NEW_POSTARG($$, $6));
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star($1, $$);
 			$$ = mlhs_add_post($$, $6);
@@ -3165,6 +3183,7 @@ f_margs		: f_marg_list
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN($1, -1);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star($1, Qnil);
 		    %*/
@@ -3173,6 +3192,7 @@ f_margs		: f_marg_list
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN($1, NEW_POSTARG(-1, $5));
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star($1, Qnil);
 			$$ = mlhs_add_post($$, $5);
@@ -3183,6 +3203,7 @@ f_margs		: f_marg_list
 			$$ = assignable($2, 0, @1.first_column);
 		    /*%%%*/
 			$$ = NEW_MASGN(0, $$);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), $$);
 		    %*/
@@ -3192,6 +3213,7 @@ f_margs		: f_marg_list
 			$$ = assignable($2, 0, @1.first_column);
 		    /*%%%*/
 			$$ = NEW_MASGN(0, NEW_POSTARG($$, $4));
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), $$);
 			$$ = mlhs_add_post($$, $4);
@@ -3201,6 +3223,7 @@ f_margs		: f_marg_list
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN(0, -1);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
 		    %*/
@@ -3209,6 +3232,7 @@ f_margs		: f_marg_list
 		    {
 		    /*%%%*/
 			$$ = NEW_MASGN(0, NEW_POSTARG(-1, $3));
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
 			$$ = mlhs_add_post($$, $3);
