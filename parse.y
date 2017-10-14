@@ -432,8 +432,8 @@ static NODE *assignable_gen(struct parser_params*,ID,NODE*,int);
 
 static NODE *aryset_gen(struct parser_params*,NODE*,NODE*,int);
 #define aryset(node1,node2,offset) aryset_gen(parser, (node1), (node2), (offset))
-static NODE *attrset_gen(struct parser_params*,NODE*,ID,ID);
-#define attrset(node,q,id) attrset_gen(parser, (node), (q), (id))
+static NODE *attrset_gen(struct parser_params*,NODE*,ID,ID,int);
+#define attrset(node,q,id,offset) attrset_gen(parser, (node), (q), (id), (offset))
 
 static void rb_backref_error_gen(struct parser_params*,NODE*);
 #define rb_backref_error(n) rb_backref_error_gen(parser,(n))
@@ -1769,7 +1769,7 @@ mlhs_node	: user_variable
 		| primary_value call_op tIDENTIFIER
 		    {
 		    /*%%%*/
-			$$ = attrset($1, $2, $3);
+			$$ = attrset($1, $2, $3, @1.first_column);
 		    /*%
 			$$ = dispatch3(field, $1, $2, $3);
 		    %*/
@@ -1777,7 +1777,7 @@ mlhs_node	: user_variable
 		| primary_value tCOLON2 tIDENTIFIER
 		    {
 		    /*%%%*/
-			$$ = attrset($1, idCOLON2, $3);
+			$$ = attrset($1, idCOLON2, $3, @1.first_column);
 		    /*%
 			$$ = dispatch2(const_path_field, $1, $3);
 		    %*/
@@ -1785,7 +1785,7 @@ mlhs_node	: user_variable
 		| primary_value call_op tCONSTANT
 		    {
 		    /*%%%*/
-			$$ = attrset($1, $2, $3);
+			$$ = attrset($1, $2, $3, @1.first_column);
 		    /*%
 			$$ = dispatch3(field, $1, $2, $3);
 		    %*/
@@ -1832,7 +1832,7 @@ lhs		: user_variable
 		| primary_value call_op tIDENTIFIER
 		    {
 		    /*%%%*/
-			$$ = attrset($1, $2, $3);
+			$$ = attrset($1, $2, $3, @1.first_column);
 		    /*%
 			$$ = dispatch3(field, $1, $2, $3);
 		    %*/
@@ -1840,7 +1840,7 @@ lhs		: user_variable
 		| primary_value tCOLON2 tIDENTIFIER
 		    {
 		    /*%%%*/
-			$$ = attrset($1, idCOLON2, $3);
+			$$ = attrset($1, idCOLON2, $3, @1.first_column);
 		    /*%
 			$$ = dispatch3(field, $1, ID2VAL(idCOLON2), $3);
 		    %*/
@@ -1848,7 +1848,7 @@ lhs		: user_variable
 		| primary_value call_op tCONSTANT
 		    {
 		    /*%%%*/
-			$$ = attrset($1, $2, $3);
+			$$ = attrset($1, $2, $3, @1.first_column);
 		    /*%
 			$$ = dispatch3(field, $1, $2, $3);
 		    %*/
@@ -9580,10 +9580,13 @@ block_dup_check_gen(struct parser_params *parser, NODE *node1, NODE *node2)
 }
 
 static NODE *
-attrset_gen(struct parser_params *parser, NODE *recv, ID atype, ID id)
+attrset_gen(struct parser_params *parser, NODE *recv, ID atype, ID id, int offset)
 {
+    NODE *attrasgn;
     if (!CALL_Q_P(atype)) id = rb_id_attrset(id);
-    return NEW_ATTRASGN(recv, id, 0);
+    attrasgn = NEW_ATTRASGN(recv, id, 0);
+    nd_set_offset(attrasgn, offset);
+    return attrasgn;
 }
 
 static void
