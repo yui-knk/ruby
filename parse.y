@@ -4231,6 +4231,12 @@ simple_numeric	: tINTEGER
 		    %*/
 		    }
 		| tIMAGINARY
+		    {
+		    /*%%%*/
+			nd_set_offset($$, @1.first_column);
+		    /*%
+		    %*/
+		    }
 		;
 
 user_variable	: tIDENTIFIER
