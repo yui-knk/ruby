@@ -422,8 +422,8 @@ static NODE *ret_args_gen(struct parser_params*,NODE*);
 static NODE *arg_blk_pass(NODE*,NODE*);
 static NODE *new_yield_gen(struct parser_params*,NODE*,int);
 #define new_yield(node,offset) new_yield_gen(parser, (node), (offset))
-static NODE *dsym_node_gen(struct parser_params*,NODE*);
-#define dsym_node(node) dsym_node_gen(parser, (node))
+static NODE *dsym_node_gen(struct parser_params*,NODE*,int);
+#define dsym_node(node,offset) dsym_node_gen(parser, (node), (offset))
 
 static NODE *gettable_gen(struct parser_params*,ID,int);
 #define gettable(id,offset) gettable_gen(parser,(id),(offset))
@@ -4190,7 +4190,7 @@ dsym		: tSYMBEG xstring_contents tSTRING_END
 		    {
 			SET_LEX_STATE(EXPR_END|EXPR_ENDARG);
 		    /*%%%*/
-			$$ = dsym_node($2);
+			$$ = dsym_node($2, @1.first_column);
 		    /*%
 			$$ = dispatch1(dyna_symbol, $2);
 		    %*/
@@ -4862,7 +4862,7 @@ assoc		: arg_value tASSOC arg_value
 		| tSTRING_BEG string_contents tLABEL_END arg_value
 		    {
 		    /*%%%*/
-			$$ = list_append(NEW_LIST(dsym_node($2)), $4);
+			$$ = list_append(NEW_LIST(dsym_node($2, @1.first_column)), $4);
 		    /*%
 			$$ = dispatch2(assoc_new, dispatch1(dyna_symbol, $2), $4);
 		    %*/
@@ -10326,7 +10326,7 @@ new_args_tail_gen(struct parser_params *parser, NODE *k, ID kr, ID b, int offset
 }
 
 static NODE*
-dsym_node_gen(struct parser_params *parser, NODE *node)
+dsym_node_gen(struct parser_params *parser, NODE *node, int offset)
 {
     VALUE lit;
 
@@ -10345,6 +10345,7 @@ dsym_node_gen(struct parser_params *parser, NODE *node)
 	break;
       default:
 	node = NEW_NODE(NODE_DSYM, Qnil, 1, NEW_LIST(node));
+	nd_set_offset(node, offset);
 	break;
     }
     return node;
