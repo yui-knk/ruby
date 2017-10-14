@@ -381,8 +381,8 @@ static void block_dup_check_gen(struct parser_params*,NODE*,NODE*);
 
 static NODE *block_append_gen(struct parser_params*,NODE*,NODE*,int);
 #define block_append(h,t,offset) block_append_gen(parser,(h),(t),(offset))
-static NODE *list_append_gen(struct parser_params*,NODE*,NODE*);
-#define list_append(l,i) list_append_gen(parser,(l),(i))
+static NODE *list_append_gen(struct parser_params*,NODE*,NODE*,int);
+#define list_append(l,i,offset) list_append_gen(parser,(l),(i),(offset))
 static NODE *list_concat(NODE*,NODE*);
 static NODE *arg_append_gen(struct parser_params*,NODE*,NODE*,int);
 #define arg_append(h,t,offset) arg_append_gen(parser,(h),(t),(offset))
@@ -1625,7 +1625,7 @@ mlhs_basic	: mlhs_head
 		| mlhs_head mlhs_item
 		    {
 		    /*%%%*/
-			$$ = NEW_MASGN(list_append($1,$2), 0);
+			$$ = NEW_MASGN(list_append($1,$2,@1.first_column), 0);
 			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add($1, $2);
@@ -1731,7 +1731,7 @@ mlhs_head	: mlhs_item ','
 		| mlhs_head mlhs_item ','
 		    {
 		    /*%%%*/
-			$$ = list_append($1, $2);
+			$$ = list_append($1, $2, @1.first_column);
 		    /*%
 			$$ = mlhs_add($1, $2);
 		    %*/
@@ -1749,7 +1749,7 @@ mlhs_post	: mlhs_item
 		| mlhs_post ',' mlhs_item
 		    {
 		    /*%%%*/
-			$$ = list_append($1, $3);
+			$$ = list_append($1, $3, @1.first_column);
 		    /*%
 			$$ = mlhs_add($1, $3);
 		    %*/
@@ -2425,7 +2425,7 @@ args		: arg_value
 		    /*%%%*/
 			NODE *n1;
 			if ((n1 = splat_array($1)) != 0) {
-			    $$ = list_append(n1, $3);
+			    $$ = list_append(n1, $3, @1.first_column);
 			}
 			else {
 			    $$ = arg_append($1, $3, @1.first_column);
@@ -2459,7 +2459,7 @@ mrhs		: args ',' arg_value
 		    /*%%%*/
 			NODE *n1;
 			if ((n1 = splat_array($1)) != 0) {
-			    $$ = list_append(n1, $3);
+			    $$ = list_append(n1, $3, @1.first_column);
 			}
 			else {
 			    $$ = arg_append($1, $3, @1.first_column);
@@ -3154,7 +3154,7 @@ f_marg_list	: f_marg
 		| f_marg_list ',' f_marg
 		    {
 		    /*%%%*/
-			$$ = list_append($1, $3);
+			$$ = list_append($1, $3, @1.first_column);
 		    /*%
 			$$ = mlhs_add($1, $3);
 		    %*/
@@ -3854,7 +3854,7 @@ word_list	: /* none */
 		| word_list word ' '
 		    {
 		    /*%%%*/
-			$$ = list_append($1, evstr2dstr($2, @1.first_column));
+			$$ = list_append($1, evstr2dstr($2, @1.first_column), @1.first_column);
 		    /*%
 			$$ = dispatch2(words_add, $1, $2);
 		    %*/
@@ -3917,7 +3917,7 @@ symbol_list	: /* none */
 			    nd_set_type($2, NODE_LIT);
 			    $2->nd_lit = rb_str_intern($2->nd_lit);
 			}
-			$$ = list_append($1, $2);
+			$$ = list_append($1, $2, @1.first_column);
 		    /*%
 			$$ = dispatch2(symbols_add, $1, $2);
 		    %*/
@@ -3973,7 +3973,7 @@ qword_list	: /* none */
 		| qword_list tSTRING_CONTENT ' '
 		    {
 		    /*%%%*/
-			$$ = list_append($1, $2);
+			$$ = list_append($1, $2, @1.first_column);
 		    /*%
 			$$ = dispatch2(qwords_add, $1, $2);
 		    %*/
@@ -3995,7 +3995,7 @@ qsym_list	: /* none */
 			lit = $2->nd_lit;
 			$2->nd_lit = ID2SYM(rb_intern_str(lit));
 			nd_set_type($2, NODE_LIT);
-			$$ = list_append($1, $2);
+			$$ = list_append($1, $2, @1.first_column);
 		    /*%
 			$$ = dispatch2(qsymbols_add, $1, $2);
 		    %*/
@@ -4064,10 +4064,10 @@ regexp_contents: /* none */
 			      case NODE_DSTR:
 				break;
 			      default:
-				head = list_append(NEW_DSTR(Qnil), head);
+				head = list_append(NEW_DSTR(Qnil), head, @1.first_column);
 				break;
 			    }
-			    $$ = list_append(head, tail);
+			    $$ = list_append(head, tail, @1.first_column);
 			}
 		    /*%
 			VALUE s1 = 1, s2 = 0, n1 = $1, n2 = $2;
@@ -4848,7 +4848,7 @@ assoc		: arg_value tASSOC arg_value
 			    nd_set_type($1, NODE_LIT);
 			    $1->nd_lit = rb_fstring($1->nd_lit);
 			}
-			$$ = list_append(new_list($1), $3);
+			$$ = list_append(new_list($1), $3, @1.first_column);
 		    /*%
 			$$ = dispatch2(assoc_new, $1, $3);
 		    %*/
@@ -4856,7 +4856,7 @@ assoc		: arg_value tASSOC arg_value
 		| tLABEL arg_value
 		    {
 		    /*%%%*/
-			$$ = list_append(new_list(new_lit(ID2SYM($1), @1.first_column)), $2);
+			$$ = list_append(new_list(new_lit(ID2SYM($1), @1.first_column)), $2, @1.first_column);
 		    /*%
 			$$ = dispatch2(assoc_new, $1, $2);
 		    %*/
@@ -4864,7 +4864,7 @@ assoc		: arg_value tASSOC arg_value
 		| tSTRING_BEG string_contents tLABEL_END arg_value
 		    {
 		    /*%%%*/
-			$$ = list_append(new_list(dsym_node($2, @1.first_column)), $4);
+			$$ = list_append(new_list(dsym_node($2, @1.first_column)), $4, @1.first_column);
 		    /*%
 			$$ = dispatch2(assoc_new, dispatch1(dyna_symbol, $2), $4);
 		    %*/
@@ -4876,7 +4876,7 @@ assoc		: arg_value tASSOC arg_value
 			    !($2->nd_head && $2->nd_head->nd_alen))
 			    $$ = 0;
 			else
-			    $$ = list_append(new_list(0), $2);
+			    $$ = list_append(new_list(0), $2, @1.first_column);
 		    /*%
 			$$ = dispatch1(assoc_splat, $2);
 		    %*/
@@ -8811,7 +8811,7 @@ block_append_gen(struct parser_params *parser, NODE *head, NODE *tail, int offse
 
 /* append item to the list */
 static NODE*
-list_append_gen(struct parser_params *parser, NODE *list, NODE *item)
+list_append_gen(struct parser_params *parser, NODE *list, NODE *item, int offset)
 {
     NODE *last;
 
@@ -8885,7 +8885,7 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int off
     if (htype == NODE_EVSTR) {
 	NODE *node = NEW_DSTR(STR_NEW0());
 	nd_set_offset(node, offset);
-	head = list_append(node, head);
+	head = list_append(node, head, offset);
 	htype = NODE_DSTR;
     }
     if (heredoc_indent > 0) {
@@ -8893,7 +8893,7 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int off
 	  case NODE_STR:
 	    nd_set_type(head, NODE_DSTR);
 	  case NODE_DSTR:
-	    return list_append(head, tail);
+	    return list_append(head, tail, offset);
 	  default:
 	    break;
 	}
@@ -8918,7 +8918,7 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int off
 	    rb_gc_force_recycle((VALUE)tail);
 	}
 	else {
-	    list_append(head, tail);
+	    list_append(head, tail, offset);
 	}
 	break;
 
@@ -8957,7 +8957,7 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int off
 	    nd_set_type(head, NODE_DSTR);
 	    head->nd_alen = 1;
 	}
-	list_append(head, tail);
+	list_append(head, tail, offset);
 	break;
     }
     return head;
@@ -8967,7 +8967,7 @@ static NODE *
 evstr2dstr_gen(struct parser_params *parser, NODE *node, int offset)
 {
     if (nd_type(node) == NODE_EVSTR) {
-	node = list_append(NEW_DSTR(STR_NEW0()), node);
+	node = list_append(NEW_DSTR(STR_NEW0()), node, offset);
     }
     return node;
 }
@@ -9652,12 +9652,12 @@ arg_append_gen(struct parser_params *parser, NODE *node1, NODE *node2, int offse
     if (!node1) return new_list(node2);
     switch (nd_type(node1))  {
       case NODE_ARRAY:
-	return list_append(node1, node2);
+	return list_append(node1, node2, offset);
       case NODE_BLOCK_PASS:
 	node1->nd_head = arg_append(node1->nd_head, node2, offset);
 	return node1;
       case NODE_ARGSPUSH:
-	node1->nd_body = list_append(new_list(node1->nd_body), node2);
+	node1->nd_body = list_append(new_list(node1->nd_body), node2, offset);
 	nd_set_type(node1, NODE_ARGSCAT);
 	return node1;
     }
