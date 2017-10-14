@@ -3792,6 +3792,12 @@ strings		: string
 		;
 
 string		: tCHAR
+		    {
+		    /*%%%*/
+			nd_set_offset($$, @1.first_column);
+		    /*%
+		    %*/
+		    }
 		| string1
 		| string string1
 		    {
