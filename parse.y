@@ -460,8 +460,8 @@ static NODE *kwd_append(NODE*, NODE*);
 static NODE *new_hash_gen(struct parser_params *parser, NODE *hash, int offset);
 #define new_hash(hash, offset) new_hash_gen(parser, (hash), offset)
 
-static NODE *new_defined_gen(struct parser_params *parser, NODE *expr);
-#define new_defined(expr) new_defined_gen(parser, expr)
+static NODE *new_defined_gen(struct parser_params *parser, NODE *expr, int offset);
+#define new_defined(expr, offset) new_defined_gen(parser, expr, offset)
 
 static NODE *new_regexp_gen(struct parser_params *, NODE *, int, int);
 #define new_regexp(node, opt, offset) new_regexp_gen(parser, node, opt, offset)
@@ -2204,7 +2204,7 @@ arg		: lhs '=' arg_rhs
 		    {
 			in_defined = 0;
 		    /*%%%*/
-			$$ = new_defined($4);
+			$$ = new_defined($4, @1.first_column);
 		    /*%
 			$$ = dispatch1(defined, $4);
 		    %*/
@@ -2659,8 +2659,7 @@ primary		: literal
 		    {
 			in_defined = 0;
 		    /*%%%*/
-			$$ = new_defined($5);
-			nd_set_offset($$, @1.first_column);
+			$$ = new_defined($5, @1.first_column);
 		    /*%
 			$$ = dispatch1(defined, $5);
 		    %*/
@@ -9213,9 +9212,11 @@ kwd_append(NODE *kwlist, NODE *kw)
 }
 
 static NODE *
-new_defined_gen(struct parser_params *parser, NODE *expr)
+new_defined_gen(struct parser_params *parser, NODE *expr, int offset)
 {
-    return NEW_DEFINED(remove_begin_all(expr));
+    NODE *defined = NEW_DEFINED(remove_begin_all(expr));
+    nd_set_offset(defined, offset);
+    return defined;
 }
 
 static NODE *
