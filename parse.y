@@ -5458,9 +5458,12 @@ yycompile0(VALUE arg)
     }
     else {
 	VALUE opt = parser->compile_option;
+	NODE *prelude;
 	if (!opt) opt = rb_obj_hide(rb_ident_hash_new());
 	rb_hash_aset(opt, rb_sym_intern_ascii_cstr("coverage_enabled"), cov);
-	tree->nd_body = NEW_PRELUDE(ruby_eval_tree_begin, tree->nd_body, opt);
+	prelude = NEW_PRELUDE(ruby_eval_tree_begin, tree->nd_body, opt);
+	nd_set_offset(prelude, nd_offset(tree->nd_body));
+	tree->nd_body = prelude;
     }
     return (VALUE)tree;
 }
