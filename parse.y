@@ -403,7 +403,7 @@ static NODE *call_uni_op_gen(struct parser_params*,NODE*,ID);
 #define call_uni_op(recv,id) call_uni_op_gen(parser, (recv),(id))
 static NODE *new_qcall_gen(struct parser_params* parser, ID atype, NODE *recv, ID mid, NODE *args, int offset);
 #define new_qcall(q,r,m,a,offset) new_qcall_gen(parser,q,r,m,a,offset)
-#define new_command_qcall(q,r,m,a) NEW_QCALL(q,r,m,a)
+#define new_command_qcall(q,r,m,a,offset) new_qcall_gen(parser,q,r,m,a,offset)
 static NODE *new_command_gen(struct parser_params*parser, NODE *m, NODE *a) {m->nd_args = a; return m;}
 #define new_command(m,a) new_command_gen(parser, m, a)
 static NODE *method_add_block_gen(struct parser_params*parser, NODE *m, NODE *b) {b->nd_iter = m; return b;}
@@ -529,7 +529,7 @@ static int id_is_var_gen(struct parser_params *parser, ID id);
 #define node_assign(node1, node2) dispatch2(assign, (node1), (node2))
 static VALUE new_qcall_gen(struct parser_params *parser, VALUE q, VALUE r, VALUE m, VALUE a);
 #define new_qcall(q,r,m,a,offset) new_qcall_gen(parser, (r), (q), (m), (a))
-#define new_command_qcall(q,r,m,a) dispatch4(command_call, (r), (q), (m), (a))
+#define new_command_qcall(q,r,m,a,offset) dispatch4(command_call, (r), (q), (m), (a))
 #define new_command_call(q,r,m,a) dispatch4(command_call, (r), (q), (m), (a))
 #define new_command(m,a) dispatch2(command, (m), (a));
 
@@ -1517,25 +1517,25 @@ command		: fcall command_args       %prec tLOWEST
 		    }
 		| primary_value call_op operation2 command_args	%prec tLOWEST
 		    {
-			$$ = new_command_qcall($2, $1, $3, $4);
+			$$ = new_command_qcall($2, $1, $3, $4, @1.first_column);
 			fixpos($$, $1);
 		    }
 		| primary_value call_op operation2 command_args cmd_brace_block
 		    {
 			block_dup_check($4,$5);
-			$$ = new_command_qcall($2, $1, $3, $4);
+			$$ = new_command_qcall($2, $1, $3, $4, @1.first_column);
 			$$ = method_add_block($$, $5);
 			fixpos($$, $1);
 		   }
 		| primary_value tCOLON2 operation2 command_args	%prec tLOWEST
 		    {
-			$$ = new_command_qcall(ID2VAL(idCOLON2), $1, $3, $4);
+			$$ = new_command_qcall(ID2VAL(idCOLON2), $1, $3, $4, @1.first_column);
 			fixpos($$, $1);
 		    }
 		| primary_value tCOLON2 operation2 command_args cmd_brace_block
 		    {
 			block_dup_check($4,$5);
-			$$ = new_command_qcall(ID2VAL(idCOLON2), $1, $3, $4);
+			$$ = new_command_qcall(ID2VAL(idCOLON2), $1, $3, $4, @1.first_column);
 			$$ = method_add_block($$, $5);
 			fixpos($$, $1);
 		   }
@@ -3519,7 +3519,7 @@ block_call	: command do_block
 		    {
 		    /*%%%*/
 			block_dup_check($4, $5);
-			$5->nd_iter = new_command_qcall($2, $1, $3, $4);
+			$5->nd_iter = new_command_qcall($2, $1, $3, $4, @1.first_column);
 			$$ = $5;
 			fixpos($$, $1);
 		    /*%
@@ -3531,7 +3531,7 @@ block_call	: command do_block
 		    {
 		    /*%%%*/
 			block_dup_check($4, $5);
-			$5->nd_iter = new_command_qcall($2, $1, $3, $4);
+			$5->nd_iter = new_command_qcall($2, $1, $3, $4, @1.first_column);
 			$$ = $5;
 			fixpos($$, $1);
 		    /*%
