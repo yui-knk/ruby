@@ -2083,6 +2083,7 @@ arg		: lhs '=' arg_rhs
 			value_expr($1);
 			value_expr($3);
 			$$ = NEW_DOT3($1, $3);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(dot3, $1, $3);
 		    %*/
