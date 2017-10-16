@@ -2037,6 +2037,7 @@ arg		: lhs '=' arg_rhs
 			if (!$3) $3 = NEW_ZARRAY();
 			if (nd_type($3) == NODE_BLOCK_PASS) {
 			    args = NEW_ARGSCAT($3, $6);
+			    nd_set_offset(args, @1.first_column);
 			}
 			else {
 			    args = arg_concat($3, $6, @1.first_column);
@@ -9704,6 +9705,8 @@ rb_backref_error_gen(struct parser_params *parser, NODE *node)
 static NODE *
 arg_concat_gen(struct parser_params *parser, NODE *node1, NODE *node2, int offset)
 {
+    NODE *argscat;
+
     if (!node2) return node1;
     switch (nd_type(node1)) {
       case NODE_BLOCK_PASS:
@@ -9723,7 +9726,9 @@ arg_concat_gen(struct parser_params *parser, NODE *node1, NODE *node2, int offse
 	node1->nd_body = list_concat(node1->nd_body, node2);
 	return node1;
     }
-    return NEW_ARGSCAT(node1, node2);
+    argscat = NEW_ARGSCAT(node1, node2);
+    nd_set_offset(argscat, offset);
+    return argscat;
 }
 
 static NODE *
