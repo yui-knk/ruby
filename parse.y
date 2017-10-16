@@ -4308,6 +4308,12 @@ var_lhs		: user_variable
 
 backref		: tNTH_REF
 		| tBACK_REF
+		    {
+		    /*%%%*/
+			nd_set_offset($$, @1.first_column);
+		    /*%
+		    %*/
+		    }
 		;
 
 superclass	: '<'
