@@ -2394,6 +2394,7 @@ block_arg	: tAMPER arg_value
 		    {
 		    /*%%%*/
 			$$ = NEW_BLOCK_PASS($2);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = $2;
 		    %*/
