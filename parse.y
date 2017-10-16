@@ -10490,8 +10490,11 @@ remove_duplicate_keys(struct parser_params *parser, NODE *hash, int offset)
 static NODE *
 new_hash_gen(struct parser_params *parser, NODE *hash, int offset)
 {
+    NODE *nd_hash;
     if (hash) hash = remove_duplicate_keys(parser, hash, offset);
-    return NEW_HASH(hash);
+    nd_hash = NEW_HASH(hash);
+    nd_set_offset(nd_hash, offset);
+    return nd_hash;
 }
 #endif /* !RIPPER */
 
