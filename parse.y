@@ -490,6 +490,9 @@ static NODE *new_call_gen(struct parser_params *parser, NODE *recv, ID mid, NODE
 static NODE *new_fcall_gen(struct parser_params *parser, ID mid, NODE *args, int offset);
 #define new_fcall(mid,args,offset) new_fcall_gen(parser, mid, args, offset)
 
+static NODE *new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NODE *body);
+#define new_for(var,iter,body) new_for_gen(parser, var, iter, body)
+
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
 #define new_string1(str) (str)
@@ -2809,7 +2812,7 @@ primary		: literal
 
 			switch (nd_type($2)) {
 			  case NODE_MASGN:
-			    m->nd_next = node_assign($2, NEW_FOR(new_dvar(id, @1.first_column), 0, 0), @1.first_column);
+			    m->nd_next = node_assign($2, new_for(new_dvar(id, @1.first_column), 0, 0), @1.first_column);
 			    args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1.first_column));
 			    break;
 			  case NODE_LASGN:
@@ -2832,7 +2835,7 @@ primary		: literal
 			scope = NEW_NODE(NODE_SCOPE, tbl, $8, args);
 			nd_set_offset(scope, @1.first_column);
 			tbl[0] = 1; tbl[1] = id;
-			$$ = NEW_FOR(0, $5, scope);
+			$$ = new_for(0, $5, scope);
 			fixpos($$, $2);
 		    /*%
 			$$ = dispatch3(for, $2, $5, $8);
@@ -9364,6 +9367,11 @@ new_fcall_gen(struct parser_params *parser, ID mid, NODE *args, int offset)
     return fcall;
 }
 
+static NODE *
+new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NODE *body)
+{
+    return NEW_FOR(var, iter, body);
+}
 
 static NODE *
 new_xstring_gen(struct parser_params *parser, NODE *node, int offset)
