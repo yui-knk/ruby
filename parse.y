@@ -493,6 +493,9 @@ static NODE *new_fcall_gen(struct parser_params *parser, ID mid, NODE *args, int
 static NODE *new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NODE *body, int offset);
 #define new_for(var,iter,body,offset) new_for_gen(parser, var, iter, body, offset)
 
+static NODE *new_gvar_gen(struct parser_params *parser, ID id);
+#define new_gvar(id) new_gvar_gen(parser, id)
+
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
 #define new_string1(str) (str)
@@ -4175,7 +4178,7 @@ string_content	: tSTRING_CONTENT
 string_dvar	: tGVAR
 		    {
 		    /*%%%*/
-			$$ = NEW_GVAR($1);
+			$$ = new_gvar($1);
 		    /*%
 			$$ = dispatch1(var_ref, $1);
 		    %*/
@@ -9209,7 +9212,7 @@ gettable_gen(struct parser_params *parser, ID id, int offset)
 	nd_set_offset(node, offset);
 	return node;
       case ID_GLOBAL:
-	node = NEW_GVAR(id);
+	node = new_gvar(id);
 	nd_set_offset(node, offset);
 	return node;
       case ID_INSTANCE:
@@ -9381,6 +9384,12 @@ new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NODE *body, int
     NODE *nd_for = NEW_FOR(var, iter, body);
     nd_set_offset(nd_for, offset);
     return nd_for;
+}
+
+static NODE *
+new_gvar_gen(struct parser_params *parser, ID id)
+{
+    return NEW_GVAR(id);
 }
 
 static NODE *
@@ -10168,7 +10177,7 @@ range_op(struct parser_params *parser, NODE *node, int offset)
     value_expr(node);
     if (type == NODE_LIT && FIXNUM_P(node->nd_lit)) {
 	warn_unless_e_option(parser, node, "integer literal in conditional range");
-	return new_call(node, tEQ, new_list(NEW_GVAR(rb_intern("$.")), offset), offset);
+	return new_call(node, tEQ, new_list(new_gvar(rb_intern("$.")), offset), offset);
     }
     return cond0(parser, node, FALSE, offset);
 }
@@ -10214,7 +10223,7 @@ cond0(struct parser_params *parser, NODE *node, int method_op, int offset)
 	    if (!method_op)
 		warning_unless_e_option(parser, node, "regex literal in condition");
 
-	    match = NEW_MATCH2(node, NEW_GVAR(idLASTLINE));
+	    match = NEW_MATCH2(node, new_gvar(idLASTLINE));
 	    nd_set_offset(match, offset);
 	    return match;
 	}
@@ -11117,7 +11126,7 @@ rb_parser_append_print(VALUE vparser, NODE *node)
 
     node = block_append(node,
 			new_fcall(rb_intern("print"),
-				  NEW_ARRAY(NEW_GVAR(idLASTLINE)), 0),
+				  NEW_ARRAY(new_gvar(idLASTLINE)), 0),
 			0);
     if (prelude) {
 	prelude->nd_body = node;
@@ -11149,12 +11158,12 @@ rb_parser_while_loop(VALUE vparser, NODE *node, int chomp, int split)
     }
     if (split) {
 	node = block_append(NEW_GASGN(rb_intern("$F"),
-				      new_call(NEW_GVAR(idLASTLINE),
+				      new_call(new_gvar(idLASTLINE),
 					       rb_intern("split"), 0, 0)),
 			    node, 0);
     }
     if (chomp) {
-	node = block_append(new_call(NEW_GVAR(idLASTLINE),
+	node = block_append(new_call(new_gvar(idLASTLINE),
 				     rb_intern("chomp!"), 0, 0), node, 0);
     }
 
