@@ -503,6 +503,9 @@ static NODE *new_lvar_gen(struct parser_params *parser, ID id, int offset);
 static NODE *new_dstr_gen(struct parser_params *parser, VALUE str, int offset);
 #define new_dstr(s, offset) new_dstr_gen(parser, s, offset)
 
+static NODE *new_rescue_gen(struct parser_params *parser, NODE *b, NODE *res, NODE *e);
+#define new_rescue(b,res,e) new_rescue_gen(parser,b,res,e)
+
 static NODE *new_undef_gen(struct parser_params *parser, NODE *i, int offset);
 #define new_undef(i, offset) new_undef_gen(parser, i, offset)
 
@@ -1142,7 +1145,7 @@ bodystmt	: compstmt
 		    /*%%%*/
 			$$ = $1;
 			if ($2) {
-			    $$ = NEW_RESCUE($1, $2, $3);
+			    $$ = new_rescue($1, $2, $3);
 			    nd_set_offset($$, @1.first_column);
 			}
 			else if ($3) {
@@ -1340,7 +1343,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			NODE *resq = new_resbody(0, remove_begin($3), 0, @1.first_column);
-			$$ = NEW_RESCUE(remove_begin($1), resq, 0);
+			$$ = new_rescue(remove_begin($1), resq, 0);
 			nd_set_offset(resq, @1.first_column);
 			nd_set_offset($$, @1.first_column);
 		    /*%
@@ -1463,7 +1466,7 @@ command_rhs	: command_call   %prec tOP_ASGN
 		    {
 		    /*%%%*/
 			value_expr($1);
-			$$ = NEW_RESCUE($1, new_resbody(0, remove_begin($3), 0, @1.first_column), 0);
+			$$ = new_rescue($1, new_resbody(0, remove_begin($3), 0, @1.first_column), 0);
 		    /*%
 			$$ = dispatch2(rescue_mod, $1, $3);
 		    %*/
@@ -2315,7 +2318,7 @@ arg_rhs 	: arg   %prec tOP_ASGN
 		    {
 		    /*%%%*/
 			value_expr($1);
-			$$ = NEW_RESCUE($1, new_resbody(0, remove_begin($3), 0, @1.first_column), 0);
+			$$ = new_rescue($1, new_resbody(0, remove_begin($3), 0, @1.first_column), 0);
 		    /*%
 			$$ = dispatch2(rescue_mod, $1, $3);
 		    %*/
@@ -9415,6 +9418,12 @@ new_dstr_gen(struct parser_params *parser, VALUE str, int offset)
     NODE *dstr = NEW_DSTR(str);
     nd_set_offset(dstr, offset);
     return dstr;
+}
+
+static NODE *
+new_rescue_gen(struct parser_params *parser, NODE *b, NODE *res, NODE *e)
+{
+    return NEW_RESCUE(b, res, e);
 }
 
 static NODE *
