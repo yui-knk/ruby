@@ -1621,6 +1621,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = NEW_NEXT(ret_args($2));
+                        nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(next, $2);
 		    %*/
