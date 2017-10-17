@@ -10654,6 +10654,7 @@ new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int
 	else if (op == tANDOP) {
 	    lhs->nd_value = rhs;
 	    asgn = NEW_OP_ASGN_AND(gettable(vid, offset), lhs);
+            nd_set_offset(asgn, offset);
 	}
 	else {
 	    asgn = lhs;
