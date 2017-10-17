@@ -493,8 +493,8 @@ static NODE *new_fcall_gen(struct parser_params *parser, ID mid, NODE *args, int
 static NODE *new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NODE *body, int offset);
 #define new_for(var,iter,body,offset) new_for_gen(parser, var, iter, body, offset)
 
-static NODE *new_gvar_gen(struct parser_params *parser, ID id);
-#define new_gvar(id) new_gvar_gen(parser, id)
+static NODE *new_gvar_gen(struct parser_params *parser, ID id, int offset);
+#define new_gvar(id, offset) new_gvar_gen(parser, id, offset)
 
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
@@ -4178,7 +4178,7 @@ string_content	: tSTRING_CONTENT
 string_dvar	: tGVAR
 		    {
 		    /*%%%*/
-			$$ = new_gvar($1);
+			$$ = new_gvar($1, @1.first_column);
 		    /*%
 			$$ = dispatch1(var_ref, $1);
 		    %*/
@@ -9212,8 +9212,7 @@ gettable_gen(struct parser_params *parser, ID id, int offset)
 	nd_set_offset(node, offset);
 	return node;
       case ID_GLOBAL:
-	node = new_gvar(id);
-	nd_set_offset(node, offset);
+	node = new_gvar(id, offset);
 	return node;
       case ID_INSTANCE:
 	node = NEW_IVAR(id);
@@ -9387,9 +9386,11 @@ new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NODE *body, int
 }
 
 static NODE *
-new_gvar_gen(struct parser_params *parser, ID id)
+new_gvar_gen(struct parser_params *parser, ID id, int offset)
 {
-    return NEW_GVAR(id);
+    NODE *gvar = NEW_GVAR(id);
+    nd_set_offset(gvar, offset);
+    return gvar;
 }
 
 static NODE *
@@ -10177,7 +10178,7 @@ range_op(struct parser_params *parser, NODE *node, int offset)
     value_expr(node);
     if (type == NODE_LIT && FIXNUM_P(node->nd_lit)) {
 	warn_unless_e_option(parser, node, "integer literal in conditional range");
-	return new_call(node, tEQ, new_list(new_gvar(rb_intern("$.")), offset), offset);
+	return new_call(node, tEQ, new_list(new_gvar(rb_intern("$."), offset), offset), offset);
     }
     return cond0(parser, node, FALSE, offset);
 }
@@ -10223,7 +10224,7 @@ cond0(struct parser_params *parser, NODE *node, int method_op, int offset)
 	    if (!method_op)
 		warning_unless_e_option(parser, node, "regex literal in condition");
 
-	    match = NEW_MATCH2(node, new_gvar(idLASTLINE));
+	    match = NEW_MATCH2(node, new_gvar(idLASTLINE, offset));
 	    nd_set_offset(match, offset);
 	    return match;
 	}
@@ -11126,7 +11127,7 @@ rb_parser_append_print(VALUE vparser, NODE *node)
 
     node = block_append(node,
 			new_fcall(rb_intern("print"),
-				  NEW_ARRAY(new_gvar(idLASTLINE)), 0),
+				  NEW_ARRAY(new_gvar(idLASTLINE, 0)), 0),
 			0);
     if (prelude) {
 	prelude->nd_body = node;
@@ -11158,12 +11159,12 @@ rb_parser_while_loop(VALUE vparser, NODE *node, int chomp, int split)
     }
     if (split) {
 	node = block_append(NEW_GASGN(rb_intern("$F"),
-				      new_call(new_gvar(idLASTLINE),
+				      new_call(new_gvar(idLASTLINE, 0),
 					       rb_intern("split"), 0, 0)),
 			    node, 0);
     }
     if (chomp) {
-	node = block_append(new_call(new_gvar(idLASTLINE),
+	node = block_append(new_call(new_gvar(idLASTLINE, 0),
 				     rb_intern("chomp!"), 0, 0), node, 0);
     }
 
