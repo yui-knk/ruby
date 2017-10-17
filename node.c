@@ -1039,7 +1039,6 @@ dump_node(VALUE buf, VALUE indent, int comment, NODE *node)
       case NODE_TO_ARY:
       case NODE_BLOCK_ARG:
       case NODE_ALLOCA:
-      case NODE_BMETHOD:
       case NODE_LAST:
 	break;
     }
