@@ -502,6 +502,9 @@ static NODE *new_lvar_gen(struct parser_params *parser, ID id, int offset);
 static NODE *new_dstr_gen(struct parser_params *parser, VALUE str, int offset);
 #define new_dstr(s, offset) new_dstr_gen(parser, s, offset)
 
+static NODE *new_undef_gen(struct parser_params *parser, NODE *i, int offset);
+#define new_undef(i, offset) new_undef_gen(parser, i, offset)
+
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
 #define new_string1(str) (str)
@@ -1979,7 +1982,7 @@ fitem		: fsym
 undef_list	: fitem
 		    {
 		    /*%%%*/
-			$$ = NEW_UNDEF($1);
+			$$ = new_undef($1, @1.first_column);
 		    /*%
 			$$ = rb_ary_new3(1, get_value($1));
 		    %*/
@@ -1987,8 +1990,7 @@ undef_list	: fitem
 		| undef_list ',' {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
-			NODE *undef = NEW_UNDEF($4);
-			nd_set_offset(undef, @1.first_column);
+			NODE *undef = new_undef($4, @1.first_column);
 			$$ = block_append($1, undef, @1.first_column);
 		    /*%
 			rb_ary_push($1, get_value($4));
@@ -9412,6 +9414,14 @@ new_dstr_gen(struct parser_params *parser, VALUE str, int offset)
     NODE *dstr = NEW_DSTR(str);
     nd_set_offset(dstr, offset);
     return dstr;
+}
+
+static NODE *
+new_undef_gen(struct parser_params *parser, NODE *i, int offset)
+{
+    NODE *undef = NEW_UNDEF(i);
+    nd_set_offset(undef, offset);
+    return undef;
 }
 
 static NODE *
