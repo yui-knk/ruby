@@ -499,8 +499,8 @@ static NODE *new_gvar_gen(struct parser_params *parser, ID id, int offset);
 static NODE *new_lvar_gen(struct parser_params *parser, ID id, int offset);
 #define new_lvar(id, offset) new_lvar_gen(parser, id, offset)
 
-static NODE *new_dstr_gen(struct parser_params *parser, VALUE str);
-#define new_dstr(s) new_dstr_gen(parser, s)
+static NODE *new_dstr_gen(struct parser_params *parser, VALUE str, int offset);
+#define new_dstr(s, offset) new_dstr_gen(parser, s, offset)
 
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
@@ -4094,7 +4094,7 @@ regexp_contents: /* none */
 			      case NODE_DSTR:
 				break;
 			      default:
-				head = list_append(new_dstr(Qnil), head, @1.first_column);
+				head = list_append(new_dstr(Qnil, @1.first_column), head, @1.first_column);
 				break;
 			    }
 			    $$ = list_append(head, tail, @1.first_column);
@@ -8960,7 +8960,7 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int off
 
     htype = nd_type(head);
     if (htype == NODE_EVSTR) {
-	NODE *node = new_dstr(STR_NEW0());
+	NODE *node = new_dstr(STR_NEW0(), offset);
 	nd_set_offset(node, offset);
 	head = list_append(node, head, offset);
 	htype = NODE_DSTR;
@@ -9044,7 +9044,7 @@ static NODE *
 evstr2dstr_gen(struct parser_params *parser, NODE *node, int offset)
 {
     if (nd_type(node) == NODE_EVSTR) {
-	node = list_append(new_dstr(STR_NEW0()), node, offset);
+	node = list_append(new_dstr(STR_NEW0(), offset), node, offset);
     }
     return node;
 }
@@ -9407,9 +9407,11 @@ new_lvar_gen(struct parser_params *parser, ID id, int offset)
 }
 
 static NODE *
-new_dstr_gen(struct parser_params *parser, VALUE str)
+new_dstr_gen(struct parser_params *parser, VALUE str, int offset)
 {
-    return NEW_DSTR(str);
+    NODE *dstr = NEW_DSTR(str);
+    nd_set_offset(dstr, offset);
+    return dstr;
 }
 
 static NODE *
