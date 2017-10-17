@@ -484,6 +484,9 @@ static NODE *new_resbody_gen(struct parser_params *parser, NODE *exc_list, NODE 
 static NODE *new_errinfo_gen(struct parser_params *parser, int offset);
 #define new_errinfo(offset) new_errinfo_gen(parser, offset)
 
+static NODE *new_call_gen(struct parser_params *parser, NODE *recv, ID mid, NODE *args);
+#define new_call(recv,mid,args) new_call_gen(parser, recv,mid,args)
+
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
 #define new_string1(str) (str)
@@ -3636,7 +3639,7 @@ method_call	: fcall paren_args
 			if ($1 && nd_type($1) == NODE_SELF)
 			    $$ = NEW_FCALL(tAREF, $3);
 			else
-			    $$ = NEW_CALL($1, tAREF, $3);
+			    $$ = new_call($1, tAREF, $3);
 			fixpos($$, $1);
 			nd_set_offset($$, @1.first_column);
 		    /*%
@@ -9117,7 +9120,7 @@ match_op_gen(struct parser_params *parser, NODE *node1, NODE *node2, int offset)
 	}
     }
 
-    return NEW_CALL(node1, tMATCH, new_list(node2, offset));
+    return new_call(node1, tMATCH, new_list(node2, offset));
 }
 
 # if WARN_PAST_SCOPE
@@ -9341,6 +9344,12 @@ new_errinfo_gen(struct parser_params *parser, int offset)
     NODE *errinfo = NEW_ERRINFO();
     nd_set_offset(errinfo, offset);
     return errinfo;
+}
+
+static NODE *
+new_call_gen(struct parser_params *parser, NODE *recv, ID mid, NODE *args)
+{
+    return NEW_CALL(recv, mid, args);
 }
 
 static NODE *
@@ -10128,7 +10137,7 @@ range_op(struct parser_params *parser, NODE *node, int offset)
     value_expr(node);
     if (type == NODE_LIT && FIXNUM_P(node->nd_lit)) {
 	warn_unless_e_option(parser, node, "integer literal in conditional range");
-	return NEW_CALL(node, tEQ, new_list(NEW_GVAR(rb_intern("$.")), offset));
+	return new_call(node, tEQ, new_list(NEW_GVAR(rb_intern("$.")), offset));
     }
     return cond0(parser, node, FALSE, offset);
 }
@@ -10554,7 +10563,7 @@ new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int
 	}
 	else {
 	    asgn = lhs;
-	    asgn->nd_value = NEW_CALL(gettable(vid, offset), op, new_list(rhs, offset));
+	    asgn->nd_value = new_call(gettable(vid, offset), op, new_list(rhs, offset));
 	}
     }
     else {
@@ -11107,12 +11116,12 @@ rb_parser_while_loop(VALUE vparser, NODE *node, int chomp, int split)
     }
     if (split) {
 	node = block_append(NEW_GASGN(rb_intern("$F"),
-				      NEW_CALL(NEW_GVAR(idLASTLINE),
+				      new_call(NEW_GVAR(idLASTLINE),
 					       rb_intern("split"), 0)),
 			    node, 0);
     }
     if (chomp) {
-	node = block_append(NEW_CALL(NEW_GVAR(idLASTLINE),
+	node = block_append(new_call(NEW_GVAR(idLASTLINE),
 				     rb_intern("chomp!"), 0), node, 0);
     }
 
