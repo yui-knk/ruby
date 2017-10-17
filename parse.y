@@ -413,7 +413,8 @@ static NODE *new_args_gen(struct parser_params*,NODE*,NODE*,ID,NODE*,NODE*);
 #define new_args(f,o,r,p,t) new_args_gen(parser, (f),(o),(r),(p),(t))
 static NODE *new_args_tail_gen(struct parser_params*,NODE*,ID,ID,int);
 #define new_args_tail(k,kr,b,offset) new_args_tail_gen(parser, (k),(kr),(b),(offset))
-#define new_kw_arg(k) ((k) ? NEW_KW_ARG(0, (k)) : 0)
+static NODE *new_kw_arg_gen(struct parser_params *parser, NODE *k);
+#define new_kw_arg(k) new_kw_arg_gen(parser, k)
 
 static VALUE negate_lit_gen(struct parser_params*, VALUE);
 #define negate_lit(lit) negate_lit_gen(parser, lit)
@@ -9422,6 +9423,12 @@ new_undef_gen(struct parser_params *parser, NODE *i, int offset)
     NODE *undef = NEW_UNDEF(i);
     nd_set_offset(undef, offset);
     return undef;
+}
+
+static NODE *
+new_kw_arg_gen(struct parser_params *parser, NODE *k)
+{
+    return ((k) ? NEW_KW_ARG(0, (k)) : 0);
 }
 
 static NODE *
