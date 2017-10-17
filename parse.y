@@ -512,6 +512,9 @@ static NODE *new_undef_gen(struct parser_params *parser, NODE *i, int offset);
 static NODE *new_zarray_gen(struct parser_params *parser, int offset);
 #define new_zarray(offset) new_zarray_gen(parser, offset)
 
+static NODE *new_ivar_gen(struct parser_params *parser, ID id);
+#define new_ivar(id) new_ivar_gen(parser,id)
+
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
 #define new_string1(str) (str)
@@ -4200,7 +4203,7 @@ string_dvar	: tGVAR
 		| tIVAR
 		    {
 		    /*%%%*/
-			$$ = NEW_IVAR($1);
+			$$ = new_ivar($1);
 		    /*%
 			$$ = dispatch1(var_ref, $1);
 		    %*/
@@ -9228,7 +9231,7 @@ gettable_gen(struct parser_params *parser, ID id, int offset)
 	node = new_gvar(id, offset);
 	return node;
       case ID_INSTANCE:
-	node = NEW_IVAR(id);
+	node = new_ivar(id);
 	nd_set_offset(node, offset);
 	return node;
       case ID_CONST:
@@ -9444,6 +9447,12 @@ new_zarray_gen(struct parser_params *parser, int offset)
     NODE *zarray = NEW_ZARRAY();
     nd_set_offset(zarray, offset);
     return zarray;
+}
+
+static NODE *
+new_ivar_gen(struct parser_params *parser, ID id)
+{
+    return NEW_IVAR(id);
 }
 
 static NODE *
