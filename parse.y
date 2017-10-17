@@ -9099,14 +9099,20 @@ match_op_gen(struct parser_params *parser, NODE *node1, NODE *node2, int offset)
     }
 
     if (node2) {
+        NODE *match3;
+
 	switch (nd_type(node2)) {
 	  case NODE_DREGX:
 	  case NODE_DREGX_ONCE:
-	    return NEW_MATCH3(node2, node1);
+	    match3 = NEW_MATCH3(node2, node1);
+	    nd_set_offset(match3, offset);
+	    return match3;
 
 	  case NODE_LIT:
 	    if (RB_TYPE_P(node2->nd_lit, T_REGEXP)) {
-		return NEW_MATCH3(node2, node1);
+		match3 = NEW_MATCH3(node2, node1);
+		nd_set_offset(match3, offset);
+		return match3;
 	    }
 	}
     }
