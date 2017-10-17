@@ -9268,6 +9268,7 @@ new_regexp_gen(struct parser_params *parser, NODE *node, int options, int offset
 	break;
       default:
 	node = NEW_NODE(NODE_DSTR, STR_NEW0(), 1, new_list(node, offset));
+	nd_set_offset(node, offset);
       case NODE_DSTR:
 	if (options & RE_OPTION_ONCE) {
 	    nd_set_type(node, NODE_DREGX_ONCE);
