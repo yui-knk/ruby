@@ -509,6 +509,9 @@ static NODE *new_rescue_gen(struct parser_params *parser, NODE *b, NODE *res, NO
 static NODE *new_undef_gen(struct parser_params *parser, NODE *i, int offset);
 #define new_undef(i, offset) new_undef_gen(parser, i, offset)
 
+static NODE *new_zarray_gen(struct parser_params *parser);
+#define new_zarray() new_zarray_gen(parser)
+
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
 #define new_string1(str) (str)
@@ -1409,7 +1412,7 @@ command_asgn	: lhs '=' command_rhs
 			NODE *args;
 
 			value_expr($6);
-			if (!$3) $3 = NEW_ZARRAY();
+			if (!$3) $3 = new_zarray();
 			args = arg_concat($3, $6, @1.first_column);
 			if ($5 == tOROP) {
 			    $5 = 0;
@@ -2061,7 +2064,7 @@ arg		: lhs '=' arg_rhs
 			NODE *args;
 
 			value_expr($6);
-			if (!$3) $3 = NEW_ZARRAY();
+			if (!$3) $3 = new_zarray();
 			if (nd_type($3) == NODE_BLOCK_PASS) {
 			    args = NEW_ARGSCAT($3, $6);
 			    nd_set_offset(args, @1.first_column);
@@ -2630,7 +2633,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			if ($2 == 0) {
-			    $$ = NEW_ZARRAY(); /* zero length array*/
+			    $$ = new_zarray(); /* zero length array*/
 			    nd_set_offset($$, @1.first_column);
 			}
 			else {
@@ -3860,7 +3863,7 @@ regexp		: tREGEXP_BEG regexp_contents tREGEXP_END
 words		: tWORDS_BEG ' ' tSTRING_END
 		    {
 		    /*%%%*/
-			$$ = NEW_ZARRAY();
+			$$ = new_zarray();
 		    /*%
 			$$ = dispatch0(words_new);
 			$$ = dispatch1(array, $$);
@@ -3915,7 +3918,7 @@ word		: string_content
 symbols 	: tSYMBOLS_BEG ' ' tSTRING_END
 		    {
 		    /*%%%*/
-			$$ = NEW_ZARRAY();
+			$$ = new_zarray();
 		    /*%
 			$$ = dispatch0(symbols_new);
 			$$ = dispatch1(array, $$);
@@ -3960,7 +3963,7 @@ symbol_list	: /* none */
 qwords		: tQWORDS_BEG ' ' tSTRING_END
 		    {
 		    /*%%%*/
-			$$ = NEW_ZARRAY();
+			$$ = new_zarray();
 		    /*%
 			$$ = dispatch0(qwords_new);
 			$$ = dispatch1(array, $$);
@@ -3979,7 +3982,7 @@ qwords		: tQWORDS_BEG ' ' tSTRING_END
 qsymbols	: tQSYMBOLS_BEG ' ' tSTRING_END
 		    {
 		    /*%%%*/
-			$$ = NEW_ZARRAY();
+			$$ = new_zarray();
 		    /*%
 			$$ = dispatch0(qsymbols_new);
 			$$ = dispatch1(array, $$);
@@ -9433,6 +9436,12 @@ new_undef_gen(struct parser_params *parser, NODE *i, int offset)
     NODE *undef = NEW_UNDEF(i);
     nd_set_offset(undef, offset);
     return undef;
+}
+
+static NODE *
+new_zarray_gen(struct parser_params *parser)
+{
+    return NEW_ZARRAY();
 }
 
 static NODE *
