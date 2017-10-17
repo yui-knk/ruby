@@ -515,8 +515,8 @@ static NODE *new_zarray_gen(struct parser_params *parser, int offset);
 static NODE *new_ivar_gen(struct parser_params *parser, ID id, int offset);
 #define new_ivar(id, offset) new_ivar_gen(parser,id,offset)
 
-static NODE *new_postarg_gen(struct parser_params *parser, NODE *i, NODE *v);
-#define new_postarg(i,v) new_postarg_gen(parser,i,v)
+static NODE *new_postarg_gen(struct parser_params *parser, NODE *i, NODE *v, int offset);
+#define new_postarg(i,v,offset) new_postarg_gen(parser,i,v,offset)
 
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
@@ -1690,7 +1690,7 @@ mlhs_basic	: mlhs_head
 		| mlhs_head tSTAR mlhs_node ',' mlhs_post
 		    {
 		    /*%%%*/
-			$$ = NEW_MASGN($1, new_postarg($3,$5));
+			$$ = NEW_MASGN($1, new_postarg($3,$5,@1.first_column));
 			nd_set_offset($$, @1.first_column);
 		    /*%
 			$1 = mlhs_add_star($1, $3);
@@ -1709,7 +1709,7 @@ mlhs_basic	: mlhs_head
 		| mlhs_head tSTAR ',' mlhs_post
 		    {
 		    /*%%%*/
-			$$ = NEW_MASGN($1, new_postarg((NODE *)-1, $4));
+			$$ = NEW_MASGN($1, new_postarg((NODE *)-1, $4, @1.first_column));
 			nd_set_offset($$, @1.first_column);
 		    /*%
 			$1 = mlhs_add_star($1, Qnil);
@@ -1728,7 +1728,7 @@ mlhs_basic	: mlhs_head
 		| tSTAR mlhs_node ',' mlhs_post
 		    {
 		    /*%%%*/
-			$$ = NEW_MASGN(0, new_postarg($2,$4));
+			$$ = NEW_MASGN(0, new_postarg($2,$4,@1.first_column));
 			nd_set_offset($$, @1.first_column);
 		    /*%
 			$2 = mlhs_add_star(mlhs_new(), $2);
@@ -1747,7 +1747,7 @@ mlhs_basic	: mlhs_head
 		| tSTAR ',' mlhs_post
 		    {
 		    /*%%%*/
-			$$ = NEW_MASGN(0, new_postarg((NODE *)-1, $3));
+			$$ = NEW_MASGN(0, new_postarg((NODE *)-1, $3, @1.first_column));
 			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
@@ -3225,7 +3225,7 @@ f_margs		: f_marg_list
 		    {
 			$$ = assignable($4, 0, @1.first_column);
 		    /*%%%*/
-			$$ = NEW_MASGN($1, new_postarg($$, $6));
+			$$ = NEW_MASGN($1, new_postarg($$, $6, @1.first_column));
 			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star($1, $$);
@@ -3244,7 +3244,7 @@ f_margs		: f_marg_list
 		| f_marg_list ',' tSTAR ',' f_marg_list
 		    {
 		    /*%%%*/
-			$$ = NEW_MASGN($1, new_postarg((NODE *)-1, $5));
+			$$ = NEW_MASGN($1, new_postarg((NODE *)-1, $5, @1.first_column));
 			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star($1, Qnil);
@@ -3265,7 +3265,7 @@ f_margs		: f_marg_list
 		    {
 			$$ = assignable($2, 0, @1.first_column);
 		    /*%%%*/
-			$$ = NEW_MASGN(0, new_postarg($$, $4));
+			$$ = NEW_MASGN(0, new_postarg($$, $4, @1.first_column));
 			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), $$);
@@ -3284,7 +3284,7 @@ f_margs		: f_marg_list
 		| tSTAR ',' f_marg_list
 		    {
 		    /*%%%*/
-			$$ = NEW_MASGN(0, new_postarg((NODE *)-1, $3));
+			$$ = NEW_MASGN(0, new_postarg((NODE *)-1, $3, @1.first_column));
 			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
@@ -9460,9 +9460,11 @@ new_ivar_gen(struct parser_params *parser, ID id, int offset)
 }
 
 static NODE *
-new_postarg_gen(struct parser_params *parser, NODE *i, NODE *v)
+new_postarg_gen(struct parser_params *parser, NODE *i, NODE *v, int offset)
 {
-    return NEW_POSTARG(i, v);
+    NODE *postarg = NEW_POSTARG(i, v);
+    nd_set_offset(postarg, offset);
+    return postarg;
 }
 
 static NODE *
