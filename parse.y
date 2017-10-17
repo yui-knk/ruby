@@ -484,8 +484,8 @@ static NODE *new_resbody_gen(struct parser_params *parser, NODE *exc_list, NODE 
 static NODE *new_errinfo_gen(struct parser_params *parser, int offset);
 #define new_errinfo(offset) new_errinfo_gen(parser, offset)
 
-static NODE *new_call_gen(struct parser_params *parser, NODE *recv, ID mid, NODE *args);
-#define new_call(recv,mid,args) new_call_gen(parser, recv,mid,args)
+static NODE *new_call_gen(struct parser_params *parser, NODE *recv, ID mid, NODE *args, int offset);
+#define new_call(recv,mid,args,offset) new_call_gen(parser, recv,mid,args,offset)
 
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
@@ -3639,7 +3639,7 @@ method_call	: fcall paren_args
 			if ($1 && nd_type($1) == NODE_SELF)
 			    $$ = NEW_FCALL(tAREF, $3);
 			else
-			    $$ = new_call($1, tAREF, $3);
+			    $$ = new_call($1, tAREF, $3, @1.first_column);
 			fixpos($$, $1);
 			nd_set_offset($$, @1.first_column);
 		    /*%
@@ -9120,7 +9120,7 @@ match_op_gen(struct parser_params *parser, NODE *node1, NODE *node2, int offset)
 	}
     }
 
-    return new_call(node1, tMATCH, new_list(node2, offset));
+    return new_call(node1, tMATCH, new_list(node2, offset), offset);
 }
 
 # if WARN_PAST_SCOPE
@@ -9347,9 +9347,11 @@ new_errinfo_gen(struct parser_params *parser, int offset)
 }
 
 static NODE *
-new_call_gen(struct parser_params *parser, NODE *recv, ID mid, NODE *args)
+new_call_gen(struct parser_params *parser, NODE *recv, ID mid, NODE *args, int offset)
 {
-    return NEW_CALL(recv, mid, args);
+    NODE *call = NEW_CALL(recv, mid, args);
+    nd_set_offset(call, offset);
+    return call;
 }
 
 static NODE *
@@ -10137,7 +10139,7 @@ range_op(struct parser_params *parser, NODE *node, int offset)
     value_expr(node);
     if (type == NODE_LIT && FIXNUM_P(node->nd_lit)) {
 	warn_unless_e_option(parser, node, "integer literal in conditional range");
-	return new_call(node, tEQ, new_list(NEW_GVAR(rb_intern("$.")), offset));
+	return new_call(node, tEQ, new_list(NEW_GVAR(rb_intern("$.")), offset), offset);
     }
     return cond0(parser, node, FALSE, offset);
 }
@@ -10563,7 +10565,7 @@ new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int
 	}
 	else {
 	    asgn = lhs;
-	    asgn->nd_value = new_call(gettable(vid, offset), op, new_list(rhs, offset));
+	    asgn->nd_value = new_call(gettable(vid, offset), op, new_list(rhs, offset), offset);
 	}
     }
     else {
@@ -11117,12 +11119,12 @@ rb_parser_while_loop(VALUE vparser, NODE *node, int chomp, int split)
     if (split) {
 	node = block_append(NEW_GASGN(rb_intern("$F"),
 				      new_call(NEW_GVAR(idLASTLINE),
-					       rb_intern("split"), 0)),
+					       rb_intern("split"), 0, 0)),
 			    node, 0);
     }
     if (chomp) {
 	node = block_append(new_call(NEW_GVAR(idLASTLINE),
-				     rb_intern("chomp!"), 0), node, 0);
+				     rb_intern("chomp!"), 0, 0), node, 0);
     }
 
     node = NEW_OPT_N(node);
