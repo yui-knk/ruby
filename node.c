@@ -1035,7 +1035,6 @@ dump_node(VALUE buf, VALUE indent, int comment, NODE *node)
 	return;
 
       case NODE_IASGN2:
-      case NODE_CVDECL:
       case NODE_ARGS_AUX:
       case NODE_TO_ARY:
       case NODE_BLOCK_ARG:

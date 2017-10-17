@@ -80,8 +80,6 @@ enum node_type {
 #define NODE_CDECL       NODE_CDECL
     NODE_CVASGN,
 #define NODE_CVASGN      NODE_CVASGN
-    NODE_CVDECL,
-#define NODE_CVDECL      NODE_CVDECL
     NODE_OP_ASGN1,
 #define NODE_OP_ASGN1    NODE_OP_ASGN1
     NODE_OP_ASGN2,
@@ -394,7 +392,6 @@ typedef struct RNode {
 #define NEW_IASGN2(v,val) NEW_NODE(NODE_IASGN2,v,val,0)
 #define NEW_CDECL(v,val,path) NEW_NODE(NODE_CDECL,v,val,path)
 #define NEW_CVASGN(v,val) NEW_NODE(NODE_CVASGN,v,val,0)
-#define NEW_CVDECL(v,val) NEW_NODE(NODE_CVDECL,v,val,0)
 #define NEW_OP_ASGN1(p,id,a) NEW_NODE(NODE_OP_ASGN1,p,id,a)
 #define NEW_OP_ASGN2(r,t,i,o,val) NEW_NODE(NODE_OP_ASGN2,r,val,NEW_OP_ASGN22(i,o,t))
 #define NEW_OP_ASGN22(i,o,t) NEW_NODE(NODE_OP_ASGN2,i,o,t)
