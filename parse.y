@@ -3626,6 +3626,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = NEW_SUPER($2);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(super, $2);
 		    %*/
