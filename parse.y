@@ -413,8 +413,8 @@ static NODE *new_args_gen(struct parser_params*,NODE*,NODE*,ID,NODE*,NODE*);
 #define new_args(f,o,r,p,t) new_args_gen(parser, (f),(o),(r),(p),(t))
 static NODE *new_args_tail_gen(struct parser_params*,NODE*,ID,ID,int);
 #define new_args_tail(k,kr,b,offset) new_args_tail_gen(parser, (k),(kr),(b),(offset))
-static NODE *new_kw_arg_gen(struct parser_params *parser, NODE *k);
-#define new_kw_arg(k) new_kw_arg_gen(parser, k)
+static NODE *new_kw_arg_gen(struct parser_params *parser, NODE *k, int offset);
+#define new_kw_arg(k,offset) new_kw_arg_gen(parser, k, offset)
 
 static VALUE negate_lit_gen(struct parser_params*, VALUE);
 #define negate_lit(lit) negate_lit_gen(parser, lit)
@@ -4602,7 +4602,7 @@ f_kw		: f_label arg_value
 			current_arg = 0;
 			$$ = assignable($1, $2, @1.first_column);
 		    /*%%%*/
-			$$ = new_kw_arg($$);
+			$$ = new_kw_arg($$, @1.first_column);
 		    /*%
 			$$ = rb_assoc_new(get_value($$), get_value($2));
 		    %*/
@@ -4612,7 +4612,7 @@ f_kw		: f_label arg_value
 			current_arg = 0;
 			$$ = assignable($1, (NODE *)-1, @1.first_column);
 		    /*%%%*/
-			$$ = new_kw_arg($$);
+			$$ = new_kw_arg($$, @1.first_column);
 		    /*%
 			$$ = rb_assoc_new(get_value($$), 0);
 		    %*/
@@ -4623,7 +4623,7 @@ f_block_kw	: f_label primary_value
 		    {
 			$$ = assignable($1, $2, @1.first_column);
 		    /*%%%*/
-			$$ = new_kw_arg($$);
+			$$ = new_kw_arg($$, @1.first_column);
 		    /*%
 			$$ = rb_assoc_new(get_value($$), get_value($2));
 		    %*/
@@ -4632,7 +4632,7 @@ f_block_kw	: f_label primary_value
 		    {
 			$$ = assignable($1, (NODE *)-1, @1.first_column);
 		    /*%%%*/
-			$$ = new_kw_arg($$);
+			$$ = new_kw_arg($$, @1.first_column);
 		    /*%
 			$$ = rb_assoc_new(get_value($$), 0);
 		    %*/
@@ -9426,9 +9426,13 @@ new_undef_gen(struct parser_params *parser, NODE *i, int offset)
 }
 
 static NODE *
-new_kw_arg_gen(struct parser_params *parser, NODE *k)
+new_kw_arg_gen(struct parser_params *parser, NODE *k, int offset)
 {
-    return ((k) ? NEW_KW_ARG(0, (k)) : 0);
+    NODE *kw_arg;
+    if (!k) return 0;
+    kw_arg = NEW_KW_ARG(0, (k));
+    nd_set_offset(kw_arg, offset);
+    return kw_arg;
 }
 
 static NODE *
