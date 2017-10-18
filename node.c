@@ -1035,7 +1035,6 @@ dump_node(VALUE buf, VALUE indent, int comment, NODE *node)
 	return;
 
       case NODE_ARGS_AUX:
-      case NODE_BLOCK_ARG:
       case NODE_ALLOCA:
       case NODE_LAST:
 	break;
@@ -1215,7 +1214,6 @@ rb_gc_mark_node(NODE *obj)
       case NODE_TRUE:
       case NODE_FALSE:
       case NODE_ERRINFO:
-      case NODE_BLOCK_ARG:
 	break;
       case NODE_ALLOCA:
 	rb_gc_mark_locations((VALUE*)RNODE(obj)->u1.value,
