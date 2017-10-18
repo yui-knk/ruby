@@ -450,8 +450,8 @@ static NODE *new_const_op_assign_gen(struct parser_params *parser, NODE *lhs, ID
 static NODE *const_path_field_gen(struct parser_params *parser, NODE *head, ID mid, int offset);
 #define const_path_field(w, n, offset) const_path_field_gen(parser, w, n, offset)
 #define top_const_field(n) NEW_COLON3(n)
-static NODE *const_decl_gen(struct parser_params *parser, NODE* path);
-#define const_decl(path) const_decl_gen(parser, path)
+static NODE *const_decl_gen(struct parser_params *parser, NODE* path, int offset);
+#define const_decl(path, offset) const_decl_gen(parser, path, offset)
 
 #define var_field(n) (n)
 #define backref_assign_error(n, a) (rb_backref_error(n), NEW_BEGIN(0))
@@ -518,8 +518,8 @@ static NODE *new_ivar_gen(struct parser_params *parser, ID id, int offset);
 static NODE *new_postarg_gen(struct parser_params *parser, NODE *i, NODE *v, int offset);
 #define new_postarg(i,v,offset) new_postarg_gen(parser,i,v,offset)
 
-static NODE *new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path);
-#define new_cdecl(v,val,path) new_cdecl_gen(parser,v,val,path)
+static NODE *new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path, int offset);
+#define new_cdecl(v,val,path,offset) new_cdecl_gen(parser,v,val,path,offset)
 
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
@@ -608,7 +608,7 @@ static VALUE new_xstring_gen(struct parser_params *, VALUE);
 #define const_path_field(w, n, offset) dispatch2(const_path_field, (w), (n))
 #define top_const_field(n) dispatch1(top_const_field, (n))
 static VALUE const_decl_gen(struct parser_params *parser, VALUE path);
-#define const_decl(path) const_decl_gen(parser, path)
+#define const_decl(path, offset) const_decl_gen(parser, path)
 
 static VALUE var_field_gen(struct parser_params *parser, VALUE a);
 #define var_field(a) var_field_gen(parser, (a))
@@ -1849,11 +1849,11 @@ mlhs_node	: user_variable
 		    }
 		| primary_value tCOLON2 tCONSTANT
 		    {
-			$$ = const_decl(const_path_field($1, $3, @1.first_column));
+			$$ = const_decl(const_path_field($1, $3, @1.first_column), @1.first_column);
 		    }
 		| tCOLON3 tCONSTANT
 		    {
-			$$ = const_decl(top_const_field($2));
+			$$ = const_decl(top_const_field($2), @1.first_column);
 		    }
 		| backref
 		    {
@@ -1912,11 +1912,11 @@ lhs		: user_variable
 		    }
 		| primary_value tCOLON2 tCONSTANT
 		    {
-			$$ = const_decl(const_path_field($1, $3, @1.first_column));
+			$$ = const_decl(const_path_field($1, $3, @1.first_column), @1.first_column);
 		    }
 		| tCOLON3 tCONSTANT
 		    {
-			$$ = const_decl(top_const_field($2));
+			$$ = const_decl(top_const_field($2), @1.first_column);
 		    }
 		| backref
 		    {
@@ -9472,9 +9472,11 @@ new_postarg_gen(struct parser_params *parser, NODE *i, NODE *v, int offset)
 }
 
 static NODE *
-new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path)
+new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path, int offset)
 {
-    return NEW_CDECL(v, val, path);
+    NODE *cdecl = NEW_CDECL(v, val, path);
+    nd_set_offset(cdecl, offset);
+    return cdecl;
 }
 
 static NODE *
@@ -9760,7 +9762,7 @@ assignable_gen(struct parser_params *parser, ID id, NODE *val, int offset)
 	return assignable_result(NEW_IASGN(id, val));
       case ID_CONST:
 	if (!in_def && !in_single)
-	    return assignable_result(new_cdecl(id, val, 0));
+	    return assignable_result(new_cdecl(id, val, 0, offset));
 	yyerror0("dynamic constant assignment");
 	break;
       case ID_CLASS:
@@ -10758,12 +10760,12 @@ const_path_field_gen(struct parser_params *parser, NODE *head, ID mid, int offse
 }
 
 static NODE *
-const_decl_gen(struct parser_params *parser, NODE *path)
+const_decl_gen(struct parser_params *parser, NODE *path, int offset)
 {
     if (in_def || in_single) {
 	yyerror0("dynamic constant assignment");
     }
-    return new_cdecl(0, 0, (path));
+    return new_cdecl(0, 0, (path), offset);
 }
 #else
 static VALUE
