@@ -518,6 +518,9 @@ static NODE *new_ivar_gen(struct parser_params *parser, ID id, int offset);
 static NODE *new_postarg_gen(struct parser_params *parser, NODE *i, NODE *v, int offset);
 #define new_postarg(i,v,offset) new_postarg_gen(parser,i,v,offset)
 
+static NODE *new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path);
+#define new_cdecl(v,val,path) new_cdecl_gen(parser,v,val,path)
+
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
 #define new_string1(str) (str)
@@ -9469,6 +9472,12 @@ new_postarg_gen(struct parser_params *parser, NODE *i, NODE *v, int offset)
 }
 
 static NODE *
+new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path)
+{
+    return NEW_CDECL(v, val, path);
+}
+
+static NODE *
 new_kw_arg_gen(struct parser_params *parser, NODE *k, int offset)
 {
     NODE *kw_arg;
@@ -9751,7 +9760,7 @@ assignable_gen(struct parser_params *parser, ID id, NODE *val, int offset)
 	return assignable_result(NEW_IASGN(id, val));
       case ID_CONST:
 	if (!in_def && !in_single)
-	    return assignable_result(NEW_CDECL(id, val, 0));
+	    return assignable_result(new_cdecl(id, val, 0));
 	yyerror0("dynamic constant assignment");
 	break;
       case ID_CLASS:
@@ -10754,7 +10763,7 @@ const_decl_gen(struct parser_params *parser, NODE *path)
     if (in_def || in_single) {
 	yyerror0("dynamic constant assignment");
     }
-    return NEW_CDECL(0, 0, (path));
+    return new_cdecl(0, 0, (path));
 }
 #else
 static VALUE
