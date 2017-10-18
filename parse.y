@@ -9469,7 +9469,6 @@ node_assign_gen(struct parser_params *parser, NODE *lhs, NODE *rhs)
     switch (nd_type(lhs)) {
       case NODE_GASGN:
       case NODE_IASGN:
-      case NODE_IASGN2:
       case NODE_LASGN:
       case NODE_DASGN:
       case NODE_DASGN_CURR:
