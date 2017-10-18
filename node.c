@@ -1035,7 +1035,6 @@ dump_node(VALUE buf, VALUE indent, int comment, NODE *node)
 	return;
 
       case NODE_ARGS_AUX:
-      case NODE_TO_ARY:
       case NODE_BLOCK_ARG:
       case NODE_ALLOCA:
       case NODE_LAST:
@@ -1178,7 +1177,6 @@ rb_gc_mark_node(NODE *obj)
       case NODE_YIELD:
       case NODE_COLON2:
       case NODE_SPLAT:
-      case NODE_TO_ARY:
 	return RNODE(obj)->u1.value;
 
       case NODE_SCOPE:	/* 2,3 */
