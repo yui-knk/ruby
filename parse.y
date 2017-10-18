@@ -4219,6 +4219,7 @@ string_dvar	: tGVAR
 		    {
 		    /*%%%*/
 			$$ = NEW_CVAR($1);
+			nd_set_offset($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(var_ref, $1);
 		    %*/
