@@ -201,7 +201,7 @@ class TestCoverage < Test::Unit::TestCase
         [:unless, 3, 8] => {[:else, 4, 11]=>2, [:then, 5, 9]=>1},
       }
     }
-    assert_coverage(<<-"end;", { branches: true }, result)
+    assert_coverage(<<~"end;", { branches: true }, result)
       def foo(x)
         if x == 0
           0
@@ -229,7 +229,7 @@ class TestCoverage < Test::Unit::TestCase
         [:until, 2, 5] => {[:body, 3, 6]=>10},
       }
     }
-    assert_coverage(<<-"end;", { branches: true }, result)
+    assert_coverage(<<~"end;", { branches: true }, result)
       x = 3
       while x > 0
         x -= 1
@@ -249,7 +249,7 @@ class TestCoverage < Test::Unit::TestCase
         [:case, 12, 25] => {[:when, 13, 27]=>2, [:when, 14, 29]=>0, [:else, 15, 31]=>1},
       }
     }
-    assert_coverage(<<-"end;", { branches: true }, result)
+    assert_coverage(<<~"end;", { branches: true }, result)
       def foo(x)
         case x
         when 0
@@ -297,7 +297,7 @@ class TestCoverage < Test::Unit::TestCase
         [:"&.", 3, 4] => {[:then, 4, 4]=>0, [:else, 5, 4]=>1},
       }
     }
-    assert_coverage(<<-"end;", { branches: true }, result)
+    assert_coverage(<<~"end;", { branches: true }, result)
       a = 10
       b = nil
       a&.abs
@@ -313,7 +313,7 @@ class TestCoverage < Test::Unit::TestCase
         [:baz, 2, 4] => 0,
       }
     }
-    assert_coverage(<<-"end;", { methods: true }, result)
+    assert_coverage(<<~"end;", { methods: true }, result)
       def foo; end
       def bar
       end
