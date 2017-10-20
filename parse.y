@@ -2811,7 +2811,6 @@ primary		: literal
 			 *  #=>
 			 *  e.each{|x| a, = x}
 			 */
-			/* TODO */
 			ID id = internal_id();
 			ID *tbl = ALLOC_N(ID, 2);
 			NODE *m = NEW_ARGS_AUX(0, 0);
@@ -8819,7 +8818,6 @@ parser_warn(struct parser_params *parser, NODE *node, const char *mesg)
 }
 #define parser_warn(node, mesg) parser_warn(parser, (node), (mesg))
 
-/* TODO should we do something here? */
 static NODE*
 block_append_gen(struct parser_params *parser, NODE *head, NODE *tail, int column)
 {
