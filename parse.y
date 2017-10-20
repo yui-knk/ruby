@@ -2647,7 +2647,6 @@ primary		: literal
 		    /*%%%*/
 			$$ = new_hash($2, @1.first_column);
 			$$->nd_alen = TRUE;
-			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(hash, escape_Qundef($2));
 		    %*/
