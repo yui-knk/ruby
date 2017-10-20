@@ -2634,7 +2634,6 @@ primary		: literal
 		    /*%%%*/
 			if ($2 == 0) {
 			    $$ = new_zarray(@1.first_column); /* zero length array*/
-			    nd_set_column($$, @1.first_column);
 			}
 			else {
 			    $$ = $2;
