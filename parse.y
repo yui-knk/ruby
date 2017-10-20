@@ -9179,7 +9179,6 @@ gettable_gen(struct parser_params *parser, ID id, int column)
 	return node;
       case keyword__FILE__:
 	node = new_str(rb_str_dup(ruby_sourcefile_string), column);
-	nd_set_column(node, column);
 	return node;
       case keyword__LINE__:
 	return new_lit(INT2FIX(tokline), column);	
