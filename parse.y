@@ -521,6 +521,9 @@ static NODE *new_postarg_gen(struct parser_params *parser, NODE *i, NODE *v, int
 static NODE *new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path, int offset);
 #define new_cdecl(v,val,path,offset) new_cdecl_gen(parser,v,val,path,offset)
 
+static NODE *new_scope_gen(struct parser_params *parser, NODE *a, NODE *b, int offset);
+#define new_scope(a,b,offset) new_scope_gen(parser,a,b,offset)
+
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
 #define new_string1(str) (str)
@@ -1074,8 +1077,7 @@ program		:  {
 				void_expr(node->nd_head);
 			    }
 			}
-			ruby_eval_tree = NEW_SCOPE(0, block_append(ruby_eval_tree, $2, @1.first_column));
-			nd_set_offset(ruby_eval_tree, @1.first_column);
+			ruby_eval_tree = new_scope(0, block_append(ruby_eval_tree, $2, @1.first_column), @1.first_column);
 		    /*%
 			$$ = $2;
 			parser->result = dispatch1(program, $$);
@@ -9478,6 +9480,14 @@ new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path, int off
     NODE *cdecl = NEW_CDECL(v, val, path);
     nd_set_offset(cdecl, offset);
     return cdecl;
+}
+
+static NODE *
+new_scope_gen(struct parser_params *parser, NODE *a, NODE *b, int offset)
+{
+   NODE *scope = NEW_SCOPE(a, b);
+   nd_set_offset(scope, offset);
+   return scope;
 }
 
 static NODE *
