@@ -2694,18 +2694,10 @@ primary		: literal
 		| keyword_not '(' expr rparen
 		    {
 			$$ = call_uni_op(method_cond($3, @1.first_column), METHOD_NOT, @1.first_column);
-		    /*%%%*/
-			nd_set_column($$, @1.first_column);
-		    /*%
-		    %*/
 		    }
 		| keyword_not '(' rparen
 		    {
 			$$ = call_uni_op(method_cond(new_nil(), @1.first_column), METHOD_NOT, @1.first_column);
-		    /*%%%*/
-			nd_set_column($$, @1.first_column);
-		    /*%
-		    %*/
 		    }
 		| fcall brace_block
 		    {
