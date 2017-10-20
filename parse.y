@@ -9193,7 +9193,6 @@ gettable_gen(struct parser_params *parser, ID id, int column)
 	    }
 	    if (vidp) *vidp |= LVAR_USED;
 	    node = new_dvar(id, column);
-	    nd_set_column(node, column);
 	    return node;
 	}
 	if (local_id_ref(id, vidp)) {
