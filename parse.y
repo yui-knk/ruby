@@ -8960,7 +8960,6 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int col
     htype = nd_type(head);
     if (htype == NODE_EVSTR) {
 	NODE *node = new_dstr(STR_NEW0(), column);
-	nd_set_column(node, column);
 	head = list_append(node, head, column);
 	htype = NODE_DSTR;
     }
