@@ -454,7 +454,7 @@ static NODE *const_decl_gen(struct parser_params *parser, NODE* path, int offset
 #define const_decl(path, offset) const_decl_gen(parser, path, offset)
 
 #define var_field(n) (n)
-#define backref_assign_error(n, a) (rb_backref_error(n), NEW_BEGIN(0))
+#define backref_assign_error(n, a, offset) (rb_backref_error(n), new_begin(0, offset))
 
 static NODE *kwd_append(NODE*, NODE*);
 
@@ -523,6 +523,9 @@ static NODE *new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *
 
 static NODE *new_scope_gen(struct parser_params *parser, NODE *a, NODE *b, int offset);
 #define new_scope(a,b,offset) new_scope_gen(parser,a,b,offset)
+
+static NODE *new_begin_gen(struct parser_params *parser, NODE *b, int offset);
+#define new_begin(b,offset) new_begin_gen(parser,b,offset)
 
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int offset);
 #define new_xstring(node, offset) new_xstring_gen(parser, node, offset)
@@ -617,7 +620,7 @@ static VALUE var_field_gen(struct parser_params *parser, VALUE a);
 #define var_field(a) var_field_gen(parser, (a))
 static VALUE assign_error_gen(struct parser_params *parser, VALUE a);
 #define assign_error(a) assign_error_gen(parser, (a))
-#define backref_assign_error(n, a) assign_error(a)
+#define backref_assign_error(n, a, offset) assign_error(a)
 
 #define block_dup_check(n1,n2) ((void)(n1), (void)(n2))
 #define fixpos(n1,n2) ((void)(n1), (void)(n2))
@@ -1099,8 +1102,7 @@ top_compstmt	: top_stmts opt_terms
 top_stmts	: none
                     {
 		    /*%%%*/
-			$$ = NEW_BEGIN(0);
-			nd_set_offset($$, @1.first_column);
+			$$ = new_begin(0, @1.first_column);
 		    /*%
 			$$ = dispatch2(stmts_add, dispatch0(stmts_new),
 						  dispatch0(void_stmt));
@@ -1143,8 +1145,7 @@ top_stmt	: stmt
 							    $4, @1.first_column);
 			/* NEW_PREEXE($4)); */
 			/* local_pop(); */
-			$$ = NEW_BEGIN(0);
-			nd_set_offset($$, @1.first_column);
+			$$ = new_begin(0, @1.first_column);
 		    /*%
 			$$ = dispatch1(BEGIN, $4);
 		    %*/
@@ -1200,8 +1201,7 @@ compstmt	: stmts opt_terms
 stmts		: none
                     {
 		    /*%%%*/
-			$$ = NEW_BEGIN(0);
-			nd_set_offset($$, @1.first_column);
+			$$ = new_begin(0, @1.first_column);
 		    /*%
 			$$ = dispatch2(stmts_add, dispatch0(stmts_new),
 						  dispatch0(void_stmt));
@@ -1248,8 +1248,7 @@ stmt_or_begin	: stmt
 							    $4, @1.first_column);
 			/* NEW_PREEXE($4)); */
 			/* local_pop(); */
-			$$ = NEW_BEGIN(0);
-			nd_set_offset($$, @1.first_column);
+			$$ = new_begin(0, @1.first_column);
 		    /*%
 			$$ = dispatch1(BEGIN, $4);
 		    %*/
@@ -1290,8 +1289,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			yyerror0("can't make alias for the number variables");
-			$$ = NEW_BEGIN(0);
-			nd_set_offset($$, @1.first_column);
+			$$ = new_begin(0, @1.first_column);
 		    /*%
 			$$ = dispatch2(var_alias, $2, $3);
 			$$ = dispatch1(alias_error, $$);
@@ -1462,7 +1460,7 @@ command_asgn	: lhs '=' command_rhs
 		| backref tOP_ASGN command_rhs
 		    {
 			$1 = var_field($1);
-			$$ = backref_assign_error($1, node_assign($1, $3, @1.first_column));
+			$$ = backref_assign_error($1, node_assign($1, $3, @1.first_column), @1.first_column);
 		    }
 		;
 
@@ -1860,7 +1858,7 @@ mlhs_node	: user_variable
 		| backref
 		    {
 			$1 = var_field($1);
-			$$ = backref_assign_error($1, $1);
+			$$ = backref_assign_error($1, $1, @1.first_column);
 		    }
 		;
 
@@ -1868,7 +1866,7 @@ lhs		: user_variable
 		    {
 			$$ = assignable(var_field($1), 0, @1.first_column);
 		    /*%%%*/
-			if (!$$) $$ = NEW_BEGIN(0);
+			if (!$$) $$ = new_begin(0, @1.first_column);
 		    /*%
 		    %*/
 		    }
@@ -1876,7 +1874,7 @@ lhs		: user_variable
 		    {
 			$$ = assignable(var_field($1), 0, @1.first_column);
 		    /*%%%*/
-			if (!$$) $$ = NEW_BEGIN(0);
+			if (!$$) $$ = new_begin(0, @1.first_column);
 		    /*%
 		    %*/
 		    }
@@ -1923,7 +1921,7 @@ lhs		: user_variable
 		| backref
 		    {
 			$1 = var_field($1);
-			$$ = backref_assign_error($1, $1);
+			$$ = backref_assign_error($1, $1, @1.first_column);
 		    }
 		;
 
@@ -2126,7 +2124,7 @@ arg		: lhs '=' arg_rhs
 		| backref tOP_ASGN arg_rhs
 		    {
 			$1 = var_field($1);
-			$$ = backref_assign_error($1, new_op_assign($1, $2, $3, @1.first_column));
+			$$ = backref_assign_error($1, new_op_assign($1, $2, $3, @1.first_column), @1.first_column);
 		    }
 		| arg tDOT2 arg
 		    {
@@ -2584,8 +2582,7 @@ primary		: literal
 			}
 			else {
 			    set_line_body($3, $<num>2);
-			    $$ = NEW_BEGIN($3);
-			    nd_set_offset($$, @1.first_column);
+			    $$ = new_begin($3, @1.first_column);
 			}
 			nd_set_line($$, $<num>2);
 		    /*%
@@ -2595,8 +2592,7 @@ primary		: literal
 		| tLPAREN_ARG {SET_LEX_STATE(EXPR_ENDARG);} rparen
 		    {
 		    /*%%%*/
-			$$ = NEW_BEGIN(0);
-			nd_set_offset($$, @1.first_column);
+			$$ = new_begin(0, @1.first_column);
 		    /*%
 			$$ = dispatch1(paren, 0);
 		    %*/
@@ -4318,7 +4314,7 @@ keyword_variable: keyword_nil {$$ = KWD2EID(nil, $1);}
 var_ref		: user_variable
 		    {
 		    /*%%%*/
-			if (!($$ = gettable($1, @1.first_column))) $$ = NEW_BEGIN(0);
+			if (!($$ = gettable($1, @1.first_column))) $$ = new_begin(0, @1.first_column);
 		    /*%
 			if (id_is_var(get_id($1))) {
 			    $$ = dispatch1(var_ref, $1);
@@ -4331,7 +4327,7 @@ var_ref		: user_variable
 		| keyword_variable
 		    {
 		    /*%%%*/
-			if (!($$ = gettable($1, @1.first_column))) $$ = NEW_BEGIN(0);
+			if (!($$ = gettable($1, @1.first_column))) $$ = new_begin(0, @1.first_column);
 		    /*%
 			$$ = dispatch1(var_ref, $1);
 		    %*/
@@ -9491,6 +9487,15 @@ new_scope_gen(struct parser_params *parser, NODE *a, NODE *b, int offset)
 }
 
 static NODE *
+new_begin_gen(struct parser_params *parser, NODE *b, int offset)
+{
+    NODE *begin = NEW_BEGIN(b);
+    nd_set_offset(begin, offset);
+    return begin;
+}
+
+
+static NODE *
 new_kw_arg_gen(struct parser_params *parser, NODE *k, int offset)
 {
     NODE *kw_arg;
@@ -10717,7 +10722,7 @@ new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int
 	}
     }
     else {
-	asgn = NEW_BEGIN(0);
+	asgn = new_begin(0, offset);
     }
     return asgn;
 }
@@ -10755,7 +10760,7 @@ new_const_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rh
 	asgn = NEW_OP_CDECL(lhs, op, rhs);
     }
     else {
-	asgn = NEW_BEGIN(0);
+	asgn = new_begin(0, offset);
     }
     fixpos(asgn, lhs);
     nd_set_offset(asgn, offset);
@@ -11147,7 +11152,7 @@ reg_named_capture_assign_iter(const OnigUChar *name, const OnigUChar *name_end,
     var = intern_cstr(s, len, enc);
     node = node_assign(assignable(var, 0, arg->offset), new_lit(ID2SYM(var), arg->offset), arg->offset);
     succ = arg->succ_block;
-    if (!succ) succ = NEW_BEGIN(0);
+    if (!succ) succ = new_begin(0, arg->offset);
     succ = block_append(succ, node, arg->offset);
     arg->succ_block = succ;
     return ST_CONTINUE;
