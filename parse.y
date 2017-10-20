@@ -9484,8 +9484,8 @@ static NODE *
 new_xstring_gen(struct parser_params *parser, NODE *node, int column)
 {
     if (!node) {
-    	NODE *xstr = NEW_XSTR(STR_NEW0());
-    	nd_set_column(xstr, column);
+	NODE *xstr = NEW_XSTR(STR_NEW0());
+	nd_set_column(xstr, column);
 	return xstr;
     }
     switch (nd_type(node)) {
