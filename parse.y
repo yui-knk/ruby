@@ -353,8 +353,8 @@ static NODE *cond_gen(struct parser_params*,NODE*,int,int);
 #define cond(node,column) cond_gen(parser, (node), FALSE, column)
 #define method_cond(node,column) cond_gen(parser, (node), TRUE, column)
 #define new_nil() NEW_NIL()
-static NODE *new_if_gen(struct parser_params*,NODE*,NODE*,NODE*,int);
-#define new_if(cc,left,right,column) new_if_gen(parser, (cc), (left), (right), (column))
+static NODE *new_if_gen(struct parser_params*,NODE*,NODE*,NODE*,int,int);
+#define new_if(cc,left,right,lineno,column) new_if_gen(parser, (cc), (left), (right), (lineno), (column))
 static NODE *new_unless_gen(struct parser_params*,NODE*,NODE*,NODE*,int);
 #define new_unless(cc,left,right,column) new_unless_gen(parser, (cc), (left), (right), (column))
 static NODE *logop_gen(struct parser_params*,enum node_type,NODE*,NODE*,int);
@@ -1310,7 +1310,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		| stmt modifier_if expr_value
 		    {
 		    /*%%%*/
-			$$ = new_if($3, remove_begin($1), 0, @1.first_column);
+			$$ = new_if($3, remove_begin($1), 0, @1.first_line, @1.first_column);
 			fixpos($$, $3);
 		    /*%
 			$$ = dispatch2(if_mod, $3, $1);
@@ -2246,7 +2246,7 @@ arg		: lhs '=' arg_rhs
 		    {
 		    /*%%%*/
 			value_expr($1);
-			$$ = new_if($1, $3, $6, @1.first_column);
+			$$ = new_if($1, $3, $6, @1.first_line, @1.first_column);
 			fixpos($$, $1);
 		    /*%
 			$$ = dispatch3(ifop, $1, $3, $6);
@@ -2730,7 +2730,7 @@ primary		: literal
 		  k_end
 		    {
 		    /*%%%*/
-			$$ = new_if($2, $4, $5, @1.first_column);
+			$$ = new_if($2, $4, $5, @1.first_line, @1.first_column);
 			fixpos($$, $2);
 		    /*%
 			$$ = dispatch3(if, $2, $4, escape_Qundef($5));
@@ -3126,7 +3126,7 @@ if_tail		: opt_else
 		  if_tail
 		    {
 		    /*%%%*/
-			$$ = new_if($2, $4, $5, @1.first_column);
+			$$ = new_if($2, $4, $5, @1.first_line, @1.first_column);
 			fixpos($$, $2);
 		    /*%
 			$$ = dispatch3(elsif, $2, $4, escape_Qundef($5));
@@ -10406,13 +10406,14 @@ cond_gen(struct parser_params *parser, NODE *node, int method_op, int column)
 }
 
 static NODE*
-new_if_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right, int column)
+new_if_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right, int lineno, int column)
 {
     NODE *node_if;
 
     if (!cc) return right;
     cc = cond0(parser, cc, FALSE, column);
     node_if = NEW_IF(cc, left, right);
+    nd_set_lineno(node_if, lineno);
     nd_set_column(node_if, column);
     return newline_node(node_if);
 }
