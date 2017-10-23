@@ -272,6 +272,8 @@ typedef struct RNode {
     RNODE(n)->flags=((RNODE(n)->flags&~((VALUE)(-1)<<NODE_LSHIFT))|((VALUE)((l)&NODE_LMASK)<<NODE_LSHIFT))
 #define nd_column(n) (int)rb_imemo_node_pos_column((RNODE(n)->nd_reserved))
 #define nd_set_column(n, v) rb_imemo_node_pos_set_column(RNODE(n)->nd_reserved, v)
+#define nd_lineno(n) (int)rb_imemo_node_pos_lineno((RNODE(n)->nd_reserved))
+#define nd_set_lineno(n, v) rb_imemo_node_pos_set_lineno(RNODE(n)->nd_reserved, v)
 
 #define nd_head  u1.node
 #define nd_alen  u2.argc
