@@ -4533,6 +4533,8 @@ gc_mark_imemo(rb_objspace_t *objspace, VALUE obj)
 	    } while ((m = m->next) != NULL);
 	}
 	return;
+      case imemo_node_pos:
+	return;
 #if VM_CHECK_MODE > 0
       default:
 	VM_UNREACHABLE(gc_mark_imemo);

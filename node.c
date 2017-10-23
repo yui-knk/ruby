@@ -1089,6 +1089,7 @@ rb_node_memsize(VALUE obj)
 VALUE
 rb_gc_mark_node(NODE *obj)
 {
+    rb_gc_mark(RNODE(obj)->nd_reserved);
     switch (nd_type(obj)) {
       case NODE_IF:		/* 1,2,3 */
       case NODE_FOR:

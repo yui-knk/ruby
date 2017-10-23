@@ -844,7 +844,8 @@ enum imemo_type {
     imemo_memo       = 5,
     imemo_ment       = 6,
     imemo_iseq       = 7,
-    imemo_alloc      = 8
+    imemo_alloc      = 8,
+    imemo_node_pos   = 9
 };
 #define IMEMO_MASK   0x0f
 
@@ -937,6 +938,21 @@ typedef struct rb_imemo_alloc_struct {
     struct rb_imemo_alloc_struct *next; /* next imemo */
     size_t cnt; /* buffer size in VALUE */
 } rb_imemo_alloc_t;
+
+typedef struct rb_imemo_node_pos_struct {
+    VALUE flags;
+    VALUE v0;
+    VALUE v1;
+    VALUE v2;
+    VALUE v3;
+} rb_imemo_node_pos_t;
+#define rb_imemo_node_pos_column(m) (((rb_imemo_node_pos_t*)(m))->v0 & 0xffff)
+#define rb_imemo_node_pos_set_column(m, n) \
+    ((rb_imemo_node_pos_t*)(m))->v0 = (((rb_imemo_node_pos_t*)(m))->v0 & ~0xffff) | ((n) > 0xffff ? 0xffff : ((unsigned int)(n)) & 0xffff)
+
+#define rb_imemo_node_pos_lineno(m) ((((rb_imemo_node_pos_t*)(m))->v0 >> 16) & 0xffff)
+#define rb_imemo_node_pos_set_lineno(m, n) \
+    ((rb_imemo_node_pos_t*)(m))->v0 = (((rb_imemo_node_pos_t*)(m))->v0 & ~0xffff0000) | (((n) > 0xffff ? 0xffff : ((unsigned int)(n)) & 0xffff) << 16)
 
 /*! MEMO
  *
