@@ -530,8 +530,8 @@ static NODE *new_lvar_gen(struct parser_params *parser, ID id, int column);
 static NODE *new_dstr_gen(struct parser_params *parser, VALUE str, int column);
 #define new_dstr(s, column) new_dstr_gen(parser, s, column)
 
-static NODE *new_rescue_gen(struct parser_params *parser, NODE *b, NODE *res, NODE *e, int column);
-#define new_rescue(b,res,e,column) new_rescue_gen(parser,b,res,e,column)
+static NODE *new_rescue_gen(struct parser_params *parser, NODE *b, NODE *res, NODE *e, YYLTYPE location);
+#define new_rescue(b,res,e,location) new_rescue_gen(parser,b,res,e,location)
 
 static NODE *new_undef_gen(struct parser_params *parser, NODE *i, int column);
 #define new_undef(i, column) new_undef_gen(parser, i, column)
@@ -1191,7 +1191,7 @@ bodystmt	: compstmt
 		    /*%%%*/
 			$$ = $1;
 			if ($2) {
-			    $$ = new_rescue($1, $2, $3, @1.first_column);
+			    $$ = new_rescue($1, $2, $3, @1);
 			}
 			else if ($3) {
 			    rb_warn0("else without rescue is useless");
@@ -1506,7 +1506,7 @@ command_rhs	: command_call   %prec tOP_ASGN
 		    {
 		    /*%%%*/
 			value_expr($1);
-			$$ = new_rescue($1, new_resbody(0, remove_begin($3), 0, @1.first_column), 0, @1.first_column);
+			$$ = new_rescue($1, new_resbody(0, remove_begin($3), 0, @1.first_column), 0, @1);
 		    /*%
 			$$ = dispatch2(rescue_mod, $1, $3);
 		    %*/
@@ -2349,7 +2349,7 @@ arg_rhs 	: arg   %prec tOP_ASGN
 		    {
 		    /*%%%*/
 			value_expr($1);
-			$$ = new_rescue($1, new_resbody(0, remove_begin($3), 0, @1.first_column), 0, @1.first_column);
+			$$ = new_rescue($1, new_resbody(0, remove_begin($3), 0, @1.first_column), 0, @1);
 		    /*%
 			$$ = dispatch2(rescue_mod, $1, $3);
 		    %*/
@@ -9466,10 +9466,11 @@ new_dstr_gen(struct parser_params *parser, VALUE str, int column)
 }
 
 static NODE *
-new_rescue_gen(struct parser_params *parser, NODE *b, NODE *res, NODE *e, int column)
+new_rescue_gen(struct parser_params *parser, NODE *b, NODE *res, NODE *e, YYLTYPE location)
 {
     NODE *rescue = NEW_RESCUE(b, res, e);
-    nd_set_column(rescue, column);
+    nd_set_lineno(rescue, location.first_line);
+    nd_set_column(rescue, location.first_column);
     return rescue;
 }
 
