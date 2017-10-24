@@ -524,8 +524,8 @@ static NODE *new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NO
 static NODE *new_gvar_gen(struct parser_params *parser, ID id, int column);
 #define new_gvar(id, column) new_gvar_gen(parser, id, column)
 
-static NODE *new_lvar_gen(struct parser_params *parser, ID id, int column);
-#define new_lvar(id, column) new_lvar_gen(parser, id, column)
+static NODE *new_lvar_gen(struct parser_params *parser, ID id, YYLTYPE location);
+#define new_lvar(id, location) new_lvar_gen(parser, id, location)
 
 static NODE *new_dstr_gen(struct parser_params *parser, VALUE str, int column);
 #define new_dstr(s, column) new_dstr_gen(parser, s, column)
@@ -4570,7 +4570,7 @@ f_arg_item	: f_arg_asgn
 			    $2->nd_value = new_dvar(tid, @1.first_column);
 			}
 			else {
-			    $2->nd_value = new_lvar(tid, @1.first_column);
+			    $2->nd_value = new_lvar(tid, @1);
 			}
 			$$ = NEW_ARGS_AUX(tid, 1);
 			$$->nd_next = $2;
@@ -9263,7 +9263,7 @@ gettable_gen(struct parser_params *parser, ID id, YYLTYPE location)
 		rb_warn1("circular argument reference - %"PRIsWARN, rb_id2str(id));
 	    }
 	    if (vidp) *vidp |= LVAR_USED;
-	    node = new_lvar(id, location.first_column);
+	    node = new_lvar(id, location);
 	    return node;
 	}
 # if WARN_PAST_SCOPE
@@ -9465,10 +9465,11 @@ new_gvar_gen(struct parser_params *parser, ID id, int column)
 }
 
 static NODE *
-new_lvar_gen(struct parser_params *parser, ID id, int column)
+new_lvar_gen(struct parser_params *parser, ID id, YYLTYPE location)
 {
     NODE *lvar = NEW_LVAR(id);
-    nd_set_column(lvar, column);
+    nd_set_lineno(lvar, location.first_line);
+    nd_set_column(lvar, location.first_column);
     return lvar;
 }
 
