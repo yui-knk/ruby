@@ -539,8 +539,8 @@ static NODE *new_scope_gen(struct parser_params *parser, NODE *a, NODE *b, int c
 static NODE *new_begin_gen(struct parser_params *parser, NODE *b, YYLTYPE location);
 #define new_begin(b,location) new_begin_gen(parser,b,location)
 
-static NODE *new_masgn_gen(struct parser_params *parser, NODE *l, NODE *r, int column);
-#define new_masgn(l,r,column) new_masgn_gen(parser,l,r,column)
+static NODE *new_masgn_gen(struct parser_params *parser, NODE *l, NODE *r, YYLTYPE location);
+#define new_masgn(l,r,location) new_masgn_gen(parser,l,r,location)
 
 static NODE *new_xstring_gen(struct parser_params *, NODE *, int column);
 #define new_xstring(node, column) new_xstring_gen(parser, node, column)
@@ -1670,7 +1670,7 @@ mlhs_inner	: mlhs_basic
 		| tLPAREN mlhs_inner rparen
 		    {
 		    /*%%%*/
-			$$ = new_masgn(new_list($2, @1.first_column), 0, @1.first_column);
+			$$ = new_masgn(new_list($2, @1.first_column), 0, @1);
 		    /*%
 			$$ = dispatch1(mlhs_paren, $2);
 		    %*/
@@ -1680,7 +1680,7 @@ mlhs_inner	: mlhs_basic
 mlhs_basic	: mlhs_head
 		    {
 		    /*%%%*/
-			$$ = new_masgn($1, 0, @1.first_column);
+			$$ = new_masgn($1, 0, @1);
 		    /*%
 			$$ = $1;
 		    %*/
@@ -1688,7 +1688,7 @@ mlhs_basic	: mlhs_head
 		| mlhs_head mlhs_item
 		    {
 		    /*%%%*/
-			$$ = new_masgn(list_append($1,$2,@1.first_column), 0, @1.first_column);
+			$$ = new_masgn(list_append($1,$2,@1.first_column), 0, @1);
 		    /*%
 			$$ = mlhs_add($1, $2);
 		    %*/
@@ -1696,7 +1696,7 @@ mlhs_basic	: mlhs_head
 		| mlhs_head tSTAR mlhs_node
 		    {
 		    /*%%%*/
-			$$ = new_masgn($1, $3, @1.first_column);
+			$$ = new_masgn($1, $3, @1);
 		    /*%
 			$$ = mlhs_add_star($1, $3);
 		    %*/
@@ -1704,7 +1704,7 @@ mlhs_basic	: mlhs_head
 		| mlhs_head tSTAR mlhs_node ',' mlhs_post
 		    {
 		    /*%%%*/
-			$$ = new_masgn($1, new_postarg($3,$5,@1.first_column), @1.first_column);
+			$$ = new_masgn($1, new_postarg($3,$5,@1.first_column), @1);
 		    /*%
 			$1 = mlhs_add_star($1, $3);
 			$$ = mlhs_add_post($1, $5);
@@ -1713,7 +1713,7 @@ mlhs_basic	: mlhs_head
 		| mlhs_head tSTAR
 		    {
 		    /*%%%*/
-			$$ = new_masgn($1, (NODE *)-1, @1.first_column);
+			$$ = new_masgn($1, (NODE *)-1, @1);
 		    /*%
 			$$ = mlhs_add_star($1, Qnil);
 		    %*/
@@ -1721,7 +1721,7 @@ mlhs_basic	: mlhs_head
 		| mlhs_head tSTAR ',' mlhs_post
 		    {
 		    /*%%%*/
-			$$ = new_masgn($1, new_postarg((NODE *)-1, $4, @1.first_column), @1.first_column);
+			$$ = new_masgn($1, new_postarg((NODE *)-1, $4, @1.first_column), @1);
 		    /*%
 			$1 = mlhs_add_star($1, Qnil);
 			$$ = mlhs_add_post($1, $4);
@@ -1730,7 +1730,7 @@ mlhs_basic	: mlhs_head
 		| tSTAR mlhs_node
 		    {
 		    /*%%%*/
-			$$ = new_masgn(0, $2, @1.first_column);
+			$$ = new_masgn(0, $2, @1);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), $2);
 		    %*/
@@ -1738,7 +1738,7 @@ mlhs_basic	: mlhs_head
 		| tSTAR mlhs_node ',' mlhs_post
 		    {
 		    /*%%%*/
-			$$ = new_masgn(0, new_postarg($2,$4,@1.first_column), @1.first_column);
+			$$ = new_masgn(0, new_postarg($2,$4,@1.first_column), @1);
 		    /*%
 			$2 = mlhs_add_star(mlhs_new(), $2);
 			$$ = mlhs_add_post($2, $4);
@@ -1747,7 +1747,7 @@ mlhs_basic	: mlhs_head
 		| tSTAR
 		    {
 		    /*%%%*/
-			$$ = new_masgn(0, (NODE *)-1, @1.first_column);
+			$$ = new_masgn(0, (NODE *)-1, @1);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
 		    %*/
@@ -1755,7 +1755,7 @@ mlhs_basic	: mlhs_head
 		| tSTAR ',' mlhs_post
 		    {
 		    /*%%%*/
-			$$ = new_masgn(0, new_postarg((NODE *)-1, $3, @1.first_column), @1.first_column);
+			$$ = new_masgn(0, new_postarg((NODE *)-1, $3, @1.first_column), @1);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
 			$$ = mlhs_add_post($$, $3);
@@ -2842,7 +2842,7 @@ primary		: literal
 			    break;
 			  default:
 			    {
-				NODE *masgn = new_masgn(new_list($2, @1.first_column), 0, @1.first_column);
+				NODE *masgn = new_masgn(new_list($2, @1.first_column), 0, @1);
 				m->nd_next = node_assign(masgn, new_dvar(id, @1.first_column), @1.first_column);
 				args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1.first_column));
 				break;
@@ -3198,7 +3198,7 @@ f_marg_list	: f_marg
 f_margs		: f_marg_list
 		    {
 		    /*%%%*/
-			$$ = new_masgn($1, 0, @1.first_column);
+			$$ = new_masgn($1, 0, @1);
 		    /*%
 			$$ = $1;
 		    %*/
@@ -3207,7 +3207,7 @@ f_margs		: f_marg_list
 		    {
 			$$ = assignable($4, 0, @1);
 		    /*%%%*/
-			$$ = new_masgn($1, $$, @1.first_column);
+			$$ = new_masgn($1, $$, @1);
 		    /*%
 			$$ = mlhs_add_star($1, $$);
 		    %*/
@@ -3216,7 +3216,7 @@ f_margs		: f_marg_list
 		    {
 			$$ = assignable($4, 0, @1);
 		    /*%%%*/
-			$$ = new_masgn($1, new_postarg($$, $6, @1.first_column), @1.first_column);
+			$$ = new_masgn($1, new_postarg($$, $6, @1.first_column), @1);
 		    /*%
 			$$ = mlhs_add_star($1, $$);
 			$$ = mlhs_add_post($$, $6);
@@ -3225,7 +3225,7 @@ f_margs		: f_marg_list
 		| f_marg_list ',' tSTAR
 		    {
 		    /*%%%*/
-			$$ = new_masgn($1, (NODE *)-1, @1.first_column);
+			$$ = new_masgn($1, (NODE *)-1, @1);
 		    /*%
 			$$ = mlhs_add_star($1, Qnil);
 		    %*/
@@ -3233,7 +3233,7 @@ f_margs		: f_marg_list
 		| f_marg_list ',' tSTAR ',' f_marg_list
 		    {
 		    /*%%%*/
-			$$ = new_masgn($1, new_postarg((NODE *)-1, $5, @1.first_column), @1.first_column);
+			$$ = new_masgn($1, new_postarg((NODE *)-1, $5, @1.first_column), @1);
 		    /*%
 			$$ = mlhs_add_star($1, Qnil);
 			$$ = mlhs_add_post($$, $5);
@@ -3243,7 +3243,7 @@ f_margs		: f_marg_list
 		    {
 			$$ = assignable($2, 0, @1);
 		    /*%%%*/
-			$$ = new_masgn(0, $$, @1.first_column);
+			$$ = new_masgn(0, $$, @1);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), $$);
 		    %*/
@@ -3252,7 +3252,7 @@ f_margs		: f_marg_list
 		    {
 			$$ = assignable($2, 0, @1);
 		    /*%%%*/
-			$$ = new_masgn(0, new_postarg($$, $4, @1.first_column), @1.first_column);
+			$$ = new_masgn(0, new_postarg($$, $4, @1.first_column), @1);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), $$);
 			$$ = mlhs_add_post($$, $4);
@@ -3261,7 +3261,7 @@ f_margs		: f_marg_list
 		| tSTAR
 		    {
 		    /*%%%*/
-			$$ = new_masgn(0, (NODE *)-1, @1.first_column);
+			$$ = new_masgn(0, (NODE *)-1, @1);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
 		    %*/
@@ -3269,7 +3269,7 @@ f_margs		: f_marg_list
 		| tSTAR ',' f_marg_list
 		    {
 		    /*%%%*/
-			$$ = new_masgn(0, new_postarg((NODE *)-1, $3, @1.first_column), @1.first_column);
+			$$ = new_masgn(0, new_postarg((NODE *)-1, $3, @1.first_column), @1);
 		    /*%
 			$$ = mlhs_add_star(mlhs_new(), Qnil);
 			$$ = mlhs_add_post($$, $3);
@@ -9493,10 +9493,11 @@ new_begin_gen(struct parser_params *parser, NODE *b, YYLTYPE location)
 }
 
 static NODE *
-new_masgn_gen(struct parser_params *parser, NODE *l, NODE *r, int column)
+new_masgn_gen(struct parser_params *parser, NODE *l, NODE *r, YYLTYPE location)
 {
     NODE *masgn = NEW_MASGN(l, r);
-    nd_set_column(masgn, column);
+    nd_set_lineno(masgn, location.first_line);
+    nd_set_column(masgn, location.first_column);
     return masgn;
 }
 
