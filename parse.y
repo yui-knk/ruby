@@ -432,8 +432,8 @@ static VALUE negate_lit_gen(struct parser_params*, VALUE);
 static NODE *ret_args_gen(struct parser_params*,NODE*);
 #define ret_args(node) ret_args_gen(parser, (node))
 static NODE *arg_blk_pass(NODE*,NODE*);
-static NODE *new_yield_gen(struct parser_params*,NODE*,int);
-#define new_yield(node,column) new_yield_gen(parser, (node), (column))
+static NODE *new_yield_gen(struct parser_params*,NODE*,YYLTYPE);
+#define new_yield(node,location) new_yield_gen(parser, (node), (location))
 static NODE *dsym_node_gen(struct parser_params*,NODE*,YYLTYPE);
 #define dsym_node(node,location) dsym_node_gen(parser, (node), (location))
 
@@ -1620,7 +1620,7 @@ command		: fcall command_args       %prec tLOWEST
 		| keyword_yield command_args
 		    {
 		    /*%%%*/
-			$$ = new_yield($2, @1.first_column);
+			$$ = new_yield($2, @1);
 			fixpos($$, $2);
 		    /*%
 			$$ = dispatch1(yield, $2);
@@ -2674,7 +2674,7 @@ primary		: literal
 		| keyword_yield '(' call_args rparen
 		    {
 		    /*%%%*/
-			$$ = new_yield($3, @1.first_column);
+			$$ = new_yield($3, @1);
 		    /*%
 			$$ = dispatch1(yield, dispatch1(paren, $3));
 		    %*/
@@ -10527,13 +10527,14 @@ ret_args_gen(struct parser_params *parser, NODE *node)
 }
 
 static NODE *
-new_yield_gen(struct parser_params *parser, NODE *node, int column)
+new_yield_gen(struct parser_params *parser, NODE *node, YYLTYPE location)
 {
     NODE *yield;
     if (node) no_blockarg(parser, node);
 
     yield = NEW_YIELD(node);
-    nd_set_column(yield, column);
+    nd_set_lineno(yield, location.first_line);
+    nd_set_column(yield, location.first_column);
     return yield;
 }
 
