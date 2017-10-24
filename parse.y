@@ -381,8 +381,8 @@ static NODE *cond_gen(struct parser_params*,NODE*,int,int);
 #define new_nil() NEW_NIL()
 static NODE *new_if_gen(struct parser_params*,NODE*,NODE*,NODE*,YYLTYPE);
 #define new_if(cc,left,right,location) new_if_gen(parser, (cc), (left), (right), (location))
-static NODE *new_unless_gen(struct parser_params*,NODE*,NODE*,NODE*,int);
-#define new_unless(cc,left,right,column) new_unless_gen(parser, (cc), (left), (right), (column))
+static NODE *new_unless_gen(struct parser_params*,NODE*,NODE*,NODE*,YYLTYPE);
+#define new_unless(cc,left,right,location) new_unless_gen(parser, (cc), (left), (right), (location))
 static NODE *logop_gen(struct parser_params*,enum node_type,NODE*,NODE*,int);
 #define logop(id,node1,node2,column) \
     logop_gen(parser, ((id)==idAND||(id)==idANDOP)?NODE_AND:NODE_OR, \
@@ -1347,7 +1347,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		| stmt modifier_unless expr_value
 		    {
 		    /*%%%*/
-			$$ = new_unless($3, remove_begin($1), 0, @1.first_column);
+			$$ = new_unless($3, remove_begin($1), 0, @1);
 			fixpos($$, $3);
 		    /*%
 			$$ = dispatch2(unless_mod, $3, $1);
@@ -2769,7 +2769,7 @@ primary		: literal
 		  k_end
 		    {
 		    /*%%%*/
-			$$ = new_unless($2, $4, $5, @1.first_column);
+			$$ = new_unless($2, $4, $5, @1);
 			fixpos($$, $2);
 		    /*%
 			$$ = dispatch3(unless, $2, $4, escape_Qundef($5));
@@ -10480,14 +10480,15 @@ new_if_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right, YYLT
 }
 
 static NODE*
-new_unless_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right, int column)
+new_unless_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right, YYLTYPE location)
 {
     NODE *node_unless;
 
     if (!cc) return right;
-    cc = cond0(parser, cc, FALSE, column);
+    cc = cond0(parser, cc, FALSE, location.first_column);
     node_unless = NEW_UNLESS(cc, left, right);
-    nd_set_column(node_unless, column);
+    nd_set_lineno(node_unless, location.first_line);
+    nd_set_column(node_unless, location.first_column);
     return newline_node(node_unless);
 }
 
