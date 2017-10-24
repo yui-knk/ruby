@@ -457,8 +457,8 @@ static NODE *gettable_gen(struct parser_params*,ID,YYLTYPE);
 static NODE *assignable_gen(struct parser_params*,ID,NODE*,YYLTYPE);
 #define assignable(id,node,location) assignable_gen(parser, (id), (node), (location))
 
-static NODE *aryset_gen(struct parser_params*,NODE*,NODE*,int);
-#define aryset(node1,node2,column) aryset_gen(parser, (node1), (node2), (column))
+static NODE *aryset_gen(struct parser_params*,NODE*,NODE*,YYLTYPE);
+#define aryset(node1,node2,location) aryset_gen(parser, (node1), (node2), (location))
 static NODE *attrset_gen(struct parser_params*,NODE*,ID,ID,YYLTYPE);
 #define attrset(node,q,id,location) attrset_gen(parser, (node), (q), (id), (location))
 
@@ -1837,7 +1837,7 @@ mlhs_node	: user_variable
 		| primary_value '[' opt_call_args rbracket
 		    {
 		    /*%%%*/
-			$$ = aryset($1, $3, @1.first_column);
+			$$ = aryset($1, $3, @1);
 		    /*%
 			$$ = dispatch2(aref_field, $1, escape_Qundef($3));
 		    %*/
@@ -1900,7 +1900,7 @@ lhs		: user_variable
 		| primary_value '[' opt_call_args rbracket
 		    {
 		    /*%%%*/
-			$$ = aryset($1, $3, @1.first_column);
+			$$ = aryset($1, $3, @1);
 		    /*%
 			$$ = dispatch2(aref_field, $1, escape_Qundef($3));
 		    %*/
@@ -9932,10 +9932,11 @@ new_bv_gen(struct parser_params *parser, ID name)
 
 #ifndef RIPPER
 static NODE *
-aryset_gen(struct parser_params *parser, NODE *recv, NODE *idx, int column)
+aryset_gen(struct parser_params *parser, NODE *recv, NODE *idx, YYLTYPE location)
 {
     NODE *attrasgn = NEW_ATTRASGN(recv, tASET, idx);
-    nd_set_column(attrasgn, column);
+    nd_set_lineno(attrasgn, location.first_line);
+    nd_set_column(attrasgn, location.first_column);
     return attrasgn;
 }
 
