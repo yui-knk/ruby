@@ -439,8 +439,8 @@ static NODE *dsym_node_gen(struct parser_params*,NODE*,int);
 
 static NODE *gettable_gen(struct parser_params*,ID,int);
 #define gettable(id,column) gettable_gen(parser,(id),(column))
-static NODE *assignable_gen(struct parser_params*,ID,NODE*,int);
-#define assignable(id,node,column) assignable_gen(parser, (id), (node), (column))
+static NODE *assignable_gen(struct parser_params*,ID,NODE*,YYLTYPE);
+#define assignable(id,node,location) assignable_gen(parser, (id), (node), (location))
 
 static NODE *aryset_gen(struct parser_params*,NODE*,NODE*,int);
 #define aryset(node1,node2,column) aryset_gen(parser, (node1), (node2), (column))
@@ -594,7 +594,7 @@ static ID ripper_get_id(VALUE);
 static VALUE ripper_get_value(VALUE);
 #define get_value(val) ripper_get_value(val)
 static VALUE assignable_gen(struct parser_params*,VALUE);
-#define assignable(lhs,node,column) assignable_gen(parser, (lhs))
+#define assignable(lhs,node,location) assignable_gen(parser, (lhs))
 static int id_is_var_gen(struct parser_params *parser, ID id);
 #define id_is_var(id) id_is_var_gen(parser, (id))
 
@@ -1812,11 +1812,11 @@ mlhs_post	: mlhs_item
 
 mlhs_node	: user_variable
 		    {
-			$$ = assignable(var_field($1), 0, @1.first_column);
+			$$ = assignable(var_field($1), 0, @1);
 		    }
 		| keyword_variable
 		    {
-			$$ = assignable(var_field($1), 0, @1.first_column);
+			$$ = assignable(var_field($1), 0, @1);
 		    }
 		| primary_value '[' opt_call_args rbracket
 		    {
@@ -1867,7 +1867,7 @@ mlhs_node	: user_variable
 
 lhs		: user_variable
 		    {
-			$$ = assignable(var_field($1), 0, @1.first_column);
+			$$ = assignable(var_field($1), 0, @1);
 		    /*%%%*/
 			if (!$$) $$ = new_begin(0, @1);
 		    /*%
@@ -1875,7 +1875,7 @@ lhs		: user_variable
 		    }
 		| keyword_variable
 		    {
-			$$ = assignable(var_field($1), 0, @1.first_column);
+			$$ = assignable(var_field($1), 0, @1);
 		    /*%%%*/
 			if (!$$) $$ = new_begin(0, @1);
 		    /*%
@@ -3162,7 +3162,7 @@ for_var		: lhs
 
 f_marg		: f_norm_arg
 		    {
-			$$ = assignable($1, 0, @1.first_column);
+			$$ = assignable($1, 0, @1);
 		    /*%%%*/
 		    /*%
 		    %*/
@@ -3205,7 +3205,7 @@ f_margs		: f_marg_list
 		    }
 		| f_marg_list ',' tSTAR f_norm_arg
 		    {
-			$$ = assignable($4, 0, @1.first_column);
+			$$ = assignable($4, 0, @1);
 		    /*%%%*/
 			$$ = new_masgn($1, $$, @1.first_column);
 		    /*%
@@ -3214,7 +3214,7 @@ f_margs		: f_marg_list
 		    }
 		| f_marg_list ',' tSTAR f_norm_arg ',' f_marg_list
 		    {
-			$$ = assignable($4, 0, @1.first_column);
+			$$ = assignable($4, 0, @1);
 		    /*%%%*/
 			$$ = new_masgn($1, new_postarg($$, $6, @1.first_column), @1.first_column);
 		    /*%
@@ -3241,7 +3241,7 @@ f_margs		: f_marg_list
 		    }
 		| tSTAR f_norm_arg
 		    {
-			$$ = assignable($2, 0, @1.first_column);
+			$$ = assignable($2, 0, @1);
 		    /*%%%*/
 			$$ = new_masgn(0, $$, @1.first_column);
 		    /*%
@@ -3250,7 +3250,7 @@ f_margs		: f_marg_list
 		    }
 		| tSTAR f_norm_arg ',' f_marg_list
 		    {
-			$$ = assignable($2, 0, @1.first_column);
+			$$ = assignable($2, 0, @1);
 		    /*%%%*/
 			$$ = new_masgn(0, new_postarg($$, $4, @1.first_column), @1.first_column);
 		    /*%
@@ -4318,11 +4318,11 @@ var_ref		: user_variable
 
 var_lhs		: user_variable
 		    {
-			$$ = assignable(var_field($1), 0, @1.first_column);
+			$$ = assignable(var_field($1), 0, @1);
 		    }
 		| keyword_variable
 		    {
-			$$ = assignable(var_field($1), 0, @1.first_column);
+			$$ = assignable(var_field($1), 0, @1);
 		    }
 		;
 
@@ -4596,7 +4596,7 @@ f_label 	: tLABEL
 f_kw		: f_label arg_value
 		    {
 			current_arg = 0;
-			$$ = assignable($1, $2, @1.first_column);
+			$$ = assignable($1, $2, @1);
 		    /*%%%*/
 			$$ = new_kw_arg($$, @1.first_column);
 		    /*%
@@ -4606,7 +4606,7 @@ f_kw		: f_label arg_value
 		| f_label
 		    {
 			current_arg = 0;
-			$$ = assignable($1, (NODE *)-1, @1.first_column);
+			$$ = assignable($1, (NODE *)-1, @1);
 		    /*%%%*/
 			$$ = new_kw_arg($$, @1.first_column);
 		    /*%
@@ -4617,7 +4617,7 @@ f_kw		: f_label arg_value
 
 f_block_kw	: f_label primary_value
 		    {
-			$$ = assignable($1, $2, @1.first_column);
+			$$ = assignable($1, $2, @1);
 		    /*%%%*/
 			$$ = new_kw_arg($$, @1.first_column);
 		    /*%
@@ -4626,7 +4626,7 @@ f_block_kw	: f_label primary_value
 		    }
 		| f_label
 		    {
-			$$ = assignable($1, (NODE *)-1, @1.first_column);
+			$$ = assignable($1, (NODE *)-1, @1);
 		    /*%%%*/
 			$$ = new_kw_arg($$, @1.first_column);
 		    /*%
@@ -4699,7 +4699,7 @@ f_kwrest	: kwrest_mark tIDENTIFIER
 f_opt		: f_arg_asgn '=' arg_value
 		    {
 			current_arg = 0;
-			$$ = assignable($1, $3, @1.first_column);
+			$$ = assignable($1, $3, @1);
 		    /*%%%*/
 			$$ = NEW_OPT_ARG(0, $$);
 			nd_set_column($$, @1.first_column);
@@ -4712,7 +4712,7 @@ f_opt		: f_arg_asgn '=' arg_value
 f_block_opt	: f_arg_asgn '=' primary_value
 		    {
 			current_arg = 0;
-			$$ = assignable($1, $3, @1.first_column);
+			$$ = assignable($1, $3, @1);
 		    /*%%%*/
 			$$ = NEW_OPT_ARG(0, $$);
 			nd_set_column($$, @1.first_column);
@@ -9705,9 +9705,12 @@ rb_parser_fatal(struct parser_params *parser, const char *fmt, ...)
 
 #ifndef RIPPER
 static NODE*
-assignable_result0(NODE *node, int column)
+assignable_result0(NODE *node, YYLTYPE location)
 {
-    if (node) nd_set_column(node, column);
+    if (node) {
+	nd_set_lineno(node, location.first_line);
+	nd_set_column(node, location.first_column);
+    }
     return node;
 }
 #endif /* !RIPPER */
@@ -9717,7 +9720,7 @@ static VALUE
 assignable_gen(struct parser_params *parser, VALUE lhs)
 #else
 static NODE*
-assignable_gen(struct parser_params *parser, ID id, NODE *val, int column)
+assignable_gen(struct parser_params *parser, ID id, NODE *val, YYLTYPE location)
 #endif
 {
 #ifdef RIPPER
@@ -9725,7 +9728,7 @@ assignable_gen(struct parser_params *parser, ID id, NODE *val, int column)
 # define assignable_result(x) (lhs)
 # define parser_yyerror(parser, x) (lhs = assign_error_gen(parser, lhs))
 #else
-# define assignable_result(x) assignable_result0(x, column)
+# define assignable_result(x) assignable_result0(x, location)
 #endif
     if (!id) return assignable_result(0);
     switch (id) {
@@ -9781,7 +9784,7 @@ assignable_gen(struct parser_params *parser, ID id, NODE *val, int column)
 	return assignable_result(NEW_IASGN(id, val));
       case ID_CONST:
 	if (!in_def && !in_single)
-	    return assignable_result(new_cdecl(id, val, 0, column));
+	    return assignable_result(new_cdecl(id, val, 0, location.first_column));
 	yyerror0("dynamic constant assignment");
 	break;
       case ID_CLASS:
@@ -11192,7 +11195,7 @@ reg_named_capture_assign_iter(const OnigUChar *name, const OnigUChar *name_end,
         return ST_CONTINUE;
     }
     var = intern_cstr(s, len, enc);
-    node = node_assign(assignable(var, 0, arg->location.first_column), new_lit(ID2SYM(var), arg->location.first_column), arg->location.first_column);
+    node = node_assign(assignable(var, 0, arg->location), new_lit(ID2SYM(var), arg->location.first_column), arg->location.first_column);
     succ = arg->succ_block;
     if (!succ) succ = new_begin(0, arg->location);
     succ = block_append(succ, node, arg->location.first_column);
