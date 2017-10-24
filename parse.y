@@ -379,8 +379,8 @@ static NODE *cond_gen(struct parser_params*,NODE*,int,int);
 #define cond(node,column) cond_gen(parser, (node), FALSE, column)
 #define method_cond(node,column) cond_gen(parser, (node), TRUE, column)
 #define new_nil() NEW_NIL()
-static NODE *new_if_gen(struct parser_params*,NODE*,NODE*,NODE*,int);
-#define new_if(cc,left,right,column) new_if_gen(parser, (cc), (left), (right), (column))
+static NODE *new_if_gen(struct parser_params*,NODE*,NODE*,NODE*,YYLTYPE);
+#define new_if(cc,left,right,location) new_if_gen(parser, (cc), (left), (right), (location))
 static NODE *new_unless_gen(struct parser_params*,NODE*,NODE*,NODE*,int);
 #define new_unless(cc,left,right,column) new_unless_gen(parser, (cc), (left), (right), (column))
 static NODE *logop_gen(struct parser_params*,enum node_type,NODE*,NODE*,int);
@@ -1338,7 +1338,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		| stmt modifier_if expr_value
 		    {
 		    /*%%%*/
-			$$ = new_if($3, remove_begin($1), 0, @1.first_column);
+			$$ = new_if($3, remove_begin($1), 0, @1);
 			fixpos($$, $3);
 		    /*%
 			$$ = dispatch2(if_mod, $3, $1);
@@ -2273,7 +2273,7 @@ arg		: lhs '=' arg_rhs
 		    {
 		    /*%%%*/
 			value_expr($1);
-			$$ = new_if($1, $3, $6, @1.first_column);
+			$$ = new_if($1, $3, $6, @1);
 			fixpos($$, $1);
 		    /*%
 			$$ = dispatch3(ifop, $1, $3, $6);
@@ -2757,7 +2757,7 @@ primary		: literal
 		  k_end
 		    {
 		    /*%%%*/
-			$$ = new_if($2, $4, $5, @1.first_column);
+			$$ = new_if($2, $4, $5, @1);
 			fixpos($$, $2);
 		    /*%
 			$$ = dispatch3(if, $2, $4, escape_Qundef($5));
@@ -3154,7 +3154,7 @@ if_tail		: opt_else
 		  if_tail
 		    {
 		    /*%%%*/
-			$$ = new_if($2, $4, $5, @1.first_column);
+			$$ = new_if($2, $4, $5, @1);
 			fixpos($$, $2);
 		    /*%
 			$$ = dispatch3(elsif, $2, $4, escape_Qundef($5));
@@ -8813,6 +8813,7 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *parser)
     else if (t != 0)
 	dispatch_scan_event(t);
 
+    yylloc->first_line = ruby_sourceline;
     yylloc->first_column = (int)(parser->tokp - lex_pbeg);
     yylloc->last_column  = (int)(lex_p - lex_pbeg);
 
@@ -10466,14 +10467,15 @@ cond_gen(struct parser_params *parser, NODE *node, int method_op, int column)
 }
 
 static NODE*
-new_if_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right, int column)
+new_if_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right, YYLTYPE location)
 {
     NODE *node_if;
 
     if (!cc) return right;
-    cc = cond0(parser, cc, FALSE, column);
+    cc = cond0(parser, cc, FALSE, location.first_column);
     node_if = NEW_IF(cc, left, right);
-    nd_set_column(node_if, column);
+    nd_set_lineno(node_if, location.first_line);
+    nd_set_column(node_if, location.first_column);
     return newline_node(node_if);
 }
 
