@@ -395,8 +395,8 @@ static NODE *block_append_gen(struct parser_params*,NODE*,NODE*,int);
 static NODE *list_append_gen(struct parser_params*,NODE*,NODE*,int);
 #define list_append(l,i,column) list_append_gen(parser,(l),(i),(column))
 static NODE *list_concat(NODE*,NODE*);
-static NODE *arg_append_gen(struct parser_params*,NODE*,NODE*,int);
-#define arg_append(h,t,column) arg_append_gen(parser,(h),(t),(column))
+static NODE *arg_append_gen(struct parser_params*,NODE*,NODE*,YYLTYPE);
+#define arg_append(h,t,location) arg_append_gen(parser,(h),(t),(location))
 static NODE *arg_concat_gen(struct parser_params*,NODE*,NODE*,YYLTYPE);
 #define arg_concat(h,t,location) arg_concat_gen(parser,(h),(t),(location))
 static NODE *literal_concat_gen(struct parser_params*,NODE*,NODE*,YYLTYPE);
@@ -2306,7 +2306,7 @@ aref_args	: none
 		| args ',' assocs trailer
 		    {
 		    /*%%%*/
-			$$ = $3 ? arg_append($1, new_hash($3, @1), @1.first_column) : $1;
+			$$ = $3 ? arg_append($1, new_hash($3, @1), @1) : $1;
 		    /*%
 			$$ = arg_add_assocs($1, $3);
 		    %*/
@@ -2363,7 +2363,7 @@ opt_call_args	: none
 		| args ',' assocs ','
 		    {
 		    /*%%%*/
-			$$ = $3 ? arg_append($1, new_hash($3, @1), @1.first_column) : $1;
+			$$ = $3 ? arg_append($1, new_hash($3, @1), @1) : $1;
 		    /*%
 			$$ = arg_add_assocs($1, $3);
 		    %*/
@@ -2408,7 +2408,7 @@ call_args	: command
 		| args ',' assocs opt_block_arg
 		    {
 		    /*%%%*/
-			$$ = $3 ? arg_append($1, new_hash($3, @1), @1.first_column) : $1;
+			$$ = $3 ? arg_append($1, new_hash($3, @1), @1) : $1;
 			$$ = arg_blk_pass($$, $4);
 		    /*%
 			$$ = arg_add_optblock(arg_add_assocs($1, $3), $4);
@@ -2481,7 +2481,7 @@ args		: arg_value
 			    $$ = list_append(n1, $3, @1.first_column);
 			}
 			else {
-			    $$ = arg_append($1, $3, @1.first_column);
+			    $$ = arg_append($1, $3, @1);
 			}
 		    /*%
 			$$ = arg_add($1, $3);
@@ -2515,7 +2515,7 @@ mrhs		: args ',' arg_value
 			    $$ = list_append(n1, $3, @1.first_column);
 			}
 			else {
-			    $$ = arg_append($1, $3, @1.first_column);
+			    $$ = arg_append($1, $3, @1);
 			}
 		    /*%
 			$$ = mrhs_add(args2mrhs($1), $3);
@@ -9953,24 +9953,25 @@ arg_concat_gen(struct parser_params *parser, NODE *node1, NODE *node2, YYLTYPE l
 }
 
 static NODE *
-arg_append_gen(struct parser_params *parser, NODE *node1, NODE *node2, int column)
+arg_append_gen(struct parser_params *parser, NODE *node1, NODE *node2, YYLTYPE location)
 {
     NODE *argspush;
 
-    if (!node1) return new_list(node2, column);
+    if (!node1) return new_list(node2, location.first_column);
     switch (nd_type(node1))  {
       case NODE_ARRAY:
-	return list_append(node1, node2, column);
+	return list_append(node1, node2, location.first_column);
       case NODE_BLOCK_PASS:
-	node1->nd_head = arg_append(node1->nd_head, node2, column);
+	node1->nd_head = arg_append(node1->nd_head, node2, location);
 	return node1;
       case NODE_ARGSPUSH:
-	node1->nd_body = list_append(new_list(node1->nd_body, column), node2, column);
+	node1->nd_body = list_append(new_list(node1->nd_body, location.first_column), node2, location.first_column);
 	nd_set_type(node1, NODE_ARGSCAT);
 	return node1;
     }
     argspush = NEW_ARGSPUSH(node1, node2);
-    nd_set_column(argspush, column);
+    nd_set_lineno(argspush, location.first_line);
+    nd_set_column(argspush, location.first_column);
     return argspush;
 }
 
@@ -10028,7 +10029,7 @@ node_assign_gen(struct parser_params *parser, NODE *lhs, NODE *rhs, YYLTYPE loca
 
       case NODE_ATTRASGN:
       case NODE_CALL:
-	lhs->nd_args = arg_append(lhs->nd_args, rhs, location.first_column);
+	lhs->nd_args = arg_append(lhs->nd_args, rhs, location);
 	break;
 
       default:
