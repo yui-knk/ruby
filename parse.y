@@ -437,8 +437,8 @@ static NODE *method_add_block_gen(struct parser_params*parser, NODE *m, NODE *b)
 
 static NODE *new_args_gen(struct parser_params*,NODE*,NODE*,ID,NODE*,NODE*);
 #define new_args(f,o,r,p,t) new_args_gen(parser, (f),(o),(r),(p),(t))
-static NODE *new_args_tail_gen(struct parser_params*,NODE*,ID,ID,int);
-#define new_args_tail(k,kr,b,column) new_args_tail_gen(parser, (k),(kr),(b),(column))
+static NODE *new_args_tail_gen(struct parser_params*,NODE*,ID,ID,YYLTYPE);
+#define new_args_tail(k,kr,b,location) new_args_tail_gen(parser, (k),(kr),(b),(location))
 static NODE *new_kw_arg_gen(struct parser_params *parser, NODE *k, YYLTYPE location);
 #define new_kw_arg(k,location) new_kw_arg_gen(parser, k, location)
 
@@ -822,7 +822,7 @@ new_args_tail_gen(struct parser_params *parser, VALUE k, VALUE kr, VALUE b)
 {
     return (VALUE)MEMO_NEW(k, kr, b);
 }
-#define new_args_tail(k,kr,b,column) new_args_tail_gen(parser, (k),(kr),(b))
+#define new_args_tail(k,kr,b,location) new_args_tail_gen(parser, (k),(kr),(b))
 
 #define new_defined(expr,column) dispatch1(defined, (expr))
 
@@ -2846,7 +2846,7 @@ primary		: literal
 			switch (nd_type($2)) {
 			  case NODE_MASGN:
 			    m->nd_next = node_assign($2, new_for(new_dvar(id, @1.first_column), 0, 0, @1.first_column), @1.first_column);
-			    args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1.first_column));
+			    args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1));
 			    break;
 			  case NODE_LASGN:
 			  case NODE_DASGN:
@@ -2854,13 +2854,13 @@ primary		: literal
 			    $2->nd_value = new_dvar(id, @1.first_column);
 			    m->nd_plen = 1;
 			    m->nd_next = $2;
-			    args = new_args(m, 0, 0, 0, new_args_tail(0, 0, 0, @1.first_column));
+			    args = new_args(m, 0, 0, 0, new_args_tail(0, 0, 0, @1));
 			    break;
 			  default:
 			    {
 				NODE *masgn = new_masgn(new_list($2, @1.first_column), 0, @1);
 				m->nd_next = node_assign(masgn, new_dvar(id, @1.first_column), @1.first_column);
-				args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1.first_column));
+				args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1));
 				break;
 			    }
 			}
@@ -3297,19 +3297,19 @@ f_margs		: f_marg_list
 
 block_args_tail	: f_block_kwarg ',' f_kwrest opt_f_block_arg
 		    {
-			$$ = new_args_tail($1, $3, $4, @1.first_column);
+			$$ = new_args_tail($1, $3, $4, @1);
 		    }
 		| f_block_kwarg opt_f_block_arg
 		    {
-			$$ = new_args_tail($1, Qnone, $2, @1.first_column);
+			$$ = new_args_tail($1, Qnone, $2, @1);
 		    }
 		| f_kwrest opt_f_block_arg
 		    {
-			$$ = new_args_tail(Qnone, $1, $2, @1.first_column);
+			$$ = new_args_tail(Qnone, $1, $2, @1);
 		    }
 		| f_block_arg
 		    {
-			$$ = new_args_tail(Qnone, Qnone, $1, @1.first_column);
+			$$ = new_args_tail(Qnone, Qnone, $1, @1);
 		    }
 		;
 
@@ -3319,7 +3319,7 @@ opt_block_args_tail : ',' block_args_tail
 		    }
 		| /* none */
 		    {
-			$$ = new_args_tail(Qnone, Qnone, Qnone, @0.first_column);
+			$$ = new_args_tail(Qnone, Qnone, Qnone, @0);
 		    }
 		;
 
@@ -3345,7 +3345,7 @@ block_param	: f_arg ',' f_block_optarg ',' f_rest_arg opt_block_args_tail
 		    }
 		| f_arg ','
 		    {
-			$$ = new_args($1, Qnone, 1, Qnone, new_args_tail(Qnone, Qnone, Qnone, @1.first_column));
+			$$ = new_args($1, Qnone, 1, Qnone, new_args_tail(Qnone, Qnone, Qnone, @1));
 		    /*%%%*/
 		    /*%
                         dispatch1(excessed_comma, $$);
@@ -4404,19 +4404,19 @@ f_arglist	: '(' f_args rparen
 
 args_tail	: f_kwarg ',' f_kwrest opt_f_block_arg
 		    {
-			$$ = new_args_tail($1, $3, $4, @1.first_column);
+			$$ = new_args_tail($1, $3, $4, @1);
 		    }
 		| f_kwarg opt_f_block_arg
 		    {
-			$$ = new_args_tail($1, Qnone, $2, @1.first_column);
+			$$ = new_args_tail($1, Qnone, $2, @1);
 		    }
 		| f_kwrest opt_f_block_arg
 		    {
-			$$ = new_args_tail(Qnone, $1, $2, @1.first_column);
+			$$ = new_args_tail(Qnone, $1, $2, @1);
 		    }
 		| f_block_arg
 		    {
-			$$ = new_args_tail(Qnone, Qnone, $1, @1.first_column);
+			$$ = new_args_tail(Qnone, Qnone, $1, @1);
 		    }
 		;
 
@@ -4426,7 +4426,7 @@ opt_args_tail	: ',' args_tail
 		    }
 		| /* none */
 		    {
-			$$ = new_args_tail(Qnone, Qnone, Qnone, @0.first_column);
+			$$ = new_args_tail(Qnone, Qnone, Qnone, @0);
 		    }
 		;
 
@@ -4488,7 +4488,7 @@ f_args		: f_arg ',' f_optarg ',' f_rest_arg opt_args_tail
 		    }
 		| /* none */
 		    {
-			$$ = new_args_tail(Qnone, Qnone, Qnone, @0.first_column);
+			$$ = new_args_tail(Qnone, Qnone, Qnone, @0);
 			$$ = new_args(Qnone, Qnone, Qnone, Qnone, $$);
 		    }
 		;
@@ -10637,7 +10637,7 @@ new_args_gen(struct parser_params *parser, NODE *m, NODE *o, ID r, NODE *p, NODE
 }
 
 static NODE*
-new_args_tail_gen(struct parser_params *parser, NODE *k, ID kr, ID b, int column)
+new_args_tail_gen(struct parser_params *parser, NODE *k, ID kr, ID b, YYLTYPE location)
 {
     int saved_line = ruby_sourceline;
     struct rb_args_info *args;
@@ -10646,7 +10646,7 @@ new_args_tail_gen(struct parser_params *parser, NODE *k, ID kr, ID b, int column
     args = ZALLOC(struct rb_args_info);
     add_mark_object((VALUE)rb_imemo_alloc_new((VALUE)args, 0, 0, 0));
     node = NEW_NODE(NODE_ARGS, 0, 0, args);
-    nd_set_column(node, column);
+    nd_set_column(node, location.first_column);
     if (parser->error_p) return node;
 
     args->block_arg      = b;
@@ -10692,14 +10692,14 @@ new_args_tail_gen(struct parser_params *parser, NODE *k, ID kr, ID b, int column
 	if (kr) arg_var(kr);
 	if (b) arg_var(b);
 
-	args->kw_rest_arg = new_dvar(kr, column);
+	args->kw_rest_arg = new_dvar(kr, location.first_column);
 	args->kw_rest_arg->nd_cflag = kw_bits;
     }
     else if (kr) {
 	if (b) vtable_pop(lvtbl->args, 1); /* reorder */
 	arg_var(kr);
 	if (b) arg_var(b);
-	args->kw_rest_arg = new_dvar(kr, column);
+	args->kw_rest_arg = new_dvar(kr, location.first_column);
     }
 
     ruby_sourceline = saved_line;
