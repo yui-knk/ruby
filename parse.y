@@ -530,8 +530,8 @@ static NODE *new_ivar_gen(struct parser_params *parser, ID id, int column);
 static NODE *new_postarg_gen(struct parser_params *parser, NODE *i, NODE *v, int column);
 #define new_postarg(i,v,column) new_postarg_gen(parser,i,v,column)
 
-static NODE *new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path, int column);
-#define new_cdecl(v,val,path,column) new_cdecl_gen(parser,v,val,path,column)
+static NODE *new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path, YYLTYPE location);
+#define new_cdecl(v,val,path,location) new_cdecl_gen(parser,v,val,path,location)
 
 static NODE *new_scope_gen(struct parser_params *parser, NODE *a, NODE *b, int column);
 #define new_scope(a,b,column) new_scope_gen(parser,a,b,column)
@@ -9465,10 +9465,11 @@ new_postarg_gen(struct parser_params *parser, NODE *i, NODE *v, int column)
 }
 
 static NODE *
-new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path, int column)
+new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path, YYLTYPE location)
 {
     NODE *nd_cdecl = NEW_CDECL(v, val, path);
-    nd_set_column(nd_cdecl, column);
+    nd_set_lineno(nd_cdecl, location.first_line);
+    nd_set_column(nd_cdecl, location.first_column);
     return nd_cdecl;
 }
 
@@ -9784,7 +9785,7 @@ assignable_gen(struct parser_params *parser, ID id, NODE *val, YYLTYPE location)
 	return assignable_result(NEW_IASGN(id, val));
       case ID_CONST:
 	if (!in_def && !in_single)
-	    return assignable_result(new_cdecl(id, val, 0, location.first_column));
+	    return assignable_result(new_cdecl(id, val, 0, location));
 	yyerror0("dynamic constant assignment");
 	break;
       case ID_CLASS:
@@ -10826,7 +10827,7 @@ const_decl_gen(struct parser_params *parser, NODE *path, YYLTYPE location)
     if (in_def || in_single) {
 	yyerror0("dynamic constant assignment");
     }
-    return new_cdecl(0, 0, (path), location.first_column);
+    return new_cdecl(0, 0, (path), location);
 }
 #else
 static VALUE
