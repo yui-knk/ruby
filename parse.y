@@ -562,8 +562,8 @@ static void reg_fragment_setenc_gen(struct parser_params*, VALUE, int);
 #define reg_fragment_setenc(str,options) reg_fragment_setenc_gen(parser, (str), (options))
 static int reg_fragment_check_gen(struct parser_params*, VALUE, int);
 #define reg_fragment_check(str,options) reg_fragment_check_gen(parser, (str), (options))
-static NODE *reg_named_capture_assign_gen(struct parser_params* parser, VALUE regexp, int column);
-#define reg_named_capture_assign(regexp,column) reg_named_capture_assign_gen(parser,(regexp),column)
+static NODE *reg_named_capture_assign_gen(struct parser_params* parser, VALUE regexp, YYLTYPE location);
+#define reg_named_capture_assign(regexp,location) reg_named_capture_assign_gen(parser,(regexp),location)
 
 static NODE *parser_heredoc_dedent(struct parser_params*,NODE*);
 # define heredoc_dedent(str) parser_heredoc_dedent(parser, (str))
@@ -9125,7 +9125,7 @@ match_op_gen(struct parser_params *parser, NODE *node1, NODE *node2, YYLTYPE loc
 	    if (RB_TYPE_P(n->nd_lit, T_REGEXP)) {
 		const VALUE lit = n->nd_lit;
 		NODE *match = NEW_MATCH2(node1, node2);
-		match->nd_args = reg_named_capture_assign(lit, location.first_column);
+		match->nd_args = reg_named_capture_assign(lit, location);
 		nd_set_lineno(match, location.first_line);
 		nd_set_column(match, location.first_column);
 		return match;
@@ -11166,7 +11166,7 @@ typedef struct {
     struct parser_params* parser;
     rb_encoding *enc;
     NODE *succ_block;
-    int column;
+    YYLTYPE location;
 } reg_named_capture_assign_t;
 
 static int
@@ -11187,23 +11187,23 @@ reg_named_capture_assign_iter(const OnigUChar *name, const OnigUChar *name_end,
         return ST_CONTINUE;
     }
     var = intern_cstr(s, len, enc);
-    node = node_assign(assignable(var, 0, arg->column), new_lit(ID2SYM(var), arg->column), arg->column);
+    node = node_assign(assignable(var, 0, arg->location.first_column), new_lit(ID2SYM(var), arg->location.first_column), arg->location.first_column);
     succ = arg->succ_block;
-    if (!succ) succ = new_begin(0, arg->column);
-    succ = block_append(succ, node, arg->column);
+    if (!succ) succ = new_begin(0, arg->location.first_column);
+    succ = block_append(succ, node, arg->location.first_column);
     arg->succ_block = succ;
     return ST_CONTINUE;
 }
 
 static NODE *
-reg_named_capture_assign_gen(struct parser_params* parser, VALUE regexp, int column)
+reg_named_capture_assign_gen(struct parser_params* parser, VALUE regexp, YYLTYPE location)
 {
     reg_named_capture_assign_t arg;
 
     arg.parser = parser;
     arg.enc = rb_enc_get(regexp);
     arg.succ_block = 0;
-    arg.column = column;
+    arg.location = location;
     onig_foreach_name(RREGEXP_PTR(regexp), reg_named_capture_assign_iter, &arg);
 
     if (!arg.succ_block) return 0;
