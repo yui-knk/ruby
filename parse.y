@@ -491,8 +491,8 @@ static NODE *new_hash_gen(struct parser_params *parser, NODE *hash, int column);
 static NODE *new_defined_gen(struct parser_params *parser, NODE *expr, int column);
 #define new_defined(expr, column) new_defined_gen(parser, expr, column)
 
-static NODE *new_regexp_gen(struct parser_params *, NODE *, int, int);
-#define new_regexp(node, opt, column) new_regexp_gen(parser, node, opt, column)
+static NODE *new_regexp_gen(struct parser_params *, NODE *, int, YYLTYPE);
+#define new_regexp(node, opt, location) new_regexp_gen(parser, node, opt, location)
 
 static NODE *new_lit_gen(struct parser_params *parser, VALUE sym, int column);
 #define new_lit(sym, column) new_lit_gen(parser, sym, column)
@@ -635,7 +635,7 @@ static VALUE new_attr_op_assign_gen(struct parser_params *parser, VALUE lhs, VAL
 #define new_const_op_assign(lhs, op, rhs, location) new_op_assign(lhs, op, rhs, location)
 
 static VALUE new_regexp_gen(struct parser_params *, VALUE, VALUE);
-#define new_regexp(node, opt, column) new_regexp_gen(parser, node, opt)
+#define new_regexp(node, opt, location) new_regexp_gen(parser, node, opt)
 
 static VALUE new_xstring_gen(struct parser_params *, VALUE);
 #define new_xstring(str, column) new_xstring_gen(parser, str)
@@ -3863,7 +3863,7 @@ xstring		: tXSTRING_BEG xstring_contents tSTRING_END
 
 regexp		: tREGEXP_BEG regexp_contents tREGEXP_END
 		    {
-			$$ = new_regexp($2, $3, @1.first_column);
+			$$ = new_regexp($2, $3, @1);
 		    }
 		;
 
@@ -9311,13 +9311,13 @@ new_defined_gen(struct parser_params *parser, NODE *expr, int column)
 }
 
 static NODE *
-new_regexp_gen(struct parser_params *parser, NODE *node, int options, int column)
+new_regexp_gen(struct parser_params *parser, NODE *node, int options, YYLTYPE location)
 {
     NODE *list, *prev;
     VALUE lit;
 
     if (!node) {
-	return new_lit(reg_compile(STR_NEW0(), options), column);
+	return new_lit(reg_compile(STR_NEW0(), options), location.first_column);
     }
     switch (nd_type(node)) {
       case NODE_STR:
@@ -9329,8 +9329,8 @@ new_regexp_gen(struct parser_params *parser, NODE *node, int options, int column
 	break;
       default:
 	add_mark_object(lit = STR_NEW0());
-	node = NEW_NODE(NODE_DSTR, lit, 1, new_list(node, column));
-	nd_set_column(node, column);
+	node = NEW_NODE(NODE_DSTR, lit, 1, new_list(node, location.first_column));
+	nd_set_column(node, location.first_column);
       case NODE_DSTR:
 	nd_set_type(node, NODE_DREGX);
 	node->nd_cflag = options & RE_OPTION_MASK;
