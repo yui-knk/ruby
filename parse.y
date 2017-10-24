@@ -471,8 +471,8 @@ static NODE *new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, N
 #define new_op_assign(lhs, op, rhs, column) new_op_assign_gen(parser, (lhs), (op), (rhs), (column))
 static NODE *new_attr_op_assign_gen(struct parser_params *parser, NODE *lhs, ID atype, ID attr, ID op, NODE *rhs, int column);
 #define new_attr_op_assign(lhs, type, attr, op, rhs, column) new_attr_op_assign_gen(parser, (lhs), (type), (attr), (op), (rhs), (column))
-static NODE *new_const_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int column);
-#define new_const_op_assign(lhs, op, rhs, column) new_const_op_assign_gen(parser, (lhs), (op), (rhs), (column))
+static NODE *new_const_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, YYLTYPE location);
+#define new_const_op_assign(lhs, op, rhs, location) new_const_op_assign_gen(parser, (lhs), (op), (rhs), (location))
 
 static NODE *const_path_field_gen(struct parser_params *parser, NODE *head, ID mid, int column);
 #define const_path_field(w, n, column) const_path_field_gen(parser, w, n, column)
@@ -632,7 +632,7 @@ static VALUE new_op_assign_gen(struct parser_params *parser, VALUE lhs, VALUE op
 #define new_op_assign(lhs, op, rhs, column) new_op_assign_gen(parser, (lhs), (op), (rhs))
 static VALUE new_attr_op_assign_gen(struct parser_params *parser, VALUE lhs, VALUE type, VALUE attr, VALUE op, VALUE rhs);
 #define new_attr_op_assign(lhs, type, attr, op, rhs, column) new_attr_op_assign_gen(parser, (lhs), (type), (attr), (op), (rhs))
-#define new_const_op_assign(lhs, op, rhs, column) new_op_assign(lhs, op, rhs, column)
+#define new_const_op_assign(lhs, op, rhs, location) new_op_assign(lhs, op, rhs, location)
 
 static VALUE new_regexp_gen(struct parser_params *, VALUE, VALUE);
 #define new_regexp(node, opt, column) new_regexp_gen(parser, node, opt)
@@ -1480,7 +1480,7 @@ command_asgn	: lhs '=' command_rhs
 		| primary_value tCOLON2 tCONSTANT tOP_ASGN command_rhs
 		    {
 			$$ = const_path_field($1, $3, @1.first_column);
-			$$ = new_const_op_assign($$, $4, $5, @1.first_column);
+			$$ = new_const_op_assign($$, $4, $5, @1);
 		    }
 		| primary_value tCOLON2 tIDENTIFIER tOP_ASGN command_rhs
 		    {
@@ -2133,12 +2133,12 @@ arg		: lhs '=' arg_rhs
 		| primary_value tCOLON2 tCONSTANT tOP_ASGN arg_rhs
 		    {
 			$$ = const_path_field($1, $3, @1.first_column);
-			$$ = new_const_op_assign($$, $4, $5, @1.first_column);
+			$$ = new_const_op_assign($$, $4, $5, @1);
 		    }
 		| tCOLON3 tCONSTANT tOP_ASGN arg_rhs
 		    {
 			$$ = top_const_field($2);
-			$$ = new_const_op_assign($$, $3, $4, @1.first_column);
+			$$ = new_const_op_assign($$, $3, $4, @1);
 		    }
 		| backref tOP_ASGN arg_rhs
 		    {
@@ -10827,7 +10827,7 @@ new_attr_op_assign_gen(struct parser_params *parser, NODE *lhs,
 }
 
 static NODE *
-new_const_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int column)
+new_const_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, YYLTYPE location)
 {
     NODE *asgn;
 
@@ -10841,10 +10841,11 @@ new_const_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rh
 	asgn = NEW_OP_CDECL(lhs, op, rhs);
     }
     else {
-	asgn = new_begin(0, column);
+	asgn = new_begin(0, location.first_column);
     }
     fixpos(asgn, lhs);
-    nd_set_column(asgn, column);
+    nd_set_lineno(asgn, location.first_line);
+    nd_set_column(asgn, location.first_column);
     return asgn;
 }
 
