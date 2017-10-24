@@ -485,8 +485,8 @@ static NODE *const_decl_gen(struct parser_params *parser, NODE* path, YYLTYPE lo
 
 static NODE *kwd_append(NODE*, NODE*);
 
-static NODE *new_hash_gen(struct parser_params *parser, NODE *hash, int column);
-#define new_hash(hash, column) new_hash_gen(parser, (hash), column)
+static NODE *new_hash_gen(struct parser_params *parser, NODE *hash, YYLTYPE location);
+#define new_hash(hash, location) new_hash_gen(parser, (hash), location)
 
 static NODE *new_defined_gen(struct parser_params *parser, NODE *expr, YYLTYPE location);
 #define new_defined(expr, location) new_defined_gen(parser, expr, location)
@@ -2322,7 +2322,7 @@ aref_args	: none
 		| args ',' assocs trailer
 		    {
 		    /*%%%*/
-			$$ = $3 ? arg_append($1, new_hash($3, @1.first_column), @1.first_column) : $1;
+			$$ = $3 ? arg_append($1, new_hash($3, @1), @1.first_column) : $1;
 		    /*%
 			$$ = arg_add_assocs($1, $3);
 		    %*/
@@ -2330,7 +2330,7 @@ aref_args	: none
 		| assocs trailer
 		    {
 		    /*%%%*/
-			$$ = $1 ? new_list(new_hash($1, @1.first_column), @1.first_column) : 0;
+			$$ = $1 ? new_list(new_hash($1, @1), @1.first_column) : 0;
 		    /*%
 			$$ = arg_add_assocs(arg_new(), $1);
 		    %*/
@@ -2379,7 +2379,7 @@ opt_call_args	: none
 		| args ',' assocs ','
 		    {
 		    /*%%%*/
-			$$ = $3 ? arg_append($1, new_hash($3, @1.first_column), @1.first_column) : $1;
+			$$ = $3 ? arg_append($1, new_hash($3, @1), @1.first_column) : $1;
 		    /*%
 			$$ = arg_add_assocs($1, $3);
 		    %*/
@@ -2387,7 +2387,7 @@ opt_call_args	: none
 		| assocs ','
 		    {
 		    /*%%%*/
-			$$ = $1 ? new_list(new_hash($1, @1.first_column), @1.first_column) : 0;
+			$$ = $1 ? new_list(new_hash($1, @1), @1.first_column) : 0;
 		    /*%
 			$$ = arg_add_assocs(arg_new(), $1);
 		    %*/
@@ -2414,7 +2414,7 @@ call_args	: command
 		| assocs opt_block_arg
 		    {
 		    /*%%%*/
-			$$ = $1 ? new_list(new_hash($1, @1.first_column), @1.first_column) : 0;
+			$$ = $1 ? new_list(new_hash($1, @1), @1.first_column) : 0;
 			$$ = arg_blk_pass($$, $2);
 		    /*%
 			$$ = arg_add_assocs(arg_new(), $1);
@@ -2424,7 +2424,7 @@ call_args	: command
 		| args ',' assocs opt_block_arg
 		    {
 		    /*%%%*/
-			$$ = $3 ? arg_append($1, new_hash($3, @1.first_column), @1.first_column) : $1;
+			$$ = $3 ? arg_append($1, new_hash($3, @1), @1.first_column) : $1;
 			$$ = arg_blk_pass($$, $4);
 		    /*%
 			$$ = arg_add_optblock(arg_add_assocs($1, $3), $4);
@@ -2672,7 +2672,7 @@ primary		: literal
 		| tLBRACE assoc_list '}'
 		    {
 		    /*%%%*/
-			$$ = new_hash($2, @1.first_column);
+			$$ = new_hash($2, @1);
 			$$->nd_alen = TRUE;
 		    /*%
 			$$ = dispatch1(hash, escape_Qundef($2));
@@ -10794,12 +10794,13 @@ remove_duplicate_keys(struct parser_params *parser, NODE *hash, int column)
 }
 
 static NODE *
-new_hash_gen(struct parser_params *parser, NODE *hash, int column)
+new_hash_gen(struct parser_params *parser, NODE *hash, YYLTYPE location)
 {
     NODE *nd_hash;
-    if (hash) hash = remove_duplicate_keys(parser, hash, column);
+    if (hash) hash = remove_duplicate_keys(parser, hash, location.first_column);
     nd_hash = NEW_HASH(hash);
-    nd_set_column(nd_hash, column);
+    nd_set_lineno(nd_hash, location.first_line);
+    nd_set_column(nd_hash, location.first_column);
     return nd_hash;
 }
 #endif /* !RIPPER */
