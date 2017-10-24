@@ -8788,7 +8788,8 @@ node_newnode(struct parser_params *parser, enum node_type type, VALUE a0, VALUE 
 {
     NODE *n = (rb_node_newnode)(type, a0, a1, a2);
     nd_set_line(n, ruby_sourceline);
-    /* mark not cared column to -1 */
+    /* mark not cared lineno to 0 and column to -1 */
+    nd_set_lineno(n,  0);
     nd_set_column(n, -1);
     return n;
 }
