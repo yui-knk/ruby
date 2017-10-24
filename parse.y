@@ -375,9 +375,9 @@ set_line_body(NODE *body, int line)
 static NODE* node_newnode(struct parser_params *, enum node_type, VALUE, VALUE, VALUE);
 #define rb_node_newnode(type, a1, a2, a3) node_newnode(parser, (type), (a1), (a2), (a3))
 
-static NODE *cond_gen(struct parser_params*,NODE*,int,int);
-#define cond(node,column) cond_gen(parser, (node), FALSE, column)
-#define method_cond(node,column) cond_gen(parser, (node), TRUE, column)
+static NODE *cond_gen(struct parser_params*,NODE*,int,YYLTYPE);
+#define cond(node,location) cond_gen(parser, (node), FALSE, location)
+#define method_cond(node,location) cond_gen(parser, (node), TRUE, location)
 #define new_nil() NEW_NIL()
 static NODE *new_if_gen(struct parser_params*,NODE*,NODE*,NODE*,YYLTYPE);
 #define new_if(cc,left,right,location) new_if_gen(parser, (cc), (left), (right), (location))
@@ -615,7 +615,7 @@ static VALUE assignable_gen(struct parser_params*,VALUE);
 static int id_is_var_gen(struct parser_params *parser, ID id);
 #define id_is_var(id) id_is_var_gen(parser, (id))
 
-#define method_cond(node,column) (node)
+#define method_cond(node,location) (node)
 #define call_bin_op(recv,id,arg1,location) dispatch3(binary, (recv), STATIC_ID2SYM(id), (arg1))
 #define match_op(node1,node2,location) call_bin_op((node1), idEqTilde, (node2), location)
 #define call_uni_op(recv,id,location) dispatch2(unary, STATIC_ID2SYM(id), (recv))
@@ -1357,10 +1357,10 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			if ($1 && nd_type($1) == NODE_BEGIN) {
-			    $$ = NEW_WHILE(cond($3, @1.first_column), $1->nd_body, 0);
+			    $$ = NEW_WHILE(cond($3, @1), $1->nd_body, 0);
 			}
 			else {
-			    $$ = NEW_WHILE(cond($3, @1.first_column), $1, 1);
+			    $$ = NEW_WHILE(cond($3, @1), $1, 1);
 			}
 			nd_set_column($$, @1.first_column);
 		    /*%
@@ -1371,10 +1371,10 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			if ($1 && nd_type($1) == NODE_BEGIN) {
-			    $$ = NEW_UNTIL(cond($3, @1.first_column), $1->nd_body, 0);
+			    $$ = NEW_UNTIL(cond($3, @1), $1->nd_body, 0);
 			}
 			else {
-			    $$ = NEW_UNTIL(cond($3, @1.first_column), $1, 1);
+			    $$ = NEW_UNTIL(cond($3, @1), $1, 1);
 			}
 			nd_set_column($$, @1.first_column);
 		    /*%
@@ -1525,11 +1525,11 @@ expr		: command_call
 		    }
 		| keyword_not opt_nl expr
 		    {
-			$$ = call_uni_op(method_cond($3, @1.first_column), METHOD_NOT, @1);
+			$$ = call_uni_op(method_cond($3, @1), METHOD_NOT, @1);
 		    }
 		| '!' command_call
 		    {
-			$$ = call_uni_op(method_cond($2, @1.first_column), '!', @1);
+			$$ = call_uni_op(method_cond($2, @1), '!', @1);
 		    }
 		| arg
 		;
@@ -2242,7 +2242,7 @@ arg		: lhs '=' arg_rhs
 		    }
 		| '!' arg
 		    {
-			$$ = call_uni_op(method_cond($2, @1.first_column), '!', @1);
+			$$ = call_uni_op(method_cond($2, @1), '!', @1);
 		    }
 		| '~' arg
 		    {
@@ -2720,11 +2720,11 @@ primary		: literal
 		    }
 		| keyword_not '(' expr rparen
 		    {
-			$$ = call_uni_op(method_cond($3, @1.first_column), METHOD_NOT, @1);
+			$$ = call_uni_op(method_cond($3, @1), METHOD_NOT, @1);
 		    }
 		| keyword_not '(' rparen
 		    {
-			$$ = call_uni_op(method_cond(new_nil(), @1.first_column), METHOD_NOT, @1);
+			$$ = call_uni_op(method_cond(new_nil(), @1), METHOD_NOT, @1);
 		    }
 		| fcall brace_block
 		    {
@@ -2780,7 +2780,7 @@ primary		: literal
 		  k_end
 		    {
 		    /*%%%*/
-			$$ = NEW_WHILE(cond($3, @1.first_column), $6, 1);
+			$$ = NEW_WHILE(cond($3, @1), $6, 1);
 			fixpos($$, $3);
 			nd_set_column($$, @1.first_column);
 		    /*%
@@ -2792,7 +2792,7 @@ primary		: literal
 		  k_end
 		    {
 		    /*%%%*/
-			$$ = NEW_UNTIL(cond($3, @1.first_column), $6, 1);
+			$$ = NEW_UNTIL(cond($3, @1), $6, 1);
 			fixpos($$, $3);
 			nd_set_column($$, @1.first_column);
 		    /*%
@@ -10493,10 +10493,10 @@ cond0(struct parser_params *parser, NODE *node, int method_op, int column)
 }
 
 static NODE*
-cond_gen(struct parser_params *parser, NODE *node, int method_op, int column)
+cond_gen(struct parser_params *parser, NODE *node, int method_op, YYLTYPE location)
 {
     if (node == 0) return 0;
-    return cond0(parser, node, method_op, column);
+    return cond0(parser, node, method_op, location.first_column);
 }
 
 static NODE*
