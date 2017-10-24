@@ -550,8 +550,8 @@ static NODE *new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt,
 #define new_brace_body(param, stmt, column) new_body_gen(parser, param, stmt, column)
 #define new_do_body(param, stmt, column) new_body_gen(parser, param, stmt, column)
 
-static NODE *match_op_gen(struct parser_params*,NODE*,NODE*,int);
-#define match_op(node1,node2,column) match_op_gen(parser, (node1), (node2), (column))
+static NODE *match_op_gen(struct parser_params*,NODE*,NODE*,YYLTYPE);
+#define match_op(node1,node2,location) match_op_gen(parser, (node1), (node2), (location))
 
 static ID  *local_tbl_gen(struct parser_params*);
 #define local_tbl() local_tbl_gen(parser)
@@ -600,7 +600,7 @@ static int id_is_var_gen(struct parser_params *parser, ID id);
 
 #define method_cond(node,column) (node)
 #define call_bin_op(recv,id,arg1,column) dispatch3(binary, (recv), STATIC_ID2SYM(id), (arg1))
-#define match_op(node1,node2,column) call_bin_op((node1), idEqTilde, (node2), -1)
+#define match_op(node1,node2,location) call_bin_op((node1), idEqTilde, (node2), -1)
 #define call_uni_op(recv,id,column) dispatch2(unary, STATIC_ID2SYM(id), (recv))
 #define logop(id,node1,node2,column) call_bin_op((node1), (id), (node2), -1)
 #define node_assign(node1, node2, column) dispatch2(assign, (node1), (node2))
@@ -2218,7 +2218,7 @@ arg		: lhs '=' arg_rhs
 		    }
 		| arg tMATCH arg
 		    {
-			$$ = match_op($1, $3, @1.first_column);
+			$$ = match_op($1, $3, @1);
 		    }
 		| arg tNMATCH arg
 		    {
@@ -9105,7 +9105,7 @@ new_qcall_gen(struct parser_params* parser, ID atype, NODE *recv, ID mid, NODE *
 
 #define nd_once_body(node) (nd_type(node) == NODE_SCOPE ? (node)->nd_body : node)
 static NODE*
-match_op_gen(struct parser_params *parser, NODE *node1, NODE *node2, int column)
+match_op_gen(struct parser_params *parser, NODE *node1, NODE *node2, YYLTYPE location)
 {
     NODE *n;
 
@@ -9116,7 +9116,8 @@ match_op_gen(struct parser_params *parser, NODE *node1, NODE *node2, int column)
 	  case NODE_DREGX:
 	    {
 		NODE *match = NEW_MATCH2(node1, node2);
-		nd_set_column(match, column);
+		nd_set_lineno(match, location.first_line);
+		nd_set_column(match, location.first_column);
 		return match;
 	    }
 
@@ -9124,8 +9125,9 @@ match_op_gen(struct parser_params *parser, NODE *node1, NODE *node2, int column)
 	    if (RB_TYPE_P(n->nd_lit, T_REGEXP)) {
 		const VALUE lit = n->nd_lit;
 		NODE *match = NEW_MATCH2(node1, node2);
-		match->nd_args = reg_named_capture_assign(lit, column);
-		nd_set_column(match, column);
+		match->nd_args = reg_named_capture_assign(lit, location.first_column);
+		nd_set_lineno(match, location.first_line);
+		nd_set_column(match, location.first_column);
 		return match;
 	    }
 	}
@@ -9137,19 +9139,21 @@ match_op_gen(struct parser_params *parser, NODE *node1, NODE *node2, int column)
 	switch (nd_type(n)) {
 	  case NODE_DREGX:
 	    match3 = NEW_MATCH3(node2, node1);
-	    nd_set_column(match3, column);
+	    nd_set_lineno(match3, location.first_line);
+	    nd_set_column(match3, location.first_column);
 	    return match3;
 
 	  case NODE_LIT:
 	    if (RB_TYPE_P(n->nd_lit, T_REGEXP)) {
 		match3 = NEW_MATCH3(node2, node1);
-		nd_set_column(match3, column);
+		nd_set_lineno(match3, location.first_line);
+		nd_set_column(match3, location.first_column);
 		return match3;
 	    }
 	}
     }
 
-    return new_call(node1, tMATCH, new_list(node2, column), column);
+    return new_call(node1, tMATCH, new_list(node2, location.first_column), location.first_column);
 }
 
 # if WARN_PAST_SCOPE
