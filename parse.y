@@ -542,8 +542,8 @@ static NODE *new_begin_gen(struct parser_params *parser, NODE *b, YYLTYPE locati
 static NODE *new_masgn_gen(struct parser_params *parser, NODE *l, NODE *r, YYLTYPE location);
 #define new_masgn(l,r,location) new_masgn_gen(parser,l,r,location)
 
-static NODE *new_xstring_gen(struct parser_params *, NODE *, int column);
-#define new_xstring(node, column) new_xstring_gen(parser, node, column)
+static NODE *new_xstring_gen(struct parser_params *, NODE *, YYLTYPE location);
+#define new_xstring(node, location) new_xstring_gen(parser, node, location)
 #define new_string1(str) (str)
 
 static NODE *new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt, int column);
@@ -621,7 +621,7 @@ static VALUE new_regexp_gen(struct parser_params *, VALUE, VALUE);
 #define new_regexp(node, opt, location) new_regexp_gen(parser, node, opt)
 
 static VALUE new_xstring_gen(struct parser_params *, VALUE);
-#define new_xstring(str, column) new_xstring_gen(parser, str)
+#define new_xstring(str, location) new_xstring_gen(parser, str)
 #define new_string1(str) dispatch1(string_literal, str)
 
 #define new_brace_body(param, stmt, column) dispatch2(brace_block, escape_Qundef(param), stmt)
@@ -3840,7 +3840,7 @@ string1		: tSTRING_BEG string_contents tSTRING_END
 
 xstring		: tXSTRING_BEG xstring_contents tSTRING_END
 		    {
-			$$ = new_xstring(heredoc_dedent($2), @1.first_column);
+			$$ = new_xstring(heredoc_dedent($2), @1);
 		    }
 		;
 
@@ -9533,11 +9533,12 @@ new_kw_arg_gen(struct parser_params *parser, NODE *k, YYLTYPE location)
 }
 
 static NODE *
-new_xstring_gen(struct parser_params *parser, NODE *node, int column)
+new_xstring_gen(struct parser_params *parser, NODE *node, YYLTYPE location)
 {
     if (!node) {
 	NODE *xstr = NEW_XSTR(STR_NEW0());
-	nd_set_column(xstr, column);
+	nd_set_lineno(xstr, location.first_line);
+	nd_set_column(xstr, location.first_column);
 	return xstr;
     }
     switch (nd_type(node)) {
@@ -9548,8 +9549,9 @@ new_xstring_gen(struct parser_params *parser, NODE *node, int column)
 	nd_set_type(node, NODE_DXSTR);
 	break;
       default:
-	node = NEW_NODE(NODE_DXSTR, Qnil, 1, new_list(node, column));
-	nd_set_column(node, column);
+	node = NEW_NODE(NODE_DXSTR, Qnil, 1, new_list(node, location.first_column));
+	nd_set_lineno(node, location.first_line);
+	nd_set_column(node, location.first_column);
 	break;
     }
     return node;
