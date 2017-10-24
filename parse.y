@@ -527,8 +527,8 @@ static NODE *new_gvar_gen(struct parser_params *parser, ID id, int column);
 static NODE *new_lvar_gen(struct parser_params *parser, ID id, YYLTYPE location);
 #define new_lvar(id, location) new_lvar_gen(parser, id, location)
 
-static NODE *new_dstr_gen(struct parser_params *parser, VALUE str, int column);
-#define new_dstr(s, column) new_dstr_gen(parser, s, column)
+static NODE *new_dstr_gen(struct parser_params *parser, VALUE str, YYLTYPE);
+#define new_dstr(s, location) new_dstr_gen(parser, s, location)
 
 static NODE *new_rescue_gen(struct parser_params *parser, NODE *b, NODE *res, NODE *e, YYLTYPE location);
 #define new_rescue(b,res,e,location) new_rescue_gen(parser,b,res,e,location)
@@ -4109,7 +4109,7 @@ regexp_contents: /* none */
 			      case NODE_DSTR:
 				break;
 			      default:
-				head = list_append(new_dstr(Qnil, @1.first_column), head, @1.first_column);
+				head = list_append(new_dstr(Qnil, @1), head, @1.first_column);
 				break;
 			    }
 			    $$ = list_append(head, tail, @1.first_column);
@@ -9010,7 +9010,7 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, YYLTYPE
 
     htype = nd_type(head);
     if (htype == NODE_EVSTR) {
-	NODE *node = new_dstr(STR_NEW0(), location.first_column);
+	NODE *node = new_dstr(STR_NEW0(), location);
 	head = list_append(node, head, location.first_column);
 	htype = NODE_DSTR;
     }
@@ -9093,7 +9093,7 @@ static NODE *
 evstr2dstr_gen(struct parser_params *parser, NODE *node, YYLTYPE location)
 {
     if (nd_type(node) == NODE_EVSTR) {
-	node = list_append(new_dstr(STR_NEW0(), location.first_column), node, location.first_column);
+	node = list_append(new_dstr(STR_NEW0(), location), node, location.first_column);
     }
     return node;
 }
@@ -9475,11 +9475,12 @@ new_lvar_gen(struct parser_params *parser, ID id, YYLTYPE location)
 }
 
 static NODE *
-new_dstr_gen(struct parser_params *parser, VALUE str, int column)
+new_dstr_gen(struct parser_params *parser, VALUE str, YYLTYPE location)
 {
     NODE *dstr = NEW_DSTR(str);
     add_mark_object(str);
-    nd_set_column(dstr, column);
+    nd_set_lineno(dstr, location.first_line);
+    nd_set_column(dstr, location.first_column);
     return dstr;
 }
 
