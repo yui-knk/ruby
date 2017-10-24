@@ -503,8 +503,8 @@ static NODE *new_list_gen(struct parser_params *parser, NODE *item, int column);
 static NODE *new_str_gen(struct parser_params *parser, VALUE str, int column);
 #define new_str(s,column) new_str_gen(parser, s, column)
 
-static NODE *new_dvar_gen(struct parser_params *parser, ID id, int column);
-#define new_dvar(id, column) new_dvar_gen(parser, id, column)
+static NODE *new_dvar_gen(struct parser_params *parser, ID id, YYLTYPE location);
+#define new_dvar(id, location) new_dvar_gen(parser, id, location)
 
 static NODE *new_resbody_gen(struct parser_params *parser, NODE *exc_list, NODE *stmt, NODE *rescue, YYLTYPE location);
 #define new_resbody(e,s,r,location) new_resbody_gen(parser, (e),(s),(r),(location))
@@ -2845,13 +2845,13 @@ primary		: literal
 
 			switch (nd_type($2)) {
 			  case NODE_MASGN:
-			    m->nd_next = node_assign($2, new_for(new_dvar(id, @1.first_column), 0, 0, @1.first_column), @1);
+			    m->nd_next = node_assign($2, new_for(new_dvar(id, @1), 0, 0, @1.first_column), @1);
 			    args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1));
 			    break;
 			  case NODE_LASGN:
 			  case NODE_DASGN:
 			  case NODE_DASGN_CURR:
-			    $2->nd_value = new_dvar(id, @1.first_column);
+			    $2->nd_value = new_dvar(id, @1);
 			    m->nd_plen = 1;
 			    m->nd_next = $2;
 			    args = new_args(m, 0, 0, 0, new_args_tail(0, 0, 0, @1));
@@ -2859,7 +2859,7 @@ primary		: literal
 			  default:
 			    {
 				NODE *masgn = new_masgn(new_list($2, @1.first_column), 0, @1);
-				m->nd_next = node_assign(masgn, new_dvar(id, @1.first_column), @1);
+				m->nd_next = node_assign(masgn, new_dvar(id, @1), @1);
 				args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1));
 				break;
 			    }
@@ -4567,7 +4567,7 @@ f_arg_item	: f_arg_asgn
 			arg_var(tid);
 		    /*%%%*/
 			if (dyna_in_block()) {
-			    $2->nd_value = new_dvar(tid, @1.first_column);
+			    $2->nd_value = new_dvar(tid, @1);
 			}
 			else {
 			    $2->nd_value = new_lvar(tid, @1);
@@ -9255,7 +9255,7 @@ gettable_gen(struct parser_params *parser, ID id, YYLTYPE location)
 		rb_warn1("circular argument reference - %"PRIsWARN, rb_id2str(id));
 	    }
 	    if (vidp) *vidp |= LVAR_USED;
-	    node = new_dvar(id, location.first_column);
+	    node = new_dvar(id, location);
 	    return node;
 	}
 	if (local_id_ref(id, vidp)) {
@@ -9407,10 +9407,11 @@ new_str_gen(struct parser_params *parser, VALUE str, int column)
 }
 
 static NODE *
-new_dvar_gen(struct parser_params *parser, ID id, int column)
+new_dvar_gen(struct parser_params *parser, ID id, YYLTYPE location)
 {
     NODE *dvar = NEW_DVAR(id);
-    nd_set_column(dvar, column);
+    nd_set_lineno(dvar, location.first_line);
+    nd_set_column(dvar, location.first_column);
     return dvar;
 }
 
@@ -10701,14 +10702,14 @@ new_args_tail_gen(struct parser_params *parser, NODE *k, ID kr, ID b, YYLTYPE lo
 	if (kr) arg_var(kr);
 	if (b) arg_var(b);
 
-	args->kw_rest_arg = new_dvar(kr, location.first_column);
+	args->kw_rest_arg = new_dvar(kr, location);
 	args->kw_rest_arg->nd_cflag = kw_bits;
     }
     else if (kr) {
 	if (b) vtable_pop(lvtbl->args, 1); /* reorder */
 	arg_var(kr);
 	if (b) arg_var(b);
-	args->kw_rest_arg = new_dvar(kr, location.first_column);
+	args->kw_rest_arg = new_dvar(kr, location);
     }
 
     ruby_sourceline = saved_line;
