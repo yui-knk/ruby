@@ -479,8 +479,8 @@ static NODE *new_defined_gen(struct parser_params *parser, NODE *expr, YYLTYPE l
 static NODE *new_regexp_gen(struct parser_params *, NODE *, int, YYLTYPE);
 #define new_regexp(node, opt, location) new_regexp_gen(parser, node, opt, location)
 
-static NODE *new_lit_gen(struct parser_params *parser, VALUE sym, int column);
-#define new_lit(sym, column) new_lit_gen(parser, sym, column)
+static NODE *new_lit_gen(struct parser_params *parser, VALUE sym, YYLTYPE location);
+#define new_lit(sym, location) new_lit_gen(parser, sym, location)
 
 static NODE *new_list_gen(struct parser_params *parser, NODE *item, int column);
 #define new_list(item, column) new_list_gen(parser, item, column)
@@ -1990,7 +1990,7 @@ fsym		: fname
 fitem		: fsym
 		    {
 		    /*%%%*/
-			$$ = new_lit(ID2SYM($1), @1.first_column);
+			$$ = new_lit(ID2SYM($1), @1);
 		    /*%
 			$$ = dispatch1(symbol_literal, $1);
 		    %*/
@@ -3789,7 +3789,7 @@ literal		: numeric
 		| symbol
 		    {
 		    /*%%%*/
-			$$ = new_lit(ID2SYM($1), @1.first_column);
+			$$ = new_lit(ID2SYM($1), @1);
 		    /*%
 			$$ = dispatch1(symbol_literal, $1);
 		    %*/
@@ -4930,7 +4930,7 @@ assoc		: arg_value tASSOC arg_value
 		| tLABEL arg_value
 		    {
 		    /*%%%*/
-			$$ = list_append(new_list(new_lit(ID2SYM($1), @1.first_column), @1.first_column), $2, @1.first_column);
+			$$ = list_append(new_list(new_lit(ID2SYM($1), @1), @1.first_column), $2, @1.first_column);
 		    /*%
 			$$ = dispatch2(assoc_new, $1, $2);
 		    %*/
@@ -9202,9 +9202,9 @@ gettable_gen(struct parser_params *parser, ID id, YYLTYPE location)
 	node = new_str(rb_str_dup(ruby_sourcefile_string), location);
 	return node;
       case keyword__LINE__:
-	return new_lit(INT2FIX(tokline), location.first_column);
+	return new_lit(INT2FIX(tokline), location);
       case keyword__ENCODING__:
-	return new_lit(rb_enc_from_encoding(current_enc), location.first_column);
+	return new_lit(rb_enc_from_encoding(current_enc), location);
     }
     switch (id_type(id)) {
       case ID_LOCAL:
@@ -9283,7 +9283,7 @@ new_regexp_gen(struct parser_params *parser, NODE *node, int options, YYLTYPE lo
     NODE *list, *prev;
 
     if (!node) {
-	return new_lit(reg_compile(STR_NEW0(), options), location.first_column);
+	return new_lit(reg_compile(STR_NEW0(), options), location);
     }
     switch (nd_type(node)) {
       case NODE_STR:
@@ -9337,10 +9337,11 @@ new_regexp_gen(struct parser_params *parser, NODE *node, int options, YYLTYPE lo
 }
 
 static NODE *
-new_lit_gen(struct parser_params *parser, VALUE sym, int column)
+new_lit_gen(struct parser_params *parser, VALUE sym, YYLTYPE location)
 {
     NODE *lit = NEW_LIT(sym);
-    nd_set_column(lit, column);
+    nd_set_lineno(lit, location.first_line);
+    nd_set_column(lit, location.first_column);
     return lit;
 }
 
@@ -10674,7 +10675,7 @@ dsym_node_gen(struct parser_params *parser, NODE *node, YYLTYPE location)
     VALUE lit;
 
     if (!node) {
-	return new_lit(ID2SYM(idNULL), location.first_column);
+	return new_lit(ID2SYM(idNULL), location);
     }
 
     switch (nd_type(node)) {
@@ -11220,7 +11221,7 @@ reg_named_capture_assign_iter(const OnigUChar *name, const OnigUChar *name_end,
         return ST_CONTINUE;
     }
     var = intern_cstr(s, len, enc);
-    node = node_assign(assignable(var, 0, arg->location), new_lit(ID2SYM(var), arg->location.first_column), arg->location);
+    node = node_assign(assignable(var, 0, arg->location), new_lit(ID2SYM(var), arg->location), arg->location);
     succ = arg->succ_block;
     if (!succ) succ = new_begin(0, arg->location);
     succ = block_append(succ, node, arg->location.first_column);
