@@ -518,8 +518,8 @@ static NODE *new_dstr_gen(struct parser_params *parser, VALUE str, int column);
 static NODE *new_rescue_gen(struct parser_params *parser, NODE *b, NODE *res, NODE *e, YYLTYPE location);
 #define new_rescue(b,res,e,location) new_rescue_gen(parser,b,res,e,location)
 
-static NODE *new_undef_gen(struct parser_params *parser, NODE *i, int column);
-#define new_undef(i, column) new_undef_gen(parser, i, column)
+static NODE *new_undef_gen(struct parser_params *parser, NODE *i, YYLTYPE location);
+#define new_undef(i, location) new_undef_gen(parser, i, location)
 
 static NODE *new_zarray_gen(struct parser_params *parser, YYLTYPE location);
 #define new_zarray(location) new_zarray_gen(parser, location)
@@ -2001,7 +2001,7 @@ fitem		: fsym
 undef_list	: fitem
 		    {
 		    /*%%%*/
-			$$ = new_undef($1, @1.first_column);
+			$$ = new_undef($1, @1);
 		    /*%
 			$$ = rb_ary_new3(1, get_value($1));
 		    %*/
@@ -2009,7 +2009,7 @@ undef_list	: fitem
 		| undef_list ',' {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
-			NODE *undef = new_undef($4, @1.first_column);
+			NODE *undef = new_undef($4, @1);
 			$$ = block_append($1, undef, @1.first_column);
 		    /*%
 			rb_ary_push($1, get_value($4));
@@ -9434,10 +9434,11 @@ new_rescue_gen(struct parser_params *parser, NODE *b, NODE *res, NODE *e, YYLTYP
 }
 
 static NODE *
-new_undef_gen(struct parser_params *parser, NODE *i, int column)
+new_undef_gen(struct parser_params *parser, NODE *i, YYLTYPE location)
 {
     NODE *undef = NEW_UNDEF(i);
-    nd_set_column(undef, column);
+    nd_set_lineno(undef, location.first_line);
+    nd_set_column(undef, location.first_column);
     return undef;
 }
 
