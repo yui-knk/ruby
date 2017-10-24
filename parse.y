@@ -477,8 +477,8 @@ static NODE *new_const_op_assign_gen(struct parser_params *parser, NODE *lhs, ID
 static NODE *const_path_field_gen(struct parser_params *parser, NODE *head, ID mid, int column);
 #define const_path_field(w, n, column) const_path_field_gen(parser, w, n, column)
 #define top_const_field(n) NEW_COLON3(n)
-static NODE *const_decl_gen(struct parser_params *parser, NODE* path, int column);
-#define const_decl(path, column) const_decl_gen(parser, path, column)
+static NODE *const_decl_gen(struct parser_params *parser, NODE* path, YYLTYPE location);
+#define const_decl(path, location) const_decl_gen(parser, path, location)
 
 #define var_field(n) (n)
 #define backref_assign_error(n, a, location) (rb_backref_error(n), new_begin(0, location))
@@ -647,7 +647,7 @@ static VALUE new_xstring_gen(struct parser_params *, VALUE);
 #define const_path_field(w, n, column) dispatch2(const_path_field, (w), (n))
 #define top_const_field(n) dispatch1(top_const_field, (n))
 static VALUE const_decl_gen(struct parser_params *parser, VALUE path);
-#define const_decl(path, column) const_decl_gen(parser, path)
+#define const_decl(path, location) const_decl_gen(parser, path)
 
 static VALUE var_field_gen(struct parser_params *parser, VALUE a);
 #define var_field(a) var_field_gen(parser, (a))
@@ -1868,11 +1868,11 @@ mlhs_node	: user_variable
 		    }
 		| primary_value tCOLON2 tCONSTANT
 		    {
-			$$ = const_decl(const_path_field($1, $3, @1.first_column), @1.first_column);
+			$$ = const_decl(const_path_field($1, $3, @1.first_column), @1);
 		    }
 		| tCOLON3 tCONSTANT
 		    {
-			$$ = const_decl(top_const_field($2), @1.first_column);
+			$$ = const_decl(top_const_field($2), @1);
 		    }
 		| backref
 		    {
@@ -1931,11 +1931,11 @@ lhs		: user_variable
 		    }
 		| primary_value tCOLON2 tCONSTANT
 		    {
-			$$ = const_decl(const_path_field($1, $3, @1.first_column), @1.first_column);
+			$$ = const_decl(const_path_field($1, $3, @1.first_column), @1);
 		    }
 		| tCOLON3 tCONSTANT
 		    {
-			$$ = const_decl(top_const_field($2), @1.first_column);
+			$$ = const_decl(top_const_field($2), @1);
 		    }
 		| backref
 		    {
@@ -10869,12 +10869,12 @@ const_path_field_gen(struct parser_params *parser, NODE *head, ID mid, int colum
 }
 
 static NODE *
-const_decl_gen(struct parser_params *parser, NODE *path, int column)
+const_decl_gen(struct parser_params *parser, NODE *path, YYLTYPE location)
 {
     if (in_def || in_single) {
 	yyerror0("dynamic constant assignment");
     }
-    return new_cdecl(0, 0, (path), column);
+    return new_cdecl(0, 0, (path), location.first_column);
 }
 #else
 static VALUE
