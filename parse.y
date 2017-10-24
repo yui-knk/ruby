@@ -481,7 +481,7 @@ static NODE *const_decl_gen(struct parser_params *parser, NODE* path, int column
 #define const_decl(path, column) const_decl_gen(parser, path, column)
 
 #define var_field(n) (n)
-#define backref_assign_error(n, a, location) (rb_backref_error(n), new_begin(0, location.first_column))
+#define backref_assign_error(n, a, location) (rb_backref_error(n), new_begin(0, location))
 
 static NODE *kwd_append(NODE*, NODE*);
 
@@ -551,8 +551,8 @@ static NODE *new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *
 static NODE *new_scope_gen(struct parser_params *parser, NODE *a, NODE *b, int column);
 #define new_scope(a,b,column) new_scope_gen(parser,a,b,column)
 
-static NODE *new_begin_gen(struct parser_params *parser, NODE *b, int column);
-#define new_begin(b,column) new_begin_gen(parser,b,column)
+static NODE *new_begin_gen(struct parser_params *parser, NODE *b, YYLTYPE location);
+#define new_begin(b,location) new_begin_gen(parser,b,location)
 
 static NODE *new_masgn_gen(struct parser_params *parser, NODE *l, NODE *r, int column);
 #define new_masgn(l,r,column) new_masgn_gen(parser,l,r,column)
@@ -1133,7 +1133,7 @@ top_compstmt	: top_stmts opt_terms
 top_stmts	: none
                     {
 		    /*%%%*/
-			$$ = new_begin(0, @1.first_column);
+			$$ = new_begin(0, @1);
 		    /*%
 			$$ = dispatch2(stmts_add, dispatch0(stmts_new),
 						  dispatch0(void_stmt));
@@ -1176,7 +1176,7 @@ top_stmt	: stmt
 							    $4, @1.first_column);
 			/* NEW_PREEXE($4)); */
 			/* local_pop(); */
-			$$ = new_begin(0, @1.first_column);
+			$$ = new_begin(0, @1);
 		    /*%
 			$$ = dispatch1(BEGIN, $4);
 		    %*/
@@ -1232,7 +1232,7 @@ compstmt	: stmts opt_terms
 stmts		: none
                     {
 		    /*%%%*/
-			$$ = new_begin(0, @1.first_column);
+			$$ = new_begin(0, @1);
 		    /*%
 			$$ = dispatch2(stmts_add, dispatch0(stmts_new),
 						  dispatch0(void_stmt));
@@ -1279,7 +1279,7 @@ stmt_or_begin	: stmt
 							    $4, @1.first_column);
 			/* NEW_PREEXE($4)); */
 			/* local_pop(); */
-			$$ = new_begin(0, @1.first_column);
+			$$ = new_begin(0, @1);
 		    /*%
 			$$ = dispatch1(BEGIN, $4);
 		    %*/
@@ -1320,7 +1320,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			yyerror0("can't make alias for the number variables");
-			$$ = new_begin(0, @1.first_column);
+			$$ = new_begin(0, @1);
 		    /*%
 			$$ = dispatch2(var_alias, $2, $3);
 			$$ = dispatch1(alias_error, $$);
@@ -1885,7 +1885,7 @@ lhs		: user_variable
 		    {
 			$$ = assignable(var_field($1), 0, @1.first_column);
 		    /*%%%*/
-			if (!$$) $$ = new_begin(0, @1.first_column);
+			if (!$$) $$ = new_begin(0, @1);
 		    /*%
 		    %*/
 		    }
@@ -1893,7 +1893,7 @@ lhs		: user_variable
 		    {
 			$$ = assignable(var_field($1), 0, @1.first_column);
 		    /*%%%*/
-			if (!$$) $$ = new_begin(0, @1.first_column);
+			if (!$$) $$ = new_begin(0, @1);
 		    /*%
 		    %*/
 		    }
@@ -2601,7 +2601,7 @@ primary		: literal
 			}
 			else {
 			    set_line_body($3, $<num>2);
-			    $$ = new_begin($3, @1.first_column);
+			    $$ = new_begin($3, @1);
 			}
 			nd_set_line($$, $<num>2);
 		    /*%
@@ -2611,7 +2611,7 @@ primary		: literal
 		| tLPAREN_ARG {SET_LEX_STATE(EXPR_ENDARG);} rparen
 		    {
 		    /*%%%*/
-			$$ = new_begin(0, @1.first_column);
+			$$ = new_begin(0, @1);
 		    /*%
 			$$ = dispatch1(paren, 0);
 		    %*/
@@ -4313,7 +4313,7 @@ keyword_variable: keyword_nil {$$ = KWD2EID(nil, $1);}
 var_ref		: user_variable
 		    {
 		    /*%%%*/
-			if (!($$ = gettable($1, @1.first_column))) $$ = new_begin(0, @1.first_column);
+			if (!($$ = gettable($1, @1.first_column))) $$ = new_begin(0, @1);
 		    /*%
 			if (id_is_var(get_id($1))) {
 			    $$ = dispatch1(var_ref, $1);
@@ -4326,7 +4326,7 @@ var_ref		: user_variable
 		| keyword_variable
 		    {
 		    /*%%%*/
-			if (!($$ = gettable($1, @1.first_column))) $$ = new_begin(0, @1.first_column);
+			if (!($$ = gettable($1, @1.first_column))) $$ = new_begin(0, @1);
 		    /*%
 			$$ = dispatch1(var_ref, $1);
 		    %*/
@@ -9529,10 +9529,11 @@ new_scope_gen(struct parser_params *parser, NODE *a, NODE *b, int column)
 }
 
 static NODE *
-new_begin_gen(struct parser_params *parser, NODE *b, int column)
+new_begin_gen(struct parser_params *parser, NODE *b, YYLTYPE location)
 {
     NODE *begin = NEW_BEGIN(b);
-    nd_set_column(begin, column);
+    nd_set_lineno(begin, location.first_line);
+    nd_set_column(begin, location.first_column);
     return begin;
 }
 
@@ -10813,7 +10814,7 @@ new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, YYL
 	}
     }
     else {
-	asgn = new_begin(0, location.first_column);
+	asgn = new_begin(0, location);
     }
     return asgn;
 }
@@ -10851,7 +10852,7 @@ new_const_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rh
 	asgn = NEW_OP_CDECL(lhs, op, rhs);
     }
     else {
-	asgn = new_begin(0, location.first_column);
+	asgn = new_begin(0, location);
     }
     fixpos(asgn, lhs);
     nd_set_lineno(asgn, location.first_line);
@@ -11247,7 +11248,7 @@ reg_named_capture_assign_iter(const OnigUChar *name, const OnigUChar *name_end,
     var = intern_cstr(s, len, enc);
     node = node_assign(assignable(var, 0, arg->location.first_column), new_lit(ID2SYM(var), arg->location.first_column), arg->location.first_column);
     succ = arg->succ_block;
-    if (!succ) succ = new_begin(0, arg->location.first_column);
+    if (!succ) succ = new_begin(0, arg->location);
     succ = block_append(succ, node, arg->location.first_column);
     arg->succ_block = succ;
     return ST_CONTINUE;
