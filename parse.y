@@ -434,8 +434,8 @@ static NODE *ret_args_gen(struct parser_params*,NODE*);
 static NODE *arg_blk_pass(NODE*,NODE*);
 static NODE *new_yield_gen(struct parser_params*,NODE*,int);
 #define new_yield(node,column) new_yield_gen(parser, (node), (column))
-static NODE *dsym_node_gen(struct parser_params*,NODE*,int);
-#define dsym_node(node,column) dsym_node_gen(parser, (node), (column))
+static NODE *dsym_node_gen(struct parser_params*,NODE*,YYLTYPE);
+#define dsym_node(node,location) dsym_node_gen(parser, (node), (location))
 
 static NODE *gettable_gen(struct parser_params*,ID,YYLTYPE);
 #define gettable(id,location) gettable_gen(parser,(id),(location))
@@ -4228,7 +4228,7 @@ dsym		: tSYMBEG xstring_contents tSTRING_END
 		    {
 			SET_LEX_STATE(EXPR_END|EXPR_ENDARG);
 		    /*%%%*/
-			$$ = dsym_node($2, @1.first_column);
+			$$ = dsym_node($2, @1);
 		    /*%
 			$$ = dispatch1(dyna_symbol, $2);
 		    %*/
@@ -4938,7 +4938,7 @@ assoc		: arg_value tASSOC arg_value
 		| tSTRING_BEG string_contents tLABEL_END arg_value
 		    {
 		    /*%%%*/
-			$$ = list_append(new_list(dsym_node($2, @1.first_column), @1.first_column), $4, @1.first_column);
+			$$ = list_append(new_list(dsym_node($2, @1), @1.first_column), $4, @1.first_column);
 		    /*%
 			$$ = dispatch2(assoc_new, dispatch1(dyna_symbol, $2), $4);
 		    %*/
@@ -10669,12 +10669,12 @@ new_args_tail_gen(struct parser_params *parser, NODE *k, ID kr, ID b, YYLTYPE lo
 }
 
 static NODE*
-dsym_node_gen(struct parser_params *parser, NODE *node, int column)
+dsym_node_gen(struct parser_params *parser, NODE *node, YYLTYPE location)
 {
     VALUE lit;
 
     if (!node) {
-	return new_lit(ID2SYM(idNULL), column);
+	return new_lit(ID2SYM(idNULL), location.first_column);
     }
 
     switch (nd_type(node)) {
@@ -10687,8 +10687,9 @@ dsym_node_gen(struct parser_params *parser, NODE *node, int column)
 	nd_set_type(node, NODE_LIT);
 	break;
       default:
-	node = NEW_NODE(NODE_DSYM, Qnil, 1, new_list(node, column));
-	nd_set_column(node, column);
+	node = NEW_NODE(NODE_DSYM, Qnil, 1, new_list(node, location.first_column));
+	nd_set_lineno(node, location.first_line);
+	nd_set_column(node, location.first_column);
 	break;
     }
     return node;
