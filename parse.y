@@ -437,8 +437,8 @@ static NODE *new_yield_gen(struct parser_params*,NODE*,int);
 static NODE *dsym_node_gen(struct parser_params*,NODE*,int);
 #define dsym_node(node,column) dsym_node_gen(parser, (node), (column))
 
-static NODE *gettable_gen(struct parser_params*,ID,int);
-#define gettable(id,column) gettable_gen(parser,(id),(column))
+static NODE *gettable_gen(struct parser_params*,ID,YYLTYPE);
+#define gettable(id,location) gettable_gen(parser,(id),(location))
 static NODE *assignable_gen(struct parser_params*,ID,NODE*,YYLTYPE);
 #define assignable(id,node,location) assignable_gen(parser, (id), (node), (location))
 
@@ -4296,7 +4296,7 @@ keyword_variable: keyword_nil {$$ = KWD2EID(nil, $1);}
 var_ref		: user_variable
 		    {
 		    /*%%%*/
-			if (!($$ = gettable($1, @1.first_column))) $$ = new_begin(0, @1);
+			if (!($$ = gettable($1, @1))) $$ = new_begin(0, @1);
 		    /*%
 			if (id_is_var(get_id($1))) {
 			    $$ = dispatch1(var_ref, $1);
@@ -4309,7 +4309,7 @@ var_ref		: user_variable
 		| keyword_variable
 		    {
 		    /*%%%*/
-			if (!($$ = gettable($1, @1.first_column))) $$ = new_begin(0, @1);
+			if (!($$ = gettable($1, @1))) $$ = new_begin(0, @1);
 		    /*%
 			$$ = dispatch1(var_ref, $1);
 		    %*/
@@ -9173,34 +9173,38 @@ past_dvar_p(struct parser_params *parser, ID id)
 # endif
 
 static NODE*
-gettable_gen(struct parser_params *parser, ID id, int column)
+gettable_gen(struct parser_params *parser, ID id, YYLTYPE location)
 {
     ID *vidp = NULL;
     NODE *node;
     switch (id) {
       case keyword_self:
 	node = NEW_SELF();
-	nd_set_column(node, column);
+	nd_set_lineno(node, location.first_line);
+	nd_set_column(node, location.first_column);
 	return node;
       case keyword_nil:
 	node = NEW_NIL();
-	nd_set_column(node, column);
+	nd_set_lineno(node, location.first_line);
+	nd_set_column(node, location.first_column);
 	return node;
       case keyword_true:
 	node = NEW_TRUE();
-	nd_set_column(node, column);
+	nd_set_lineno(node, location.first_line);
+	nd_set_column(node, location.first_column);
 	return node;
       case keyword_false:
 	node = NEW_FALSE();
-	nd_set_column(node, column);
+	nd_set_lineno(node, location.first_line);
+	nd_set_column(node, location.first_column);
 	return node;
       case keyword__FILE__:
-	node = new_str(rb_str_dup(ruby_sourcefile_string), column);
+	node = new_str(rb_str_dup(ruby_sourcefile_string), location.first_column);
 	return node;
       case keyword__LINE__:
-	return new_lit(INT2FIX(tokline), column);
+	return new_lit(INT2FIX(tokline), location.first_column);
       case keyword__ENCODING__:
-	return new_lit(rb_enc_from_encoding(current_enc), column);
+	return new_lit(rb_enc_from_encoding(current_enc), location.first_column);
     }
     switch (id_type(id)) {
       case ID_LOCAL:
@@ -9209,7 +9213,7 @@ gettable_gen(struct parser_params *parser, ID id, int column)
 		rb_warn1("circular argument reference - %"PRIsWARN, rb_id2str(id));
 	    }
 	    if (vidp) *vidp |= LVAR_USED;
-	    node = new_dvar(id, column);
+	    node = new_dvar(id, location.first_column);
 	    return node;
 	}
 	if (local_id_ref(id, vidp)) {
@@ -9217,7 +9221,7 @@ gettable_gen(struct parser_params *parser, ID id, int column)
 		rb_warn1("circular argument reference - %"PRIsWARN, rb_id2str(id));
 	    }
 	    if (vidp) *vidp |= LVAR_USED;
-	    node = new_lvar(id, column);
+	    node = new_lvar(id, location.first_column);
 	    return node;
 	}
 # if WARN_PAST_SCOPE
@@ -9227,21 +9231,24 @@ gettable_gen(struct parser_params *parser, ID id, int column)
 # endif
 	/* method call without arguments */
 	node = NEW_VCALL(id);
-	nd_set_column(node, column);
+	nd_set_lineno(node, location.first_line);
+	nd_set_column(node, location.first_column);
 	return node;
       case ID_GLOBAL:
-	node = new_gvar(id, column);
+	node = new_gvar(id, location.first_column);
 	return node;
       case ID_INSTANCE:
-	node = new_ivar(id, column);
+	node = new_ivar(id, location.first_column);
 	return node;
       case ID_CONST:
 	node = NEW_CONST(id);
-	nd_set_column(node, column);
+	nd_set_lineno(node, location.first_line);
+	nd_set_column(node, location.first_column);
 	return node;
       case ID_CLASS:
 	node = NEW_CVAR(id);
-	nd_set_column(node, column);
+	nd_set_lineno(node, location.first_line);
+	nd_set_column(node, location.first_column);
 	return node;
     }
     compile_error(PARSER_ARG "identifier %"PRIsVALUE" is not valid to get", rb_id2str(id));
@@ -10751,7 +10758,7 @@ new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, YYL
 	ID vid = lhs->nd_vid;
 	if (op == tOROP) {
 	    lhs->nd_value = rhs;
-	    asgn = NEW_OP_ASGN_OR(gettable(vid, location.first_column), lhs);
+	    asgn = NEW_OP_ASGN_OR(gettable(vid, location), lhs);
 	    nd_set_lineno(asgn, location.first_line);
 	    nd_set_column(asgn, location.first_column);
 	    if (is_notop_id(vid)) {
@@ -10765,13 +10772,13 @@ new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, YYL
 	}
 	else if (op == tANDOP) {
 	    lhs->nd_value = rhs;
-	    asgn = NEW_OP_ASGN_AND(gettable(vid, location.first_column), lhs);
+	    asgn = NEW_OP_ASGN_AND(gettable(vid, location), lhs);
 	    nd_set_lineno(asgn, location.first_line);
 	    nd_set_column(asgn, location.first_column);
 	}
 	else {
 	    asgn = lhs;
-	    asgn->nd_value = new_call(gettable(vid, location.first_column), op, new_list(rhs, location.first_column), location.first_column);
+	    asgn->nd_value = new_call(gettable(vid, location), op, new_list(rhs, location.first_column), location.first_column);
 	}
     }
     else {
