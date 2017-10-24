@@ -524,8 +524,8 @@ static NODE *new_undef_gen(struct parser_params *parser, NODE *i, YYLTYPE locati
 static NODE *new_zarray_gen(struct parser_params *parser, YYLTYPE location);
 #define new_zarray(location) new_zarray_gen(parser, location)
 
-static NODE *new_ivar_gen(struct parser_params *parser, ID id, int column);
-#define new_ivar(id, column) new_ivar_gen(parser,id,column)
+static NODE *new_ivar_gen(struct parser_params *parser, ID id, YYLTYPE location);
+#define new_ivar(id, location) new_ivar_gen(parser,id,location)
 
 static NODE *new_postarg_gen(struct parser_params *parser, NODE *i, NODE *v, YYLTYPE location);
 #define new_postarg(i,v,location) new_postarg_gen(parser,i,v,location)
@@ -4190,7 +4190,7 @@ string_dvar	: tGVAR
 		| tIVAR
 		    {
 		    /*%%%*/
-			$$ = new_ivar($1, @1.first_column);
+			$$ = new_ivar($1, @1);
 		    /*%
 			$$ = dispatch1(var_ref, $1);
 		    %*/
@@ -9238,7 +9238,7 @@ gettable_gen(struct parser_params *parser, ID id, YYLTYPE location)
 	node = new_gvar(id, location.first_column);
 	return node;
       case ID_INSTANCE:
-	node = new_ivar(id, location.first_column);
+	node = new_ivar(id, location);
 	return node;
       case ID_CONST:
 	node = NEW_CONST(id);
@@ -9468,10 +9468,11 @@ new_zarray_gen(struct parser_params *parser, YYLTYPE location)
 }
 
 static NODE *
-new_ivar_gen(struct parser_params *parser, ID id, int column)
+new_ivar_gen(struct parser_params *parser, ID id, YYLTYPE location)
 {
     NODE *ivar = NEW_IVAR(id);
-    nd_set_column(ivar, column);
+    nd_set_lineno(ivar, location.first_line);
+    nd_set_column(ivar, location.first_column);
     return ivar;
 }
 
