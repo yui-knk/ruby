@@ -509,8 +509,8 @@ static NODE *new_dvar_gen(struct parser_params *parser, ID id, int column);
 static NODE *new_resbody_gen(struct parser_params *parser, NODE *exc_list, NODE *stmt, NODE *rescue, YYLTYPE location);
 #define new_resbody(e,s,r,location) new_resbody_gen(parser, (e),(s),(r),(location))
 
-static NODE *new_errinfo_gen(struct parser_params *parser, int column);
-#define new_errinfo(column) new_errinfo_gen(parser, column)
+static NODE *new_errinfo_gen(struct parser_params *parser, YYLTYPE location);
+#define new_errinfo(location) new_errinfo_gen(parser, location)
 
 static NODE *new_call_gen(struct parser_params *parser, NODE *recv, ID mid, NODE *args, int column);
 #define new_call(recv,mid,args,column) new_call_gen(parser, recv,mid,args,column)
@@ -3749,7 +3749,7 @@ opt_rescue	: keyword_rescue exc_list exc_var then
 		    {
 		    /*%%%*/
 			if ($3) {
-			    $3 = node_assign($3, new_errinfo(@1.first_column), @1.first_column);
+			    $3 = node_assign($3, new_errinfo(@1), @1.first_column);
 			    $5 = block_append($3, $5, @1.first_column);
 			}
 			$$ = new_resbody($2, $5, $6, @1);
@@ -9416,10 +9416,11 @@ new_resbody_gen(struct parser_params *parser, NODE *exc_list, NODE *stmt, NODE *
 }
 
 static NODE *
-new_errinfo_gen(struct parser_params *parser, int column)
+new_errinfo_gen(struct parser_params *parser, YYLTYPE location)
 {
     NODE *errinfo = NEW_ERRINFO();
-    nd_set_column(errinfo, column);
+    nd_set_lineno(errinfo, location.first_line);
+    nd_set_column(errinfo, location.first_column);
     return errinfo;
 }
 
