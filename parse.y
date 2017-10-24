@@ -485,8 +485,8 @@ static NODE *new_lit_gen(struct parser_params *parser, VALUE sym, int column);
 static NODE *new_list_gen(struct parser_params *parser, NODE *item, int column);
 #define new_list(item, column) new_list_gen(parser, item, column)
 
-static NODE *new_str_gen(struct parser_params *parser, VALUE str, int column);
-#define new_str(s,column) new_str_gen(parser, s, column)
+static NODE *new_str_gen(struct parser_params *parser, VALUE str, YYLTYPE location);
+#define new_str(s,location) new_str_gen(parser, s, location)
 
 static NODE *new_dvar_gen(struct parser_params *parser, ID id, YYLTYPE location);
 #define new_dvar(id, location) new_dvar_gen(parser, id, location)
@@ -3802,7 +3802,7 @@ strings		: string
 		    /*%%%*/
 			NODE *node = $1;
 			if (!node) {
-			    node = new_str(STR_NEW0(), @1.first_column);
+			    node = new_str(STR_NEW0(), @1);
 			}
 			else {
 			    node = evstr2dstr(node, @1);
@@ -9031,7 +9031,7 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, YYLTYPE
 	}
 	else {
 	    nd_set_type(tail, NODE_ARRAY);
-	    tail->nd_head = new_str(tail->nd_lit, location.first_column);
+	    tail->nd_head = new_str(tail->nd_lit, location);
 	    list_concat(head, tail);
 	}
 	break;
@@ -9199,7 +9199,7 @@ gettable_gen(struct parser_params *parser, ID id, YYLTYPE location)
 	nd_set_column(node, location.first_column);
 	return node;
       case keyword__FILE__:
-	node = new_str(rb_str_dup(ruby_sourcefile_string), location.first_column);
+	node = new_str(rb_str_dup(ruby_sourcefile_string), location);
 	return node;
       case keyword__LINE__:
 	return new_lit(INT2FIX(tokline), location.first_column);
@@ -9352,10 +9352,11 @@ new_list_gen(struct parser_params *parser, NODE *item, int column)
 }
 
 static NODE *
-new_str_gen(struct parser_params *parser, VALUE str, int column)
+new_str_gen(struct parser_params *parser, VALUE str, YYLTYPE location)
 {
     NODE *nd_str = NEW_STR(str);
-    nd_set_column(nd_str, column);
+    nd_set_lineno(nd_str, location.first_line);
+    nd_set_column(nd_str, location.first_column);
     return nd_str;
 }
 
