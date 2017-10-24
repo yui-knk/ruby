@@ -488,8 +488,8 @@ static NODE *kwd_append(NODE*, NODE*);
 static NODE *new_hash_gen(struct parser_params *parser, NODE *hash, int column);
 #define new_hash(hash, column) new_hash_gen(parser, (hash), column)
 
-static NODE *new_defined_gen(struct parser_params *parser, NODE *expr, int column);
-#define new_defined(expr, column) new_defined_gen(parser, expr, column)
+static NODE *new_defined_gen(struct parser_params *parser, NODE *expr, YYLTYPE location);
+#define new_defined(expr, location) new_defined_gen(parser, expr, location)
 
 static NODE *new_regexp_gen(struct parser_params *, NODE *, int, YYLTYPE);
 #define new_regexp(node, opt, location) new_regexp_gen(parser, node, opt, location)
@@ -824,7 +824,7 @@ new_args_tail_gen(struct parser_params *parser, VALUE k, VALUE kr, VALUE b)
 }
 #define new_args_tail(k,kr,b,location) new_args_tail_gen(parser, (k),(kr),(b))
 
-#define new_defined(expr,column) dispatch1(defined, (expr))
+#define new_defined(expr,location) dispatch1(defined, (expr))
 
 static VALUE parser_heredoc_dedent(struct parser_params*,VALUE);
 # define heredoc_dedent(str) parser_heredoc_dedent(parser, (str))
@@ -2267,7 +2267,7 @@ arg		: lhs '=' arg_rhs
 		| keyword_defined opt_nl {in_defined = 1;} arg
 		    {
 			in_defined = 0;
-			$$ = new_defined($4, @1.first_column);
+			$$ = new_defined($4, @1);
 		    }
 		| arg '?' arg opt_nl ':' arg
 		    {
@@ -2716,7 +2716,7 @@ primary		: literal
 		| keyword_defined opt_nl '(' {in_defined = 1;} expr rparen
 		    {
 			in_defined = 0;
-			$$ = new_defined($5, @1.first_column);
+			$$ = new_defined($5, @1);
 		    }
 		| keyword_not '(' expr rparen
 		    {
@@ -9311,10 +9311,11 @@ kwd_append(NODE *kwlist, NODE *kw)
 }
 
 static NODE *
-new_defined_gen(struct parser_params *parser, NODE *expr, int column)
+new_defined_gen(struct parser_params *parser, NODE *expr, YYLTYPE location)
 {
     NODE *defined = NEW_DEFINED(remove_begin_all(expr));
-    nd_set_column(defined, column);
+    nd_set_lineno(defined, location.first_line);
+    nd_set_column(defined, location.first_column);
     return defined;
 }
 
