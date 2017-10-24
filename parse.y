@@ -412,8 +412,8 @@ static NODE *list_append_gen(struct parser_params*,NODE*,NODE*,int);
 static NODE *list_concat(NODE*,NODE*);
 static NODE *arg_append_gen(struct parser_params*,NODE*,NODE*,int);
 #define arg_append(h,t,column) arg_append_gen(parser,(h),(t),(column))
-static NODE *arg_concat_gen(struct parser_params*,NODE*,NODE*,int);
-#define arg_concat(h,t,column) arg_concat_gen(parser,(h),(t),(column))
+static NODE *arg_concat_gen(struct parser_params*,NODE*,NODE*,YYLTYPE);
+#define arg_concat(h,t,location) arg_concat_gen(parser,(h),(t),(location))
 static NODE *literal_concat_gen(struct parser_params*,NODE*,NODE*,YYLTYPE);
 #define literal_concat(h,t,location) literal_concat_gen(parser,(h),(t),(location))
 static int literal_concat0(struct parser_params *, VALUE, VALUE);
@@ -1452,7 +1452,7 @@ command_asgn	: lhs '=' command_rhs
 
 			value_expr($6);
 			if (!$3) $3 = new_zarray(@1);
-			args = arg_concat($3, $6, @1.first_column);
+			args = arg_concat($3, $6, @1);
 			if ($5 == tOROP) {
 			    $5 = 0;
 			}
@@ -2099,7 +2099,7 @@ arg		: lhs '=' arg_rhs
 			    nd_set_column(args, @1.first_column);
 			}
 			else {
-			    args = arg_concat($3, $6, @1.first_column);
+			    args = arg_concat($3, $6, @1);
 			}
 			if ($5 == tOROP) {
 			    $5 = 0;
@@ -2511,7 +2511,7 @@ args		: arg_value
 			    $$ = list_concat(n1, $4);
 			}
 			else {
-			    $$ = arg_concat($1, $4, @1.first_column);
+			    $$ = arg_concat($1, $4, @1);
 			}
 		    /*%
 			$$ = arg_add_star($1, $4);
@@ -2546,7 +2546,7 @@ mrhs		: args ',' arg_value
 			    $$ = list_concat(n1, $4);
 			}
 			else {
-			    $$ = arg_concat($1, $4, @1.first_column);
+			    $$ = arg_concat($1, $4, @1);
 			}
 		    /*%
 			$$ = mrhs_add_star(args2mrhs($1), $4);
@@ -9973,7 +9973,7 @@ rb_backref_error_gen(struct parser_params *parser, NODE *node)
 }
 
 static NODE *
-arg_concat_gen(struct parser_params *parser, NODE *node1, NODE *node2, int column)
+arg_concat_gen(struct parser_params *parser, NODE *node1, NODE *node2, YYLTYPE location)
 {
     NODE *argscat;
 
@@ -9981,13 +9981,13 @@ arg_concat_gen(struct parser_params *parser, NODE *node1, NODE *node2, int colum
     switch (nd_type(node1)) {
       case NODE_BLOCK_PASS:
 	if (node1->nd_head)
-	    node1->nd_head = arg_concat(node1->nd_head, node2, column);
+	    node1->nd_head = arg_concat(node1->nd_head, node2, location);
 	else
-	    node1->nd_head = new_list(node2, column);
+	    node1->nd_head = new_list(node2, location.first_column);
 	return node1;
       case NODE_ARGSPUSH:
 	if (nd_type(node2) != NODE_ARRAY) break;
-	node1->nd_body = list_concat(new_list(node1->nd_body, column), node2);
+	node1->nd_body = list_concat(new_list(node1->nd_body, location.first_column), node2);
 	nd_set_type(node1, NODE_ARGSCAT);
 	return node1;
       case NODE_ARGSCAT:
@@ -9997,7 +9997,8 @@ arg_concat_gen(struct parser_params *parser, NODE *node1, NODE *node2, int colum
 	return node1;
     }
     argscat = NEW_ARGSCAT(node1, node2);
-    nd_set_column(argscat, column);
+    nd_set_lineno(argscat, location.first_line);
+    nd_set_column(argscat, location.first_column);
     return argscat;
 }
 
