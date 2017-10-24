@@ -452,8 +452,8 @@ static void rb_backref_error_gen(struct parser_params*,NODE*);
 static NODE *node_assign_gen(struct parser_params*,NODE*,NODE*,int);
 #define node_assign(node1, node2, column) node_assign_gen(parser, (node1), (node2), (column))
 
-static NODE *new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int column);
-#define new_op_assign(lhs, op, rhs, column) new_op_assign_gen(parser, (lhs), (op), (rhs), (column))
+static NODE *new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, YYLTYPE location);
+#define new_op_assign(lhs, op, rhs, location) new_op_assign_gen(parser, (lhs), (op), (rhs), (location))
 static NODE *new_attr_op_assign_gen(struct parser_params *parser, NODE *lhs, ID atype, ID attr, ID op, NODE *rhs, int column);
 #define new_attr_op_assign(lhs, type, attr, op, rhs, column) new_attr_op_assign_gen(parser, (lhs), (type), (attr), (op), (rhs), (column))
 static NODE *new_const_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, YYLTYPE location);
@@ -612,7 +612,7 @@ static VALUE new_qcall_gen(struct parser_params *parser, VALUE q, VALUE r, VALUE
 
 #define new_nil() Qnil
 static VALUE new_op_assign_gen(struct parser_params *parser, VALUE lhs, VALUE op, VALUE rhs);
-#define new_op_assign(lhs, op, rhs, column) new_op_assign_gen(parser, (lhs), (op), (rhs))
+#define new_op_assign(lhs, op, rhs, location) new_op_assign_gen(parser, (lhs), (op), (rhs))
 static VALUE new_attr_op_assign_gen(struct parser_params *parser, VALUE lhs, VALUE type, VALUE attr, VALUE op, VALUE rhs);
 #define new_attr_op_assign(lhs, type, attr, op, rhs, column) new_attr_op_assign_gen(parser, (lhs), (type), (attr), (op), (rhs))
 #define new_const_op_assign(lhs, op, rhs, location) new_op_assign(lhs, op, rhs, location)
@@ -1427,7 +1427,7 @@ command_asgn	: lhs '=' command_rhs
 		| var_lhs tOP_ASGN command_rhs
 		    {
 			value_expr($3);
-			$$ = new_op_assign($1, $2, $3, @1.first_column);
+			$$ = new_op_assign($1, $2, $3, @1);
 		    }
 		| primary_value '[' opt_call_args rbracket tOP_ASGN command_rhs
 		    {
@@ -2069,7 +2069,7 @@ arg		: lhs '=' arg_rhs
 		    }
 		| var_lhs tOP_ASGN arg_rhs
 		    {
-			$$ = new_op_assign($1, $2, $3, @1.first_column);
+			$$ = new_op_assign($1, $2, $3, @1);
 		    }
 		| primary_value '[' opt_call_args rbracket tOP_ASGN arg_rhs
 		    {
@@ -2127,7 +2127,7 @@ arg		: lhs '=' arg_rhs
 		| backref tOP_ASGN arg_rhs
 		    {
 			$1 = var_field($1);
-			$$ = backref_assign_error($1, new_op_assign($1, $2, $3, @1.first_column), @1.first_column);
+			$$ = backref_assign_error($1, new_op_assign($1, $2, $3, @1), @1.first_column);
 		    }
 		| arg tDOT2 arg
 		    {
@@ -10722,7 +10722,7 @@ new_hash_gen(struct parser_params *parser, NODE *hash, int column)
 
 #ifndef RIPPER
 static NODE *
-new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int column)
+new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, YYLTYPE location)
 {
     NODE *asgn;
 
@@ -10730,8 +10730,9 @@ new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int
 	ID vid = lhs->nd_vid;
 	if (op == tOROP) {
 	    lhs->nd_value = rhs;
-	    asgn = NEW_OP_ASGN_OR(gettable(vid, column), lhs);
-	    nd_set_column(asgn, column);
+	    asgn = NEW_OP_ASGN_OR(gettable(vid, location.first_column), lhs);
+	    nd_set_lineno(asgn, location.first_line);
+	    nd_set_column(asgn, location.first_column);
 	    if (is_notop_id(vid)) {
 		switch (id_type(vid)) {
 		  case ID_GLOBAL:
@@ -10743,16 +10744,17 @@ new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, int
 	}
 	else if (op == tANDOP) {
 	    lhs->nd_value = rhs;
-	    asgn = NEW_OP_ASGN_AND(gettable(vid, column), lhs);
-            nd_set_column(asgn, column);
+	    asgn = NEW_OP_ASGN_AND(gettable(vid, location.first_column), lhs);
+	    nd_set_lineno(asgn, location.first_line);
+	    nd_set_column(asgn, location.first_column);
 	}
 	else {
 	    asgn = lhs;
-	    asgn->nd_value = new_call(gettable(vid, column), op, new_list(rhs, column), column);
+	    asgn->nd_value = new_call(gettable(vid, location.first_column), op, new_list(rhs, location.first_column), location.first_column);
 	}
     }
     else {
-	asgn = new_begin(0, column);
+	asgn = new_begin(0, location.first_column);
     }
     return asgn;
 }
