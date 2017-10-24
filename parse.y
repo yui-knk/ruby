@@ -459,8 +459,8 @@ static NODE *assignable_gen(struct parser_params*,ID,NODE*,YYLTYPE);
 
 static NODE *aryset_gen(struct parser_params*,NODE*,NODE*,int);
 #define aryset(node1,node2,column) aryset_gen(parser, (node1), (node2), (column))
-static NODE *attrset_gen(struct parser_params*,NODE*,ID,ID,int);
-#define attrset(node,q,id,column) attrset_gen(parser, (node), (q), (id), (column))
+static NODE *attrset_gen(struct parser_params*,NODE*,ID,ID,YYLTYPE);
+#define attrset(node,q,id,location) attrset_gen(parser, (node), (q), (id), (location))
 
 static void rb_backref_error_gen(struct parser_params*,NODE*);
 #define rb_backref_error(n) rb_backref_error_gen(parser,(n))
@@ -1845,7 +1845,7 @@ mlhs_node	: user_variable
 		| primary_value call_op tIDENTIFIER
 		    {
 		    /*%%%*/
-			$$ = attrset($1, $2, $3, @1.first_column);
+			$$ = attrset($1, $2, $3, @1);
 		    /*%
 			$$ = dispatch3(field, $1, $2, $3);
 		    %*/
@@ -1853,7 +1853,7 @@ mlhs_node	: user_variable
 		| primary_value tCOLON2 tIDENTIFIER
 		    {
 		    /*%%%*/
-			$$ = attrset($1, idCOLON2, $3, @1.first_column);
+			$$ = attrset($1, idCOLON2, $3, @1);
 		    /*%
 			$$ = dispatch2(const_path_field, $1, $3);
 		    %*/
@@ -1861,7 +1861,7 @@ mlhs_node	: user_variable
 		| primary_value call_op tCONSTANT
 		    {
 		    /*%%%*/
-			$$ = attrset($1, $2, $3, @1.first_column);
+			$$ = attrset($1, $2, $3, @1);
 		    /*%
 			$$ = dispatch3(field, $1, $2, $3);
 		    %*/
@@ -1908,7 +1908,7 @@ lhs		: user_variable
 		| primary_value call_op tIDENTIFIER
 		    {
 		    /*%%%*/
-			$$ = attrset($1, $2, $3, @1.first_column);
+			$$ = attrset($1, $2, $3, @1);
 		    /*%
 			$$ = dispatch3(field, $1, $2, $3);
 		    %*/
@@ -1916,7 +1916,7 @@ lhs		: user_variable
 		| primary_value tCOLON2 tIDENTIFIER
 		    {
 		    /*%%%*/
-			$$ = attrset($1, idCOLON2, $3, @1.first_column);
+			$$ = attrset($1, idCOLON2, $3, @1);
 		    /*%
 			$$ = dispatch3(field, $1, ID2VAL(idCOLON2), $3);
 		    %*/
@@ -1924,7 +1924,7 @@ lhs		: user_variable
 		| primary_value call_op tCONSTANT
 		    {
 		    /*%%%*/
-			$$ = attrset($1, $2, $3, @1.first_column);
+			$$ = attrset($1, $2, $3, @1);
 		    /*%
 			$$ = dispatch3(field, $1, $2, $3);
 		    %*/
@@ -9948,12 +9948,13 @@ block_dup_check_gen(struct parser_params *parser, NODE *node1, NODE *node2)
 }
 
 static NODE *
-attrset_gen(struct parser_params *parser, NODE *recv, ID atype, ID id, int column)
+attrset_gen(struct parser_params *parser, NODE *recv, ID atype, ID id, YYLTYPE location)
 {
     NODE *attrasgn;
     if (!CALL_Q_P(atype)) id = rb_id_attrset(id);
     attrasgn = NEW_ATTRASGN(recv, id, 0);
-    nd_set_column(attrasgn, column);
+    nd_set_lineno(attrasgn, location.first_line);
+    nd_set_column(attrasgn, location.first_column);
     return attrasgn;
 }
 
