@@ -491,8 +491,8 @@ static NODE *new_str_gen(struct parser_params *parser, VALUE str, int column);
 static NODE *new_dvar_gen(struct parser_params *parser, ID id, int column);
 #define new_dvar(id, column) new_dvar_gen(parser, id, column)
 
-static NODE *new_resbody_gen(struct parser_params *parser, NODE *exc_list, NODE *stmt, NODE *rescue, int column);
-#define new_resbody(e,s,r,column) new_resbody_gen(parser, (e),(s),(r),(column))
+static NODE *new_resbody_gen(struct parser_params *parser, NODE *exc_list, NODE *stmt, NODE *rescue, YYLTYPE location);
+#define new_resbody(e,s,r,location) new_resbody_gen(parser, (e),(s),(r),(location))
 
 static NODE *new_errinfo_gen(struct parser_params *parser, int column);
 #define new_errinfo(column) new_errinfo_gen(parser, column)
@@ -1367,7 +1367,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		| stmt modifier_rescue stmt
 		    {
 		    /*%%%*/
-			NODE *resq = new_resbody(0, remove_begin($3), 0, @1.first_column);
+			NODE *resq = new_resbody(0, remove_begin($3), 0, @1);
 			$$ = new_rescue(remove_begin($1), resq, 0, @1);
 			nd_set_column(resq, @1.first_column);
 		    /*%
@@ -1490,7 +1490,7 @@ command_rhs	: command_call   %prec tOP_ASGN
 		    {
 		    /*%%%*/
 			value_expr($1);
-			$$ = new_rescue($1, new_resbody(0, remove_begin($3), 0, @1.first_column), 0, @1);
+			$$ = new_rescue($1, new_resbody(0, remove_begin($3), 0, @1), 0, @1);
 		    /*%
 			$$ = dispatch2(rescue_mod, $1, $3);
 		    %*/
@@ -2333,7 +2333,7 @@ arg_rhs 	: arg   %prec tOP_ASGN
 		    {
 		    /*%%%*/
 			value_expr($1);
-			$$ = new_rescue($1, new_resbody(0, remove_begin($3), 0, @1.first_column), 0, @1);
+			$$ = new_rescue($1, new_resbody(0, remove_begin($3), 0, @1), 0, @1);
 		    /*%
 			$$ = dispatch2(rescue_mod, $1, $3);
 		    %*/
@@ -3735,7 +3735,7 @@ opt_rescue	: keyword_rescue exc_list exc_var then
 			    $3 = node_assign($3, new_errinfo(@1.first_column), @1.first_column);
 			    $5 = block_append($3, $5, @1.first_column);
 			}
-			$$ = new_resbody($2, $5, $6, @1.first_column);
+			$$ = new_resbody($2, $5, $6, @1);
 			fixpos($$, $2?$2:$5);
 		    /*%
 			$$ = dispatch4(rescue,
@@ -9360,10 +9360,11 @@ new_dvar_gen(struct parser_params *parser, ID id, int column)
 }
 
 static NODE *
-new_resbody_gen(struct parser_params *parser, NODE *exc_list, NODE *stmt, NODE *rescue, int column)
+new_resbody_gen(struct parser_params *parser, NODE *exc_list, NODE *stmt, NODE *rescue, YYLTYPE location)
 {
     NODE *resbody = NEW_RESBODY(exc_list, stmt, rescue);
-    nd_set_column(resbody, column);
+    nd_set_lineno(resbody, location.first_line);
+    nd_set_column(resbody, location.first_column);
     return resbody;
 }
 
