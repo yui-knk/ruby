@@ -402,8 +402,8 @@ static NODE *arg_concat_gen(struct parser_params*,NODE*,NODE*,int);
 static NODE *literal_concat_gen(struct parser_params*,NODE*,NODE*,int);
 #define literal_concat(h,t,column) literal_concat_gen(parser,(h),(t),(column))
 static int literal_concat0(struct parser_params *, VALUE, VALUE);
-static NODE *new_evstr_gen(struct parser_params*,NODE*,int);
-#define new_evstr(n, column) new_evstr_gen(parser,(n),(column))
+static NODE *new_evstr_gen(struct parser_params*,NODE*,YYLTYPE);
+#define new_evstr(n, location) new_evstr_gen(parser,(n),(location))
 static NODE *evstr2dstr_gen(struct parser_params*,NODE*,YYLTYPE);
 #define evstr2dstr(n,YYLTYPE) evstr2dstr_gen(parser,(n),(YYLTYPE))
 static NODE *splat_array(NODE*);
@@ -4172,7 +4172,7 @@ string_content	: tSTRING_CONTENT
 			heredoc_line_indent = -1;
 		    /*%%%*/
 			if ($7) $7->flags &= ~NODE_FL_NEWLINE;
-			$$ = new_evstr($7, @1.first_column);
+			$$ = new_evstr($7, @1);
 		    /*%
 			$$ = dispatch1(string_embexpr, $7);
 		    %*/
@@ -9057,7 +9057,7 @@ evstr2dstr_gen(struct parser_params *parser, NODE *node, YYLTYPE location)
 }
 
 static NODE *
-new_evstr_gen(struct parser_params *parser, NODE *node, int column)
+new_evstr_gen(struct parser_params *parser, NODE *node, YYLTYPE location)
 {
     NODE *head = node;
     NODE *evstr;
@@ -9069,7 +9069,8 @@ new_evstr_gen(struct parser_params *parser, NODE *node, int column)
 	}
     }
     evstr = NEW_EVSTR(head);
-    nd_set_column(evstr, column);
+    nd_set_lineno(evstr, location.first_line);
+    nd_set_column(evstr, location.first_column);
     return evstr;
 }
 
