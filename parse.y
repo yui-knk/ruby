@@ -10337,10 +10337,10 @@ warning_unless_e_option(struct parser_params *parser, NODE *node, const char *st
     if (!e_option_supplied(parser)) parser_warning(node, str);
 }
 
-static NODE *cond0(struct parser_params*,NODE*,int,int);
+static NODE *cond0(struct parser_params*,NODE*,int,YYLTYPE);
 
 static NODE*
-range_op(struct parser_params *parser, NODE *node, int column)
+range_op(struct parser_params *parser, NODE *node, YYLTYPE location)
 {
     enum node_type type;
 
@@ -10350,9 +10350,9 @@ range_op(struct parser_params *parser, NODE *node, int column)
     value_expr(node);
     if (type == NODE_LIT && FIXNUM_P(node->nd_lit)) {
 	warn_unless_e_option(parser, node, "integer literal in conditional range");
-	return new_call(node, tEQ, new_list(new_gvar(rb_intern("$."), column), column), column);
+	return new_call(node, tEQ, new_list(new_gvar(rb_intern("$."), location.first_column), location.first_column), location.first_column);
     }
-    return cond0(parser, node, FALSE, column);
+    return cond0(parser, node, FALSE, location);
 }
 
 static int
@@ -10377,7 +10377,7 @@ literal_node(NODE *node)
 }
 
 static NODE*
-cond0(struct parser_params *parser, NODE *node, int method_op, int column)
+cond0(struct parser_params *parser, NODE *node, int method_op, YYLTYPE location)
 {
     if (node == 0) return 0;
     if (!(node = nd_once_body(node))) return 0;
@@ -10396,21 +10396,22 @@ cond0(struct parser_params *parser, NODE *node, int method_op, int column)
 	    if (!method_op)
 		warning_unless_e_option(parser, node, "regex literal in condition");
 
-	    match = NEW_MATCH2(node, new_gvar(idLASTLINE, column));
-	    nd_set_column(match, column);
+	    match = NEW_MATCH2(node, new_gvar(idLASTLINE, location.first_column));
+	    nd_set_lineno(match, location.first_line);
+	    nd_set_column(match, location.first_column);
 	    return match;
 	}
 
       case NODE_AND:
       case NODE_OR:
-	node->nd_1st = cond0(parser, node->nd_1st, FALSE, column);
-	node->nd_2nd = cond0(parser, node->nd_2nd, FALSE, column);
+	node->nd_1st = cond0(parser, node->nd_1st, FALSE, location);
+	node->nd_2nd = cond0(parser, node->nd_2nd, FALSE, location);
 	break;
 
       case NODE_DOT2:
       case NODE_DOT3:
-	node->nd_beg = range_op(parser, node->nd_beg, column);
-	node->nd_end = range_op(parser, node->nd_end, column);
+	node->nd_beg = range_op(parser, node->nd_beg, location);
+	node->nd_end = range_op(parser, node->nd_end, location);
 	if (nd_type(node) == NODE_DOT2) nd_set_type(node,NODE_FLIP2);
 	else if (nd_type(node) == NODE_DOT3) nd_set_type(node, NODE_FLIP3);
 	if (!method_op && !e_option_supplied(parser)) {
@@ -10446,7 +10447,7 @@ static NODE*
 cond_gen(struct parser_params *parser, NODE *node, int method_op, YYLTYPE location)
 {
     if (node == 0) return 0;
-    return cond0(parser, node, method_op, location.first_column);
+    return cond0(parser, node, method_op, location);
 }
 
 static NODE*
@@ -10455,7 +10456,7 @@ new_if_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right, YYLT
     NODE *node_if;
 
     if (!cc) return right;
-    cc = cond0(parser, cc, FALSE, location.first_column);
+    cc = cond0(parser, cc, FALSE, location);
     node_if = NEW_IF(cc, left, right);
     nd_set_lineno(node_if, location.first_line);
     nd_set_column(node_if, location.first_column);
@@ -10468,7 +10469,7 @@ new_unless_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right, 
     NODE *node_unless;
 
     if (!cc) return right;
-    cc = cond0(parser, cc, FALSE, location.first_column);
+    cc = cond0(parser, cc, FALSE, location);
     node_unless = NEW_UNLESS(cc, left, right);
     nd_set_lineno(node_unless, location.first_line);
     nd_set_column(node_unless, location.first_column);
