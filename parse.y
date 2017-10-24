@@ -466,7 +466,7 @@ static NODE *const_decl_gen(struct parser_params *parser, NODE* path, int column
 #define const_decl(path, column) const_decl_gen(parser, path, column)
 
 #define var_field(n) (n)
-#define backref_assign_error(n, a, column) (rb_backref_error(n), new_begin(0, column))
+#define backref_assign_error(n, a, location) (rb_backref_error(n), new_begin(0, location.first_column))
 
 static NODE *kwd_append(NODE*, NODE*);
 
@@ -636,7 +636,7 @@ static VALUE var_field_gen(struct parser_params *parser, VALUE a);
 #define var_field(a) var_field_gen(parser, (a))
 static VALUE assign_error_gen(struct parser_params *parser, VALUE a);
 #define assign_error(a) assign_error_gen(parser, (a))
-#define backref_assign_error(n, a, column) assign_error(a)
+#define backref_assign_error(n, a, location) assign_error(a)
 
 #define block_dup_check(n1,n2) ((void)(n1), (void)(n2))
 #define fixpos(n1,n2) ((void)(n1), (void)(n2))
@@ -1474,7 +1474,7 @@ command_asgn	: lhs '=' command_rhs
 		| backref tOP_ASGN command_rhs
 		    {
 			$1 = var_field($1);
-			$$ = backref_assign_error($1, node_assign($1, $3, @1.first_column), @1.first_column);
+			$$ = backref_assign_error($1, node_assign($1, $3, @1.first_column), @1);
 		    }
 		;
 
@@ -1861,7 +1861,7 @@ mlhs_node	: user_variable
 		| backref
 		    {
 			$1 = var_field($1);
-			$$ = backref_assign_error($1, $1, @1.first_column);
+			$$ = backref_assign_error($1, $1, @1);
 		    }
 		;
 
@@ -1924,7 +1924,7 @@ lhs		: user_variable
 		| backref
 		    {
 			$1 = var_field($1);
-			$$ = backref_assign_error($1, $1, @1.first_column);
+			$$ = backref_assign_error($1, $1, @1);
 		    }
 		;
 
@@ -2127,7 +2127,7 @@ arg		: lhs '=' arg_rhs
 		| backref tOP_ASGN arg_rhs
 		    {
 			$1 = var_field($1);
-			$$ = backref_assign_error($1, new_op_assign($1, $2, $3, @1), @1.first_column);
+			$$ = backref_assign_error($1, new_op_assign($1, $2, $3, @1), @1);
 		    }
 		| arg tDOT2 arg
 		    {
