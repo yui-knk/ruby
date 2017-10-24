@@ -503,8 +503,8 @@ static NODE *new_call_gen(struct parser_params *parser, NODE *recv, ID mid, NODE
 static NODE *new_fcall_gen(struct parser_params *parser, ID mid, NODE *args, int column);
 #define new_fcall(mid,args,column) new_fcall_gen(parser, mid, args, column)
 
-static NODE *new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NODE *body, int column);
-#define new_for(var,iter,body,column) new_for_gen(parser, var, iter, body, column)
+static NODE *new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NODE *body, YYLTYPE location);
+#define new_for(var,iter,body,location) new_for_gen(parser, var, iter, body, location)
 
 static NODE *new_gvar_gen(struct parser_params *parser, ID id, int column);
 #define new_gvar(id, column) new_gvar_gen(parser, id, column)
@@ -2829,7 +2829,7 @@ primary		: literal
 
 			switch (nd_type($2)) {
 			  case NODE_MASGN:
-			    m->nd_next = node_assign($2, new_for(new_dvar(id, @1), 0, 0, @1.first_column), @1);
+			    m->nd_next = node_assign($2, new_for(new_dvar(id, @1), 0, 0, @1), @1);
 			    args = new_args(m, 0, id, 0, new_args_tail(0, 0, 0, @1));
 			    break;
 			  case NODE_LASGN:
@@ -2851,7 +2851,7 @@ primary		: literal
 			scope = NEW_NODE(NODE_SCOPE, tbl, $8, args);
 			nd_set_column(scope, @1.first_column);
 			tbl[0] = 1; tbl[1] = id;
-			$$ = new_for(0, $5, scope, @1.first_column);
+			$$ = new_for(0, $5, scope, @1);
 			fixpos($$, $2);
 		    /*%
 			$$ = dispatch3(for, $2, $5, $8);
@@ -9406,10 +9406,11 @@ new_fcall_gen(struct parser_params *parser, ID mid, NODE *args, int column)
 }
 
 static NODE *
-new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NODE *body, int column)
+new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NODE *body, YYLTYPE location)
 {
     NODE *nd_for = NEW_FOR(var, iter, body);
-    nd_set_column(nd_for, column);
+    nd_set_lineno(nd_for, location.first_line);
+    nd_set_column(nd_for, location.first_column);
     return nd_for;
 }
 
