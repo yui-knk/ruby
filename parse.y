@@ -439,8 +439,8 @@ static NODE *new_args_gen(struct parser_params*,NODE*,NODE*,ID,NODE*,NODE*);
 #define new_args(f,o,r,p,t) new_args_gen(parser, (f),(o),(r),(p),(t))
 static NODE *new_args_tail_gen(struct parser_params*,NODE*,ID,ID,int);
 #define new_args_tail(k,kr,b,column) new_args_tail_gen(parser, (k),(kr),(b),(column))
-static NODE *new_kw_arg_gen(struct parser_params *parser, NODE *k, int column);
-#define new_kw_arg(k,column) new_kw_arg_gen(parser, k, column)
+static NODE *new_kw_arg_gen(struct parser_params *parser, NODE *k, YYLTYPE location);
+#define new_kw_arg(k,location) new_kw_arg_gen(parser, k, location)
 
 static VALUE negate_lit_gen(struct parser_params*, VALUE);
 #define negate_lit(lit) negate_lit_gen(parser, lit)
@@ -4615,7 +4615,7 @@ f_kw		: f_label arg_value
 			current_arg = 0;
 			$$ = assignable($1, $2, @1);
 		    /*%%%*/
-			$$ = new_kw_arg($$, @1.first_column);
+			$$ = new_kw_arg($$, @1);
 		    /*%
 			$$ = rb_assoc_new(get_value($$), get_value($2));
 		    %*/
@@ -4625,7 +4625,7 @@ f_kw		: f_label arg_value
 			current_arg = 0;
 			$$ = assignable($1, (NODE *)-1, @1);
 		    /*%%%*/
-			$$ = new_kw_arg($$, @1.first_column);
+			$$ = new_kw_arg($$, @1);
 		    /*%
 			$$ = rb_assoc_new(get_value($$), 0);
 		    %*/
@@ -4636,7 +4636,7 @@ f_block_kw	: f_label primary_value
 		    {
 			$$ = assignable($1, $2, @1);
 		    /*%%%*/
-			$$ = new_kw_arg($$, @1.first_column);
+			$$ = new_kw_arg($$, @1);
 		    /*%
 			$$ = rb_assoc_new(get_value($$), get_value($2));
 		    %*/
@@ -4645,7 +4645,7 @@ f_block_kw	: f_label primary_value
 		    {
 			$$ = assignable($1, (NODE *)-1, @1);
 		    /*%%%*/
-			$$ = new_kw_arg($$, @1.first_column);
+			$$ = new_kw_arg($$, @1);
 		    /*%
 			$$ = rb_assoc_new(get_value($$), 0);
 		    %*/
@@ -9554,12 +9554,13 @@ new_masgn_gen(struct parser_params *parser, NODE *l, NODE *r, YYLTYPE location)
 
 
 static NODE *
-new_kw_arg_gen(struct parser_params *parser, NODE *k, int column)
+new_kw_arg_gen(struct parser_params *parser, NODE *k, YYLTYPE location)
 {
     NODE *kw_arg;
     if (!k) return 0;
     kw_arg = NEW_KW_ARG(0, (k));
-    nd_set_column(kw_arg, column);
+    nd_set_lineno(kw_arg, location.first_line);
+    nd_set_column(kw_arg, location.first_column);
     return kw_arg;
 }
 
