@@ -414,8 +414,8 @@ static NODE *arg_append_gen(struct parser_params*,NODE*,NODE*,int);
 #define arg_append(h,t,column) arg_append_gen(parser,(h),(t),(column))
 static NODE *arg_concat_gen(struct parser_params*,NODE*,NODE*,int);
 #define arg_concat(h,t,column) arg_concat_gen(parser,(h),(t),(column))
-static NODE *literal_concat_gen(struct parser_params*,NODE*,NODE*,int);
-#define literal_concat(h,t,column) literal_concat_gen(parser,(h),(t),(column))
+static NODE *literal_concat_gen(struct parser_params*,NODE*,NODE*,YYLTYPE);
+#define literal_concat(h,t,location) literal_concat_gen(parser,(h),(t),(location))
 static int literal_concat0(struct parser_params *, VALUE, VALUE);
 static NODE *new_evstr_gen(struct parser_params*,NODE*,YYLTYPE);
 #define new_evstr(n, location) new_evstr_gen(parser,(n),(location))
@@ -3842,7 +3842,7 @@ string		: tCHAR
 		| string string1
 		    {
 		    /*%%%*/
-			$$ = literal_concat($1, $2, @1.first_column);
+			$$ = literal_concat($1, $2, @1);
 		    /*%
 			$$ = dispatch2(string_concat, $1, $2);
 		    %*/
@@ -3915,7 +3915,7 @@ word		: string_content
 		| word string_content
 		    {
 		    /*%%%*/
-			$$ = literal_concat($1, $2, @1.first_column);
+			$$ = literal_concat($1, $2, @1);
 		    /*%
 			$$ = dispatch2(word_add, $1, $2);
 		    %*/
@@ -4058,7 +4058,7 @@ string_contents : /* none */
 		| string_contents string_content
 		    {
 		    /*%%%*/
-			$$ = literal_concat($1, $2, @1.first_column);
+			$$ = literal_concat($1, $2, @1);
 		    /*%
 			$$ = dispatch2(string_add, $1, $2);
 		    %*/
@@ -4076,7 +4076,7 @@ xstring_contents: /* none */
 		| xstring_contents string_content
 		    {
 		    /*%%%*/
-			$$ = literal_concat($1, $2, @1.first_column);
+			$$ = literal_concat($1, $2, @1);
 		    /*%
 			$$ = dispatch2(xstring_add, $1, $2);
 		    %*/
@@ -8999,7 +8999,7 @@ literal_concat0(struct parser_params *parser, VALUE head, VALUE tail)
 
 /* concat two string literals */
 static NODE *
-literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int column)
+literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, YYLTYPE location)
 {
     enum node_type htype;
     NODE *headlast;
@@ -9010,8 +9010,8 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int col
 
     htype = nd_type(head);
     if (htype == NODE_EVSTR) {
-	NODE *node = new_dstr(STR_NEW0(), column);
-	head = list_append(node, head, column);
+	NODE *node = new_dstr(STR_NEW0(), location.first_column);
+	head = list_append(node, head, location.first_column);
 	htype = NODE_DSTR;
     }
     if (heredoc_indent > 0) {
@@ -9019,7 +9019,7 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int col
 	  case NODE_STR:
 	    nd_set_type(head, NODE_DSTR);
 	  case NODE_DSTR:
-	    return list_append(head, tail, column);
+	    return list_append(head, tail, location.first_column);
 	  default:
 	    break;
 	}
@@ -9044,7 +9044,7 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int col
 	    rb_discard_node(tail);
 	}
 	else {
-	    list_append(head, tail, column);
+	    list_append(head, tail, location.first_column);
 	}
 	break;
 
@@ -9073,7 +9073,7 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int col
 	}
 	else {
 	    nd_set_type(tail, NODE_ARRAY);
-	    tail->nd_head = new_str(tail->nd_lit, column);
+	    tail->nd_head = new_str(tail->nd_lit, location.first_column);
 	    list_concat(head, tail);
 	}
 	break;
@@ -9083,7 +9083,7 @@ literal_concat_gen(struct parser_params *parser, NODE *head, NODE *tail, int col
 	    nd_set_type(head, NODE_DSTR);
 	    head->nd_alen = 1;
 	}
-	list_append(head, tail, column);
+	list_append(head, tail, location.first_column);
 	break;
     }
     return head;
