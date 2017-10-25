@@ -561,9 +561,9 @@ static NODE *new_xstring_gen(struct parser_params *, NODE *, YYLTYPE location);
 #define new_xstring(node, location) new_xstring_gen(parser, node, location)
 #define new_string1(str) (str)
 
-static NODE *new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt, int column);
-#define new_brace_body(param, stmt, column) new_body_gen(parser, param, stmt, column)
-#define new_do_body(param, stmt, column) new_body_gen(parser, param, stmt, column)
+static NODE *new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt, YYLTYPE location);
+#define new_brace_body(param, stmt, location) new_body_gen(parser, param, stmt, location)
+#define new_do_body(param, stmt, location) new_body_gen(parser, param, stmt, location)
 
 static NODE *match_op_gen(struct parser_params*,NODE*,NODE*,YYLTYPE);
 #define match_op(node1,node2,location) match_op_gen(parser, (node1), (node2), (location))
@@ -641,8 +641,8 @@ static VALUE new_xstring_gen(struct parser_params *, VALUE);
 #define new_xstring(str, location) new_xstring_gen(parser, str)
 #define new_string1(str) dispatch1(string_literal, str)
 
-#define new_brace_body(param, stmt, column) dispatch2(brace_block, escape_Qundef(param), stmt)
-#define new_do_body(param, stmt, column) dispatch2(do_block, escape_Qundef(param), stmt)
+#define new_brace_body(param, stmt, location) dispatch2(brace_block, escape_Qundef(param), stmt)
+#define new_do_body(param, stmt, location) dispatch2(do_block, escape_Qundef(param), stmt)
 
 #define const_path_field(w, n, location) dispatch2(const_path_field, (w), (n))
 #define top_const_field(n) dispatch1(top_const_field, (n))
@@ -3710,7 +3710,7 @@ brace_body	: {$<vars>$ = dyna_push();}
 		  {$<val>$ = cmdarg_stack >> 1; CMDARG_SET(0);}
 		  opt_block_param compstmt
 		    {
-			$$ = new_brace_body($3, $4, @1.first_column);
+			$$ = new_brace_body($3, $4, @1);
 			dyna_pop($<vars>1);
 			CMDARG_SET($<val>2);
 		    }
@@ -3720,7 +3720,7 @@ do_body 	: {$<vars>$ = dyna_push();}
 		  {$<val>$ = cmdarg_stack; CMDARG_SET(0);}
 		  opt_block_param bodystmt
 		    {
-			$$ = new_do_body($3, $4, @1.first_column);
+			$$ = new_do_body($3, $4, @1);
 			dyna_pop($<vars>1);
 			CMDARG_SET($<val>2);
 		    }
@@ -9615,11 +9615,13 @@ new_xstring_gen(struct parser_params *parser, NODE *node, YYLTYPE location)
 }
 
 static NODE *
-new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt, int column)
+new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt, YYLTYPE location)
 {
     NODE *iter = NEW_ITER(param, stmt);
-    nd_set_column(iter->nd_body, column);
-    nd_set_column(iter, column);
+    nd_set_lineno(iter->nd_body, location.first_line);
+    nd_set_column(iter->nd_body, location.first_column);
+    nd_set_lineno(iter, location.first_line);
+    nd_set_column(iter, location.first_column);
     return iter;
 
 }
