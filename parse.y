@@ -5590,6 +5590,7 @@ yycompile0(VALUE arg)
 	rb_hash_aset(opt, rb_sym_intern_ascii_cstr("coverage_enabled"), cov);
 	prelude = NEW_PRELUDE(ruby_eval_tree_begin, body, opt);
 	add_mark_object(opt);
+	nd_set_lineno(prelude, nd_lineno(body));
 	nd_set_column(prelude, nd_column(body));
 	tree->nd_body = prelude;
     }
