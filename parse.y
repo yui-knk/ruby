@@ -4193,6 +4193,7 @@ regexp_contents: /* none */
 string_content	: tSTRING_CONTENT
 		    {
 		    /*%%%*/
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 		    %*/
@@ -4208,6 +4209,7 @@ string_content	: tSTRING_CONTENT
 			lex_strterm = $<node>2;
 		    /*%%%*/
 			$$ = NEW_EVSTR($3);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(string_dvar, $3);
