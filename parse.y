@@ -4786,6 +4786,7 @@ f_opt		: f_arg_asgn '=' arg_value
 			$$ = assignable($1, $3, @1);
 		    /*%%%*/
 			$$ = NEW_OPT_ARG(0, $$);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = rb_assoc_new(get_value($$), get_value($3));
