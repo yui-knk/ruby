@@ -405,8 +405,8 @@ static void reduce_nodes_gen(struct parser_params*,NODE**);
 static void block_dup_check_gen(struct parser_params*,NODE*,NODE*);
 #define block_dup_check(n1,n2) block_dup_check_gen(parser,(n1),(n2))
 
-static NODE *block_append_gen(struct parser_params*,NODE*,NODE*,int);
-#define block_append(h,t,column) block_append_gen(parser,(h),(t),(column))
+static NODE *block_append_gen(struct parser_params*,NODE*,NODE*,YYLTYPE);
+#define block_append(h,t,location) block_append_gen(parser,(h),(t),(location))
 static NODE *list_append_gen(struct parser_params*,NODE*,NODE*,YYLTYPE);
 #define list_append(l,i,location) list_append_gen(parser,(l),(i),(location))
 static NODE *list_concat(NODE*,NODE*);
@@ -1111,7 +1111,7 @@ program		:  {
 				void_expr(node->nd_head);
 			    }
 			}
-			ruby_eval_tree = new_scope(0, block_append(ruby_eval_tree, $2, @1.first_column), @1);
+			ruby_eval_tree = new_scope(0, block_append(ruby_eval_tree, $2, @1), @1);
 		    /*%
 			$$ = $2;
 			parser->result = dispatch1(program, $$);
@@ -1150,7 +1150,7 @@ top_stmts	: none
 		| top_stmts terms top_stmt
 		    {
 		    /*%%%*/
-			$$ = block_append($1, newline_node($3), @1.first_column);
+			$$ = block_append($1, newline_node($3), @1);
 		    /*%
 			$$ = dispatch2(stmts_add, $1, $3);
 		    %*/
@@ -1173,7 +1173,7 @@ top_stmt	: stmt
 		    {
 		    /*%%%*/
 			ruby_eval_tree_begin = block_append(ruby_eval_tree_begin,
-							    $4, @1.first_column);
+							    $4, @1);
 			/* NEW_PREEXE($4)); */
 			/* local_pop(); */
 			$$ = new_begin(0, @1);
@@ -1195,7 +1195,7 @@ bodystmt	: compstmt
 			}
 			else if ($3) {
 			    rb_warn0("else without rescue is useless");
-			    $$ = block_append($$, $3, @1.first_column);
+			    $$ = block_append($$, $3, @1);
 			}
 			if ($4) {
 			    if ($$) {
@@ -1205,7 +1205,7 @@ bodystmt	: compstmt
 			    else {
 				NODE *nil = NEW_NIL();
 				nd_set_column(nil, @1.first_column);
-				$$ = block_append($4, nil, @1.first_column);
+				$$ = block_append($4, nil, @1);
 			    }
 			}
 			fixpos($$, $1);
@@ -1249,7 +1249,7 @@ stmts		: none
 		| stmts terms stmt_or_begin
 		    {
 		    /*%%%*/
-			$$ = block_append($1, newline_node($3), @1.first_column);
+			$$ = block_append($1, newline_node($3), @1);
 		    /*%
 			$$ = dispatch2(stmts_add, $1, $3);
 		    %*/
@@ -1276,7 +1276,7 @@ stmt_or_begin	: stmt
 		    {
 		    /*%%%*/
 			ruby_eval_tree_begin = block_append(ruby_eval_tree_begin,
-							    $4, @1.first_column);
+							    $4, @1);
 			/* NEW_PREEXE($4)); */
 			/* local_pop(); */
 			$$ = new_begin(0, @1);
@@ -2026,7 +2026,7 @@ undef_list	: fitem
 		    {
 		    /*%%%*/
 			NODE *undef = new_undef($4, @1);
-			$$ = block_append($1, undef, @1.first_column);
+			$$ = block_append($1, undef, @1);
 		    /*%
 			rb_ary_push($1, get_value($4));
 		    %*/
@@ -3750,7 +3750,7 @@ opt_rescue	: keyword_rescue exc_list exc_var then
 		    /*%%%*/
 			if ($3) {
 			    $3 = node_assign($3, new_errinfo(@1), @1);
-			    $5 = block_append($3, $5, @1.first_column);
+			    $5 = block_append($3, $5, @1);
 			}
 			$$ = new_resbody($2, $5, $6, @1);
 			fixpos($$, $2?$2:$5);
@@ -4592,7 +4592,7 @@ f_arg		: f_arg_item
 		    /*%%%*/
 			$$ = $1;
 			$$->nd_plen++;
-			$$->nd_next = block_append($$->nd_next, $3->nd_next, @1.first_column);
+			$$->nd_next = block_append($$->nd_next, $3->nd_next, @1);
 			rb_discard_node($3);
 		    /*%
 			$$ = rb_ary_push($1, get_value($3));
@@ -8883,7 +8883,7 @@ parser_warn(struct parser_params *parser, NODE *node, const char *mesg)
 #define parser_warn(node, mesg) parser_warn(parser, (node), (mesg))
 
 static NODE*
-block_append_gen(struct parser_params *parser, NODE *head, NODE *tail, int column)
+block_append_gen(struct parser_params *parser, NODE *head, NODE *tail, YYLTYPE location)
 {
     NODE *end, *h = head, *nd;
 
@@ -8901,7 +8901,8 @@ block_append_gen(struct parser_params *parser, NODE *head, NODE *tail, int colum
 	return tail;
       default:
 	h = end = NEW_BLOCK(head);
-	nd_set_column(end, column);
+	nd_set_lineno(end, location.first_line);
+	nd_set_column(end, location.first_column);
 	end->nd_end = end;
 	fixpos(end, head);
 	head = end;
@@ -8929,7 +8930,8 @@ block_append_gen(struct parser_params *parser, NODE *head, NODE *tail, int colum
 
     if (nd_type(tail) != NODE_BLOCK) {
 	tail = NEW_BLOCK(tail);
-	nd_set_column(tail, column);
+	nd_set_lineno(tail, location.first_line);
+	nd_set_column(tail, location.first_column);
 	tail->nd_end = tail;
     }
     end->nd_next = tail;
@@ -10782,7 +10784,7 @@ append_literal_keys(st_data_t k, st_data_t v, st_data_t h)
 }
 
 static NODE *
-remove_duplicate_keys(struct parser_params *parser, NODE *hash, int column)
+remove_duplicate_keys(struct parser_params *parser, NODE *hash, YYLTYPE location)
 {
     st_table *literal_keys = st_init_numtable_with_size(hash->nd_alen / 2);
     NODE *result = 0;
@@ -10798,7 +10800,7 @@ remove_duplicate_keys(struct parser_params *parser, NODE *hash, int column)
 			    "key %+"PRIsVALUE" is duplicated and overwritten on line %d",
 			    head->nd_lit, nd_line(head));
 	    head = ((NODE *)data)->nd_next;
-	    head->nd_head = block_append(head->nd_head, value->nd_head, column);
+	    head->nd_head = block_append(head->nd_head, value->nd_head, location);
 	}
 	else {
 	    st_insert(literal_keys, (st_data_t)key, (st_data_t)hash);
@@ -10818,7 +10820,7 @@ static NODE *
 new_hash_gen(struct parser_params *parser, NODE *hash, YYLTYPE location)
 {
     NODE *nd_hash;
-    if (hash) hash = remove_duplicate_keys(parser, hash, location.first_column);
+    if (hash) hash = remove_duplicate_keys(parser, hash, location);
     nd_hash = NEW_HASH(hash);
     nd_set_lineno(nd_hash, location.first_line);
     nd_set_column(nd_hash, location.first_column);
@@ -11297,7 +11299,7 @@ reg_named_capture_assign_iter(const OnigUChar *name, const OnigUChar *name_end,
     node = node_assign(assignable(var, 0, arg->location), new_lit(ID2SYM(var), arg->location), arg->location);
     succ = arg->succ_block;
     if (!succ) succ = new_begin(0, arg->location);
-    succ = block_append(succ, node, arg->location.first_column);
+    succ = block_append(succ, node, arg->location);
     arg->succ_block = succ;
     return ST_CONTINUE;
 }
@@ -11382,7 +11384,7 @@ parser_append_options(struct parser_params *parser, NODE *node)
 	node = block_append(node,
 			    new_fcall(rb_intern("print"),
 				      NEW_ARRAY(new_gvar(idLASTLINE, default_location)), default_location),
-			    0);
+			    default_location);
     }
 
     if (parser->do_loop) {
@@ -11390,11 +11392,11 @@ parser_append_options(struct parser_params *parser, NODE *node)
 	    node = block_append(NEW_GASGN(rb_intern("$F"),
 					  new_call(new_gvar(idLASTLINE, default_location),
 						   rb_intern("split"), 0, default_location)),
-				node, 0);
+				node, default_location);
 	}
 	if (parser->do_chomp) {
 	    node = block_append(new_call(new_gvar(idLASTLINE, default_location),
-					 rb_intern("chomp!"), 0, default_location), node, 0);
+					 rb_intern("chomp!"), 0, default_location), node, default_location);
 	}
 
 	node = NEW_WHILE(NEW_VCALL(idGets), node, 1);
