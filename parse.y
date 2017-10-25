@@ -2490,6 +2490,7 @@ args		: arg_value
 		    {
 		    /*%%%*/
 			$$ = NEW_SPLAT($2);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = arg_add_star(arg_new(), $2);
