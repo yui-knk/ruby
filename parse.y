@@ -8823,6 +8823,7 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *parser)
 #define LVAR_USED ((ID)1 << (sizeof(ID) * CHAR_BIT - 1))
 
 #ifndef RIPPER
+static YYLTYPE default_location;
 static NODE*
 node_newnode(struct parser_params *parser, enum node_type type, VALUE a0, VALUE a1, VALUE a2)
 {
@@ -11525,6 +11526,14 @@ rb_reserved_word(const char *str, unsigned int len)
     return reserved_word(str, len);
 }
 
+static void
+default_location_initialize(void)
+{
+    default_location.first_line = 1;
+    default_location.first_column = 0;
+    default_location.last_column = 0;
+}
+
 VALUE
 rb_parser_new(void)
 {
@@ -11532,6 +11541,7 @@ rb_parser_new(void)
     VALUE parser = TypedData_Make_Struct(0, struct parser_params,
 					 &parser_data_type, p);
     parser_initialize(p);
+    default_location_initialize();
     return parser;
 }
 
