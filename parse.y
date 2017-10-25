@@ -1200,10 +1200,12 @@ bodystmt	: compstmt
 			if ($4) {
 			    if ($$) {
 				$$ = NEW_ENSURE($$, $4);
+				nd_set_lineno($$, @1.first_line);
 				nd_set_column($$, @1.first_column);
 			    }
 			    else {
 				NODE *nil = NEW_NIL();
+				nd_set_lineno(nil, @1.first_line);
 				nd_set_column(nil, @1.first_column);
 				$$ = block_append($4, nil, @1);
 			    }
