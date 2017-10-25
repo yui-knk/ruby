@@ -500,8 +500,8 @@ static NODE *new_errinfo_gen(struct parser_params *parser, YYLTYPE location);
 static NODE *new_call_gen(struct parser_params *parser, NODE *recv, ID mid, NODE *args, int column);
 #define new_call(recv,mid,args,column) new_call_gen(parser, recv,mid,args,column)
 
-static NODE *new_fcall_gen(struct parser_params *parser, ID mid, NODE *args, int column);
-#define new_fcall(mid,args,column) new_fcall_gen(parser, mid, args, column)
+static NODE *new_fcall_gen(struct parser_params *parser, ID mid, NODE *args, YYLTYPE location);
+#define new_fcall(mid,args,location) new_fcall_gen(parser, mid, args, location)
 
 static NODE *new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NODE *body, YYLTYPE location);
 #define new_for(var,iter,body,location) new_for_gen(parser, var, iter, body, location)
@@ -1560,7 +1560,7 @@ cmd_brace_block	: tLBRACE_ARG
 fcall		: operation
 		    {
 		    /*%%%*/
-			$$ = new_fcall($1, 0, @1.first_column);
+			$$ = new_fcall($1, 0, @1);
 			nd_set_line($$, tokline);
 		    /*%
 		    %*/
@@ -2560,7 +2560,7 @@ primary		: literal
 		| tFID
 		    {
 		    /*%%%*/
-			$$ = new_fcall($1, 0, @1.first_column);
+			$$ = new_fcall($1, 0, @1);
 		    /*%
 			$$ = method_arg(dispatch1(fcall, $1), arg_new());
 		    %*/
@@ -3651,7 +3651,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			if ($1 && nd_type($1) == NODE_SELF)
-			    $$ = new_fcall(tAREF, $3, @1.first_column);
+			    $$ = new_fcall(tAREF, $3, @1);
 			else
 			    $$ = new_call($1, tAREF, $3, @1.first_column);
 			fixpos($$, $1);
@@ -9400,10 +9400,11 @@ new_call_gen(struct parser_params *parser, NODE *recv, ID mid, NODE *args, int c
 }
 
 static NODE *
-new_fcall_gen(struct parser_params *parser, ID mid, NODE *args, int column)
+new_fcall_gen(struct parser_params *parser, ID mid, NODE *args, YYLTYPE location)
 {
     NODE *fcall = NEW_FCALL(mid, args);
-    nd_set_column(fcall, column);
+    nd_set_lineno(fcall, location.first_line);
+    nd_set_column(fcall, location.first_column);
     return fcall;
 }
 
@@ -11321,7 +11322,7 @@ parser_append_options(struct parser_params *parser, NODE *node)
     if (parser->do_print) {
 	node = block_append(node,
 			    new_fcall(rb_intern("print"),
-				      NEW_ARRAY(new_gvar(idLASTLINE, 0)), 0),
+				      NEW_ARRAY(new_gvar(idLASTLINE, 0)), default_location),
 			    0);
     }
 
