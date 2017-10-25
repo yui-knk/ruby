@@ -4411,6 +4411,7 @@ var_lhs		: user_variable
 backref		: tNTH_REF
 		    {
 		    /*%%%*/
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 		    %*/
@@ -4418,6 +4419,7 @@ backref		: tNTH_REF
 		| tBACK_REF
 		    {
 		    /*%%%*/
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 		    %*/
