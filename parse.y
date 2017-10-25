@@ -3702,6 +3702,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = NEW_SUPER($2);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(super, $2);
@@ -3711,6 +3712,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = NEW_ZSUPER();
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch0(zsuper);
