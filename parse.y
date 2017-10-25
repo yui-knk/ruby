@@ -506,8 +506,8 @@ static NODE *new_fcall_gen(struct parser_params *parser, ID mid, NODE *args, YYL
 static NODE *new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NODE *body, YYLTYPE location);
 #define new_for(var,iter,body,location) new_for_gen(parser, var, iter, body, location)
 
-static NODE *new_gvar_gen(struct parser_params *parser, ID id, int column);
-#define new_gvar(id, column) new_gvar_gen(parser, id, column)
+static NODE *new_gvar_gen(struct parser_params *parser, ID id, YYLTYPE location);
+#define new_gvar(id, location) new_gvar_gen(parser, id, location)
 
 static NODE *new_lvar_gen(struct parser_params *parser, ID id, YYLTYPE location);
 #define new_lvar(id, location) new_lvar_gen(parser, id, location)
@@ -4182,7 +4182,7 @@ string_content	: tSTRING_CONTENT
 string_dvar	: tGVAR
 		    {
 		    /*%%%*/
-			$$ = new_gvar($1, @1.first_column);
+			$$ = new_gvar($1, @1);
 		    /*%
 			$$ = dispatch1(var_ref, $1);
 		    %*/
@@ -9236,7 +9236,7 @@ gettable_gen(struct parser_params *parser, ID id, YYLTYPE location)
 	nd_set_column(node, location.first_column);
 	return node;
       case ID_GLOBAL:
-	node = new_gvar(id, location.first_column);
+	node = new_gvar(id, location);
 	return node;
       case ID_INSTANCE:
 	node = new_ivar(id, location);
@@ -9418,10 +9418,11 @@ new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NODE *body, YYL
 }
 
 static NODE *
-new_gvar_gen(struct parser_params *parser, ID id, int column)
+new_gvar_gen(struct parser_params *parser, ID id, YYLTYPE location)
 {
     NODE *gvar = NEW_GVAR(id);
-    nd_set_column(gvar, column);
+    nd_set_lineno(gvar, location.first_line);
+    nd_set_column(gvar, location.first_column);
     return gvar;
 }
 
@@ -10362,7 +10363,7 @@ range_op(struct parser_params *parser, NODE *node, YYLTYPE location)
     value_expr(node);
     if (type == NODE_LIT && FIXNUM_P(node->nd_lit)) {
 	warn_unless_e_option(parser, node, "integer literal in conditional range");
-	return new_call(node, tEQ, new_list(new_gvar(rb_intern("$."), location.first_column), location), location.first_column);
+	return new_call(node, tEQ, new_list(new_gvar(rb_intern("$."), location), location), location.first_column);
     }
     return cond0(parser, node, FALSE, location);
 }
@@ -10408,7 +10409,7 @@ cond0(struct parser_params *parser, NODE *node, int method_op, YYLTYPE location)
 	    if (!method_op)
 		warning_unless_e_option(parser, node, "regex literal in condition");
 
-	    match = NEW_MATCH2(node, new_gvar(idLASTLINE, location.first_column));
+	    match = NEW_MATCH2(node, new_gvar(idLASTLINE, location));
 	    nd_set_lineno(match, location.first_line);
 	    nd_set_column(match, location.first_column);
 	    return match;
@@ -11322,19 +11323,19 @@ parser_append_options(struct parser_params *parser, NODE *node)
     if (parser->do_print) {
 	node = block_append(node,
 			    new_fcall(rb_intern("print"),
-				      NEW_ARRAY(new_gvar(idLASTLINE, 0)), default_location),
+				      NEW_ARRAY(new_gvar(idLASTLINE, default_location)), default_location),
 			    0);
     }
 
     if (parser->do_loop) {
 	if (parser->do_split) {
 	    node = block_append(NEW_GASGN(rb_intern("$F"),
-					  new_call(new_gvar(idLASTLINE, 0),
+					  new_call(new_gvar(idLASTLINE, default_location),
 						   rb_intern("split"), 0, 0)),
 				node, 0);
 	}
 	if (parser->do_chomp) {
-	    node = block_append(new_call(new_gvar(idLASTLINE, 0),
+	    node = block_append(new_call(new_gvar(idLASTLINE, default_location),
 					 rb_intern("chomp!"), 0, 0), node, 0);
 	}
 
