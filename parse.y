@@ -2622,6 +2622,7 @@ primary		: literal
 		    /*%%%*/
 			if ($3 == NULL) {
 			    $$ = NEW_NIL();
+			    nd_set_lineno($$, @1.first_line);
 			    nd_set_column($$, @1.first_column);
 			}
 			else {
@@ -2667,6 +2668,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON2($1, $3);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(const_path_ref, $1, $3);
@@ -2676,6 +2678,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON3($2);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(top_const_ref, $2);
@@ -2707,6 +2710,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_RETURN(0);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch0(return0);
@@ -2724,6 +2728,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_YIELD(0);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(yield, dispatch1(paren, arg_new()));
@@ -2733,6 +2738,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_YIELD(0);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch0(yield0);
@@ -2807,6 +2813,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = NEW_WHILE(cond($3, @1), $6, 1);
 			fixpos($$, $3);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(while, $3, $6);
@@ -2819,6 +2826,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = NEW_UNTIL(cond($3, @1), $6, 1);
 			fixpos($$, $3);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(until, $3, $6);
@@ -2831,6 +2839,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = NEW_CASE($2, $4);
 			fixpos($$, $2);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(case, $2, $4);
@@ -2841,6 +2850,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = NEW_CASE(0, $3);
 			nd_set_line($3, $<num>1);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(case, Qnil, $3);
@@ -2891,6 +2901,7 @@ primary		: literal
 			}
 			add_mark_object((VALUE)rb_imemo_alloc_new((VALUE)tbl, 0, 0, 0));
 			scope = NEW_NODE(NODE_SCOPE, tbl, $8, args);
+			nd_set_lineno(scope, @1.first_line);
 			nd_set_column(scope, @1.first_column);
 			tbl[0] = 1; tbl[1] = id;
 			$$ = new_for(0, $5, scope, @1);
@@ -2914,9 +2925,11 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_CLASS($2, $5, $3);
+			nd_set_lineno($$->nd_body, @1.first_line);
 			nd_set_column($$->nd_body, @1.first_column);
 			set_line_body($5, $<num>4);
 			nd_set_line($$, $<num>4);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch3(class, $2, $3, $5);
@@ -2936,9 +2949,11 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_SCLASS($3, $6);
+			nd_set_lineno($$->nd_body, @1.first_line);
 			nd_set_column($$->nd_body, @1.first_column);
 			set_line_body($6, nd_line($3));
 			fixpos($$, $3);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(sclass, $3, $6);
@@ -2962,9 +2977,11 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_MODULE($2, $4);
+			nd_set_lineno($$->nd_body, @1.first_line);
 			nd_set_column($$->nd_body, @1.first_column);
 			set_line_body($4, $<num>3);
 			nd_set_line($$, $<num>3);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(module, $2, $4);
@@ -2989,9 +3006,11 @@ primary		: literal
 			NODE *body = remove_begin($6);
 			reduce_nodes(&body);
 			$$ = NEW_DEFN($2, $5, body, METHOD_VISI_PRIVATE);
+			nd_set_lineno($$->nd_defn, @1.first_line);
 			nd_set_column($$->nd_defn, @1.first_column);
 			set_line_body(body, $<num>1);
 			nd_set_line($$, $<num>1);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch3(def, $2, $5, $6);
@@ -3017,9 +3036,11 @@ primary		: literal
 			NODE *body = remove_begin($8);
 			reduce_nodes(&body);
 			$$ = NEW_DEFS($2, $5, $7, body);
+			nd_set_lineno($$->nd_defn, @1.first_line);
 			nd_set_column($$->nd_defn, @1.first_column);
 			set_line_body(body, $<num>1);
 			nd_set_line($$, $<num>1);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch5(defs, $2, $<val>3, $5, $7, $8);
@@ -3032,6 +3053,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_BREAK(0);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(break, arg_new());
@@ -3041,6 +3063,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_NEXT(0);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(next, arg_new());
@@ -3050,6 +3073,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_REDO();
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch0(redo);
@@ -3059,6 +3083,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_RETRY();
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch0(retry);
