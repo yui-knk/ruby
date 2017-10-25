@@ -9413,6 +9413,7 @@ new_regexp_gen(struct parser_params *parser, NODE *node, int options, YYLTYPE *l
       default:
 	add_mark_object(lit = STR_NEW0());
 	node = NEW_NODE(NODE_DSTR, lit, 1, new_list(node, location));
+	nd_set_lineno(node, location->first_line);
 	nd_set_column(node, location->first_column);
       case NODE_DSTR:
 	nd_set_type(node, NODE_DREGX);
