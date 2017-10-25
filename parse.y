@@ -4310,6 +4310,7 @@ numeric 	: simple_numeric
 simple_numeric	: tINTEGER
 		    {
 		    /*%%%*/
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 		    %*/
@@ -4317,6 +4318,7 @@ simple_numeric	: tINTEGER
 		| tFLOAT
 		    {
 		    /*%%%*/
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 		    %*/
@@ -4324,6 +4326,7 @@ simple_numeric	: tINTEGER
 		| tRATIONAL
 		    {
 		    /*%%%*/
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 		    %*/
@@ -4331,6 +4334,7 @@ simple_numeric	: tINTEGER
 		| tIMAGINARY
 		    {
 		    /*%%%*/
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 		    %*/
