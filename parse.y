@@ -4097,6 +4097,7 @@ qsym_list	: /* none */
 			nd_set_type($2, NODE_LIT);
 			add_mark_object($2->nd_lit = ID2SYM(rb_intern_str(lit)));
 			$$ = list_append($1, $2, @1);
+			nd_set_lineno($2, @1.first_line);
 			nd_set_column($2, @1.first_column);
 		    /*%
 			$$ = dispatch2(qsymbols_add, $1, $2);
