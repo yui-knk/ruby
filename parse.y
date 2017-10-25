@@ -533,8 +533,8 @@ static NODE *new_postarg_gen(struct parser_params *parser, NODE *i, NODE *v, YYL
 static NODE *new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path, YYLTYPE location);
 #define new_cdecl(v,val,path,location) new_cdecl_gen(parser,v,val,path,location)
 
-static NODE *new_scope_gen(struct parser_params *parser, NODE *a, NODE *b, int column);
-#define new_scope(a,b,column) new_scope_gen(parser,a,b,column)
+static NODE *new_scope_gen(struct parser_params *parser, NODE *a, NODE *b, YYLTYPE location);
+#define new_scope(a,b,location) new_scope_gen(parser,a,b,location)
 
 static NODE *new_begin_gen(struct parser_params *parser, NODE *b, YYLTYPE location);
 #define new_begin(b,location) new_begin_gen(parser,b,location)
@@ -1094,7 +1094,7 @@ program		:  {
 				void_expr(node->nd_head);
 			    }
 			}
-			ruby_eval_tree = new_scope(0, block_append(ruby_eval_tree, $2, @1.first_column), @1.first_column);
+			ruby_eval_tree = new_scope(0, block_append(ruby_eval_tree, $2, @1.first_column), @1);
 		    /*%
 			$$ = $2;
 			parser->result = dispatch1(program, $$);
@@ -9496,10 +9496,11 @@ new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path, YYLTYPE
 }
 
 static NODE *
-new_scope_gen(struct parser_params *parser, NODE *a, NODE *b, int column)
+new_scope_gen(struct parser_params *parser, NODE *a, NODE *b, YYLTYPE location)
 {
     NODE *scope = NEW_SCOPE(a, b);
-    nd_set_column(scope, column);
+    nd_set_lineno(scope, location.first_line);
+    nd_set_column(scope, location.first_column);
     return scope;
 }
 
