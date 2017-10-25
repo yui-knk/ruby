@@ -1974,6 +1974,8 @@ cpath		: tCOLON3 cname
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON3($2);
+			nd_set_lineno($$, @1.first_line);
+			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(top_const_ref, $2);
 		    %*/
