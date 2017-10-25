@@ -1622,6 +1622,7 @@ command		: fcall command_args       %prec tLOWEST
 		    /*%%%*/
 			$$ = NEW_SUPER($2);
 			fixpos($$, $2);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(super, $2);
@@ -1640,6 +1641,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = NEW_RETURN(ret_args($2));
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(return, $2);
@@ -1649,6 +1651,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = NEW_BREAK(ret_args($2));
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(break, $2);
@@ -1658,6 +1661,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = NEW_NEXT(ret_args($2));
+			nd_set_lineno($$, @1.first_line);
                         nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch1(next, $2);
