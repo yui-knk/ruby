@@ -4055,6 +4055,7 @@ qword_list	: /* none */
 		    {
 		    /*%%%*/
 			$$ = list_append($1, $2, @1);
+			nd_set_lineno($2, @1.first_line);
 			nd_set_column($2, @1.first_column);
 		    /*%
 			$$ = dispatch2(qwords_add, $1, $2);
