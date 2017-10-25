@@ -10752,6 +10752,7 @@ new_args_tail_gen(struct parser_params *parser, NODE *k, ID kr, ID b, YYLTYPE *l
     args = ZALLOC(struct rb_args_info);
     add_mark_object((VALUE)rb_imemo_alloc_new((VALUE)args, 0, 0, 0));
     node = NEW_NODE(NODE_ARGS, 0, 0, args);
+    nd_set_lineno(node, location->first_line);
     nd_set_column(node, location->first_column);
     if (parser->error_p) return node;
 
