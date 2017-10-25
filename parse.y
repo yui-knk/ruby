@@ -3526,7 +3526,9 @@ lambda		:   {
 		    /*%%%*/
 			$$ = NEW_LAMBDA($3, $6);
 			nd_set_line($$, $<num>4);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
+			nd_set_lineno($$->nd_body, @1.first_line);
 			nd_set_column($$->nd_body, @1.first_column);
 		    /*%
 			$$ = dispatch2(lambda, $3, $6);
