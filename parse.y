@@ -3871,6 +3871,7 @@ strings		: string
 string		: tCHAR
 		    {
 		    /*%%%*/
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 		    %*/
