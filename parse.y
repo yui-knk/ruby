@@ -2097,6 +2097,7 @@ arg		: lhs '=' arg_rhs
 			if (!$3) $3 = new_zarray(@1);
 			if (nd_type($3) == NODE_BLOCK_PASS) {
 			    args = NEW_ARGSCAT($3, $6);
+			    nd_set_lineno(args, @1.first_line);
 			    nd_set_column(args, @1.first_column);
 			}
 			else {
@@ -2110,6 +2111,7 @@ arg		: lhs '=' arg_rhs
 			}
 			$$ = NEW_OP_ASGN1($1, $5, args);
 			fixpos($$, $1);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$1 = dispatch2(aref_field, $1, escape_Qundef($3));
@@ -2152,6 +2154,7 @@ arg		: lhs '=' arg_rhs
 			value_expr($1);
 			value_expr($3);
 			$$ = NEW_DOT2($1, $3);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(dot2, $1, $3);
@@ -2163,6 +2166,7 @@ arg		: lhs '=' arg_rhs
 			value_expr($1);
 			value_expr($3);
 			$$ = NEW_DOT3($1, $3);
+			nd_set_lineno($$, @1.first_line);
 			nd_set_column($$, @1.first_column);
 		    /*%
 			$$ = dispatch2(dot3, $1, $3);
