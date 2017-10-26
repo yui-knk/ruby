@@ -45,6 +45,22 @@
 #define YYCALLOC(nelem, size)	rb_parser_calloc(parser, (nelem), (size))
 #define YYFREE(ptr)		rb_parser_free(parser, (ptr))
 #define YYFPRINTF		rb_parser_printf
+#define YYLLOC_DEFAULT(Current, Rhs, N)					\
+    do									\
+      if (N)								\
+	{								\
+	  (Current).first_line   = YYRHSLOC (Rhs, 1).first_line;	\
+	  (Current).first_column = YYRHSLOC (Rhs, 1).first_column;	\
+	  (Current).last_line    = YYRHSLOC (Rhs, N).last_line;		\
+	  (Current).last_column  = YYRHSLOC (Rhs, N).last_column;	\
+	}								\
+      else								\
+	{								\
+	  (Current).first_line   = (Current).last_line   = 0;		\
+	  (Current).first_column = (Current).last_column = 0;		\
+	}								\
+    while (0)
+
 #if defined YYLTYPE_IS_TRIVIAL && YYLTYPE_IS_TRIVIAL
 # define YY_LOCATION_PRINT(File, Loc) \
      rb_parser_printf(parser, "%d.%d-%d.%d", \
