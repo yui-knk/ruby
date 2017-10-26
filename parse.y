@@ -56,8 +56,10 @@
 	}								\
       else								\
 	{								\
-	  (Current).first_line   = (Current).last_line   = 0;		\
-	  (Current).first_column = (Current).last_column = 0;		\
+	  (Current).first_line   = (Current).last_line   = 		\
+		ruby_sourceline;					\
+	  (Current).first_column = (Current).last_column = 		\
+		(int)(parser->tokp - lex_pbeg);				\
 	}								\
     while (0)
 
