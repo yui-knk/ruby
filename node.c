@@ -212,6 +212,7 @@ dump_node(VALUE buf, VALUE indent, int comment, NODE *node)
 	return;
 
       case NODE_CASE:
+      case NODE_CASE2:
 	ANN("case statement");
 	ANN("format: case [nd_head]; [nd_body]; end");
 	ANN("example: case x; when 1; foo; when 2; bar; else baz; end");
@@ -1125,6 +1126,7 @@ rb_gc_mark_node(NODE *obj)
       case NODE_AND:
       case NODE_OR:
       case NODE_CASE:
+      case NODE_CASE2:
       case NODE_SCLASS:
       case NODE_DOT2:
       case NODE_DOT3:
