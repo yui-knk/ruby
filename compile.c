@@ -4564,68 +4564,6 @@ compile_case2(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const orig_no
 }
 
 static int
-compile_when(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const orig_node, int popped)
-{
-    const NODE *vals;
-    const NODE *val;
-    const NODE *node = orig_node;
-    LABEL *endlabel;
-    DECL_ANCHOR(body_seq);
-    VALUE branches = 0;
-
-    DECL_BRANCH_BASE(branches, nd_lineno(node), nd_column(node), "case");
-
-    INIT_ANCHOR(body_seq);
-    endlabel = NEW_LABEL(nd_line(node));
-
-    while (node && nd_type(node) == NODE_WHEN) {
-	const int line = nd_line(node);
-	const int lineno = nd_lineno(node);
-	const int column = nd_column(node);
-	LABEL *l1 = NEW_LABEL(line);
-	ADD_LABEL(body_seq, l1);
-	ADD_TRACE_BRANCH_COVERAGE(body_seq, node->nd_body ? nd_lineno(node->nd_body) : lineno, node->nd_body ? nd_column(node->nd_body) : column, "when", branches);
-	CHECK(COMPILE_(body_seq, "when", node->nd_body, popped));
-	ADD_INSNL(body_seq, line, jump, endlabel);
-
-	vals = node->nd_head;
-	if (!vals) {
-	    COMPILE_ERROR(ERROR_ARGS "NODE_WHEN: must be NODE_ARRAY, but 0");
-	    return COMPILE_NG;
-	}
-	switch (nd_type(vals)) {
-	  case NODE_ARRAY:
-	    while (vals) {
-		val = vals->nd_head;
-		CHECK(COMPILE(ret, "when2", val));
-		ADD_INSNL(ret, nd_line(val), branchif, l1);
-		vals = vals->nd_next;
-	    }
-	    break;
-	  case NODE_SPLAT:
-	  case NODE_ARGSCAT:
-	  case NODE_ARGSPUSH:
-	    ADD_INSN(ret, nd_line(vals), putnil);
-	    CHECK(COMPILE(ret, "when2/cond splat", vals));
-	    ADD_INSN1(ret, nd_line(vals), checkmatch, INT2FIX(VM_CHECKMATCH_TYPE_WHEN | VM_CHECKMATCH_ARRAY));
-	    ADD_INSNL(ret, nd_line(vals), branchif, l1);
-	    break;
-	  default:
-	    UNKNOWN_NODE("NODE_WHEN", vals, COMPILE_NG);
-	}
-	node = node->nd_next;
-    }
-    /* else */
-    ADD_TRACE_BRANCH_COVERAGE(ret, node ? nd_lineno(node) : nd_lineno(orig_node), node ? nd_column(node) : nd_column(orig_node), "else", branches);
-    CHECK(COMPILE_(ret, "else", node, popped));
-    ADD_INSNL(ret, nd_line(orig_node), jump, endlabel);
-
-    ADD_SEQ(ret, body_seq);
-    ADD_LABEL(ret, endlabel);
-    return COMPILE_OK;
-}
-
-static int
 compile_loop(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, int popped, const enum node_type type)
 {
     const int line = (int)nd_line(node);
@@ -5230,9 +5168,6 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *node, in
 	break;
       case NODE_CASE2:
 	CHECK(compile_case2(iseq, ret, node, popped));
-	break;
-      case NODE_WHEN:
-	CHECK(compile_when(iseq, ret, node, popped));
 	break;
       case NODE_WHILE:
       case NODE_UNTIL:
