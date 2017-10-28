@@ -1223,19 +1223,19 @@ rb_gc_mark_node(NODE *obj)
 
 typedef struct node_buffer_elem_struct {
     struct node_buffer_elem_struct *next;
-    NODE buf[1];
+    NODE buf[1]; /* flexible array */
 } node_buffer_elem_t;
 
 struct node_buffer_struct {
     long idx, len;
     node_buffer_elem_t *head;
-    node_buffer_elem_t body;
+    node_buffer_elem_t body; /* this member should be a last */
 };
 
 node_buffer_t *
 rb_node_buffer_new()
 {
-    node_buffer_t *nb = xmalloc(sizeof(node_buffer_t) + 16 * sizeof(NODE));
+    node_buffer_t *nb = xmalloc(offsetof(node_buffer_t, body) + offsetof(node_buffer_elem_t, buf) + 16 * sizeof(NODE));
     nb->idx = 0;
     nb->len = 16;
     nb->head = &nb->body;
@@ -1263,7 +1263,7 @@ rb_ast_newnode(rb_ast_t *ast)
     if (nb->idx >= nb->len) {
 	long n = nb->len * 2;
 	node_buffer_elem_t *nbe;
-	nbe = xmalloc(sizeof(node_buffer_elem_t) + n * sizeof(NODE));
+	nbe = xmalloc(offsetof(node_buffer_elem_t, buf) + n * sizeof(NODE));
 	nb->idx = 0;
 	nb->len = n;
 	nbe->next = nb->head;
