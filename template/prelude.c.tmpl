@@ -106,7 +106,7 @@ prelude_prefix_path(VALUE self)
 
 % unless preludes.empty?
 static void
-prelude_eval(VALUE code, VALUE name, int line)
+prelude_eval(VALUE code, VALUE name, int line, int column)
 {
     static const rb_compile_option_t optimization = {
 	TRUE, /* int inline_const_cache; */
@@ -126,7 +126,7 @@ prelude_eval(VALUE code, VALUE name, int line)
 	rb_ast_dispose(ast);
 	rb_exc_raise(rb_errinfo());
     }
-    rb_iseq_eval(rb_iseq_new_with_opt(ast->root, name, name, Qnil, INT2FIX(line),
+    rb_iseq_eval(rb_iseq_new_with_opt(ast->root, name, name, Qnil, INT2FIX(line), INT2FIX(column),
 				      NULL, ISEQ_TYPE_TOP, &optimization));
     rb_ast_dispose(ast);
 }
@@ -155,7 +155,7 @@ prelude_require(VALUE self, VALUE nth)
       default:
 	return Qfalse;
     }
-    prelude_eval(code, name, 1);
+    prelude_eval(code, name, 1, 0);
     return Qtrue;
 }
 
@@ -183,7 +183,8 @@ Init_<%=@init_name%><%=%>(void)
     prelude_eval(
       rb_usascii_str_new(prelude_code<%=i%><%=%>, sizeof(prelude_code<%=i%><%=%>) - 1),
       rb_usascii_str_new(prelude_name<%=i%><%=%>, sizeof(prelude_name<%=i%><%=%>) - 1),
-      INT2FIX(1));
+      INT2FIX(1),
+      INT2FIX(0));
 % end
 % if @have_sublib
     rb_gc_force_recycle(prelude);

@@ -5021,7 +5021,7 @@ update_coverage(VALUE data, const rb_trace_arg_t *trace_arg)
 	    VALUE methods = RARRAY_AREF(coverage, COVERAGE_INDEX_METHODS);
 	    if (methods) {
 		long count;
-		long idx = arg / 16 * 3 + 2;
+		long idx = arg / 16 * 4 + 3;
 		VALUE num = RARRAY_AREF(methods, idx);
 		count = FIX2LONG(num) + 1;
 		if (POSFIXABLE(count)) {

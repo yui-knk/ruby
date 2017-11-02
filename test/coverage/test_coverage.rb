@@ -332,12 +332,12 @@ class TestCoverage < Test::Unit::TestCase
   def test_method_coverage
     result = {
       :methods => {
-        [:foo, 0, 1] => 2,
-        [:bar, 1, 2] => 1,
-        [:baz, 2, 4] => 0,
+        [:foo, 0, 1, 0] => 2,
+        [:bar, 1, 2, 0] => 1,
+        [:baz, 2, 4, 0] => 0,
       }
     }
-    assert_coverage(<<-"end;", { methods: true }, result)
+    assert_coverage(<<~"end;", { methods: true }, result)
       def foo; end
       def bar
       end

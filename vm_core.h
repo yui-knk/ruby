@@ -265,6 +265,7 @@ typedef struct rb_iseq_location_struct {
     VALUE base_label;   /* String */
     VALUE label;        /* String */
     VALUE first_lineno; /* TODO: may be unsigned short */
+    VALUE column;
 } rb_iseq_location_t;
 
 #define PATHOBJ_PATH     0
@@ -886,13 +887,13 @@ RUBY_SYMBOL_EXPORT_BEGIN
 rb_iseq_t *rb_iseq_new         (const NODE *node, VALUE name, VALUE path, VALUE realpath, const rb_iseq_t *parent, enum iseq_type);
 rb_iseq_t *rb_iseq_new_top     (const NODE *node, VALUE name, VALUE path, VALUE realpath, const rb_iseq_t *parent);
 rb_iseq_t *rb_iseq_new_main    (const NODE *node,             VALUE path, VALUE realpath, const rb_iseq_t *parent);
-rb_iseq_t *rb_iseq_new_with_opt(const NODE *node, VALUE name, VALUE path, VALUE realpath, VALUE first_lineno,
+rb_iseq_t *rb_iseq_new_with_opt(const NODE *node, VALUE name, VALUE path, VALUE realpath, VALUE first_lineno, VALUE column,
 				const rb_iseq_t *parent, enum iseq_type, const rb_compile_option_t*);
 
 /* src -> iseq */
-rb_iseq_t *rb_iseq_compile(VALUE src, VALUE file, VALUE line);
-rb_iseq_t *rb_iseq_compile_on_base(VALUE src, VALUE file, VALUE line, const struct rb_block *base_block);
-rb_iseq_t *rb_iseq_compile_with_option(VALUE src, VALUE file, VALUE realpath, VALUE line, const struct rb_block *base_block, VALUE opt);
+rb_iseq_t *rb_iseq_compile(VALUE src, VALUE file, VALUE line, VALUE column);
+rb_iseq_t *rb_iseq_compile_on_base(VALUE src, VALUE file, VALUE line, VALUE column, const struct rb_block *base_block);
+rb_iseq_t *rb_iseq_compile_with_option(VALUE src, VALUE file, VALUE realpath, VALUE line, VALUE column, const struct rb_block *base_block, VALUE opt);
 
 VALUE rb_iseq_disasm(const rb_iseq_t *iseq);
 int rb_iseq_disasm_insn(VALUE str, const VALUE *iseqval, size_t pos, const rb_iseq_t *iseq, VALUE child);
@@ -932,6 +933,7 @@ typedef struct {
     const struct rb_block block;
     const VALUE pathobj;
     unsigned short first_lineno;
+    unsigned short column;
 } rb_binding_t;
 
 /* used by compile time and send insn */

@@ -107,8 +107,9 @@ method_coverage(VALUE methods)
     for (i = 0; i < RARRAY_LEN(methods); ) {
 	VALUE method_name = RARRAY_AREF(methods, i++);
 	VALUE lineno = RARRAY_AREF(methods, i++);
+	VALUE column = RARRAY_AREF(methods, i++);
 	VALUE counter = RARRAY_AREF(methods, i++);
-	rb_hash_aset(ret, rb_ary_new_from_args(3, method_name, LONG2FIX(id++), lineno), counter);
+	rb_hash_aset(ret, rb_ary_new_from_args(4, method_name, LONG2FIX(id++), lineno, column), counter);
     }
 
     return ret;

@@ -317,6 +317,7 @@ binding_dup(VALUE self)
     rb_vm_block_copy(bindval, &dst->block, &src->block);
     RB_OBJ_WRITE(bindval, &dst->pathobj, src->pathobj);
     dst->first_lineno = src->first_lineno;
+    dst->column = src->column;
     return bindval;
 }
 
@@ -1130,14 +1131,15 @@ rb_proc_get_iseq(VALUE self, int *is_proc)
 static VALUE
 iseq_location(const rb_iseq_t *iseq)
 {
-    VALUE loc[2];
+    VALUE loc[3];
 
     if (!iseq) return Qnil;
     rb_iseq_check(iseq);
     loc[0] = rb_iseq_path(iseq);
     loc[1] = iseq->body->location.first_lineno;
+    loc[2] = iseq->body->location.column;
 
-    return rb_ary_new4(2, loc);
+    return rb_ary_new4(3, loc);
 }
 
 /*
@@ -1268,9 +1270,10 @@ rb_block_to_s(VALUE self, const struct rb_block *block, const char *additional_i
       case block_type_iseq:
 	{
 	    const rb_iseq_t *iseq = rb_iseq_check(block->as.captured.code.iseq);
-	    rb_str_catf(str, "%p@%"PRIsVALUE":%d", (void *)self,
+	    rb_str_catf(str, "%p@%"PRIsVALUE":%d, %d", (void *)self,
 			rb_iseq_path(iseq),
-			FIX2INT(iseq->body->location.first_lineno));
+			FIX2INT(iseq->body->location.first_lineno),
+                        FIX2INT(iseq->body->location.column));
 	}
 	break;
       case block_type_symbol:
@@ -2842,11 +2845,13 @@ proc_binding(VALUE self)
 	rb_iseq_check(iseq);
 	RB_OBJ_WRITE(bindval, &bind->pathobj, iseq->body->location.pathobj);
 	bind->first_lineno = FIX2INT(rb_iseq_first_lineno(iseq));
+        bind->column = FIX2INT(rb_iseq_column(iseq));
     }
     else {
 	RB_OBJ_WRITE(bindval, &bind->pathobj,
 		     rb_iseq_pathobj_new(rb_fstring_cstr("(binding)"), Qnil));
-	bind->first_lineno = 1;
+        bind->first_lineno = 1;
+	bind->column = 0;
     }
 
     return bindval;

@@ -240,7 +240,7 @@ rb_iseq_pathobj_set(const rb_iseq_t *iseq, VALUE path, VALUE realpath)
 }
 
 static rb_iseq_location_t *
-iseq_location_setup(rb_iseq_t *iseq, VALUE name, VALUE path, VALUE realpath, VALUE first_lineno)
+iseq_location_setup(rb_iseq_t *iseq, VALUE name, VALUE path, VALUE realpath, VALUE first_lineno, VALUE column)
 {
     rb_iseq_location_t *loc = &iseq->body->location;
 
@@ -248,6 +248,7 @@ iseq_location_setup(rb_iseq_t *iseq, VALUE name, VALUE path, VALUE realpath, VAL
     RB_OBJ_WRITE(iseq, &loc->label, name);
     RB_OBJ_WRITE(iseq, &loc->base_label, name);
     loc->first_lineno = first_lineno;
+    loc->column = column;
     return loc;
 }
 
@@ -285,7 +286,7 @@ rb_iseq_add_mark_object(const rb_iseq_t *iseq, VALUE obj)
 
 static VALUE
 prepare_iseq_build(rb_iseq_t *iseq,
-		   VALUE name, VALUE path, VALUE realpath, VALUE first_lineno,
+		   VALUE name, VALUE path, VALUE realpath, VALUE first_lineno, VALUE column,
 		   const rb_iseq_t *parent, enum iseq_type type,
 		   const rb_compile_option_t *option)
 {
@@ -299,7 +300,7 @@ prepare_iseq_build(rb_iseq_t *iseq,
     set_relation(iseq, parent);
 
     name = rb_fstring(name);
-    iseq_location_setup(iseq, name, path, realpath, first_lineno);
+    iseq_location_setup(iseq, name, path, realpath, first_lineno, column);
     if (iseq != iseq->body->local_iseq) {
 	RB_OBJ_WRITE(iseq, &iseq->body->location.base_label, iseq->body->local_iseq->body->location.label);
     }
@@ -458,14 +459,14 @@ rb_iseq_t *
 rb_iseq_new(const NODE *node, VALUE name, VALUE path, VALUE realpath,
 	    const rb_iseq_t *parent, enum iseq_type type)
 {
-    return rb_iseq_new_with_opt(node, name, path, realpath, INT2FIX(0), parent, type,
+    return rb_iseq_new_with_opt(node, name, path, realpath, INT2FIX(0), INT2FIX(0), parent, type,
 				&COMPILE_OPTION_DEFAULT);
 }
 
 rb_iseq_t *
 rb_iseq_new_top(const NODE *node, VALUE name, VALUE path, VALUE realpath, const rb_iseq_t *parent)
 {
-    return rb_iseq_new_with_opt(node, name, path, realpath, INT2FIX(0), parent, ISEQ_TYPE_TOP,
+    return rb_iseq_new_with_opt(node, name, path, realpath, INT2FIX(0), INT2FIX(0), parent, ISEQ_TYPE_TOP,
 				&COMPILE_OPTION_DEFAULT);
 }
 
@@ -473,7 +474,7 @@ rb_iseq_t *
 rb_iseq_new_main(const NODE *node, VALUE path, VALUE realpath, const rb_iseq_t *parent)
 {
     return rb_iseq_new_with_opt(node, rb_fstring_cstr("<main>"),
-				path, realpath, INT2FIX(0),
+				path, realpath, INT2FIX(0), INT2FIX(0),
 				parent, ISEQ_TYPE_MAIN, &COMPILE_OPTION_DEFAULT);
 }
 
@@ -493,14 +494,14 @@ iseq_translate(rb_iseq_t *iseq)
 
 rb_iseq_t *
 rb_iseq_new_with_opt(const NODE *node, VALUE name, VALUE path, VALUE realpath,
-		     VALUE first_lineno, const rb_iseq_t *parent,
+		     VALUE first_lineno, VALUE column, const rb_iseq_t *parent,
 		     enum iseq_type type, const rb_compile_option_t *option)
 {
     /* TODO: argument check */
     rb_iseq_t *iseq = iseq_alloc();
 
     if (!option) option = &COMPILE_OPTION_DEFAULT;
-    prepare_iseq_build(iseq, name, path, realpath, first_lineno, parent, type, option);
+    prepare_iseq_build(iseq, name, path, realpath, first_lineno, column, parent, type, option);
 
     rb_iseq_compile_node(iseq, node);
     cleanup_iseq_build(iseq);
@@ -559,7 +560,7 @@ iseq_load(VALUE data, const rb_iseq_t *parent, VALUE opt)
     rb_iseq_t *iseq = iseq_alloc();
 
     VALUE magic, version1, version2, format_type, misc;
-    VALUE name, path, realpath, first_lineno;
+    VALUE name, path, realpath, first_lineno, column;
     VALUE type, body, locals, params, exception;
 
     st_data_t iseq_type;
@@ -585,6 +586,7 @@ iseq_load(VALUE data, const rb_iseq_t *parent, VALUE opt)
     realpath    = rb_ary_entry(data, i++);
     realpath    = NIL_P(realpath) ? Qnil : CHECK_STRING(realpath);
     first_lineno = CHECK_INTEGER(rb_ary_entry(data, i++));
+    column = INT2FIX(0);
 
     type        = CHECK_SYMBOL(rb_ary_entry(data, i++));
     locals      = CHECK_ARRAY(rb_ary_entry(data, i++));
@@ -601,7 +603,7 @@ iseq_load(VALUE data, const rb_iseq_t *parent, VALUE opt)
 
     make_compile_option(&option, opt);
     option.peephole_optimization = FALSE; /* because peephole optimization can modify original iseq */
-    prepare_iseq_build(iseq, name, path, realpath, first_lineno,
+    prepare_iseq_build(iseq, name, path, realpath, first_lineno, column,
 		       parent, (enum iseq_type)iseq_type, &option);
 
     rb_iseq_build_from_ary(iseq, misc, locals, params, exception, body);
@@ -629,7 +631,7 @@ rb_iseq_load(VALUE data, VALUE parent, VALUE opt)
 }
 
 rb_iseq_t *
-rb_iseq_compile_with_option(VALUE src, VALUE file, VALUE realpath, VALUE line, const struct rb_block *base_block, VALUE opt)
+rb_iseq_compile_with_option(VALUE src, VALUE file, VALUE realpath, VALUE line, VALUE column, const struct rb_block *base_block, VALUE opt)
 {
     rb_thread_t *th = GET_THREAD();
     rb_iseq_t *iseq = NULL;
@@ -670,7 +672,7 @@ rb_iseq_compile_with_option(VALUE src, VALUE file, VALUE realpath, VALUE line, c
 	INITIALIZED VALUE label = parent ?
 	    parent->body->location.label :
 	    rb_fstring_cstr("<compiled>");
-	iseq = rb_iseq_new_with_opt(ast->root, label, file, realpath, line,
+	iseq = rb_iseq_new_with_opt(ast->root, label, file, realpath, line, column,
 				    parent, type, &option);
 	rb_ast_dispose(ast);
     }
@@ -679,15 +681,15 @@ rb_iseq_compile_with_option(VALUE src, VALUE file, VALUE realpath, VALUE line, c
 }
 
 rb_iseq_t *
-rb_iseq_compile(VALUE src, VALUE file, VALUE line)
+rb_iseq_compile(VALUE src, VALUE file, VALUE line, VALUE column)
 {
-    return rb_iseq_compile_with_option(src, file, Qnil, line, 0, Qnil);
+    return rb_iseq_compile_with_option(src, file, Qnil, line, column, 0, Qnil);
 }
 
 rb_iseq_t *
-rb_iseq_compile_on_base(VALUE src, VALUE file, VALUE line, const struct rb_block *base_block)
+rb_iseq_compile_on_base(VALUE src, VALUE file, VALUE line, VALUE column, const struct rb_block *base_block)
 {
-    return rb_iseq_compile_with_option(src, file, Qnil, line, base_block, Qnil);
+    return rb_iseq_compile_with_option(src, file, Qnil, line, column, base_block, Qnil);
 }
 
 VALUE
@@ -724,6 +726,12 @@ VALUE
 rb_iseq_first_lineno(const rb_iseq_t *iseq)
 {
     return iseq->body->location.first_lineno;
+}
+
+VALUE
+rb_iseq_column(const rb_iseq_t *iseq)
+{
+    return iseq->body->location.column;
 }
 
 VALUE
@@ -810,7 +818,7 @@ rb_iseqw_new(const rb_iseq_t *iseq)
 static VALUE
 iseqw_s_compile(int argc, VALUE *argv, VALUE self)
 {
-    VALUE src, file = Qnil, path = Qnil, line = INT2FIX(1), opt = Qnil;
+    VALUE src, file = Qnil, path = Qnil, line = INT2FIX(1), column = INT2FIX(0), opt = Qnil;
     int i;
 
     rb_secure(1);
@@ -826,7 +834,7 @@ iseqw_s_compile(int argc, VALUE *argv, VALUE self)
     if (NIL_P(file)) file = rb_fstring_cstr("<compiled>");
     if (NIL_P(line)) line = INT2FIX(1);
 
-    return iseqw_new(rb_iseq_compile_with_option(src, file, path, line, 0, opt));
+    return iseqw_new(rb_iseq_compile_with_option(src, file, path, line, column, 0, opt));
 }
 
 /*
@@ -885,7 +893,7 @@ iseqw_s_compile_file(int argc, VALUE *argv, VALUE self)
     ret = iseqw_new(rb_iseq_new_with_opt(ast->root, rb_fstring_cstr("<main>"),
 					 file,
 					 rb_realpath_internal(Qnil, file, 1),
-					 line, NULL, ISEQ_TYPE_TOP, &option));
+					 line, INT2FIX(0), NULL, ISEQ_TYPE_TOP, &option));
     rb_ast_dispose(ast);
     return ret;
 }

@@ -1263,7 +1263,7 @@ adjust_backtrace_in_eval(const rb_execution_context_t *ec, VALUE errinfo)
 
 static VALUE
 eval_string_with_cref(VALUE self, VALUE src, VALUE scope, rb_cref_t *const cref_arg,
-		      VALUE filename, int lineno)
+		      VALUE filename, int lineno, int columnno)
 {
     int state;
     VALUE result = Qundef;
@@ -1272,9 +1272,11 @@ eval_string_with_cref(VALUE self, VALUE src, VALUE scope, rb_cref_t *const cref_
     const struct rb_block *base_block;
     volatile VALUE file;
     volatile int line;
+    volatile int column;
 
     file = filename ? filename : rb_source_location(&lineno);
     line = lineno;
+    column = columnno;
 
     {
 	rb_cref_t *cref = cref_arg;
@@ -1317,7 +1319,7 @@ eval_string_with_cref(VALUE self, VALUE src, VALUE scope, rb_cref_t *const cref_
 	}
 
 	/* make eval iseq */
-	iseq = rb_iseq_compile_with_option(src, fname, realpath, INT2FIX(line), base_block, Qnil);
+	iseq = rb_iseq_compile_with_option(src, fname, realpath, INT2FIX(line), INT2FIX(column), base_block, Qnil);
 
 	if (!iseq) {
 	    rb_exc_raise(adjust_backtrace_in_eval(ec, ec->errinfo));
@@ -1367,9 +1369,9 @@ eval_string_with_cref(VALUE self, VALUE src, VALUE scope, rb_cref_t *const cref_
 }
 
 static VALUE
-eval_string(VALUE self, VALUE src, VALUE scope, VALUE file, int line)
+eval_string(VALUE self, VALUE src, VALUE scope, VALUE file, int line, int column)
 {
-    return eval_string_with_cref(self, src, scope, 0, file, line);
+    return eval_string_with_cref(self, src, scope, 0, file, line, column);
 }
 
 /*
@@ -1396,6 +1398,7 @@ rb_f_eval(int argc, const VALUE *argv, VALUE self)
     VALUE src, scope, vfile, vline;
     VALUE file = Qundef;
     int line = 1;
+    int column = 0;
 
     rb_scan_args(argc, argv, "13", &src, &scope, &vfile, &vline);
     SafeStringValue(src);
@@ -1408,7 +1411,7 @@ rb_f_eval(int argc, const VALUE *argv, VALUE self)
 
     if (!NIL_P(vfile))
 	file = vfile;
-    return eval_string(self, src, scope, file, line);
+    return eval_string(self, src, scope, file, line, column);
 }
 
 /** @note This function name is not stable. */
@@ -1416,7 +1419,7 @@ VALUE
 ruby_eval_string_from_file(const char *str, const char *filename)
 {
     VALUE file = filename ? rb_str_new_cstr(filename) : 0;
-    return eval_string(rb_vm_top_self(), rb_str_new2(str), Qnil, file, 1);
+    return eval_string(rb_vm_top_self(), rb_str_new2(str), Qnil, file, 1, 0);
 }
 
 struct eval_string_from_file_arg {
@@ -1428,7 +1431,7 @@ static VALUE
 eval_string_from_file_helper(VALUE data)
 {
     const struct eval_string_from_file_arg *const arg = (struct eval_string_from_file_arg*)data;
-    return eval_string(rb_vm_top_self(), arg->str, Qnil, arg->filename, 1);
+    return eval_string(rb_vm_top_self(), arg->str, Qnil, arg->filename, 1, 0);
 }
 
 VALUE
@@ -1532,7 +1535,7 @@ rb_eval_cmd(VALUE cmd, VALUE arg, int level)
 			      RARRAY_CONST_PTR(arg));
 	}
 	else {
-	    val = eval_string(rb_vm_top_self(), cmd, Qnil, 0, 0);
+	    val = eval_string(rb_vm_top_self(), cmd, Qnil, 0, 0, 0);
 	}
     }
     EC_POP_TAG();
@@ -1613,11 +1616,11 @@ rb_yield_refine_block(VALUE refinement, VALUE refinements)
 
 /* string eval under the class/module context */
 static VALUE
-eval_under(VALUE under, VALUE self, VALUE src, VALUE file, int line)
+eval_under(VALUE under, VALUE self, VALUE src, VALUE file, int line, int column)
 {
     rb_cref_t *cref = vm_cref_push(GET_EC(), under, NULL, SPECIAL_CONST_P(self) && !NIL_P(under));
     SafeStringValue(src);
-    return eval_string_with_cref(self, src, Qnil, cref, file, line);
+    return eval_string_with_cref(self, src, Qnil, cref, file, line, column);
 }
 
 static VALUE
@@ -1630,6 +1633,7 @@ specific_eval(int argc, const VALUE *argv, VALUE klass, VALUE self)
     else {
 	VALUE file = Qundef;
 	int line = 1;
+        int column = 0;
 	VALUE code;
 
 	rb_check_arity(argc, 1, 3);
@@ -1641,7 +1645,7 @@ specific_eval(int argc, const VALUE *argv, VALUE klass, VALUE self)
 	    file = argv[1];
 	    if (!NIL_P(file)) StringValue(file);
 	}
-	return eval_under(klass, self, code, file, line);
+	return eval_under(klass, self, code, file, line, column);
     }
 }
 

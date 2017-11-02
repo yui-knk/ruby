@@ -119,6 +119,7 @@ VALUE rb_iseq_absolute_path(const rb_iseq_t *iseq); /* obsolete */
 VALUE rb_iseq_label(const rb_iseq_t *iseq);
 VALUE rb_iseq_base_label(const rb_iseq_t *iseq);
 VALUE rb_iseq_first_lineno(const rb_iseq_t *iseq);
+VALUE rb_iseq_column(const rb_iseq_t *iseq);
 VALUE rb_iseq_method_name(const rb_iseq_t *iseq);
 
 /* proc.c */

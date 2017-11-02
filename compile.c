@@ -177,11 +177,11 @@ struct iseq_compile_data_ensure_node_stack {
 #define NEW_LABEL(l) new_label_body(iseq, (l))
 #define LABEL_FORMAT "<L%03d>"
 
-#define NEW_ISEQ(node, name, type, line_no) \
-  new_child_iseq(iseq, (node), rb_fstring(name), 0, (type), (line_no))
+#define NEW_ISEQ(node, name, type, line_no, column) \
+  new_child_iseq(iseq, (node), rb_fstring(name), 0, (type), (line_no), (column))
 
-#define NEW_CHILD_ISEQ(node, name, type, line_no) \
-  new_child_iseq(iseq, (node), rb_fstring(name), iseq, (type), (line_no))
+#define NEW_CHILD_ISEQ(node, name, type, line_no, column) \
+  new_child_iseq(iseq, (node), rb_fstring(name), iseq, (type), (line_no), (column))
 
 /* add instructions */
 #define ADD_SEQ(seq1, seq2) \
@@ -279,15 +279,16 @@ struct iseq_compile_data_ensure_node_stack {
 	  ADD_INSN2((seq), (line), trace2, INT2FIX(RUBY_EVENT_COVERAGE), INT2FIX(counter_idx * 16 + COVERAGE_INDEX_BRANCHES)); \
       } \
   } while (0)
-#define ADD_TRACE_METHOD_COVERAGE(seq, line, method_name) \
+#define ADD_TRACE_METHOD_COVERAGE(seq, line, column, method_name) \
   do { \
       if (ISEQ_COVERAGE(iseq) && \
 	  ISEQ_METHOD_COVERAGE(iseq) && \
 	  (line) > 0) { \
 	  VALUE methods = ISEQ_METHOD_COVERAGE(iseq); \
-	  long counter_idx = RARRAY_LEN(methods) / 3; \
+	  long counter_idx = RARRAY_LEN(methods) / 4; \
 	  rb_ary_push(methods, ID2SYM(method_name)); \
 	  rb_ary_push(methods, INT2FIX(line)); \
+	  rb_ary_push(methods, INT2FIX(column)); \
 	  rb_ary_push(methods, INT2FIX(0)); \
 	  ADD_INSN2((seq), (line), trace2, INT2FIX(RUBY_EVENT_COVERAGE), INT2FIX(counter_idx * 16 + COVERAGE_INDEX_METHODS)); \
       } \
@@ -658,7 +659,7 @@ rb_iseq_compile_node(rb_iseq_t *iseq, const NODE *node)
 	  case ISEQ_TYPE_METHOD:
 	    {
 		ADD_TRACE(ret, FIX2INT(iseq->body->location.first_lineno), RUBY_EVENT_CALL);
-		ADD_TRACE_METHOD_COVERAGE(ret, FIX2INT(iseq->body->location.first_lineno), rb_intern_str(iseq->body->location.label));
+		ADD_TRACE_METHOD_COVERAGE(ret, FIX2INT(iseq->body->location.first_lineno), FIX2INT(iseq->body->location.column), rb_intern_str(iseq->body->location.label));
 		CHECK(COMPILE(ret, "scoped node", node->nd_body));
 		ADD_TRACE(ret, nd_line(node), RUBY_EVENT_RETURN);
 		break;
@@ -1176,14 +1177,14 @@ new_insn_send(rb_iseq_t *iseq, int line_no, ID id, VALUE argc, const rb_iseq_t *
 
 static rb_iseq_t *
 new_child_iseq(rb_iseq_t *iseq, const NODE *const node,
-	       VALUE name, const rb_iseq_t *parent, enum iseq_type type, int line_no)
+	       VALUE name, const rb_iseq_t *parent, enum iseq_type type, int line_no, int column)
 {
     rb_iseq_t *ret_iseq;
 
     debugs("[new_child_iseq]> ---------------------------------------\n");
     ret_iseq = rb_iseq_new_with_opt(node, name,
 				    rb_iseq_path(iseq), rb_iseq_realpath(iseq),
-				    INT2FIX(line_no), parent, type, ISEQ_COMPILE_DATA(iseq)->option);
+				    INT2FIX(line_no), INT2FIX(column), parent, type, ISEQ_COMPILE_DATA(iseq)->option);
     debugs("[new_child_iseq]< ---------------------------------------\n");
     iseq_add_mark_object(iseq, (VALUE)ret_iseq);
     return ret_iseq;
@@ -4031,7 +4032,7 @@ defined_expr(rb_iseq_t *iseq, LINK_ANCHOR *const ret,
 				rb_str_concat(rb_str_new2
 					      ("defined guard in "),
 					      iseq->body->location.label),
-				ISEQ_TYPE_DEFINED_GUARD, 0);
+				ISEQ_TYPE_DEFINED_GUARD, 0, 0);
 	lstart->rescued = LABEL_RESCUE_BEG;
 	lend->rescued = LABEL_RESCUE_END;
 	APPEND_LABEL(ret, lcur, lstart);
@@ -4255,8 +4256,9 @@ static VALUE
 build_postexe_iseq(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *body)
 {
     int line = nd_line(body);
+    int column = nd_column(body);
     VALUE argc = INT2FIX(0);
-    const rb_iseq_t *block = NEW_CHILD_ISEQ(body, make_name_for_block(iseq->body->parent_iseq), ISEQ_TYPE_BLOCK, line);
+    const rb_iseq_t *block = NEW_CHILD_ISEQ(body, make_name_for_block(iseq->body->parent_iseq), ISEQ_TYPE_BLOCK, line, column);
 
     ADD_INSN1(ret, line, putspecialobject, INT2FIX(VM_SPECIAL_OBJECT_VMCORE));
     ADD_CALL_WITH_BLOCK(ret, line, id_core_set_postexe, argc, block);
@@ -4658,6 +4660,7 @@ static int
 compile_iter(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, int popped)
 {
     const int line = nd_line(node);
+    const int column = nd_column(node);
     const rb_iseq_t *prevblock = ISEQ_COMPILE_DATA(iseq)->current_block;
     LABEL *retry_label = NEW_LABEL(line);
     LABEL *retry_end_l = NEW_LABEL(line);
@@ -4669,13 +4672,13 @@ compile_iter(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, in
 
 	ISEQ_COMPILE_DATA(iseq)->current_block = child_iseq =
 	    NEW_CHILD_ISEQ(node->nd_body, make_name_for_block(iseq),
-			   ISEQ_TYPE_BLOCK, line);
+			   ISEQ_TYPE_BLOCK, line, column);
 	ADD_SEND_WITH_BLOCK(ret, line, idEach, INT2FIX(0), child_iseq);
     }
     else {
 	ISEQ_COMPILE_DATA(iseq)->current_block = child_iseq =
 	    NEW_CHILD_ISEQ(node->nd_body, make_name_for_block(iseq),
-			   ISEQ_TYPE_BLOCK, line);
+			   ISEQ_TYPE_BLOCK, line, column);
 	CHECK(COMPILE(ret, "iter caller", node->nd_iter));
     }
     ADD_LABEL(ret, retry_end_l);
@@ -4965,12 +4968,13 @@ static int
 compile_rescue(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, int popped)
 {
     const int line = nd_line(node);
+    const int column = nd_column(node);
     LABEL *lstart = NEW_LABEL(line);
     LABEL *lend = NEW_LABEL(line);
     LABEL *lcont = NEW_LABEL(line);
     const rb_iseq_t *rescue = NEW_CHILD_ISEQ(node->nd_resq,
 					     rb_str_concat(rb_str_new2("rescue in "), iseq->body->location.label),
-					     ISEQ_TYPE_RESCUE, line);
+					     ISEQ_TYPE_RESCUE, line, column);
 
     lstart->rescued = LABEL_RESCUE_BEG;
     lend->rescued = LABEL_RESCUE_END;
@@ -5053,10 +5057,11 @@ static int
 compile_ensure(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, int popped)
 {
     const int line = nd_line(node);
+    const int column = nd_column(node);
     DECL_ANCHOR(ensr);
     const rb_iseq_t *ensure = NEW_CHILD_ISEQ(node->nd_ensr,
 					     rb_str_concat(rb_str_new2 ("ensure in "), iseq->body->location.label),
-					     ISEQ_TYPE_ENSURE, line);
+					     ISEQ_TYPE_ENSURE, line, column);
     LABEL *lstart = NEW_LABEL(line);
     LABEL *lend = NEW_LABEL(line);
     LABEL *lcont = NEW_LABEL(line);
@@ -5188,6 +5193,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *node, in
 {
     LINK_ELEMENT *saved_last_element = 0;
     const int line = (int)nd_line(node);
+    const int column = nd_column(node);
     const enum node_type type = nd_type(node);
 
     if (ISEQ_COMPILE_DATA(iseq)->last_line == line) {
@@ -6346,7 +6352,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *node, in
       case NODE_SCOPE:{
 	int ic_index = iseq->body->is_size++;
 	const rb_iseq_t *block_iseq = NEW_CHILD_ISEQ(node, make_name_for_block(iseq),
-						     ISEQ_TYPE_ONCE_GUARD, line);
+						     ISEQ_TYPE_ONCE_GUARD, line, column);
 
 	ADD_INSN2(ret, line, once, block_iseq, INT2FIX(ic_index));
 
@@ -6398,7 +6404,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *node, in
       case NODE_DEFN:{
 	const rb_iseq_t *method_iseq = NEW_ISEQ(node->nd_defn,
 						rb_id2str(node->nd_mid),
-						ISEQ_TYPE_METHOD, line);
+						ISEQ_TYPE_METHOD, line, column);
 
 	debugp_param("defn/iseq", rb_iseqw_new(method_iseq));
 
@@ -6416,7 +6422,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *node, in
       case NODE_DEFS:{
 	const rb_iseq_t * singleton_method = NEW_ISEQ(node->nd_defn,
 						      rb_id2str(node->nd_mid),
-						      ISEQ_TYPE_METHOD, line);
+						      ISEQ_TYPE_METHOD, line, column);
 
 	debugp_param("defs/iseq", rb_iseqw_new(singleton_method));
 
@@ -6468,7 +6474,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *node, in
       case NODE_CLASS:{
 	const rb_iseq_t *class_iseq = NEW_CHILD_ISEQ(node->nd_body,
 						     rb_sprintf("<class:%"PRIsVALUE">", rb_id2str(node->nd_cpath->nd_mid)),
-						     ISEQ_TYPE_CLASS, line);
+						     ISEQ_TYPE_CLASS, line, column);
 	const int flags = VM_DEFINECLASS_TYPE_CLASS |
 	    (node->nd_super ? VM_DEFINECLASS_FLAG_HAS_SUPERCLASS : 0) |
 	    compile_cpath(ret, iseq, node->nd_cpath);
@@ -6484,7 +6490,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *node, in
       case NODE_MODULE:{
         const rb_iseq_t *module_iseq = NEW_CHILD_ISEQ(node->nd_body,
 						      rb_sprintf("<module:%"PRIsVALUE">", rb_id2str(node->nd_cpath->nd_mid)),
-						      ISEQ_TYPE_CLASS, line);
+						      ISEQ_TYPE_CLASS, line, column);
 	const int flags = VM_DEFINECLASS_TYPE_MODULE |
 	    compile_cpath(ret, iseq, node->nd_cpath);
 
@@ -6499,7 +6505,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *node, in
       case NODE_SCLASS:{
 	ID singletonclass;
 	const rb_iseq_t *singleton_class = NEW_ISEQ(node->nd_body, rb_fstring_cstr("singleton class"),
-						    ISEQ_TYPE_CLASS, line);
+						    ISEQ_TYPE_CLASS, line, column);
 
 	CHECK(COMPILE(ret, "sclass#recv", node->nd_recv));
 	ADD_INSN (ret, line, putnil);
@@ -6678,7 +6684,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *node, in
 	 */
 	int is_index = iseq->body->is_size++;
 	const rb_iseq_t *once_iseq = NEW_CHILD_ISEQ((const NODE *)IFUNC_NEW(build_postexe_iseq, node->nd_body, 0),
-						    make_name_for_block(iseq), ISEQ_TYPE_BLOCK, line);
+						    make_name_for_block(iseq), ISEQ_TYPE_BLOCK, line, column);
 
 	ADD_INSN2(ret, line, once, once_iseq, INT2FIX(is_index));
 
@@ -6830,7 +6836,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *node, in
       }
       case NODE_LAMBDA:{
 	/* compile same as lambda{...} */
-	const rb_iseq_t *block = NEW_CHILD_ISEQ(node->nd_body, make_name_for_block(iseq), ISEQ_TYPE_BLOCK, line);
+	const rb_iseq_t *block = NEW_CHILD_ISEQ(node->nd_body, make_name_for_block(iseq), ISEQ_TYPE_BLOCK, line, column);
 	VALUE argc = INT2FIX(0);
 
 	ADD_INSN1(ret, line, putspecialobject, INT2FIX(VM_SPECIAL_OBJECT_VMCORE));
@@ -7634,6 +7640,7 @@ typedef struct {
     VALUE arg;
     rb_insn_func_t func;
     int line;
+    // int column;
 } accessor_args;
 
 static const rb_iseq_t *
@@ -7648,7 +7655,7 @@ method_for_self(VALUE name, VALUE arg, rb_insn_func_t func,
     acc.line = caller_location(&path, &realpath);
     return rb_iseq_new_with_opt((const NODE *)IFUNC_NEW(build, (VALUE)&acc, 0),
 				rb_sym2str(name), path, realpath,
-				INT2FIX(acc.line), 0, ISEQ_TYPE_METHOD, 0);
+				INT2FIX(acc.line), INT2FIX(0), 0, ISEQ_TYPE_METHOD, 0);
 }
 
 static VALUE
