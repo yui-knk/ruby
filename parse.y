@@ -12052,12 +12052,6 @@ ripper_initialize(int argc, VALUE *argv, VALUE self)
     return Qnil;
 }
 
-struct ripper_args {
-    struct parser_params *parser;
-    int argc;
-    VALUE *argv;
-};
-
 static VALUE
 ripper_parse0(VALUE parser_v)
 {
