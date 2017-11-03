@@ -2074,7 +2074,7 @@ rb_vm_call_cfunc(VALUE recv, VALUE (*func)(VALUE), VALUE arg,
 {
     rb_execution_context_t *ec = GET_EC();
     const rb_control_frame_t *reg_cfp = ec->cfp;
-    const rb_iseq_t *iseq = rb_iseq_new(0, filename, filename, Qnil, 0, ISEQ_TYPE_TOP);
+    const rb_iseq_t *iseq = rb_iseq_new_top(0, filename, filename, Qnil, 0);
     VALUE val;
 
     vm_push_frame(ec, iseq, VM_FRAME_MAGIC_TOP | VM_ENV_FLAG_LOCAL | VM_FRAME_FLAG_FINISH,
@@ -3038,7 +3038,7 @@ Init_VM(void)
 	rb_vm_t *vm = ruby_current_vm_ptr;
 	rb_thread_t *th = GET_THREAD();
 	VALUE filename = rb_fstring_cstr("<main>");
-	const rb_iseq_t *iseq = rb_iseq_new(0, filename, filename, Qnil, 0, ISEQ_TYPE_TOP);
+	const rb_iseq_t *iseq = rb_iseq_new_top(0, filename, filename, Qnil, 0);
         volatile VALUE th_self;
 
 	/* create vm object */
