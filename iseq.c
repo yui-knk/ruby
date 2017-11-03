@@ -27,6 +27,7 @@
 #include "insns_info.inc"
 
 VALUE rb_cISeq;
+VALUE rb_cTokenizer;
 static VALUE iseqw_new(const rb_iseq_t *iseq);
 static const rb_iseq_t *iseqw_check(VALUE iseqw);
 
@@ -2446,6 +2447,15 @@ iseqw_s_load_from_binary_extra_data(VALUE self, VALUE str)
     return  iseq_ibf_load_extra_data(str);
 }
 
+static VALUE
+token_tokenize(VALUE klass, VALUE str)
+{
+    VALUE parser;
+
+    parser = rb_parser_new();
+    return rb_parser_lex_string(parser, str);
+}
+
 /*
  *  Document-class: RubyVM::InstructionSequence
  *
@@ -2519,4 +2529,8 @@ Init_ISeq(void)
 
     rb_undef_method(CLASS_OF(rb_cISeq), "translate");
     rb_undef_method(CLASS_OF(rb_cISeq), "load_iseq");
+
+
+    rb_cTokenizer = rb_define_class("Tokenizer", rb_cObject);
+    rb_define_singleton_method(rb_cTokenizer, "tokenize", token_tokenize, 1);
 }

@@ -483,6 +483,8 @@ rb_ast_t *rb_compile_cstr(const char*, const char*, int, int);
 rb_ast_t *rb_compile_string(const char*, VALUE, int);
 rb_ast_t *rb_compile_file(const char*, VALUE, int);
 
+VALUE rb_parser_lex_string(VALUE vparser, VALUE str);
+
 void rb_node_init(NODE *n, enum node_type type, VALUE a0, VALUE a1, VALUE a2);
 NODE *rb_node_newnode(enum node_type,VALUE,VALUE,VALUE);
 void rb_gc_free_node(VALUE obj);

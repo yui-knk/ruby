@@ -8884,6 +8884,41 @@ parser_yylex(struct parser_params *parser)
     return parse_ident(parser, c, cmd_state);
 }
 
+VALUE
+rb_parser_lex_string(VALUE vparser, VALUE str)
+{
+    struct parser_params *parser;
+    VALUE ary;
+    enum yytokentype t;
+    YYSTYPE lval;
+
+    TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, parser);
+    parser->ast = rb_ast_new();
+    parser->lval = &lval;
+
+    lex_gets = lex_get_str;
+    lex_gets_ptr = 0;
+    lex_input = rb_str_new_frozen(str);
+    lex_pbeg = lex_p = lex_pend = 0;
+    ary = rb_ary_new();
+
+    t = parser_yylex(parser);
+
+    while (t != 0) {
+	VALUE ary2 = rb_ary_new_capa(3);
+
+	// rb_ary_push(ary2, rb_str_new_cstr(tokenbuf));
+	rb_ary_push(ary2, rb_str_new(parser->tokp, lex_p - parser->tokp));
+	rb_ary_push(ary2, INT2FIX(ruby_sourceline));
+	rb_ary_push(ary2, INT2FIX((int)(parser->tokp - lex_pbeg)));
+	rb_ary_push(ary, ary2);
+
+	t = parser_yylex(parser);
+    }
+    
+    return ary;
+}
+
 static enum yytokentype
 yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *parser)
 {
