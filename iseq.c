@@ -653,7 +653,6 @@ rb_iseq_compile_with_option(VALUE src, VALUE file, VALUE realpath, VALUE line, c
     }
     else {
 	parse = rb_parser_compile_string_path;
-	StringValue(src);
     }
     {
 	const VALUE parser = rb_parser_new();
