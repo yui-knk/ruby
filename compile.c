@@ -6466,7 +6466,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *node, in
 	break;
       }
       case NODE_CLASS:{
-	const rb_iseq_t *class_iseq = NEW_CHILD_ISEQ(node->nd_body,
+	const rb_iseq_t *class_iseq = NEW_ISEQ(node->nd_body,
 						     rb_sprintf("<class:%"PRIsVALUE">", rb_id2str(node->nd_cpath->nd_mid)),
 						     ISEQ_TYPE_CLASS, line);
 	const int flags = VM_DEFINECLASS_TYPE_CLASS |
