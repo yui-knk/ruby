@@ -890,8 +890,6 @@ rb_iseq_t *rb_iseq_new_with_opt(const NODE *node, VALUE name, VALUE path, VALUE 
 				const rb_iseq_t *parent, enum iseq_type, const rb_compile_option_t*);
 
 /* src -> iseq */
-rb_iseq_t *rb_iseq_compile(VALUE src, VALUE file, VALUE line);
-rb_iseq_t *rb_iseq_compile_on_base(VALUE src, VALUE file, VALUE line, const struct rb_block *base_block);
 rb_iseq_t *rb_iseq_compile_with_option(VALUE src, VALUE file, VALUE realpath, VALUE line, const struct rb_block *base_block, VALUE opt);
 
 VALUE rb_iseq_disasm(const rb_iseq_t *iseq);

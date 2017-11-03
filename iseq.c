@@ -678,18 +678,6 @@ rb_iseq_compile_with_option(VALUE src, VALUE file, VALUE realpath, VALUE line, c
     return iseq;
 }
 
-rb_iseq_t *
-rb_iseq_compile(VALUE src, VALUE file, VALUE line)
-{
-    return rb_iseq_compile_with_option(src, file, Qnil, line, 0, Qnil);
-}
-
-rb_iseq_t *
-rb_iseq_compile_on_base(VALUE src, VALUE file, VALUE line, const struct rb_block *base_block)
-{
-    return rb_iseq_compile_with_option(src, file, Qnil, line, base_block, Qnil);
-}
-
 VALUE
 rb_iseq_path(const rb_iseq_t *iseq)
 {
