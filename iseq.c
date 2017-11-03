@@ -648,7 +648,6 @@ rb_iseq_compile_with_option(VALUE src, VALUE file, VALUE realpath, VALUE line, c
     /* safe results first */
     make_compile_option(&option, opt);
     ln = NUM2INT(line);
-    StringValueCStr(file);
     if (RB_TYPE_P(src, T_FILE)) {
 	parse = rb_parser_compile_file_path;
     }
