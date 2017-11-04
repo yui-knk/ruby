@@ -332,10 +332,14 @@ class TestCoverage < Test::Unit::TestCase
   def test_branch_coverage_for_and_or
     result = {
       :branches=>{
-        [:"&&", 0, 3, 0] => {[:left,  1, 3, 0]=>1, [:right,  2, 3, 5]=>1},
-        [:"&&", 3, 4, 0] => {[:left,  4, 4, 0]=>1, [:right,  5, 4, 5]=>0},
-        [:"||", 6, 5, 0] => {[:left,  7, 5, 0]=>1, [:right,  8, 5, 5]=>0},
-        [:"||", 9, 6, 0] => {[:left, 10, 6, 0]=>1, [:right, 11, 6, 5]=>1},
+        [:"&&",  0, 3, 0] => {[:left,  1, 3, 0]=>1, [:right,  2, 3,  5]=>1},
+        [:"&&",  3, 4, 0] => {[:left,  4, 4, 0]=>1, [:right,  5, 4,  5]=>0},
+        [:"&&",  6, 5, 0] => {[:left,  7, 5, 0]=>1, [:right,  8, 5,  0]=>1},
+        [:"&&",  9, 5, 0] => {[:left, 10, 5, 5]=>1, [:right, 11, 5, 10]=>0},
+        [:"||", 12, 6, 0] => {[:left, 13, 6, 0]=>1, [:right, 14, 6,  5]=>0},
+        [:"||", 15, 7, 0] => {[:left, 16, 7, 0]=>1, [:right, 17, 7,  5]=>1},
+        [:"||", 18, 8, 0] => {[:left, 19, 8, 0]=>1, [:right, 20, 8,  0]=>1},
+        [:"||", 21, 8, 0] => {[:left, 22, 8, 5]=>1, [:right, 23, 8, 10]=>0},
       }
     }
     assert_coverage(<<~"end;", { branches: true }, result)
@@ -343,8 +347,10 @@ class TestCoverage < Test::Unit::TestCase
       b = false
       a && b
       b && a
+      a && b && a
       a || b
       b || a
+      b || a || b
     end;
   end
 
