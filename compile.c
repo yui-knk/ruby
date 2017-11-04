@@ -5267,7 +5267,10 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *node, in
       case NODE_AND:
       case NODE_OR:{
 	LABEL *end_label = NEW_LABEL(line);
+	VALUE branches = 0;
+	DECL_BRANCH_BASE(branches, nd_lineno(node), nd_column(node), type == NODE_AND ? "&&" : "||");
 	CHECK(COMPILE(ret, "nd_1st", node->nd_1st));
+	ADD_TRACE_BRANCH_COVERAGE(ret, nd_lineno(node->nd_1st), nd_column(node->nd_1st), "left", branches);
 	if (!popped) {
 	    ADD_INSN(ret, line, dup);
 	}
@@ -5281,6 +5284,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *node, in
 	    ADD_INSN(ret, line, pop);
 	}
 	CHECK(COMPILE_(ret, "nd_2nd", node->nd_2nd, popped));
+	ADD_TRACE_BRANCH_COVERAGE(ret, nd_lineno(node->nd_2nd), nd_column(node->nd_2nd), "right", branches);
 	ADD_LABEL(ret, end_label);
 	break;
       }
