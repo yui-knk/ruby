@@ -3197,21 +3197,31 @@ compile_branch_condition(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *co
       case NODE_AND:
 	{
 	    LABEL *label = NEW_LABEL(nd_line(cond));
+	    VALUE branches = 0;
+	    DECL_BRANCH_BASE(branches, nd_lineno(cond), nd_column(cond), "&&");
+
+	    ADD_TRACE_BRANCH_COVERAGE(ret, nd_lineno(cond->nd_1st), nd_column(cond->nd_1st), "left", branches);
 	    CHECK(compile_branch_condition(iseq, ret, cond->nd_1st, label,
 					   else_label));
 	    if (!label->refcnt) break;
 	    ADD_LABEL(ret, label);
 	    cond = cond->nd_2nd;
+	    ADD_TRACE_BRANCH_COVERAGE(ret, nd_lineno(cond), nd_column(cond), "right", branches);
 	    goto again;
 	}
       case NODE_OR:
 	{
 	    LABEL *label = NEW_LABEL(nd_line(cond));
+	    VALUE branches = 0;
+	    DECL_BRANCH_BASE(branches, nd_lineno(cond), nd_column(cond), "||");
+
+	    ADD_TRACE_BRANCH_COVERAGE(ret, nd_lineno(cond->nd_1st), nd_column(cond->nd_1st), "left", branches);
 	    CHECK(compile_branch_condition(iseq, ret, cond->nd_1st, then_label,
 					   label));
 	    if (!label->refcnt) break;
 	    ADD_LABEL(ret, label);
 	    cond = cond->nd_2nd;
+	    ADD_TRACE_BRANCH_COVERAGE(ret, nd_lineno(cond), nd_column(cond), "right", branches);
 	    goto again;
 	}
       case NODE_LIT:		/* NODE_LIT is always true */

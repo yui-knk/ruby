@@ -354,6 +354,28 @@ class TestCoverage < Test::Unit::TestCase
     end;
   end
 
+  def test_branch_coverage_for_if_and_or
+    result = {
+      :branches=>{
+        [:"&&", 0, 3, 3] => {[:left,  1, 3, 3]=>1, [:right,  2, 3, 8]=>1},
+        [:if  , 3, 3, 0] => {[:then,  4, 4, 2]=>0, [:else,   5, 3, 0]=>1},
+        [:"||", 6, 7, 3] => {[:left,  7, 7, 3]=>1, [:right,  8, 7, 8]=>0},
+        [:if  , 9, 7, 0] => {[:then, 10, 8, 2]=>1, [:else,  11, 7, 0]=>0},
+      }
+    }
+    assert_coverage(<<~"end;", { branches: true }, result)
+      a = true
+      b = false
+      if a && b
+        1
+      end
+
+      if a || b
+        1
+      end
+    end;
+  end
+
   def test_method_coverage
     result = {
       :methods => {
