@@ -384,8 +384,8 @@ static NODE *cond_gen(struct parser_params*,NODE*,int,rb_code_location_t*);
 #define cond(node,first_loc) cond_gen(parser, (node), FALSE, first_loc)
 #define method_cond(node,first_loc) cond_gen(parser, (node), TRUE, first_loc)
 #define new_nil() NEW_NIL()
-static NODE *new_if_gen(struct parser_params*,NODE*,NODE*,NODE*,rb_code_location_t*);
-#define new_if(cc,left,right,first_loc) new_if_gen(parser, (cc), (left), (right), (first_loc))
+static NODE *new_if_gen(struct parser_params*,NODE*,NODE*,NODE*,rb_code_range_t*);
+#define new_if(cc,left,right,loc) new_if_gen(parser, (cc), (left), (right), (loc))
 static NODE *new_unless_gen(struct parser_params*,NODE*,NODE*,NODE*,rb_code_location_t*);
 #define new_unless(cc,left,right,first_loc) new_unless_gen(parser, (cc), (left), (right), (first_loc))
 static NODE *logop_gen(struct parser_params*,enum node_type,NODE*,NODE*,rb_code_location_t*);
@@ -1400,7 +1400,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		| stmt modifier_if expr_value
 		    {
 		    /*%%%*/
-			$$ = new_if($3, remove_begin($1), 0, &@1.first_loc);
+			$$ = new_if($3, remove_begin($1), 0, &@$);
 			fixpos($$, $3);
 		    /*%
 			$$ = dispatch2(if_mod, $3, $1);
@@ -2336,7 +2336,7 @@ arg		: lhs '=' arg_rhs
 		    {
 		    /*%%%*/
 			value_expr($1);
-			$$ = new_if($1, $3, $6, &@1.first_loc);
+			$$ = new_if($1, $3, $6, &@$);
 			fixpos($$, $1);
 		    /*%
 			$$ = dispatch3(ifop, $1, $3, $6);
@@ -2820,7 +2820,7 @@ primary		: literal
 		  k_end
 		    {
 		    /*%%%*/
-			$$ = new_if($2, $4, $5, &@1.first_loc);
+			$$ = new_if($2, $4, $5, &@$);
 			fixpos($$, $2);
 		    /*%
 			$$ = dispatch3(if, $2, $4, escape_Qundef($5));
@@ -3217,7 +3217,7 @@ if_tail		: opt_else
 		  if_tail
 		    {
 		    /*%%%*/
-			$$ = new_if($2, $4, $5, &@1.first_loc);
+			$$ = new_if($2, $4, $5, &@$);
 			fixpos($$, $2);
 		    /*%
 			$$ = dispatch3(elsif, $2, $4, escape_Qundef($5));
@@ -10532,14 +10532,14 @@ cond_gen(struct parser_params *parser, NODE *node, int method_op, rb_code_locati
 }
 
 static NODE*
-new_if_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right, rb_code_location_t *first_loc)
+new_if_gen(struct parser_params *parser, NODE *cc, NODE *left, NODE *right, rb_code_range_t *loc)
 {
     NODE *node_if;
 
     if (!cc) return right;
-    cc = cond0(parser, cc, FALSE, first_loc);
+    cc = cond0(parser, cc, FALSE, &loc->first_loc);
     node_if = NEW_IF(cc, left, right);
-    node_if->nd_loc.first_loc = *first_loc;
+    node_if->nd_loc = *loc;
     return newline_node(node_if);
 }
 
