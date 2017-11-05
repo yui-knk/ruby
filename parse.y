@@ -1262,11 +1262,11 @@ bodystmt	: compstmt
 			if ($4) {
 			    if ($$) {
 				$$ = NEW_ENSURE($$, $4);
-				$$->nd_loc.first_loc = @1.first_loc;
+				$$->nd_loc = @$;
 			    }
 			    else {
 				NODE *nil = NEW_NIL();
-				$$->nd_loc.first_loc = @1.first_loc;
+				$$->nd_loc = @$;
 				$$ = block_append($4, nil, &@$);
 			    }
 			}
@@ -1352,7 +1352,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = NEW_ALIAS($2, $4);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(alias, $2, $4);
 		    %*/
@@ -1361,7 +1361,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = NEW_VALIAS($2, $3);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(var_alias, $2, $3);
 		    %*/
@@ -1373,7 +1373,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			buf[0] = '$';
 			buf[1] = (char)$3->nd_nth;
 			$$ = NEW_VALIAS($2, rb_intern2(buf, 2));
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(var_alias, $2, $3);
 		    %*/
@@ -1424,7 +1424,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			else {
 			    $$ = NEW_WHILE(cond($3, &@$), $1, 1);
 			}
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(while_mod, $3, $1);
 		    %*/
@@ -1438,7 +1438,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			else {
 			    $$ = NEW_UNTIL(cond($3, &@$), $1, 1);
 			}
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(until_mod, $3, $1);
 		    %*/
@@ -1462,8 +1462,8 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			    NODE *scope = NEW_NODE(
 				NODE_SCOPE, 0 /* tbl */, $3 /* body */, 0 /* args */);
 			    $$ = NEW_POSTEXE(scope);
-			    scope->nd_loc.first_loc = @1.first_loc;
-			    $$->nd_loc.first_loc = @1.first_loc;
+			    scope->nd_loc = @$;
+			    $$->nd_loc = @$;
 			}
 		    /*%
 			$$ = dispatch1(END, $3);
@@ -1523,7 +1523,7 @@ command_asgn	: lhs '=' command_rhs
 			}
 			$$ = NEW_OP_ASGN1($1, $5, args);
 			fixpos($$, $1);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(aref_field, $1, escape_Qundef($3));
 			$$ = dispatch3(opassign, $$, $5, $6);
@@ -1690,7 +1690,7 @@ command		: fcall command_args       %prec tLOWEST
 		    /*%%%*/
 			$$ = NEW_SUPER($2);
 			fixpos($$, $2);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch1(super, $2);
 		    %*/
@@ -1708,7 +1708,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = NEW_RETURN(ret_args($2));
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch1(return, $2);
 		    %*/
@@ -1717,7 +1717,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = NEW_BREAK(ret_args($2));
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch1(break, $2);
 		    %*/
@@ -1726,7 +1726,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = NEW_NEXT(ret_args($2));
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch1(next, $2);
 		    %*/
@@ -2022,7 +2022,7 @@ cpath		: tCOLON3 cname
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON3($2);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch1(top_const_ref, $2);
 		    %*/
@@ -2031,7 +2031,7 @@ cpath		: tCOLON3 cname
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON2(0, $$);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch1(const_ref, $1);
 		    %*/
@@ -2040,7 +2040,7 @@ cpath		: tCOLON3 cname
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON2($1, $3);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(const_path_ref, $1, $3);
 		    %*/
@@ -2159,7 +2159,7 @@ arg		: lhs '=' arg_rhs
 			if (!$3) $3 = new_zarray(&@$);
 			if (nd_type($3) == NODE_BLOCK_PASS) {
 			    args = NEW_ARGSCAT($3, $6);
-			    args->nd_loc.first_loc = @1.first_loc;
+			    args->nd_loc = @$;
 			}
 			else {
 			    args = arg_concat($3, $6, &@$);
@@ -2172,7 +2172,7 @@ arg		: lhs '=' arg_rhs
 			}
 			$$ = NEW_OP_ASGN1($1, $5, args);
 			fixpos($$, $1);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$1 = dispatch2(aref_field, $1, escape_Qundef($3));
 			$$ = dispatch3(opassign, $1, $5, $6);
@@ -2214,7 +2214,7 @@ arg		: lhs '=' arg_rhs
 			value_expr($1);
 			value_expr($3);
 			$$ = NEW_DOT2($1, $3);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(dot2, $1, $3);
 		    %*/
@@ -2225,7 +2225,7 @@ arg		: lhs '=' arg_rhs
 			value_expr($1);
 			value_expr($3);
 			$$ = NEW_DOT3($1, $3);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(dot3, $1, $3);
 		    %*/
@@ -2518,7 +2518,7 @@ block_arg	: tAMPER arg_value
 		    {
 		    /*%%%*/
 			$$ = NEW_BLOCK_PASS($2);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = $2;
 		    %*/
@@ -2547,7 +2547,7 @@ args		: arg_value
 		    {
 		    /*%%%*/
 			$$ = NEW_SPLAT($2);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = arg_add_star(arg_new(), $2);
 		    %*/
@@ -2619,7 +2619,7 @@ mrhs		: args ',' arg_value
 		    {
 		    /*%%%*/
 			$$ = NEW_SPLAT($2);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = mrhs_add_star(mrhs_new(), $2);
 		    %*/
@@ -2660,7 +2660,7 @@ primary		: literal
 		    /*%%%*/
 			if ($3 == NULL) {
 			    $$ = NEW_NIL();
-			    $$->nd_loc.first_loc = @1.first_loc;
+			    $$->nd_loc = @$;
 			}
 			else {
 			    set_line_body($3, $<num>2);
@@ -2705,7 +2705,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON2($1, $3);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(const_path_ref, $1, $3);
 		    %*/
@@ -2714,7 +2714,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON3($2);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch1(top_const_ref, $2);
 		    %*/
@@ -2745,7 +2745,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_RETURN(0);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch0(return0);
 		    %*/
@@ -2762,7 +2762,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_YIELD(0);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch1(yield, dispatch1(paren, arg_new()));
 		    %*/
@@ -2771,7 +2771,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_YIELD(0);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch0(yield0);
 		    %*/
@@ -2845,7 +2845,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = NEW_WHILE(cond($3, &@$), $6, 1);
 			fixpos($$, $3);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(while, $3, $6);
 		    %*/
@@ -2857,7 +2857,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = NEW_UNTIL(cond($3, &@$), $6, 1);
 			fixpos($$, $3);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(until, $3, $6);
 		    %*/
@@ -2869,7 +2869,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = NEW_CASE($2, $4);
 			fixpos($$, $2);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(case, $2, $4);
 		    %*/
@@ -2879,7 +2879,7 @@ primary		: literal
 		    /*%%%*/
 			$$ = NEW_CASE2(0, $3);
 			nd_set_line($3, $<num>1);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(case, Qnil, $3);
 		    %*/
@@ -2929,7 +2929,7 @@ primary		: literal
 			}
 			add_mark_object((VALUE)rb_imemo_alloc_new((VALUE)tbl, 0, 0, 0));
 			scope = NEW_NODE(NODE_SCOPE, tbl, $8, args);
-			scope->nd_loc.first_loc = @1.first_loc;
+			scope->nd_loc = @$;
 			tbl[0] = 1; tbl[1] = id;
 			$$ = new_for(0, $5, scope, &@$);
 			fixpos($$, $2);
@@ -2952,10 +2952,10 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_CLASS($2, $5, $3);
-			$$->nd_body->nd_loc.first_loc = @1.first_loc;
+			$$->nd_body->nd_loc = @$;
 			set_line_body($5, $<num>4);
 			nd_set_line($$, $<num>4);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch3(class, $2, $3, $5);
 		    %*/
@@ -2974,10 +2974,10 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_SCLASS($3, $6);
-			$$->nd_body->nd_loc.first_loc = @1.first_loc;
+			$$->nd_body->nd_loc = @$;
 			set_line_body($6, nd_line($3));
 			fixpos($$, $3);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(sclass, $3, $6);
 		    %*/
@@ -3000,10 +3000,10 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_MODULE($2, $4);
-			$$->nd_body->nd_loc.first_loc = @1.first_loc;
+			$$->nd_body->nd_loc = @$;
 			set_line_body($4, $<num>3);
 			nd_set_line($$, $<num>3);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(module, $2, $4);
 		    %*/
@@ -3027,10 +3027,10 @@ primary		: literal
 			NODE *body = remove_begin($6);
 			reduce_nodes(&body);
 			$$ = NEW_DEFN($2, $5, body, METHOD_VISI_PRIVATE);
-			$$->nd_defn->nd_loc.first_loc = @1.first_loc;
+			$$->nd_defn->nd_loc = @$;
 			set_line_body(body, $<num>1);
 			nd_set_line($$, $<num>1);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch3(def, $2, $5, $6);
 		    %*/
@@ -3055,10 +3055,10 @@ primary		: literal
 			NODE *body = remove_begin($8);
 			reduce_nodes(&body);
 			$$ = NEW_DEFS($2, $5, $7, body);
-			$$->nd_defn->nd_loc.first_loc = @1.first_loc;
+			$$->nd_defn->nd_loc = @$;
 			set_line_body(body, $<num>1);
 			nd_set_line($$, $<num>1);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch5(defs, $2, $<val>3, $5, $7, $8);
 		    %*/
@@ -3070,7 +3070,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_BREAK(0);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch1(break, arg_new());
 		    %*/
@@ -3079,7 +3079,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_NEXT(0);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch1(next, arg_new());
 		    %*/
@@ -3088,7 +3088,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_REDO();
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch0(redo);
 		    %*/
@@ -3097,7 +3097,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_RETRY();
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch0(retry);
 		    %*/
@@ -3557,8 +3557,8 @@ lambda		:   {
 		    /*%%%*/
 			$$ = NEW_LAMBDA($3, $6);
 			nd_set_line($$, $<num>4);
-			$$->nd_loc.first_loc = @1.first_loc;
-			$$->nd_body->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
+			$$->nd_body->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(lambda, $3, $6);
 		    %*/
@@ -3713,7 +3713,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = NEW_SUPER($2);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch1(super, $2);
 		    %*/
@@ -3722,7 +3722,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = NEW_ZSUPER();
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch0(zsuper);
 		    %*/
@@ -3795,7 +3795,7 @@ case_body	: keyword_when args then
 		    {
 		    /*%%%*/
 			$$ = NEW_WHEN($2, $4, $5);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch3(when, $2, $4, escape_Qundef($5));
 		    %*/
@@ -3897,7 +3897,7 @@ strings		: string
 string		: tCHAR
 		    {
 		    /*%%%*/
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 		    %*/
 		    }
@@ -4080,7 +4080,7 @@ qword_list	: /* none */
 		    {
 		    /*%%%*/
 			$$ = list_append($1, $2, &@$);
-			$2->nd_loc.first_loc = @1.first_loc;
+			$2->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(qwords_add, $1, $2);
 		    %*/
@@ -4103,7 +4103,7 @@ qsym_list	: /* none */
 			nd_set_type($2, NODE_LIT);
 			add_mark_object($2->nd_lit = ID2SYM(rb_intern_str(lit)));
 			$$ = list_append($1, $2, &@$);
-			$2->nd_loc.first_loc = @1.first_loc;
+			$2->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(qsymbols_add, $1, $2);
 		    %*/
@@ -4198,7 +4198,7 @@ regexp_contents: /* none */
 string_content	: tSTRING_CONTENT
 		    {
 		    /*%%%*/
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 		    %*/
 		    }
@@ -4214,7 +4214,7 @@ string_content	: tSTRING_CONTENT
 			lex_strterm = $<strterm>2;
 		    /*%%%*/
 			$$ = NEW_EVSTR($3);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch1(string_dvar, $3);
 		    %*/
@@ -4281,7 +4281,7 @@ string_dvar	: tGVAR
 		    {
 		    /*%%%*/
 			$$ = NEW_CVAR($1);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch1(var_ref, $1);
 		    %*/
@@ -4332,28 +4332,28 @@ numeric 	: simple_numeric
 simple_numeric	: tINTEGER
 		    {
 		    /*%%%*/
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 		    %*/
 		    }
 		| tFLOAT
 		    {
 		    /*%%%*/
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 		    %*/
 		    }
 		| tRATIONAL
 		    {
 		    /*%%%*/
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 		    %*/
 		    }
 		| tIMAGINARY
 		    {
 		    /*%%%*/
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 		    %*/
 		    }
@@ -4411,14 +4411,14 @@ var_lhs		: user_variable
 backref		: tNTH_REF
 		    {
 		    /*%%%*/
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 		    %*/
 		    }
 		| tBACK_REF
 		    {
 		    /*%%%*/
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 		    %*/
 		    }
@@ -4784,7 +4784,7 @@ f_opt		: f_arg_asgn '=' arg_value
 			$$ = assignable($1, $3, &@$);
 		    /*%%%*/
 			$$ = NEW_OPT_ARG(0, $$);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = rb_assoc_new(get_value($$), get_value($3));
 		    %*/
@@ -4797,7 +4797,7 @@ f_block_opt	: f_arg_asgn '=' primary_value
 			$$ = assignable($1, $3, &@$);
 		    /*%%%*/
 			$$ = NEW_OPT_ARG(0, $$);
-			$$->nd_loc.first_loc = @1.first_loc;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = rb_assoc_new(get_value($$), get_value($3));
 		    %*/
@@ -5587,7 +5587,7 @@ yycompile0(VALUE arg)
 	rb_hash_aset(opt, rb_sym_intern_ascii_cstr("coverage_enabled"), cov);
 	prelude = NEW_PRELUDE(ruby_eval_tree_begin, body, opt);
 	add_mark_object(opt);
-	prelude->nd_loc.first_loc = body->nd_loc.first_loc;
+	prelude->nd_loc = body->nd_loc;
 	tree->nd_body = prelude;
     }
     return (VALUE)tree;
