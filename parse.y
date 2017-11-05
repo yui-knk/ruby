@@ -381,17 +381,17 @@ set_line_body(NODE *body, int line)
 #define yyparse ruby_yyparse
 
 static NODE *cond_gen(struct parser_params*,NODE*,int,rb_code_range_t*);
-#define cond(node,first_loc) cond_gen(parser, (node), FALSE, first_loc)
-#define method_cond(node,first_loc) cond_gen(parser, (node), TRUE, first_loc)
+#define cond(node,loc) cond_gen(parser, (node), FALSE, loc)
+#define method_cond(node,loc) cond_gen(parser, (node), TRUE, loc)
 #define new_nil() NEW_NIL()
 static NODE *new_if_gen(struct parser_params*,NODE*,NODE*,NODE*,rb_code_range_t*);
 #define new_if(cc,left,right,loc) new_if_gen(parser, (cc), (left), (right), (loc))
 static NODE *new_unless_gen(struct parser_params*,NODE*,NODE*,NODE*,rb_code_range_t*);
-#define new_unless(cc,left,right,first_loc) new_unless_gen(parser, (cc), (left), (right), (first_loc))
+#define new_unless(cc,left,right,loc) new_unless_gen(parser, (cc), (left), (right), (loc))
 static NODE *logop_gen(struct parser_params*,enum node_type,NODE*,NODE*,rb_code_range_t*);
-#define logop(id,node1,node2,first_loc) \
+#define logop(id,node1,node2,loc) \
     logop_gen(parser, ((id)==idAND||(id)==idANDOP)?NODE_AND:NODE_OR, \
-	      (node1), (node2), (first_loc))
+	      (node1), (node2), (loc))
 
 static NODE *newline_node(NODE*);
 static void fixpos(NODE*,NODE*);
@@ -411,30 +411,30 @@ static void block_dup_check_gen(struct parser_params*,NODE*,NODE*);
 #define block_dup_check(n1,n2) block_dup_check_gen(parser,(n1),(n2))
 
 static NODE *block_append_gen(struct parser_params*,NODE*,NODE*,rb_code_range_t*);
-#define block_append(h,t,first_loc) block_append_gen(parser,(h),(t),(first_loc))
+#define block_append(h,t,loc) block_append_gen(parser,(h),(t),(loc))
 static NODE *list_append_gen(struct parser_params*,NODE*,NODE*,rb_code_range_t*);
-#define list_append(l,i,first_loc) list_append_gen(parser,(l),(i),(first_loc))
+#define list_append(l,i,loc) list_append_gen(parser,(l),(i),(loc))
 static NODE *list_concat(NODE*,NODE*);
 static NODE *arg_append_gen(struct parser_params*,NODE*,NODE*,rb_code_range_t*);
-#define arg_append(h,t,first_loc) arg_append_gen(parser,(h),(t),(first_loc))
+#define arg_append(h,t,loc) arg_append_gen(parser,(h),(t),(loc))
 static NODE *arg_concat_gen(struct parser_params*,NODE*,NODE*,rb_code_range_t*);
-#define arg_concat(h,t,first_loc) arg_concat_gen(parser,(h),(t),(first_loc))
+#define arg_concat(h,t,loc) arg_concat_gen(parser,(h),(t),(loc))
 static NODE *literal_concat_gen(struct parser_params*,NODE*,NODE*,rb_code_range_t*);
-#define literal_concat(h,t,first_loc) literal_concat_gen(parser,(h),(t),(first_loc))
+#define literal_concat(h,t,loc) literal_concat_gen(parser,(h),(t),(loc))
 static int literal_concat0(struct parser_params *, VALUE, VALUE);
 static NODE *new_evstr_gen(struct parser_params*,NODE*,rb_code_range_t*);
-#define new_evstr(n, first_loc) new_evstr_gen(parser,(n),(first_loc))
+#define new_evstr(n, loc) new_evstr_gen(parser,(n),(loc))
 static NODE *evstr2dstr_gen(struct parser_params*,NODE*,rb_code_range_t*);
-#define evstr2dstr(n,first_loc) evstr2dstr_gen(parser,(n),(first_loc))
+#define evstr2dstr(n,loc) evstr2dstr_gen(parser,(n),(loc))
 static NODE *splat_array(NODE*);
 
 static NODE *call_bin_op_gen(struct parser_params*,NODE*,ID,NODE*,rb_code_range_t*);
-#define call_bin_op(recv,id,arg1,first_loc) call_bin_op_gen(parser, (recv),(id),(arg1),(first_loc))
+#define call_bin_op(recv,id,arg1,loc) call_bin_op_gen(parser, (recv),(id),(arg1),(loc))
 static NODE *call_uni_op_gen(struct parser_params*,NODE*,ID,rb_code_range_t*);
-#define call_uni_op(recv,id,first_loc) call_uni_op_gen(parser, (recv),(id),(first_loc))
+#define call_uni_op(recv,id,loc) call_uni_op_gen(parser, (recv),(id),(loc))
 static NODE *new_qcall_gen(struct parser_params* parser, ID atype, NODE *recv, ID mid, NODE *args, rb_code_range_t *loc);
-#define new_qcall(q,r,m,a,first_loc) new_qcall_gen(parser,q,r,m,a,first_loc)
-#define new_command_qcall(q,r,m,a,first_loc) new_qcall_gen(parser,q,r,m,a,first_loc)
+#define new_qcall(q,r,m,a,loc) new_qcall_gen(parser,q,r,m,a,loc)
+#define new_command_qcall(q,r,m,a,loc) new_qcall_gen(parser,q,r,m,a,loc)
 static NODE *new_command_gen(struct parser_params*parser, NODE *m, NODE *a) {m->nd_args = a; return m;}
 #define new_command(m,a) new_command_gen(parser, m, a)
 static NODE *method_add_block_gen(struct parser_params*parser, NODE *m, NODE *b) {b->nd_iter = m; return b;}
@@ -443,9 +443,9 @@ static NODE *method_add_block_gen(struct parser_params*parser, NODE *m, NODE *b)
 static NODE *new_args_gen(struct parser_params*,NODE*,NODE*,ID,NODE*,NODE*);
 #define new_args(f,o,r,p,t) new_args_gen(parser, (f),(o),(r),(p),(t))
 static NODE *new_args_tail_gen(struct parser_params*,NODE*,ID,ID,rb_code_range_t*);
-#define new_args_tail(k,kr,b,first_loc) new_args_tail_gen(parser, (k),(kr),(b),(first_loc))
+#define new_args_tail(k,kr,b,loc) new_args_tail_gen(parser, (k),(kr),(b),(loc))
 static NODE *new_kw_arg_gen(struct parser_params *parser, NODE *k, rb_code_range_t *loc);
-#define new_kw_arg(k,first_loc) new_kw_arg_gen(parser, k, first_loc)
+#define new_kw_arg(k,loc) new_kw_arg_gen(parser, k, loc)
 
 static VALUE negate_lit_gen(struct parser_params*, VALUE);
 #define negate_lit(lit) negate_lit_gen(parser, lit)
@@ -453,125 +453,125 @@ static NODE *ret_args_gen(struct parser_params*,NODE*);
 #define ret_args(node) ret_args_gen(parser, (node))
 static NODE *arg_blk_pass(NODE*,NODE*);
 static NODE *new_yield_gen(struct parser_params*,NODE*,rb_code_range_t*);
-#define new_yield(node,first_loc) new_yield_gen(parser, (node), (first_loc))
+#define new_yield(node,loc) new_yield_gen(parser, (node), (loc))
 static NODE *dsym_node_gen(struct parser_params*,NODE*,rb_code_range_t*);
-#define dsym_node(node,first_loc) dsym_node_gen(parser, (node), (first_loc))
+#define dsym_node(node,loc) dsym_node_gen(parser, (node), (loc))
 
 static NODE *gettable_gen(struct parser_params*,ID,rb_code_range_t*);
-#define gettable(id,first_loc) gettable_gen(parser,(id),(first_loc))
+#define gettable(id,loc) gettable_gen(parser,(id),(loc))
 static NODE *assignable_gen(struct parser_params*,ID,NODE*,rb_code_range_t*);
-#define assignable(id,node,first_loc) assignable_gen(parser, (id), (node), (first_loc))
+#define assignable(id,node,loc) assignable_gen(parser, (id), (node), (loc))
 
 static NODE *aryset_gen(struct parser_params*,NODE*,NODE*,rb_code_range_t*);
-#define aryset(node1,node2,first_loc) aryset_gen(parser, (node1), (node2), (first_loc))
+#define aryset(node1,node2,loc) aryset_gen(parser, (node1), (node2), (loc))
 static NODE *attrset_gen(struct parser_params*,NODE*,ID,ID,rb_code_range_t*);
-#define attrset(node,q,id,first_loc) attrset_gen(parser, (node), (q), (id), (first_loc))
+#define attrset(node,q,id,loc) attrset_gen(parser, (node), (q), (id), (loc))
 
 static void rb_backref_error_gen(struct parser_params*,NODE*);
 #define rb_backref_error(n) rb_backref_error_gen(parser,(n))
 static NODE *node_assign_gen(struct parser_params*,NODE*,NODE*,rb_code_range_t*);
-#define node_assign(node1, node2, first_loc) node_assign_gen(parser, (node1), (node2), (first_loc))
+#define node_assign(node1, node2, loc) node_assign_gen(parser, (node1), (node2), (loc))
 
 static NODE *new_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, rb_code_range_t *loc);
-#define new_op_assign(lhs, op, rhs, first_loc) new_op_assign_gen(parser, (lhs), (op), (rhs), (first_loc))
+#define new_op_assign(lhs, op, rhs, loc) new_op_assign_gen(parser, (lhs), (op), (rhs), (loc))
 static NODE *new_attr_op_assign_gen(struct parser_params *parser, NODE *lhs, ID atype, ID attr, ID op, NODE *rhs, rb_code_range_t *loc);
-#define new_attr_op_assign(lhs, type, attr, op, rhs, first_loc) new_attr_op_assign_gen(parser, (lhs), (type), (attr), (op), (rhs), (first_loc))
+#define new_attr_op_assign(lhs, type, attr, op, rhs, loc) new_attr_op_assign_gen(parser, (lhs), (type), (attr), (op), (rhs), (loc))
 static NODE *new_const_op_assign_gen(struct parser_params *parser, NODE *lhs, ID op, NODE *rhs, rb_code_range_t *loc);
-#define new_const_op_assign(lhs, op, rhs, first_loc) new_const_op_assign_gen(parser, (lhs), (op), (rhs), (first_loc))
+#define new_const_op_assign(lhs, op, rhs, loc) new_const_op_assign_gen(parser, (lhs), (op), (rhs), (loc))
 
 static NODE *const_path_field_gen(struct parser_params *parser, NODE *head, ID mid, rb_code_range_t *loc);
-#define const_path_field(w, n, first_loc) const_path_field_gen(parser, w, n, first_loc)
+#define const_path_field(w, n, loc) const_path_field_gen(parser, w, n, loc)
 #define top_const_field(n) NEW_COLON3(n)
 static NODE *const_decl_gen(struct parser_params *parser, NODE* path, rb_code_range_t *loc);
-#define const_decl(path, first_loc) const_decl_gen(parser, path, first_loc)
+#define const_decl(path, loc) const_decl_gen(parser, path, loc)
 
 #define var_field(n) (n)
-#define backref_assign_error(n, a, first_loc) (rb_backref_error(n), new_begin(0, first_loc))
+#define backref_assign_error(n, a, loc) (rb_backref_error(n), new_begin(0, loc))
 
 static NODE *kwd_append(NODE*, NODE*);
 
 static NODE *new_hash_gen(struct parser_params *parser, NODE *hash, rb_code_range_t *loc);
-#define new_hash(hash, first_loc) new_hash_gen(parser, (hash), first_loc)
+#define new_hash(hash, loc) new_hash_gen(parser, (hash), loc)
 
 static NODE *new_defined_gen(struct parser_params *parser, NODE *expr, rb_code_range_t *loc);
-#define new_defined(expr, first_loc) new_defined_gen(parser, expr, first_loc)
+#define new_defined(expr, loc) new_defined_gen(parser, expr, loc)
 
 static NODE *new_regexp_gen(struct parser_params *, NODE *, int, rb_code_range_t *);
-#define new_regexp(node, opt, first_loc) new_regexp_gen(parser, node, opt, first_loc)
+#define new_regexp(node, opt, loc) new_regexp_gen(parser, node, opt, loc)
 
 static NODE *new_lit_gen(struct parser_params *parser, VALUE sym, rb_code_range_t *loc);
-#define new_lit(sym, first_loc) new_lit_gen(parser, sym, first_loc)
+#define new_lit(sym, loc) new_lit_gen(parser, sym, loc)
 
 static NODE *new_list_gen(struct parser_params *parser, NODE *item, rb_code_range_t *loc);
-#define new_list(item, first_loc) new_list_gen(parser, item, first_loc)
+#define new_list(item, loc) new_list_gen(parser, item, loc)
 
 static NODE *new_str_gen(struct parser_params *parser, VALUE str, rb_code_range_t *loc);
-#define new_str(s,first_loc) new_str_gen(parser, s, first_loc)
+#define new_str(s,loc) new_str_gen(parser, s, loc)
 
 static NODE *new_dvar_gen(struct parser_params *parser, ID id, rb_code_range_t *loc);
-#define new_dvar(id, first_loc) new_dvar_gen(parser, id, first_loc)
+#define new_dvar(id, loc) new_dvar_gen(parser, id, loc)
 
 static NODE *new_resbody_gen(struct parser_params *parser, NODE *exc_list, NODE *stmt, NODE *rescue, rb_code_range_t *loc);
-#define new_resbody(e,s,r,first_loc) new_resbody_gen(parser, (e),(s),(r),(first_loc))
+#define new_resbody(e,s,r,loc) new_resbody_gen(parser, (e),(s),(r),(loc))
 
 static NODE *new_errinfo_gen(struct parser_params *parser, rb_code_range_t *loc);
-#define new_errinfo(first_loc) new_errinfo_gen(parser, first_loc)
+#define new_errinfo(loc) new_errinfo_gen(parser, loc)
 
 static NODE *new_call_gen(struct parser_params *parser, NODE *recv, ID mid, NODE *args, rb_code_range_t *loc);
-#define new_call(recv,mid,args,first_loc) new_call_gen(parser, recv,mid,args,first_loc)
+#define new_call(recv,mid,args,loc) new_call_gen(parser, recv,mid,args,loc)
 
 static NODE *new_fcall_gen(struct parser_params *parser, ID mid, NODE *args, rb_code_range_t *loc);
-#define new_fcall(mid,args,first_loc) new_fcall_gen(parser, mid, args, first_loc)
+#define new_fcall(mid,args,loc) new_fcall_gen(parser, mid, args, loc)
 
 static NODE *new_for_gen(struct parser_params *parser, NODE *var, NODE *iter, NODE *body, rb_code_range_t *loc);
-#define new_for(var,iter,body,first_loc) new_for_gen(parser, var, iter, body, first_loc)
+#define new_for(var,iter,body,loc) new_for_gen(parser, var, iter, body, loc)
 
 static NODE *new_gvar_gen(struct parser_params *parser, ID id, rb_code_range_t *loc);
-#define new_gvar(id, first_loc) new_gvar_gen(parser, id, first_loc)
+#define new_gvar(id, loc) new_gvar_gen(parser, id, loc)
 
 static NODE *new_lvar_gen(struct parser_params *parser, ID id, rb_code_range_t *loc);
-#define new_lvar(id, first_loc) new_lvar_gen(parser, id, first_loc)
+#define new_lvar(id, loc) new_lvar_gen(parser, id, loc)
 
 static NODE *new_dstr_gen(struct parser_params *parser, VALUE str, rb_code_range_t *loc);
-#define new_dstr(s, first_loc) new_dstr_gen(parser, s, first_loc)
+#define new_dstr(s, loc) new_dstr_gen(parser, s, loc)
 
 static NODE *new_rescue_gen(struct parser_params *parser, NODE *b, NODE *res, NODE *e, rb_code_range_t *loc);
-#define new_rescue(b,res,e,first_loc) new_rescue_gen(parser,b,res,e,first_loc)
+#define new_rescue(b,res,e,loc) new_rescue_gen(parser,b,res,e,loc)
 
 static NODE *new_undef_gen(struct parser_params *parser, NODE *i, rb_code_range_t *loc);
-#define new_undef(i, first_loc) new_undef_gen(parser, i, first_loc)
+#define new_undef(i, loc) new_undef_gen(parser, i, loc)
 
 static NODE *new_zarray_gen(struct parser_params *parser, rb_code_range_t *loc);
-#define new_zarray(first_loc) new_zarray_gen(parser, first_loc)
+#define new_zarray(loc) new_zarray_gen(parser, loc)
 
 static NODE *new_ivar_gen(struct parser_params *parser, ID id, rb_code_range_t *loc);
-#define new_ivar(id, first_loc) new_ivar_gen(parser,id,first_loc)
+#define new_ivar(id, loc) new_ivar_gen(parser,id,loc)
 
 static NODE *new_postarg_gen(struct parser_params *parser, NODE *i, NODE *v, rb_code_range_t *loc);
-#define new_postarg(i,v,first_loc) new_postarg_gen(parser,i,v,first_loc)
+#define new_postarg(i,v,loc) new_postarg_gen(parser,i,v,loc)
 
 static NODE *new_cdecl_gen(struct parser_params *parser, ID v, NODE *val, NODE *path, rb_code_range_t *loc);
-#define new_cdecl(v,val,path,first_loc) new_cdecl_gen(parser,v,val,path,first_loc)
+#define new_cdecl(v,val,path,loc) new_cdecl_gen(parser,v,val,path,loc)
 
 static NODE *new_scope_gen(struct parser_params *parser, NODE *a, NODE *b, rb_code_range_t *loc);
-#define new_scope(a,b,first_loc) new_scope_gen(parser,a,b,first_loc)
+#define new_scope(a,b,loc) new_scope_gen(parser,a,b,loc)
 
 static NODE *new_begin_gen(struct parser_params *parser, NODE *b, rb_code_range_t *loc);
-#define new_begin(b,first_loc) new_begin_gen(parser,b,first_loc)
+#define new_begin(b,loc) new_begin_gen(parser,b,loc)
 
 static NODE *new_masgn_gen(struct parser_params *parser, NODE *l, NODE *r, rb_code_range_t *loc);
-#define new_masgn(l,r,first_loc) new_masgn_gen(parser,l,r,first_loc)
+#define new_masgn(l,r,loc) new_masgn_gen(parser,l,r,loc)
 
 static NODE *new_xstring_gen(struct parser_params *, NODE *, rb_code_range_t *loc);
-#define new_xstring(node, first_loc) new_xstring_gen(parser, node, first_loc)
+#define new_xstring(node, loc) new_xstring_gen(parser, node, loc)
 #define new_string1(str) (str)
 
 static NODE *new_body_gen(struct parser_params *parser, NODE *param, NODE *stmt, rb_code_range_t *loc);
-#define new_brace_body(param, stmt, first_loc) new_body_gen(parser, param, stmt, first_loc)
-#define new_do_body(param, stmt, first_loc) new_body_gen(parser, param, stmt, first_loc)
+#define new_brace_body(param, stmt, loc) new_body_gen(parser, param, stmt, loc)
+#define new_do_body(param, stmt, loc) new_body_gen(parser, param, stmt, loc)
 
 static NODE *match_op_gen(struct parser_params*,NODE*,NODE*,rb_code_range_t*);
-#define match_op(node1,node2,first_loc) match_op_gen(parser, (node1), (node2), (first_loc))
+#define match_op(node1,node2,loc) match_op_gen(parser, (node1), (node2), (loc))
 
 static ID  *local_tbl_gen(struct parser_params*);
 #define local_tbl() local_tbl_gen(parser)
@@ -583,7 +583,7 @@ static void reg_fragment_setenc_gen(struct parser_params*, VALUE, int);
 static int reg_fragment_check_gen(struct parser_params*, VALUE, int);
 #define reg_fragment_check(str,options) reg_fragment_check_gen(parser, (str), (options))
 static NODE *reg_named_capture_assign_gen(struct parser_params* parser, VALUE regexp, rb_code_range_t *loc);
-#define reg_named_capture_assign(regexp,first_loc) reg_named_capture_assign_gen(parser,(regexp),first_loc)
+#define reg_named_capture_assign(regexp,loc) reg_named_capture_assign_gen(parser,(regexp),loc)
 
 static NODE *parser_heredoc_dedent(struct parser_params*,NODE*);
 # define heredoc_dedent(str) parser_heredoc_dedent(parser, (str))
@@ -617,49 +617,49 @@ static ID ripper_get_id(VALUE);
 static VALUE ripper_get_value(VALUE);
 #define get_value(val) ripper_get_value(val)
 static VALUE assignable_gen(struct parser_params*,VALUE);
-#define assignable(lhs,node,first_loc) assignable_gen(parser, (lhs))
+#define assignable(lhs,node,loc) assignable_gen(parser, (lhs))
 static int id_is_var_gen(struct parser_params *parser, ID id);
 #define id_is_var(id) id_is_var_gen(parser, (id))
 
-#define method_cond(node,first_loc) (node)
-#define call_bin_op(recv,id,arg1,first_loc) dispatch3(binary, (recv), STATIC_ID2SYM(id), (arg1))
-#define match_op(node1,node2,first_loc) call_bin_op((node1), idEqTilde, (node2), first_loc)
-#define call_uni_op(recv,id,first_loc) dispatch2(unary, STATIC_ID2SYM(id), (recv))
-#define logop(id,node1,node2,first_loc) call_bin_op((node1), (id), (node2), first_loc)
-#define node_assign(node1, node2, first_loc) dispatch2(assign, (node1), (node2))
+#define method_cond(node,loc) (node)
+#define call_bin_op(recv,id,arg1,loc) dispatch3(binary, (recv), STATIC_ID2SYM(id), (arg1))
+#define match_op(node1,node2,loc) call_bin_op((node1), idEqTilde, (node2), loc)
+#define call_uni_op(recv,id,loc) dispatch2(unary, STATIC_ID2SYM(id), (recv))
+#define logop(id,node1,node2,loc) call_bin_op((node1), (id), (node2), loc)
+#define node_assign(node1, node2, loc) dispatch2(assign, (node1), (node2))
 static VALUE new_qcall_gen(struct parser_params *parser, VALUE q, VALUE r, VALUE m, VALUE a);
-#define new_qcall(q,r,m,a,first_loc) new_qcall_gen(parser, (r), (q), (m), (a))
-#define new_command_qcall(q,r,m,a,first_loc) dispatch4(command_call, (r), (q), (m), (a))
+#define new_qcall(q,r,m,a,loc) new_qcall_gen(parser, (r), (q), (m), (a))
+#define new_command_qcall(q,r,m,a,loc) dispatch4(command_call, (r), (q), (m), (a))
 #define new_command_call(q,r,m,a) dispatch4(command_call, (r), (q), (m), (a))
 #define new_command(m,a) dispatch2(command, (m), (a));
 
 #define new_nil() Qnil
 static VALUE new_op_assign_gen(struct parser_params *parser, VALUE lhs, VALUE op, VALUE rhs);
-#define new_op_assign(lhs, op, rhs, first_loc) new_op_assign_gen(parser, (lhs), (op), (rhs))
+#define new_op_assign(lhs, op, rhs, loc) new_op_assign_gen(parser, (lhs), (op), (rhs))
 static VALUE new_attr_op_assign_gen(struct parser_params *parser, VALUE lhs, VALUE type, VALUE attr, VALUE op, VALUE rhs);
-#define new_attr_op_assign(lhs, type, attr, op, rhs, first_loc) new_attr_op_assign_gen(parser, (lhs), (type), (attr), (op), (rhs))
-#define new_const_op_assign(lhs, op, rhs, first_loc) new_op_assign(lhs, op, rhs, first_loc)
+#define new_attr_op_assign(lhs, type, attr, op, rhs, loc) new_attr_op_assign_gen(parser, (lhs), (type), (attr), (op), (rhs))
+#define new_const_op_assign(lhs, op, rhs, loc) new_op_assign(lhs, op, rhs, loc)
 
 static VALUE new_regexp_gen(struct parser_params *, VALUE, VALUE);
-#define new_regexp(node, opt, first_loc) new_regexp_gen(parser, node, opt)
+#define new_regexp(node, opt, loc) new_regexp_gen(parser, node, opt)
 
 static VALUE new_xstring_gen(struct parser_params *, VALUE);
-#define new_xstring(str, first_loc) new_xstring_gen(parser, str)
+#define new_xstring(str, loc) new_xstring_gen(parser, str)
 #define new_string1(str) dispatch1(string_literal, str)
 
-#define new_brace_body(param, stmt, first_loc) dispatch2(brace_block, escape_Qundef(param), stmt)
-#define new_do_body(param, stmt, first_loc) dispatch2(do_block, escape_Qundef(param), stmt)
+#define new_brace_body(param, stmt, loc) dispatch2(brace_block, escape_Qundef(param), stmt)
+#define new_do_body(param, stmt, loc) dispatch2(do_block, escape_Qundef(param), stmt)
 
-#define const_path_field(w, n, first_loc) dispatch2(const_path_field, (w), (n))
+#define const_path_field(w, n, loc) dispatch2(const_path_field, (w), (n))
 #define top_const_field(n) dispatch1(top_const_field, (n))
 static VALUE const_decl_gen(struct parser_params *parser, VALUE path);
-#define const_decl(path, first_loc) const_decl_gen(parser, path)
+#define const_decl(path, loc) const_decl_gen(parser, path)
 
 static VALUE var_field_gen(struct parser_params *parser, VALUE a);
 #define var_field(a) var_field_gen(parser, (a))
 static VALUE assign_error_gen(struct parser_params *parser, VALUE a);
 #define assign_error(a) assign_error_gen(parser, (a))
-#define backref_assign_error(n, a, first_loc) assign_error(a)
+#define backref_assign_error(n, a, loc) assign_error(a)
 
 #define block_dup_check(n1,n2) ((void)(n1), (void)(n2))
 #define fixpos(n1,n2) ((void)(n1), (void)(n2))
@@ -876,9 +876,9 @@ new_args_tail_gen(struct parser_params *parser, VALUE k, VALUE kr, VALUE b)
     add_mark_object(b);
     return (VALUE)t;
 }
-#define new_args_tail(k,kr,b,first_loc) new_args_tail_gen(parser, (k),(kr),(b))
+#define new_args_tail(k,kr,b,loc) new_args_tail_gen(parser, (k),(kr),(b))
 
-#define new_defined(expr,first_loc) dispatch1(defined, (expr))
+#define new_defined(expr,loc) dispatch1(defined, (expr))
 
 static VALUE parser_heredoc_dedent(struct parser_params*,VALUE);
 # define heredoc_dedent(str) parser_heredoc_dedent(parser, (str))
