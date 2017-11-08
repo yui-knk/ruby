@@ -965,7 +965,6 @@ static void token_info_pop_gen(struct parser_params*, const char *token, size_t 
 %code requires {
 #define YYLTYPE rb_code_range_t
 #define YYLTYPE_IS_DECLARED 1
-#define YYLTYPE_IS_TRIVIAL 0
 #define YY_LOCATION_PRINT(File, Loc) \
      rb_parser_printf(parser, "%d.%d-%d.%d", \
 		      (Loc).first_loc.lineno, (Loc).first_loc.column,\
