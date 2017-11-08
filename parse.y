@@ -20,6 +20,8 @@
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
 #define YYSTACK_USE_ALLOCA 0
+#define YYLTYPE rb_code_range_t
+#define YYLTYPE_IS_DECLARED 1
 
 #include "ruby/ruby.h"
 #include "ruby/st.h"
@@ -45,9 +47,6 @@
 #define YYCALLOC(nelem, size)	rb_parser_calloc(parser, (nelem), (size))
 #define YYFREE(ptr)		rb_parser_free(parser, (ptr))
 #define YYFPRINTF		rb_parser_printf
-#define YYLTYPE rb_code_range_t
-#define YYLTYPE_IS_DECLARED 1
-#define YYLTYPE_IS_TRIVIAL 0
 #define YY_LOCATION_PRINT(File, Loc) \
      rb_parser_printf(parser, "%d.%d-%d.%d", \
 		      (Loc).first_loc.lineno, (Loc).first_loc.column,\
