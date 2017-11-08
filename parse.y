@@ -45,30 +45,28 @@
 #define YYCALLOC(nelem, size)	rb_parser_calloc(parser, (nelem), (size))
 #define YYFREE(ptr)		rb_parser_free(parser, (ptr))
 #define YYFPRINTF		rb_parser_printf
+#define YYLTYPE rb_code_range_t
+#define YYLTYPE_IS_DECLARED 1
+#define YY_LOCATION_PRINT(File, Loc) \
+     rb_parser_printf(parser, "%d.%d-%d.%d", \
+		      (Loc).first_loc.lineno, (Loc).first_loc.column,\
+		      (Loc).last_loc.lineno, (Loc).last_loc.column)
 #define YYLLOC_DEFAULT(Current, Rhs, N)					\
     do									\
       if (N)								\
 	{								\
-	  (Current).first_line   = YYRHSLOC (Rhs, 1).first_line;	\
-	  (Current).first_column = YYRHSLOC (Rhs, 1).first_column;	\
-	  (Current).last_line    = YYRHSLOC (Rhs, N).last_line;		\
-	  (Current).last_column  = YYRHSLOC (Rhs, N).last_column;	\
+	  (Current).first_loc = YYRHSLOC(Rhs, 1).first_loc;		\
+	  (Current).last_loc  = YYRHSLOC(Rhs, N).last_loc;		\
 	}								\
       else								\
 	{								\
-	  (Current).first_line   = (Current).last_line   = 		\
-		ruby_sourceline;					\
-	  (Current).first_column = (Current).last_column = 		\
-		(int)(parser->tokp - lex_pbeg);				\
+	  (Current).first_loc.lineno = ruby_sourceline;			\
+	  (Current).first_loc.column = (int)(parser->tokp - lex_pbeg);	\
+	  (Current).last_loc.lineno = ruby_sourceline;			\
+	  (Current).last_loc.column = (int)(lex_p - lex_pbeg);		\
 	}								\
     while (0)
 
-#if defined YYLTYPE_IS_TRIVIAL && YYLTYPE_IS_TRIVIAL
-# define YY_LOCATION_PRINT(File, Loc) \
-     rb_parser_printf(parser, "%d.%d-%d.%d", \
-		      (Loc).first_line, (Loc).first_column, \
-		      (Loc).last_line,  (Loc).last_column)
-#endif
 #undef malloc
 #undef realloc
 #undef calloc
