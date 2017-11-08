@@ -45,7 +45,25 @@
 #define YYCALLOC(nelem, size)	rb_parser_calloc(parser, (nelem), (size))
 #define YYFREE(ptr)		rb_parser_free(parser, (ptr))
 #define YYFPRINTF		rb_parser_printf
-
+#define YY_LOCATION_PRINT(File, Loc) \
+     rb_parser_printf(parser, "%d.%d-%d.%d", \
+              (Loc).first_loc.lineno, (Loc).first_loc.column,\
+              (Loc).last_loc.lineno, (Loc).last_loc.column)
+#define YYLLOC_DEFAULT(Current, Rhs, N)                 \
+    do                                  \
+      if (N)                                \
+    {                               \
+      (Current).first_loc = YYRHSLOC(Rhs, 1).first_loc;     \
+      (Current).last_loc  = YYRHSLOC(Rhs, N).last_loc;      \
+    }                               \
+      else                              \
+    {                               \
+      (Current).first_loc.lineno = ruby_sourceline;         \
+      (Current).first_loc.column = (int)(parser->tokp - lex_pbeg);  \
+      (Current).last_loc.lineno = ruby_sourceline;          \
+      (Current).last_loc.column = (int)(lex_p - lex_pbeg);      \
+    }                               \
+    while (0)
 #undef malloc
 #undef realloc
 #undef calloc
@@ -965,25 +983,6 @@ static void token_info_pop_gen(struct parser_params*, const char *token, size_t 
 %code requires {
 #define YYLTYPE rb_code_range_t
 #define YYLTYPE_IS_DECLARED 1
-#define YY_LOCATION_PRINT(File, Loc) \
-     rb_parser_printf(parser, "%d.%d-%d.%d", \
-		      (Loc).first_loc.lineno, (Loc).first_loc.column,\
-		      (Loc).last_loc.lineno, (Loc).last_loc.column)
-#define YYLLOC_DEFAULT(Current, Rhs, N)					\
-    do									\
-      if (N)								\
-	{								\
-	  (Current).first_loc = YYRHSLOC(Rhs, 1).first_loc;		\
-	  (Current).last_loc  = YYRHSLOC(Rhs, N).last_loc;		\
-	}								\
-      else								\
-	{								\
-	  (Current).first_loc.lineno = ruby_sourceline;			\
-	  (Current).first_loc.column = (int)(parser->tokp - lex_pbeg);	\
-	  (Current).last_loc.lineno = ruby_sourceline;			\
-	  (Current).last_loc.column = (int)(lex_p - lex_pbeg);		\
-	}								\
-    while (0)
 }
 
 %pure-parser
