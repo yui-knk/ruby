@@ -5870,15 +5870,13 @@ parser_nextc(struct parser_params *parser)
     int c;
 
     if (UNLIKELY((lex_p == lex_pend) || parser->forse_newline)) {
-	if (lex_p) fprintf(stderr, "call parser_nextline: %d %d\n", *(lex_p -1), *lex_p);
 	if (parser_nextline(parser)) return -1;
-	parser_state(parser, "parser_nextc");
+	if (yydebug) parser_state(parser, "parser_nextc");
     }
     c = (unsigned char)*lex_p++;
     if (UNLIKELY(c == '\r')) {
 	c = parser_cr(parser, c);
     }
-    if (c) fprintf(stderr, "parser_nextc: %d\n", c);
 
     return c;
 }
@@ -5888,7 +5886,6 @@ parser_pushback(struct parser_params *parser, int c)
 {
     if (c == -1) return;
     lex_p--;
-    fprintf(stderr, "pushbacked %d %d\n", c, *lex_p);
     if (lex_p > lex_pbeg && lex_p[0] == '\n' && lex_p[-1] == '\r') {
 	lex_p--;
     }
