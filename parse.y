@@ -5863,12 +5863,15 @@ parser_nextc(struct parser_params *parser)
     int c;
 
     if (UNLIKELY(lex_p == lex_pend)) {
+	if (lex_p) fprintf(stderr, "call parser_nextline: %d %d\n", *(lex_p -1), *lex_p);
 	if (parser_nextline(parser)) return -1;
+	parser_state(parser, "parser_nextc");
     }
     c = (unsigned char)*lex_p++;
     if (UNLIKELY(c == '\r')) {
 	c = parser_cr(parser, c);
     }
+    if (c) fprintf(stderr, "parser_nextc: %d\n", c);
 
     return c;
 }
@@ -5878,6 +5881,7 @@ parser_pushback(struct parser_params *parser, int c)
 {
     if (c == -1) return;
     lex_p--;
+    fprintf(stderr, "pushbacked %d %d\n", c, *lex_p);
     if (lex_p > lex_pbeg && lex_p[0] == '\n' && lex_p[-1] == '\r') {
 	lex_p--;
     }
@@ -8874,6 +8878,8 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *parser)
 	dispatch_delayed_token(t);
     else if (t != 0)
 	dispatch_scan_event(t);
+
+    if (yydebug) parser_state(parser, "yylex");
 
     yylloc->first_loc.lineno = ruby_sourceline;
     yylloc->first_loc.column = (int)(parser->tokp - lex_pbeg);
