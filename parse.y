@@ -8320,11 +8320,10 @@ parser_yylex(struct parser_params *parser)
 		lex_pbeg = RSTRING_PTR(lex_lastline);
 		lex_pend = lex_pbeg + RSTRING_LEN(lex_lastline);
 		parser->tokp = lex_pend - 1;
-		parser->forse_newline = TRUE;
 		if (peek('\r')) parser->tokp--;
 		lex_p = parser->tokp;
 	      case -1:		/* EOF no decrement*/
-		lex_goto_eol(parser);
+		parser->forse_newline = TRUE;
 #ifdef RIPPER
 		if (c != -1) {
 		    parser->tokp = lex_p;
