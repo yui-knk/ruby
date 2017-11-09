@@ -682,7 +682,7 @@ static VALUE parser_reg_compile(struct parser_params*, VALUE, int, VALUE *);
 RUBY_SYMBOL_EXPORT_BEGIN
 VALUE rb_parser_reg_compile(struct parser_params* parser, VALUE str, int options);
 int rb_reg_fragment_setenc(struct parser_params*, VALUE, int);
-static void parser_state(struct parser_params *parser, char *title);
+void parser_state(struct parser_params *parser, char *title);
 enum lex_state_e rb_parser_trace_lex_state(struct parser_params *, enum lex_state_e, enum lex_state_e, int);
 VALUE rb_parser_lex_state_name(enum lex_state_e state);
 void rb_parser_show_bitstack(struct parser_params *, stack_type, const char *, int);
@@ -8315,14 +8315,13 @@ parser_yylex(struct parser_params *parser)
 	      default:
 		--ruby_sourceline;
 		lex_nextline = lex_lastline;
-
 		lex_lastline = lex_prevline;
+	      case -1:		/* EOF no decrement*/
 		lex_pbeg = RSTRING_PTR(lex_lastline);
 		lex_pend = lex_pbeg + RSTRING_LEN(lex_lastline);
 		parser->tokp = lex_pend - 1;
 		if (peek('\r')) parser->tokp--;
 		lex_p = parser->tokp;
-	      case -1:		/* EOF no decrement*/
 		parser->forse_newline = TRUE;
 #ifdef RIPPER
 		if (c != -1) {
@@ -9766,7 +9765,7 @@ rb_parser_trace_lex_state(struct parser_params *parser, enum lex_state_e from,
     return to;
 }
 
-static void
+void
 parser_state(struct parser_params *parser, char *title)
 {
     VALUE mesg;
