@@ -251,6 +251,7 @@ struct parser_params {
 # endif
     unsigned int error_p: 1;
     unsigned int cr_seen: 1;
+    unsigned int forse_newline: 1;
 
 #ifndef RIPPER
     /* Ruby core only */
@@ -5805,6 +5806,8 @@ parser_nextline(struct parser_params *parser)
     VALUE v = lex_nextline;
     lex_nextline = 0;
     lex_prevline = 0;
+    parser->forse_newline = FALSE;
+
     if (!v) {
 	if (parser->eofp)
 	    return -1;
@@ -5866,7 +5869,7 @@ parser_nextc(struct parser_params *parser)
 {
     int c;
 
-    if (UNLIKELY(lex_p == lex_pend)) {
+    if (UNLIKELY((lex_p == lex_pend) || parser->forse_newline)) {
 	if (lex_p) fprintf(stderr, "call parser_nextline: %d %d\n", *(lex_p -1), *lex_p);
 	if (parser_nextline(parser)) return -1;
 	parser_state(parser, "parser_nextc");
@@ -8318,8 +8321,9 @@ parser_yylex(struct parser_params *parser)
 
 		lex_lastline = lex_prevline;
 		lex_pbeg = lex_p = RSTRING_PTR(lex_lastline);
-		lex_pend = lex_p + RSTRING_LEN(lex_lastline);
+		lex_pend = lex_p + RSTRING_LEN(lex_lastline) - 1;
 		parser->tokp = lex_pend - 1;
+		parser->forse_newline = TRUE;
 		if (peek('\r')) parser->tokp--;
 	      case -1:		/* EOF no decrement*/
 		lex_goto_eol(parser);
