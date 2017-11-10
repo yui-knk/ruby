@@ -682,7 +682,7 @@ static VALUE parser_reg_compile(struct parser_params*, VALUE, int, VALUE *);
 RUBY_SYMBOL_EXPORT_BEGIN
 VALUE rb_parser_reg_compile(struct parser_params* parser, VALUE str, int options);
 int rb_reg_fragment_setenc(struct parser_params*, VALUE, int);
-void parser_state(struct parser_params *parser, char *title);
+void parser_state(struct parser_params *parser, const char *title);
 enum lex_state_e rb_parser_trace_lex_state(struct parser_params *, enum lex_state_e, enum lex_state_e, int);
 VALUE rb_parser_lex_state_name(enum lex_state_e state);
 void rb_parser_show_bitstack(struct parser_params *, stack_type, const char *, int);
@@ -9768,7 +9768,7 @@ rb_parser_trace_lex_state(struct parser_params *parser, enum lex_state_e from,
 }
 
 void
-parser_state(struct parser_params *parser, char *title)
+parser_state(struct parser_params *parser, const char *title)
 {
     VALUE mesg;
     mesg = rb_str_new_cstr("========================");
