@@ -677,6 +677,7 @@ static VALUE parser_reg_compile(struct parser_params*, VALUE, int, VALUE *);
 RUBY_SYMBOL_EXPORT_BEGIN
 VALUE rb_parser_reg_compile(struct parser_params* parser, VALUE str, int options);
 int rb_reg_fragment_setenc(struct parser_params*, VALUE, int);
+void parser_state(struct parser_params *parser, const char *title);
 enum lex_state_e rb_parser_trace_lex_state(struct parser_params *, enum lex_state_e, enum lex_state_e, int);
 VALUE rb_parser_lex_state_name(enum lex_state_e state);
 void rb_parser_show_bitstack(struct parser_params *, stack_type, const char *, int);
@@ -5856,6 +5857,7 @@ parser_nextc(struct parser_params *parser)
 
     if (UNLIKELY(lex_p == lex_pend)) {
 	if (parser_nextline(parser)) return -1;
+	if (yydebug) parser_state(parser, "parser_nextc");
     }
     c = (unsigned char)*lex_p++;
     if (UNLIKELY(c == '\r')) {
@@ -8867,6 +8869,8 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *parser)
     else if (t != 0)
 	dispatch_scan_event(t);
 
+    if (yydebug) parser_state(parser, "yylex");
+
     yylloc->first_loc.lineno = ruby_sourceline;
     yylloc->first_loc.column = (int)(parser->tokp - lex_pbeg);
     yylloc->last_loc.lineno = ruby_sourceline;
@@ -9739,6 +9743,21 @@ rb_parser_trace_lex_state(struct parser_params *parser, enum lex_state_e from,
     rb_str_catf(mesg, " at line %d\n", line);
     flush_debug_buffer(parser, parser->debug_output, mesg);
     return to;
+}
+
+void
+parser_state(struct parser_params *parser, const char *title)
+{
+    VALUE mesg;
+    mesg = rb_str_new_cstr("========================");
+    rb_str_catf(mesg, "%s\nparser_state: ", title);
+    rb_str_catf(mesg, "ruby_sourceline %d\n", ruby_sourceline);
+    if (lex_lastline) rb_str_catf(mesg, "lex_lastline: %s", RSTRING_PTR(lex_lastline));
+    if (lex_nextline) rb_str_catf(mesg, "lex_nextline: %s", RSTRING_PTR(lex_nextline));
+    rb_str_catf(mesg, "tokp: %d, lex_p: %d, lex_pend %d\n", ((int)(parser->tokp - lex_pbeg)), ((int)(lex_p - lex_pbeg)), ((int)(lex_pend - lex_pbeg)));
+    rb_str_catf(mesg, "========================\n");
+
+    flush_debug_buffer(parser, parser->debug_output, mesg);
 }
 
 VALUE
