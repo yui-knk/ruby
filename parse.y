@@ -9767,6 +9767,7 @@ parser_state(struct parser_params *parser, const char *title)
     mesg = rb_str_new_cstr("========================");
     rb_str_catf(mesg, "%s\nparser_state: ", title);
     rb_str_catf(mesg, "ruby_sourceline %d\n", ruby_sourceline);
+    if (lex_prevline) rb_str_catf(mesg, "lex_prevline: %s", RSTRING_PTR(lex_prevline));
     if (lex_lastline) rb_str_catf(mesg, "lex_lastline: %s", RSTRING_PTR(lex_lastline));
     if (lex_nextline) rb_str_catf(mesg, "lex_nextline: %s", RSTRING_PTR(lex_nextline));
     rb_str_catf(mesg, "tokp: %d, lex_p: %d, lex_pend %d\n", ((int)(parser->tokp - lex_pbeg)), ((int)(lex_p - lex_pbeg)), ((int)(lex_pend - lex_pbeg)));
