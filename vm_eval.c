@@ -2157,6 +2157,8 @@ rb_current_realfilepath(void)
     return Qnil;
 }
 
+#include "ast.c"
+
 void
 Init_vm_eval(void)
 {
@@ -2199,4 +2201,17 @@ Init_vm_eval(void)
     id_result = rb_intern_const("result");
     id_tag = rb_intern_const("tag");
     id_value = rb_intern_const("value");
+
+
+    rb_cAST = rb_define_class("AST", rb_cObject);
+    rb_define_alloc_func(rb_cAST, rb_ast_s_alloc);
+    rb_define_singleton_method(rb_cAST, "parse", rb_ast_s_parse, 1);
+    rb_define_method(rb_cAST, "type", rb_ast_type, 0);
+    rb_define_method(rb_cAST, "first_lineno", rb_ast_first_lineno, 0);
+    rb_define_method(rb_cAST, "first_column", rb_ast_first_column, 0);
+    rb_define_method(rb_cAST, "last_lineno", rb_ast_last_lineno, 0);
+    rb_define_method(rb_cAST, "last_column", rb_ast_last_column, 0);
+    rb_define_method(rb_cAST, "children", rb_ast_children, 0);
+    rb_define_method(rb_cAST, "inspect", rb_ast_inspect, 0);
+    rb_define_method(rb_cAST, "dump_tree", rb_dump_tree, 0);
 }
