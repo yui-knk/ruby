@@ -2211,4 +2211,6 @@ Init_vm_eval(void)
     rb_define_method(rb_cAST, "first_column", rb_ast_first_column, 0);
     rb_define_method(rb_cAST, "last_lineno", rb_ast_last_lineno, 0);
     rb_define_method(rb_cAST, "last_column", rb_ast_last_column, 0);
+    rb_define_method(rb_cAST, "children", rb_ast_children, 0);
+    rb_define_method(rb_cAST, "inspect", rb_ast_inspect, 0);
 }
