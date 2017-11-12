@@ -2810,6 +2810,7 @@ vm.$(OBJEXT): {$(VPATH)}vm_args.c
 vm.$(OBJEXT): {$(VPATH)}vm_call_iseq_optimized.inc
 vm.$(OBJEXT): {$(VPATH)}vm_core.h
 vm.$(OBJEXT): {$(VPATH)}vm_debug.h
+vm.$(OBJEXT): {$(VPATH)}ast.c
 vm.$(OBJEXT): {$(VPATH)}vm_eval.c
 vm.$(OBJEXT): {$(VPATH)}vm_exec.c
 vm.$(OBJEXT): {$(VPATH)}vm_exec.h
