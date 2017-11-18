@@ -4056,6 +4056,7 @@ qwords		: tQWORDS_BEG ' ' tSTRING_END
 		    {
 		    /*%%%*/
 			$$ = $2;
+			$$->nd_loc = @$;
 		    /*%
 			$$ = dispatch1(array, $2);
 		    %*/
@@ -4092,8 +4093,8 @@ qword_list	: /* none */
 		| qword_list tSTRING_CONTENT ' '
 		    {
 		    /*%%%*/
+			$2->nd_loc = @2;
 			$$ = list_append($1, $2, &@$);
-			$2->nd_loc = @$;
 		    /*%
 			$$ = dispatch2(qwords_add, $1, $2);
 		    %*/
@@ -4227,7 +4228,7 @@ string_content	: tSTRING_CONTENT
 			lex_strterm = $<strterm>2;
 		    /*%%%*/
 			$$ = NEW_EVSTR($3);
-			$$->nd_loc = @$;
+			$$->nd_loc = @3;
 		    /*%
 			$$ = dispatch1(string_dvar, $3);
 		    %*/
