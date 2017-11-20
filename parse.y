@@ -1645,8 +1645,8 @@ command		: fcall command_args       %prec tLOWEST
 		    /*%%%*/
 			$$ = $1;
 			$$->nd_args = $2;
-			nd_set_last_lineno($1, @2.last_loc.lineno);
-			nd_set_last_column($1, @2.last_loc.column);
+			nd_set_last_lineno($1, nd_last_lineno($2));
+			nd_set_last_column($1, nd_last_column($2));
 		    /*%
 			$$ = dispatch2(command, $1, $2);
 		    %*/
@@ -1658,8 +1658,8 @@ command		: fcall command_args       %prec tLOWEST
 			$$ = method_add_block($$, $3);
 			fixpos($$, $1);
 		    /*%%%*/
-			nd_set_last_lineno($1, @2.last_loc.lineno);
-			nd_set_last_column($1, @2.last_loc.column);
+			nd_set_last_lineno($1, nd_last_lineno($2));
+			nd_set_last_column($1, nd_last_column($2));
 		    /*%
 		    %*/
 		    }
