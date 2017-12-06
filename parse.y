@@ -6625,7 +6625,7 @@ parser_parse_string(struct parser_params *parser, rb_strterm_literal_t *quote)
 static enum yytokentype
 parser_heredoc_identifier(struct parser_params *parser)
 {
-    int c = nextc(), term, func = 0;
+    int c = nextc(), term, func = 0, term_len = 2;
     enum yytokentype token = tSTRING_BEG;
     long len;
     int newline = 0;
@@ -6633,23 +6633,29 @@ parser_heredoc_identifier(struct parser_params *parser)
 
     if (c == '-') {
 	c = nextc();
+	term_len++;
 	func = STR_FUNC_INDENT;
     }
     else if (c == '~') {
 	c = nextc();
+	term_len++;
 	func = STR_FUNC_INDENT;
 	indent = INT_MAX;
     }
     switch (c) {
       case '\'':
+	term_len++;
 	func |= str_squote; goto quoted;
       case '"':
+	term_len++;
 	func |= str_dquote; goto quoted;
       case '`':
+	term_len++;
 	token = tXSTRING_BEG;
 	func |= str_xquote; goto quoted;
 
       quoted:
+	term_len++;
 	newtok();
 	tokadd(func);
 	term = c;
@@ -6690,6 +6696,8 @@ parser_heredoc_identifier(struct parser_params *parser)
 	break;
     }
 
+    term_len = term_len + toklen() - 1;
+    tokadd(term_len);
     tokfix();
     dispatch_scan_event(tHEREDOC_BEG);
     len = lex_p - lex_pbeg;
@@ -6925,7 +6933,7 @@ parser_here_document(struct parser_params *parser, rb_strterm_heredoc_t *here)
     rb_encoding *enc = current_enc;
 
     eos = RSTRING_PTR(here->term);
-    len = RSTRING_LEN(here->term) - 1;
+    len = RSTRING_LEN(here->term) - 2;
     indent = (func = *eos++) & STR_FUNC_INDENT;
 
     if ((c = nextc()) == -1) {
@@ -9841,8 +9849,12 @@ rb_parser_fatal(struct parser_params *parser, const char *fmt, ...)
 void
 rb_parser_set_location_from_strterm_heredoc(struct parser_params *parser, rb_strterm_heredoc_t *here, YYLTYPE *yylloc)
 {
+    const char *eos = RSTRING_PTR(here->term);
+    long len = RSTRING_LEN(here->term);
+    int term_len = (int)eos[len-1];
+
     yylloc->first_loc.lineno = (int)here->sourceline;
-    yylloc->first_loc.column = (int)(here->u3.lastidx - RSTRING_LEN(here->term));
+    yylloc->first_loc.column = (int)(here->u3.lastidx - term_len);
     yylloc->last_loc.lineno  = (int)here->sourceline;
     yylloc->last_loc.column  = (int)(here->u3.lastidx);
 }
