@@ -6657,6 +6657,7 @@ parser_heredoc_identifier(struct parser_params *parser)
       quoted:
 	term_len++;
 	newtok();
+	tokadd(term_len);
 	tokadd(func);
 	term = c;
 	while ((c = nextc()) != -1 && c != term) {
@@ -6688,6 +6689,7 @@ parser_heredoc_identifier(struct parser_params *parser)
 	    return 0;
 	}
 	newtok();
+	tokadd(term_len);
 	tokadd(func |= str_dquote);
 	do {
 	    if (tokadd_mbchar(c) == -1) return 0;
@@ -6696,8 +6698,7 @@ parser_heredoc_identifier(struct parser_params *parser)
 	break;
     }
 
-    term_len = term_len + toklen() - 1;
-    tokadd(term_len);
+    tokenbuf[0] = tokenbuf[0] + toklen() - 2;
     tokfix();
     dispatch_scan_event(tHEREDOC_BEG);
     len = lex_p - lex_pbeg;
@@ -6934,6 +6935,7 @@ parser_here_document(struct parser_params *parser, rb_strterm_heredoc_t *here)
 
     eos = RSTRING_PTR(here->term);
     len = RSTRING_LEN(here->term) - 2;
+    eos++;
     indent = (func = *eos++) & STR_FUNC_INDENT;
 
     if ((c = nextc()) == -1) {
@@ -9850,8 +9852,7 @@ void
 rb_parser_set_location_from_strterm_heredoc(struct parser_params *parser, rb_strterm_heredoc_t *here, YYLTYPE *yylloc)
 {
     const char *eos = RSTRING_PTR(here->term);
-    long len = RSTRING_LEN(here->term);
-    int term_len = (int)eos[len-1];
+    int term_len = (int)eos[0];
 
     yylloc->first_loc.lineno = (int)here->sourceline;
     yylloc->first_loc.column = (int)(here->u3.lastidx - term_len);
