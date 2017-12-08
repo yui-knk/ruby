@@ -3078,9 +3078,12 @@ primary		: literal
 		    {
 		    /*%%%*/
 			NODE *body = remove_begin($8);
+			YYLTYPE location;
+			location.first_loc = @7.first_loc;
+			location.last_loc = @8.last_loc;
 			reduce_nodes(&body);
 			$$ = NEW_DEFS($2, $5, $7, body);
-			$$->nd_defn->nd_loc = @$;
+			$$->nd_defn->nd_loc = location;
 			set_line_body(body, $<num>1);
 			nd_set_line($$, $<num>1);
 			$$->nd_loc = @$;
