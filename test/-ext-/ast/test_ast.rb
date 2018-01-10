@@ -38,14 +38,10 @@ end
 
 class TestAst < Test::Unit::TestCase
   class Helper
-    def self.build_from_file(path)
-      new(File.read(path))
-    end
-
     attr_reader :errors
 
-    def initialize(str)
-      @str = str
+    def initialize(path)
+      @path = path
       @errors = []
       @debug = false
     end
@@ -66,8 +62,8 @@ class TestAst < Test::Unit::TestCase
 
     def ast
       return @ast if defined?(@ast)
-      ast = AST.parse(@str)
-      raise "Syntax error: #{@str}" if ast.nil?
+      ast = AST.parse_file(@path)
+      raise "Syntax error: #{@path}" if ast.nil?
       @ast = ast
     end
 
@@ -118,7 +114,7 @@ class TestAst < Test::Unit::TestCase
 
   Dir.glob("#{SRCDIR}/test/**/*.rb").each do |path|
     define_method("test_ranges:#{path}") do
-      helper = Helper.build_from_file(path)
+      helper = Helper.new(path)
       helper.validate_range
 
       assert_equal([], helper.errors)
@@ -127,7 +123,7 @@ class TestAst < Test::Unit::TestCase
 
   Dir.glob("#{SRCDIR}/test/**/*.rb").each do |path|
     define_method("test_not_cared:#{path}") do
-      helper = Helper.build_from_file(path)
+      helper = Helper.new(path)
       helper.validate_not_cared
 
       assert_equal([], helper.errors)

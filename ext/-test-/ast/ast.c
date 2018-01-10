@@ -72,6 +72,32 @@ rb_ast_s_parse(VALUE module, VALUE str)
 }
 
 static VALUE
+rb_ast_s_parse_file(VALUE module, VALUE path)
+{
+    VALUE obj, f;
+    rb_ast_t *ast = 0;
+    rb_binding_t *toplevel_binding;
+
+    const VALUE parser = rb_parser_new();
+
+    GetBindingPtr(rb_const_get(rb_cObject, rb_intern("TOPLEVEL_BINDING")),
+                  toplevel_binding);
+
+    FilePathValue(path);
+    f = rb_file_open_str(path, "r");
+    rb_parser_set_context(parser, &toplevel_binding->block, 1);
+    ast = rb_parser_compile_file_path(parser, path, f, 1);
+
+    rb_io_close(f);
+
+    if (!ast->body.root) return Qnil;
+
+    obj = ast_new_internal(ast, (NODE *)ast->body.root);
+
+    return obj;
+}
+
+static VALUE
 rb_ast_node_alloc(VALUE klass)
 {
     struct ASTNodeData *data;
@@ -463,6 +489,7 @@ Init_ast(void)
 
     rb_define_alloc_func(rb_cNode, rb_ast_node_alloc);
     rb_define_singleton_method(rb_mAST, "parse", rb_ast_s_parse, 1);
+    rb_define_singleton_method(rb_mAST, "parse_file", rb_ast_s_parse_file, 1);
     rb_define_method(rb_cNode, "type", rb_ast_node_type, 0);
     rb_define_method(rb_cNode, "first_lineno", rb_ast_node_first_lineno, 0);
     rb_define_method(rb_cNode, "first_column", rb_ast_node_first_column, 0);
