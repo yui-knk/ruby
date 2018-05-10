@@ -265,6 +265,7 @@ struct parser_params {
     VALUE debug_lines;
     VALUE coverage;
     const struct rb_block *base_block;
+    long node_id;
 #else
     /* Ripper only */
 
@@ -347,6 +348,15 @@ set_line_body(NODE *body, int line)
       case NODE_ENSURE:
 	nd_set_line(body, line);
     }
+}
+
+static long
+get_node_id(struct parser_params *p)
+{
+    long node_id = p->node_id;
+
+    p->node_id++;
+    return node_id;
 }
 
 #define yyparse ruby_yyparse
@@ -10766,6 +10776,7 @@ parser_initialize(struct parser_params *p)
     p->parsing_thread = Qnil;
 #else
     p->error_buffer = Qfalse;
+    p->node_id = 0;
 #endif
     p->debug_buffer = Qnil;
     p->debug_output = rb_stdout;
