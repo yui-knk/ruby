@@ -267,7 +267,7 @@ typedef struct RNode {
 	VALUE value;
     } u3;
     rb_code_location_t nd_loc;
-    long node_id;
+    int node_id;
 } NODE;
 
 #define RNODE(obj)  (R_CAST(RNode)(obj))

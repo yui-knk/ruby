@@ -231,7 +231,7 @@ struct parser_params {
     ID cur_arg;
 
     rb_ast_t *ast;
-    long node_id;
+    int node_id;
 
     unsigned int command_start:1;
     unsigned int eofp: 1;
@@ -338,10 +338,10 @@ static NODE* node_newnode(struct parser_params *, enum node_type, VALUE, VALUE, 
 
 static NODE *nd_set_loc(NODE *nd, const YYLTYPE *loc);
 
-static long
+static int
 parser_get_node_id(struct parser_params *p)
 {
-    long node_id = p->node_id;
+    int node_id = p->node_id;
 
     p->node_id++;
     return node_id;
