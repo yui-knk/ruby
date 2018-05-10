@@ -267,7 +267,6 @@ typedef struct RNode {
 	VALUE value;
     } u3;
     rb_code_location_t nd_loc;
-    long node_id;
 } NODE;
 
 #define RNODE(obj)  (R_CAST(RNode)(obj))
@@ -275,7 +274,8 @@ typedef struct RNode {
 /* FL     : 0..4: T_TYPES, 5: KEEP_WB, 6: PROMOTED, 7: FINALIZE, 8: TAINT, 9: UNTRUSTED, 10: EXIVAR, 11: FREEZE */
 /* NODE_FL: 0..4: T_TYPES, 5: KEEP_WB, 6: PROMOTED, 7: NODE_FL_NEWLINE,
  *          8..14: nd_type,
- *          15..: nd_line
+ *          15..38: node_id,
+ *          39..: nd_line
  */
 #define NODE_FL_NEWLINE              (((VALUE)1)<<7)
 
@@ -286,7 +286,14 @@ typedef struct RNode {
 #define nd_set_type(n,t) \
     (n)->flags=(((n)->flags&~NODE_TYPEMASK)|((((unsigned long)(t))<<NODE_TYPESHIFT)&NODE_TYPEMASK))
 
-#define NODE_LSHIFT (NODE_TYPESHIFT+7)
+#define NODE_IDSHIFT (NODE_TYPESHIFT+7)
+#define NODE_IDMASK  (((VALUE)0xffffff)<<NODE_IDSHIFT)
+
+#define nd_node_id(n) ((int) (((n)->flags & NODE_IDMASK)>>NODE_IDSHIFT))
+#define nd_set_node_id(n,id) \
+    (n)->flags=(((n)->flags&~NODE_IDMASK)|((((unsigned long)(id))<<NODE_IDSHIFT)&NODE_IDMASK))
+
+#define NODE_LSHIFT (NODE_IDSHIFT+24)
 #define NODE_LMASK  (((SIGNED_VALUE)1<<(sizeof(VALUE)*CHAR_BIT-NODE_LSHIFT))-1)
 #define nd_line(n) (int)(((SIGNED_VALUE)(n)->flags)>>NODE_LSHIFT)
 #define nd_set_line(n,l) \
@@ -303,7 +310,6 @@ typedef struct RNode {
 #define nd_set_last_lineno(n, v) ((n)->nd_loc.end_pos.lineno = (v))
 #define nd_last_loc(n) ((n)->nd_loc.end_pos)
 #define nd_set_last_loc(n, v) (nd_last_loc(n) = (v))
-#define nd_node_id(n) ((n)->node_id)
 
 #define nd_head  u1.node
 #define nd_alen  u2.argc
