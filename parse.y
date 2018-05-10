@@ -338,12 +338,6 @@ static NODE* node_newnode(struct parser_params *, enum node_type, VALUE, VALUE, 
 
 static NODE *nd_set_loc(NODE *nd, const YYLTYPE *loc);
 
-static void
-nd_set_node_id(NODE *nd, long node_id)
-{
-    nd->node_id = node_id;
-}
-
 static long
 parser_get_node_id(struct parser_params *p)
 {
