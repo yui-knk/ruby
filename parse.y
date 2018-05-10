@@ -8312,6 +8312,7 @@ node_newnode(struct parser_params *p, enum node_type type, VALUE a0, VALUE a1, V
     rb_node_init(n, type, a0, a1, a2);
 
     nd_set_loc(n, loc);
+    nd_set_node_id(n, parser_get_node_id(p));
     return n;
 }
 
