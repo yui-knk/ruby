@@ -23,11 +23,12 @@
 #define A_LONG(val) rb_str_catf(buf, "%ld", (val))
 #define A_LIT(lit) AR(rb_inspect(lit))
 #define A_NODE_HEADER(node, term) \
-    rb_str_catf(buf, "@ %s (line: %d, location: (%d,%d)-(%d,%d))%s"term, \
+    rb_str_catf(buf, "@ %s (line: %d, location: (%d,%d)-(%d,%d))%s %ld"term, \
 		ruby_node_name(nd_type(node)), nd_line(node), \
 		nd_first_lineno(node), nd_first_column(node), \
 		nd_last_lineno(node), nd_last_column(node), \
-		(node->flags & NODE_FL_NEWLINE ? "*" : ""))
+		(node->flags & NODE_FL_NEWLINE ? "*" : ""), \
+        nd_node_id(node))
 #define A_FIELD_HEADER(len, name, term) \
     rb_str_catf(buf, "+- %.*s:"term, (len), (name))
 #define D_FIELD_HEADER(len, name, term) (A_INDENT, A_FIELD_HEADER(len, name, term))
