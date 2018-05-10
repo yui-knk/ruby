@@ -466,6 +466,15 @@ rb_ast_node_last_column(VALUE self)
 }
 
 static VALUE
+rb_ast_node_node_id(VALUE self)
+{
+    struct ASTNodeData *data;
+    TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, data);
+
+    return LONG2NUM(nd_node_id(data->node));
+}
+
+static VALUE
 rb_ast_node_inspect(VALUE self)
 {
     VALUE str;
@@ -500,4 +509,5 @@ Init_ast(void)
     rb_define_method(rb_cNode, "last_column", rb_ast_node_last_column, 0);
     rb_define_method(rb_cNode, "children", rb_ast_node_children, 0);
     rb_define_method(rb_cNode, "inspect", rb_ast_node_inspect, 0);
+    rb_define_method(rb_cNode, "node_id", rb_ast_node_node_id, 0);
 }
