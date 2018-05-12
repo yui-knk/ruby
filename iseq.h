@@ -98,6 +98,7 @@ struct iseq_compile_data {
     struct iseq_compile_data_storage *storage_head;
     struct iseq_compile_data_storage *storage_current;
     int last_line;
+    int last_node_id;
     int label_no;
     int node_level;
     unsigned int ci_index;
@@ -197,6 +198,7 @@ struct rb_compile_option_struct {
 
 struct iseq_insn_info_entry {
     int line_no;
+    int node_id;
     rb_event_flag_t events;
 };
 
