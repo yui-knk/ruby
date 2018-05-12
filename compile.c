@@ -8256,6 +8256,7 @@ typedef struct {
     VALUE arg;
     rb_insn_func_t func;
     int line;
+    int node_id;
 } accessor_args;
 
 static const rb_iseq_t *
@@ -8268,6 +8269,7 @@ method_for_self(VALUE name, VALUE arg, rb_insn_func_t func,
     acc.arg = arg;
     acc.func = func;
     acc.line = caller_location(&path, &realpath);
+    acc.node_id = -1;
     return rb_iseq_new_ifunc(IFUNC_NEW(build, (VALUE)&acc, 0),
 			     rb_sym2str(name), path, realpath,
 			     INT2FIX(acc.line), 0, ISEQ_TYPE_METHOD, 0);
@@ -8278,13 +8280,14 @@ for_self_aref(rb_iseq_t *iseq, LINK_ANCHOR *const ret, VALUE a)
 {
     const accessor_args *const args = (void *)a;
     const int line = args->line;
+    const int node_id = args->node_id;
 
     iseq_set_local_table(iseq, 0);
     iseq->body->param.lead_num = 0;
     iseq->body->param.size = 0;
 
-    ADD_INSN1(ret, line, putobject, args->arg);
-    ADD_INSN1(ret, line, opt_call_c_function, (VALUE)args->func);
+    ADD_INSN1(ret, line, node_id, putobject, args->arg);
+    ADD_INSN1(ret, line, node_id, opt_call_c_function, (VALUE)args->func);
     return Qnil;
 }
 
@@ -8293,16 +8296,17 @@ for_self_aset(rb_iseq_t *iseq, LINK_ANCHOR *const ret, VALUE a)
 {
     const accessor_args *const args = (void *)a;
     const int line = args->line;
+    const int node_id = args->node_id;
     static const ID vars[] = {1, idUScore};
 
     iseq_set_local_table(iseq, vars);
     iseq->body->param.lead_num = 1;
     iseq->body->param.size = 1;
 
-    ADD_GETLOCAL(ret, line, numberof(vars)-1, 0);
-    ADD_INSN1(ret, line, putobject, args->arg);
-    ADD_INSN1(ret, line, opt_call_c_function, (VALUE)args->func);
-    ADD_INSN(ret, line, pop);
+    ADD_GETLOCAL(ret, line, node_id, numberof(vars)-1, 0);
+    ADD_INSN1(ret, line, node_id, putobject, args->arg);
+    ADD_INSN1(ret, line, node_id, opt_call_c_function, (VALUE)args->func);
+    ADD_INSN(ret, line, node_id, pop);
     return Qnil;
 }
 
