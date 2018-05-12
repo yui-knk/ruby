@@ -1950,7 +1950,7 @@ add_insn_info(struct iseq_insn_info_entry *insns_info, unsigned int *positions,
 {
     if (insns_info_index == 0 ||
         insns_info[insns_info_index-1].line_no != iobj->insn_info.line_no ||
-        insns_info[insns_info_index-1].node_id != iobj->insn_info.node_id ||
+        // insns_info[insns_info_index-1].node_id != iobj->insn_info.node_id ||
         insns_info[insns_info_index-1].events  != iobj->insn_info.events) {
         insns_info[insns_info_index].line_no    = iobj->insn_info.line_no;
         insns_info[insns_info_index].node_id    = iobj->insn_info.node_id;
