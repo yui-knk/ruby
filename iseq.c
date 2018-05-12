@@ -1606,6 +1606,19 @@ rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos)
     }
 }
 
+static int
+rb_iseq_node_id(const rb_iseq_t *iseq, size_t pos)
+{
+    const struct iseq_insn_info_entry *entry = get_insn_info(iseq, pos);
+
+    if (entry) {
+        return entry->node_id;
+    }
+    else {
+        return -1;
+    }
+}
+
 MJIT_FUNC_EXPORTED rb_event_flag_t
 rb_iseq_event_flags(const rb_iseq_t *iseq, size_t pos)
 {
@@ -1865,6 +1878,16 @@ rb_iseq_disasm_insn(VALUE ret, const VALUE *code, size_t pos,
 	    slen = (slen > 70) ? 0 : (70 - slen);
 	    str = rb_str_catf(str, "%*s(%4d)", (int)slen, "", line_no);
 	}
+    }
+
+    {
+        int node_id = rb_iseq_node_id(iseq, pos);
+        int prev = pos == 0 ? -2 : rb_iseq_node_id(iseq, pos - 1);
+        if (node_id != -1 && node_id != prev) {
+            long slen = RSTRING_LEN(str);
+            slen = (slen > 76) ? 0 : (76 - slen);
+            str = rb_str_catf(str, "%*s[%4d]", (int)slen, "", node_id);
+        }
     }
 
     {
