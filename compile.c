@@ -8900,8 +8900,8 @@ static ibf_offset_t
 ibf_dump_iseq_each(struct ibf_dump *dump, const rb_iseq_t *iseq)
 {
     struct rb_iseq_constant_body dump_body;
-    unsigned int *positions;
 #if VM_INSN_INFO_TABLE_IMPL == 2
+    unsigned int *positions;
     dump_body = *iseq->body;
 #endif
 
