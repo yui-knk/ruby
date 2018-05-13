@@ -2058,6 +2058,30 @@ rb_iseq_disasm_recursive(const rb_iseq_t *iseq, VALUE indent)
 	n += rb_iseq_disasm_insn(str, code, n, iseq, child);
     }
 
+    /* show insns_info */
+    rb_str_cat2(str, "-- insns_info\n");
+    if (iseq->body->insns_info.positions) {
+        unsigned int insns_info_size = iseq->body->insns_info.size;
+
+        for (i = 0; i < insns_info_size; i++) {
+            rb_str_catf(str,
+                        "%d: (%4d)[%4d]\n",
+                        i,
+                        iseq->body->insns_info.body[i].line_no,
+                        iseq->body->insns_info.positions[i]);
+        }
+    }
+    else {
+        unsigned int insns_info_size = iseq->body->insns_info.size;
+
+        for (i = 0; i < insns_info_size; i++) {
+            rb_str_catf(str,
+                        "%d: (%4d)\n",
+                        i,
+                        iseq->body->insns_info.body[i].line_no);
+        }
+    }
+
     for (l = 0; l < RARRAY_LEN(child); l++) {
 	VALUE isv = rb_ary_entry(child, l);
 	if (done_iseq && st_is_member(done_iseq, (st_data_t)isv)) continue;
