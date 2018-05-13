@@ -1,6 +1,5 @@
 # frozen_string_literal: false
 require 'test/unit'
-require "-test-/ast"
 
 module AST
   class Node
