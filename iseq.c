@@ -1606,7 +1606,7 @@ rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos)
     }
 }
 
-static int
+int
 rb_iseq_node_id(const rb_iseq_t *iseq, size_t pos)
 {
     const struct iseq_insn_info_entry *entry = get_insn_info(iseq, pos);
