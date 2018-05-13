@@ -37,6 +37,14 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
     return rb_iseq_line_no(iseq, pos - 1);
 }
 
+inline static int
+calc_node_id(const rb_iseq_t *iseq, const VALUE *pc)
+{
+    size_t pos = (size_t)(pc - iseq->body->iseq_encoded);
+    /* use pos-1 because PC points next instruction at the beginning of instruction */
+    return rb_iseq_node_id(iseq, pos - 1);
+}
+
 int
 rb_vm_get_sourceline(const rb_control_frame_t *cfp)
 {
@@ -146,6 +154,25 @@ location_lineno(rb_backtrace_location_t *loc)
     }
 }
 
+static int
+location_node_id(rb_backtrace_location_t *loc)
+{
+    switch (loc->type) {
+      case LOCATION_TYPE_ISEQ:
+        loc->type = LOCATION_TYPE_ISEQ_CALCED;
+      case LOCATION_TYPE_ISEQ_CALCED:
+        return calc_node_id(loc->body.iseq.iseq, loc->body.iseq.lineno.pc);
+      case LOCATION_TYPE_CFUNC:
+        if (loc->body.cfunc.prev_loc) {
+            return location_node_id(loc->body.cfunc.prev_loc);
+        }
+        return -1;
+      default:
+        rb_bug("location_node_id: unreachable");
+        UNREACHABLE;
+    }
+}
+
 /*
  * Returns the line number of this frame.
  *
@@ -158,6 +185,12 @@ static VALUE
 location_lineno_m(VALUE self)
 {
     return INT2FIX(location_lineno(location_ptr(self)));
+}
+
+static VALUE
+location_node_id_m(VALUE self)
+{
+    return INT2FIX(location_node_id(location_ptr(self)));
 }
 
 static VALUE
@@ -1068,6 +1101,7 @@ Init_vm_backtrace(void)
     rb_undef_alloc_func(rb_cBacktraceLocation);
     rb_undef_method(CLASS_OF(rb_cBacktraceLocation), "new");
     rb_define_method(rb_cBacktraceLocation, "lineno", location_lineno_m, 0);
+    rb_define_method(rb_cBacktraceLocation, "node_id", location_node_id_m, 0);
     rb_define_method(rb_cBacktraceLocation, "label", location_label_m, 0);
     rb_define_method(rb_cBacktraceLocation, "base_label", location_base_label_m, 0);
     rb_define_method(rb_cBacktraceLocation, "path", location_path_m, 0);
