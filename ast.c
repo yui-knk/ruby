@@ -50,15 +50,18 @@ ast_new_internal(rb_ast_t *ast, NODE *node)
 }
 
 static VALUE
-rb_ast_s_parse(VALUE module, VALUE str)
+rb_ast_s_parse(int argc, VALUE *argv, VALUE module)
 {
-    VALUE obj;
+    VALUE obj, str, main_p;
     rb_ast_t *ast = 0;
 
     const VALUE parser = rb_parser_new();
 
+    if (rb_scan_args(argc, argv, "11", &str, &main_p) == 1) {
+        main_p = Qtrue;
+    }
     str = rb_check_string_type(str);
-    rb_parser_set_context(parser, NULL, 1);
+    rb_parser_set_context(parser, NULL, RB_TEST(main_p));
     ast = rb_parser_compile_string_path(parser, rb_str_new_cstr("no file name"), str, 1);
 
     if (!ast->body.root) return Qnil;
@@ -69,18 +72,20 @@ rb_ast_s_parse(VALUE module, VALUE str)
 }
 
 static VALUE
-rb_ast_s_parse_file(VALUE module, VALUE path)
+rb_ast_s_parse_file(int argc, VALUE *argv, VALUE module)
 {
-    VALUE obj, f;
+    VALUE obj, f, path, main_p;
     rb_ast_t *ast = 0;
     rb_encoding *enc = rb_utf8_encoding();
-
     const VALUE parser = rb_parser_new();
 
+    if (rb_scan_args(argc, argv, "11", &path, &main_p) == 1) {
+        main_p = Qtrue;
+    }
     FilePathValue(path);
     f = rb_file_open_str(path, "r");
     rb_funcall(f, rb_intern("set_encoding"), 2, rb_enc_from_encoding(enc), rb_str_new_cstr("-"));
-    rb_parser_set_context(parser, NULL, 1);
+    rb_parser_set_context(parser, NULL, RB_TEST(main_p));
     ast = rb_parser_compile_file_path(parser, path, f, 1);
 
     rb_io_close(f);
@@ -492,8 +497,8 @@ Init_ast(void)
     rb_cNode = rb_define_class_under(rb_mAST, "Node", rb_cObject);
 
     rb_define_alloc_func(rb_cNode, rb_ast_node_alloc);
-    rb_define_singleton_method(rb_mAST, "parse", rb_ast_s_parse, 1);
-    rb_define_singleton_method(rb_mAST, "parse_file", rb_ast_s_parse_file, 1);
+    rb_define_singleton_method(rb_mAST, "parse", rb_ast_s_parse, -1);
+    rb_define_singleton_method(rb_mAST, "parse_file", rb_ast_s_parse_file, -1);
     rb_define_method(rb_cNode, "type", rb_ast_node_type, 0);
     rb_define_method(rb_cNode, "first_lineno", rb_ast_node_first_lineno, 0);
     rb_define_method(rb_cNode, "first_column", rb_ast_node_first_column, 0);
