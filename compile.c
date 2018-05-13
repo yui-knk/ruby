@@ -480,6 +480,8 @@ freeze_hide_obj(VALUE obj)
 
 static void dump_disasm_list_with_cursor(const LINK_ELEMENT *link, const LINK_ELEMENT *curr, const LABEL *dest);
 static void dump_disasm_list(const LINK_ELEMENT *elem);
+static void dump_iseq_insn_info(const rb_iseq_t *iseq);
+
 
 static int insn_data_length(INSN *iobj);
 static int calc_sp_depth(int depth, INSN *iobj);
@@ -1344,8 +1346,10 @@ iseq_setup(rb_iseq_t *iseq, LINK_ANCHOR *const anchor)
 
     debugs("[compile step 4.1 (iseq_set_sequence)]\n");
     if (!iseq_set_sequence(iseq, anchor)) return COMPILE_NG;
-    if (compile_debug > 5)
-	dump_disasm_list(FIRST_ELEMENT(anchor));
+    if (compile_debug > 5) {
+        dump_disasm_list(FIRST_ELEMENT(anchor));
+        dump_iseq_insn_info(iseq);
+    }
 
     debugs("[compile step 4.2 (iseq_set_exception_table)]\n");
     if (!iseq_set_exception_table(iseq)) return COMPILE_NG;
@@ -7591,6 +7595,27 @@ insn_data_to_s_detail(INSN *iobj)
 	}
     }
     return str;
+}
+
+static void
+dump_iseq_insn_info(const rb_iseq_t *iseq)
+{
+    unsigned int i;
+
+    printf("-- raw iseq insn info--------\n");
+
+    for (i = 0; i < iseq->body->insns_info.size; i++) {
+        struct iseq_insn_info_entry body;
+        unsigned int position;
+
+        body = iseq->body->insns_info.body[i];
+        position = iseq->body->insns_info.positions[i];
+
+        printf("(%4u)[%4d] %4u\n", body.line_no, body.node_id, position);
+    }
+
+    printf("---------------------\n");
+    fflush(stdout);
 }
 
 static void
