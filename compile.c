@@ -7641,7 +7641,7 @@ dump_disasm_list_with_cursor(const LINK_ELEMENT *link, const LINK_ELEMENT *curr,
 	    {
 		iobj = (INSN *)link;
 		str = insn_data_to_s_detail(iobj);
-		printf("%04d %-65s(%4u)\n", pos, StringValueCStr(str), iobj->insn_info.line_no);
+		printf("%04d %-65s(%4u)[%4d]\n", pos, StringValueCStr(str), iobj->insn_info.line_no, iobj->insn_info.node_id);
 		pos += insn_data_length(iobj);
 		break;
 	    }
