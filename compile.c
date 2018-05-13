@@ -86,6 +86,7 @@ typedef struct iseq_adjust_data {
     LINK_ELEMENT link;
     LABEL *label;
     int line_no;
+    int node_id;
 } ADJUST;
 
 typedef struct iseq_trace_data {
@@ -317,11 +318,11 @@ static void iseq_add_setlocal(rb_iseq_t *iseq, LINK_ANCHOR *const seq, int line,
 #define APPEND_LABEL(seq, before, label) \
   APPEND_ELEM((seq), (before), (LINK_ELEMENT *) (label))
 
-#define ADD_ADJUST(seq, line, label) \
-  ADD_ELEM((seq), (LINK_ELEMENT *) new_adjust_body(iseq, (label), (line)))
+#define ADD_ADJUST(seq, line, node_id, label) \
+  ADD_ELEM((seq), (LINK_ELEMENT *) new_adjust_body(iseq, (label), (line), (node_id)))
 
 #define ADD_ADJUST_RESTORE(seq, label) \
-  ADD_ELEM((seq), (LINK_ELEMENT *) new_adjust_body(iseq, (label), -1))
+  ADD_ELEM((seq), (LINK_ELEMENT *) new_adjust_body(iseq, (label), -1, -2))
 
 #define LABEL_UNREMOVABLE(label) \
     ((label) ? (LABEL_REF(label), (label)->unremovable=1) : 0)
@@ -488,7 +489,7 @@ static int calc_sp_depth(int depth, INSN *iobj);
 
 static INSN *new_insn_body(rb_iseq_t *iseq, int line_no, int node_id, enum ruby_vminsn_type insn_id, int argc, ...);
 static LABEL *new_label_body(rb_iseq_t *iseq, long line);
-static ADJUST *new_adjust_body(rb_iseq_t *iseq, LABEL *label, int line);
+static ADJUST *new_adjust_body(rb_iseq_t *iseq, LABEL *label, int line, int node_id);
 static TRACE *new_trace_body(rb_iseq_t *iseq, rb_event_flag_t event);
 
 
@@ -1138,13 +1139,14 @@ new_label_body(rb_iseq_t *iseq, long line)
 }
 
 static ADJUST *
-new_adjust_body(rb_iseq_t *iseq, LABEL *label, int line)
+new_adjust_body(rb_iseq_t *iseq, LABEL *label, int line, int node_id)
 {
     ADJUST *adjust = compile_data_alloc_adjust(iseq);
     adjust->link.type = ISEQ_ELEMENT_ADJUST;
     adjust->link.next = 0;
     adjust->label = label;
     adjust->line_no = line;
+    adjust->node_id = node_id;
     LABEL_UNREMOVABLE(label);
     return adjust;
 }
@@ -1954,7 +1956,7 @@ add_insn_info(struct iseq_insn_info_entry *insns_info, unsigned int *positions,
 {
     if (insns_info_index == 0 ||
         insns_info[insns_info_index-1].line_no != iobj->insn_info.line_no ||
-        // insns_info[insns_info_index-1].node_id != iobj->insn_info.node_id ||
+        insns_info[insns_info_index-1].node_id != iobj->insn_info.node_id ||
         insns_info[insns_info_index-1].events  != iobj->insn_info.events) {
         insns_info[insns_info_index].line_no    = iobj->insn_info.line_no;
         insns_info[insns_info_index].node_id    = iobj->insn_info.node_id;
@@ -1970,9 +1972,10 @@ add_adjust_info(struct iseq_insn_info_entry *insns_info, unsigned int *positions
                 int insns_info_index, int code_index, const ADJUST *adjust)
 {
     if (insns_info_index > 0 ||
-        insns_info[insns_info_index-1].line_no != adjust->line_no) {
+        insns_info[insns_info_index-1].line_no != adjust->line_no ||
+        insns_info[insns_info_index-1].node_id != adjust->node_id) {
         insns_info[insns_info_index].line_no    = adjust->line_no;
-        insns_info[insns_info_index].node_id    = -1;
+        insns_info[insns_info_index].node_id    = adjust->node_id;
         insns_info[insns_info_index].events     = 0;
         positions[insns_info_index]             = code_index;
         return TRUE;
@@ -5328,7 +5331,7 @@ compile_break(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, i
 	/* while/until */
 	LABEL *splabel = NEW_LABEL(0);
 	ADD_LABEL(ret, splabel);
-	ADD_ADJUST(ret, line, ISEQ_COMPILE_DATA(iseq)->redo_label);
+	ADD_ADJUST(ret, line, node_id, ISEQ_COMPILE_DATA(iseq)->redo_label);
 	CHECK(COMPILE_(ret, "break val (while/until)", node->nd_stts,
 		       ISEQ_COMPILE_DATA(iseq)->loopval_popped));
 	add_ensure_iseq(ret, iseq, 0);
@@ -5396,7 +5399,7 @@ compile_next(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, in
 	ADD_LABEL(ret, splabel);
 	CHECK(COMPILE(ret, "next val/valid syntax?", node->nd_stts));
 	add_ensure_iseq(ret, iseq, 0);
-	ADD_ADJUST(ret, line, ISEQ_COMPILE_DATA(iseq)->redo_label);
+	ADD_ADJUST(ret, line, node_id, ISEQ_COMPILE_DATA(iseq)->redo_label);
 	ADD_INSNL(ret, line, node_id, jump, ISEQ_COMPILE_DATA(iseq)->start_label);
 	ADD_ADJUST_RESTORE(ret, splabel);
 	if (!popped) {
@@ -5407,7 +5410,7 @@ compile_next(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, in
 	LABEL *splabel = NEW_LABEL(0);
 	debugs("next in block\n");
 	ADD_LABEL(ret, splabel);
-	ADD_ADJUST(ret, line, ISEQ_COMPILE_DATA(iseq)->start_label);
+	ADD_ADJUST(ret, line, node_id, ISEQ_COMPILE_DATA(iseq)->start_label);
 	CHECK(COMPILE(ret, "next val", node->nd_stts));
 	add_ensure_iseq(ret, iseq, 0);
 	ADD_INSNL(ret, line, node_id, jump, ISEQ_COMPILE_DATA(iseq)->end_label);
@@ -5472,7 +5475,7 @@ compile_redo(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, in
 	LABEL *splabel = NEW_LABEL(0);
 	debugs("redo in while");
 	ADD_LABEL(ret, splabel);
-	ADD_ADJUST(ret, line, ISEQ_COMPILE_DATA(iseq)->redo_label);
+	ADD_ADJUST(ret, line, node_id, ISEQ_COMPILE_DATA(iseq)->redo_label);
 	add_ensure_iseq(ret, iseq, 0);
 	ADD_INSNL(ret, line, node_id, jump, ISEQ_COMPILE_DATA(iseq)->redo_label);
 	ADD_ADJUST_RESTORE(ret, splabel);
@@ -5491,7 +5494,7 @@ compile_redo(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, in
 	debugs("redo in block");
 	ADD_LABEL(ret, splabel);
 	add_ensure_iseq(ret, iseq, 0);
-	ADD_ADJUST(ret, line, ISEQ_COMPILE_DATA(iseq)->start_label);
+	ADD_ADJUST(ret, line, node_id, ISEQ_COMPILE_DATA(iseq)->start_label);
 	ADD_INSNL(ret, line, node_id, jump, ISEQ_COMPILE_DATA(iseq)->start_label);
 	ADD_ADJUST_RESTORE(ret, splabel);
 
@@ -5736,7 +5739,7 @@ compile_return(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, 
 	if (type == ISEQ_TYPE_METHOD) {
 	    splabel = NEW_LABEL(0);
 	    ADD_LABEL(ret, splabel);
-	    ADD_ADJUST(ret, line, 0);
+	    ADD_ADJUST(ret, line, node_id, 0);
 	}
 
 	CHECK(COMPILE(ret, "return nd_stts (return val)", retval));
