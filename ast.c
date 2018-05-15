@@ -468,7 +468,7 @@ rb_ast_node_node_id(VALUE self)
     struct ASTNodeData *data;
     TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, data);
 
-    return LONG2NUM(nd_node_id(data->node));
+    return INT2NUM(nd_node_id(data->node));
 }
 
 static VALUE
