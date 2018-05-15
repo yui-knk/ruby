@@ -159,7 +159,6 @@ location_node_id(rb_backtrace_location_t *loc)
 {
     switch (loc->type) {
       case LOCATION_TYPE_ISEQ:
-        loc->type = LOCATION_TYPE_ISEQ_CALCED;
       case LOCATION_TYPE_ISEQ_CALCED:
         return calc_node_id(loc->body.iseq.iseq, loc->body.iseq.lineno.pc);
       case LOCATION_TYPE_CFUNC:
