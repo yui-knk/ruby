@@ -78,6 +78,7 @@ typedef struct rb_backtrace_location_struct {
 		const VALUE *pc;
 		int lineno;
 	    } lineno;
+            int node_id;
 	} iseq;
 	struct {
 	    ID mid;
@@ -160,7 +161,7 @@ location_node_id(rb_backtrace_location_t *loc)
     switch (loc->type) {
       case LOCATION_TYPE_ISEQ:
       case LOCATION_TYPE_ISEQ_CALCED:
-        return calc_node_id(loc->body.iseq.iseq, loc->body.iseq.lineno.pc);
+        return loc->body.iseq.node_id;
       case LOCATION_TYPE_CFUNC:
         if (loc->body.cfunc.prev_loc) {
             return location_node_id(loc->body.cfunc.prev_loc);
@@ -539,6 +540,7 @@ bt_iter_iseq(void *ptr, const rb_control_frame_t *cfp)
     loc->type = LOCATION_TYPE_ISEQ;
     loc->body.iseq.iseq = iseq;
     loc->body.iseq.lineno.pc = pc;
+    loc->body.iseq.node_id = calc_node_id(loc->body.iseq.iseq, loc->body.iseq.lineno.pc);
     arg->prev_loc = loc;
 }
 
