@@ -235,6 +235,7 @@ struct rb_calling_info {
     int argc;
 };
 
+/* Forward declarations */
 struct rb_call_cache;
 struct rb_execution_context_struct;
 typedef VALUE (*vm_call_handler)(struct rb_execution_context_struct *ec, struct rb_control_frame_struct *cfp, struct rb_calling_info *calling, const struct rb_call_info *ci, struct rb_call_cache *cc);
@@ -300,7 +301,6 @@ pathobj_realpath(VALUE pathobj)
 
 /* Forward declarations */
 struct rb_mjit_unit;
-struct rb_execution_context_struct;
 
 struct rb_iseq_constant_body {
     enum iseq_type {
