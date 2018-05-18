@@ -69,6 +69,9 @@ control_frame_dump(const rb_execution_context_t *ec, const rb_control_frame_t *c
       case VM_FRAME_MAGIC_RESCUE:
 	magic = "RESCUE";
 	break;
+      case VM_FRAME_MAGIC_CTOP:
+        magic = "CTOP";
+        break;
       case 0:
 	magic = "------";
 	break;
@@ -254,7 +257,8 @@ vm_stack_dump_each(const rb_execution_context_t *ec, const rb_control_frame_t *c
 	VM_FRAME_TYPE(cfp) == VM_FRAME_MAGIC_CFUNC ||
 	VM_FRAME_TYPE(cfp) == VM_FRAME_MAGIC_IFUNC ||
 	VM_FRAME_TYPE(cfp) == VM_FRAME_MAGIC_EVAL  ||
-	VM_FRAME_TYPE(cfp) == VM_FRAME_MAGIC_RESCUE)
+        VM_FRAME_TYPE(cfp) == VM_FRAME_MAGIC_RESCUE||
+	VM_FRAME_TYPE(cfp) == VM_FRAME_MAGIC_CTOP)
     {
 	const VALUE *ptr = ep - local_table_size;
 

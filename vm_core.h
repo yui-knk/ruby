@@ -17,7 +17,7 @@
  *   1: enable local assertions.
  */
 #ifndef VM_CHECK_MODE
-#define VM_CHECK_MODE 0
+#define VM_CHECK_MODE 1
 #endif
 
 /**
@@ -1044,7 +1044,7 @@ typedef rb_control_frame_t *
 
 enum {
     /* Frame/Environment flag bits:
-     *   MMMM MMMM MMMM MMMM ____ __FF FFFF EEEX (LSB)
+     *   _MMM MMMM MMMM MMMM ____ __FF FFFF EEEX (LSB)
      *
      * X   : tag for GC marking (It seems as Fixnum)
      * EEE : 3 bits Env flags
@@ -1062,6 +1062,7 @@ enum {
     VM_FRAME_MAGIC_EVAL   = 0x77770001,
     VM_FRAME_MAGIC_RESCUE = 0x78880001,
     VM_FRAME_MAGIC_DUMMY  = 0x79990001,
+    VM_FRAME_MAGIC_CTOP   = 0x7aaa0001,
 
     VM_FRAME_MAGIC_MASK   = 0x7fff0001,
 

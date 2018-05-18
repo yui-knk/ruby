@@ -1631,6 +1631,7 @@ vm_frametype_name(const rb_control_frame_t *cfp)
       case VM_FRAME_MAGIC_IFUNC:  return "ifunc";
       case VM_FRAME_MAGIC_EVAL:   return "eval";
       case VM_FRAME_MAGIC_RESCUE: return "rescue";
+      case VM_FRAME_MAGIC_CTOP:   return "ctop";
       default:
 	rb_bug("unknown frame");
     }
@@ -2106,10 +2107,9 @@ rb_vm_call_cfunc(VALUE recv, VALUE (*func)(VALUE), VALUE arg,
 {
     rb_execution_context_t *ec = GET_EC();
     const rb_control_frame_t *reg_cfp = ec->cfp;
-    const rb_iseq_t *iseq = rb_iseq_new(0, filename, filename, Qnil, 0, ISEQ_TYPE_TOP);
     VALUE val;
 
-    vm_push_frame(ec, iseq, VM_FRAME_MAGIC_CFUNC | VM_ENV_FLAG_LOCAL | VM_FRAME_FLAG_FINISH,
+    vm_push_frame(ec, 0, VM_FRAME_MAGIC_CTOP | VM_FRAME_FLAG_CFRAME | VM_ENV_FLAG_LOCAL | VM_FRAME_FLAG_FINISH,
 		  recv, block_handler,
 		  (VALUE)vm_cref_new_toplevel(ec), /* cref or me */
 		  0, reg_cfp->sp, 0, 0);
