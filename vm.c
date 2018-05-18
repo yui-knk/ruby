@@ -2112,7 +2112,7 @@ rb_vm_call_cfunc(VALUE recv, VALUE (*func)(VALUE), VALUE arg,
     vm_push_frame(ec, iseq, VM_FRAME_MAGIC_TOP | VM_ENV_FLAG_LOCAL | VM_FRAME_FLAG_FINISH,
 		  recv, block_handler,
 		  (VALUE)vm_cref_new_toplevel(ec), /* cref or me */
-		  0, reg_cfp->sp, 0, 0);
+		  iseq->body->iseq_encoded, reg_cfp->sp, 0, 0);
 
     val = (*func)(arg);
 
