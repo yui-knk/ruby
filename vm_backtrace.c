@@ -34,7 +34,7 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 {
     size_t pos = (size_t)(pc - iseq->body->iseq_encoded);
     /* use pos-1 because PC points next instruction at the beginning of instruction */
-    return rb_iseq_line_no(iseq, pos - 1);
+    return rb_iseq_line_no(iseq, (pos == 0) ? 0 : pos - 1);
 }
 
 int
