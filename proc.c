@@ -1157,6 +1157,27 @@ rb_proc_location(VALUE self)
 }
 
 static VALUE
+iseq_code_location(const rb_iseq_t *iseq)
+{
+    int beg_l, beg_c, end_l, end_c;
+
+    if (!iseq) return Qnil;
+    rb_iseq_check(iseq);
+
+    rb_iseq_code_location(iseq, &beg_l, &beg_c, &end_l, &end_c);
+
+    return rb_ary_new_from_args(2,
+                                rb_ary_new_from_args(2, INT2FIX(beg_l), INT2FIX(beg_c)),
+                                rb_ary_new_from_args(2, INT2FIX(end_l), INT2FIX(end_c)));
+}
+
+static VALUE
+rb_proc_code_location(VALUE self)
+{
+    return iseq_code_location(rb_proc_get_iseq(self, 0));
+}
+
+static VALUE
 unnamed_parameters(int arity)
 {
     VALUE a, param = rb_ary_new2((arity < 0) ? -arity : arity);
@@ -3111,6 +3132,7 @@ Init_Proc(void)
     rb_define_method(rb_cProc, "binding", proc_binding, 0);
     rb_define_method(rb_cProc, "curry", proc_curry, -1);
     rb_define_method(rb_cProc, "source_location", rb_proc_location, 0);
+    rb_define_method(rb_cProc, "code_location", rb_proc_code_location, 0);
     rb_define_method(rb_cProc, "parameters", rb_proc_parameters, 0);
 
     /* Exceptions */
