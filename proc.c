@@ -2538,6 +2538,17 @@ method_def_location(const rb_method_definition_t *def)
     return iseq_location(method_def_iseq(def));
 }
 
+static VALUE
+method_code_location(const rb_method_definition_t *def)
+{
+    if (def->type == VM_METHOD_TYPE_ATTRSET || def->type == VM_METHOD_TYPE_IVAR) {
+        if (!def->body.attr.location)
+            return Qnil;
+        return rb_ary_dup(def->body.attr.location);
+    }
+    return iseq_code_location(method_def_iseq(def));
+}
+
 VALUE
 rb_method_entry_location(const rb_method_entry_t *me)
 {
@@ -2570,6 +2581,12 @@ VALUE
 rb_method_location(VALUE method)
 {
     return method_def_location(method_def(method));
+}
+
+static VALUE
+rb_method_code_location(VALUE method)
+{
+    return method_code_location(method_def(method));
 }
 
 /*
@@ -3169,6 +3186,7 @@ Init_Proc(void)
     rb_define_method(rb_cMethod, "owner", method_owner, 0);
     rb_define_method(rb_cMethod, "unbind", method_unbind, 0);
     rb_define_method(rb_cMethod, "source_location", rb_method_location, 0);
+    rb_define_method(rb_cMethod, "code_location", rb_method_code_location, 0);
     rb_define_method(rb_cMethod, "parameters", rb_method_parameters, 0);
     rb_define_method(rb_cMethod, "super_method", method_super_method, 0);
     rb_define_method(rb_mKernel, "method", rb_obj_method, 1);
@@ -3191,6 +3209,7 @@ Init_Proc(void)
     rb_define_method(rb_cUnboundMethod, "owner", method_owner, 0);
     rb_define_method(rb_cUnboundMethod, "bind", umethod_bind, 1);
     rb_define_method(rb_cUnboundMethod, "source_location", rb_method_location, 0);
+    rb_define_method(rb_cUnboundMethod, "code_location", rb_method_code_location, 0);
     rb_define_method(rb_cUnboundMethod, "parameters", rb_method_parameters, 0);
     rb_define_method(rb_cUnboundMethod, "super_method", method_super_method, 0);
 
