@@ -774,11 +774,6 @@ define nd_defn
 end
 
 
-define nd_old
-  printf "%su1.id%s: ", $color_highlite, $color_end
-  p ($arg0).u1.id
-end
-
 define nd_new
   printf "%su2.id%s: ", $color_highlite, $color_end
   p ($arg0).u2.id
