@@ -1980,8 +1980,6 @@ rb_iseq_disasm_recursive(const rb_iseq_t *iseq, VALUE indent)
     if (body->catch_table) {
 	rb_str_cat(str, indent_str, indent_len);
 	rb_str_cat2(str, "== catch table\n");
-    }
-    if (body->catch_table) {
 	rb_str_cat_cstr(indent, "| ");
 	indent_str = RSTRING_PTR(indent);
 	for (i = 0; i < body->catch_table->size; i++) {
@@ -2000,8 +1998,6 @@ rb_iseq_disasm_recursive(const rb_iseq_t *iseq, VALUE indent)
 	}
 	rb_str_resize(indent, indent_len);
 	indent_str = RSTRING_PTR(indent);
-    }
-    if (body->catch_table) {
 	rb_str_cat(str, indent_str, indent_len);
 	rb_str_cat2(str, "|-------------------------------------"
 		    "-----------------------------------\n");
