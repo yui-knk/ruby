@@ -102,10 +102,10 @@ class TestAst < Test::Unit::TestCase
       beg_pos, end_pos = node.beg_pos, node.end_pos
       children = node.children.compact
 
-      @errors << { type: :first_lineno, node: node } if beg_pos.lineno == 0
-      @errors << { type: :first_column, node: node } if beg_pos.column == -1
-      @errors << { type: :last_lineno,  node: node } if end_pos.lineno == 0
-      @errors << { type: :last_column,  node: node } if end_pos.column == -1
+      @errors << { type: :first_lineno, node: node } if beg_pos.lineno < 1
+      @errors << { type: :first_column, node: node } if beg_pos.column < 0
+      @errors << { type: :last_lineno,  node: node } if end_pos.lineno < 1
+      @errors << { type: :last_column,  node: node } if end_pos.column < 0
 
       children.each {|c| validate_not_cared0(c) }
     end
