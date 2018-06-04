@@ -60,7 +60,7 @@
 	}								\
       else								\
         {                                                               \
-          (Current).beg_pos = YYRHSLOC(Rhs, 0).beg_pos;                 \
+          (Current).beg_pos = YYRHSLOC(Rhs, 0).end_pos;                 \
           (Current).end_pos = YYRHSLOC(Rhs, 0).end_pos;                 \
         }                                                               \
     while (0)
