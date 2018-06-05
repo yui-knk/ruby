@@ -150,4 +150,8 @@ class TestAst < Test::Unit::TestCase
     assert_equal(0, node.first_column)
     assert_equal(5, node.last_column)
   end
+
+  def test_raise_syntax_error
+    assert_raise(SyntaxError) { RubyVM::AST.parse("def") }
+  end
 end

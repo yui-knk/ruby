@@ -61,7 +61,9 @@ rb_ast_s_parse(VALUE module, VALUE str)
     rb_parser_set_context(parser, NULL, 1);
     ast = rb_parser_compile_string_path(parser, rb_str_new_cstr("no file name"), str, 1);
 
-    if (!ast->body.root) return Qnil;
+    if (!ast->body.root) {
+        rb_exc_raise(GET_EC()->errinfo);
+    }
 
     obj = ast_new_internal(ast, (NODE *)ast->body.root);
 
@@ -85,7 +87,9 @@ rb_ast_s_parse_file(VALUE module, VALUE path)
 
     rb_io_close(f);
 
-    if (!ast->body.root) return Qnil;
+    if (!ast->body.root) {
+        rb_exc_raise(GET_EC()->errinfo);
+    }
 
     obj = ast_new_internal(ast, (NODE *)ast->body.root);
 
