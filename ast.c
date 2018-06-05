@@ -68,9 +68,37 @@ rb_ast_s_parse(VALUE module, VALUE str)
     return obj;
 }
 
+struct parse_file_arg {
+    VALUE parser;
+    VALUE path;
+    VALUE f;
+};
+
+static VALUE
+parse_file_internal(VALUE file_arg_v)
+{
+    struct parse_file_arg *file_arg = (struct parse_file_arg *)file_arg_v;
+    VALUE parser = file_arg->parser;
+    VALUE path = file_arg->path;
+    VALUE f = file_arg->f;
+
+    return (VALUE)rb_parser_compile_file_path(parser, path, f, 1);
+}
+
+static VALUE
+parse_file_ensure(VALUE file_arg_v)
+{
+    struct parse_file_arg *file_arg = (struct parse_file_arg *)file_arg_v;
+    VALUE f = file_arg->f;
+
+    rb_io_close(f);
+    return Qnil;
+}
+
 static VALUE
 rb_ast_s_parse_file(VALUE module, VALUE path)
 {
+    struct parse_file_arg arg;
     VALUE obj, f;
     rb_ast_t *ast = 0;
     rb_encoding *enc = rb_utf8_encoding();
@@ -81,9 +109,12 @@ rb_ast_s_parse_file(VALUE module, VALUE path)
     f = rb_file_open_str(path, "r");
     rb_funcall(f, rb_intern("set_encoding"), 2, rb_enc_from_encoding(enc), rb_str_new_cstr("-"));
     rb_parser_set_context(parser, NULL, 1);
-    ast = rb_parser_compile_file_path(parser, path, f, 1);
 
-    rb_io_close(f);
+    arg.parser = parser;
+    arg.path = path;
+    arg.f = f;
+
+    ast = (rb_ast_t *)rb_ensure(parse_file_internal, (VALUE)&arg, parse_file_ensure, (VALUE)&arg);
 
     if (!ast->body.root) return Qnil;
 
