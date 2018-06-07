@@ -262,13 +262,13 @@ node_children(rb_ast_t *ast, NODE *node)
       case NODE_IASGN:
         goto asgn;
       case NODE_CVASGN:
+        goto asgn;
+      case NODE_GASGN:
       asgn:
         if (NODE_REQUIRED_KEYWORD_P(node)) {
             return rb_ary_new_from_args(1, var_name(node->nd_vid));
         }
         return rb_ary_new_from_args(2, var_name(node->nd_vid), NEW_CHILD(ast, node->nd_value));
-      case NODE_GASGN:
-        goto asgn;
       case NODE_CDECL:
         if (node->nd_vid) {
             return rb_ary_new_from_args(2, ID2SYM(node->nd_vid), NEW_CHILD(ast, node->nd_value));
