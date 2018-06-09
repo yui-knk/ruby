@@ -59,7 +59,10 @@
 	  (Current).end_pos = YYRHSLOC(Rhs, N).end_pos;			\
 	}								\
       else								\
-	RUBY_SET_YYLLOC_OF_NONE(Current);				\
+        {                                                               \
+          (Current).beg_pos = YYRHSLOC(Rhs, 0).end_pos;                 \
+          (Current).end_pos = YYRHSLOC(Rhs, 0).end_pos;                 \
+        }                                                               \
     while (0)
 
 #define RUBY_SET_YYLLOC_FROM_STRTERM_HEREDOC(Current)			\
@@ -747,6 +750,10 @@ static void token_info_warn(struct parser_params *p, const char *token, token_in
 %pure-parser
 %lex-param {struct parser_params *p}
 %parse-param {struct parser_params *p}
+%initial-action
+{
+    RUBY_SET_YYLLOC_OF_NONE(@$);
+};
 
 %union {
     VALUE val;
@@ -10263,15 +10270,19 @@ new_bodystmt(struct parser_params *p, NODE *head, NODE *rescue, NODE *rescue_els
 {
     NODE *result = head;
     if (rescue) {
-        result = NEW_RESCUE(head, rescue, rescue_else, loc);
+        NODE *tmp = rescue_else ? rescue_else : rescue;
+        YYLTYPE rescue_loc = code_loc_gen(&head->nd_loc, &tmp->nd_loc);
+
+        result = NEW_RESCUE(head, rescue, rescue_else, &rescue_loc);
+        nd_set_line(result, rescue->nd_loc.beg_pos.lineno);
     }
     else if (rescue_else) {
         result = block_append(p, result, rescue_else);
     }
     if (ensure) {
         result = NEW_ENSURE(result, ensure, loc);
+        fixpos(result, head);
     }
-    fixpos(result, head);
     return result;
 }
 #endif
