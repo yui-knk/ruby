@@ -413,7 +413,7 @@ static NODE *new_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs,
 static NODE *new_ary_op_assign(struct parser_params *p, NODE *ary, NODE *args, ID op, NODE *rhs, const YYLTYPE *args_loc, const YYLTYPE *loc);
 static NODE *new_attr_op_assign(struct parser_params *p, NODE *lhs, ID atype, ID attr, ID op, NODE *rhs, const YYLTYPE *loc);
 static NODE *new_const_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, const YYLTYPE *loc);
-static NODE *new_bodystmt(struct parser_params *p, NODE *head, NODE *rescue, NODE *rescue_else, NODE *ensure, const YYLTYPE *loc);
+static NODE *new_bodystmt(struct parser_params *p, NODE *head, NODE *rescue, NODE *rescue_else, NODE *ensure);
 
 static NODE *const_decl(struct parser_params *p, NODE* path, const YYLTYPE *loc);
 
@@ -1006,7 +1006,7 @@ bodystmt	: compstmt
 		  opt_ensure
 		    {
 		    /*%%%*/
-			$$ = new_bodystmt(p, $1, $2, $5, $6, &@$);
+			$$ = new_bodystmt(p, $1, $2, $5, $6);
 		    /*% %*/
 		    /*% ripper: bodystmt!(escape_Qundef($1), escape_Qundef($2), escape_Qundef($5), escape_Qundef($6)) %*/
 		    }
@@ -1015,7 +1015,7 @@ bodystmt	: compstmt
 		  opt_ensure
 		    {
 		    /*%%%*/
-			$$ = new_bodystmt(p, $1, $2, 0, $3, &@$);
+			$$ = new_bodystmt(p, $1, $2, 0, $3);
 		    /*% %*/
 		    /*% ripper: bodystmt!(escape_Qundef($1), escape_Qundef($2), Qnil, escape_Qundef($3)) %*/
 		    }
@@ -10266,7 +10266,7 @@ var_field(struct parser_params *p, VALUE a)
 
 #ifndef RIPPER
 static NODE *
-new_bodystmt(struct parser_params *p, NODE *head, NODE *rescue, NODE *rescue_else, NODE *ensure, const YYLTYPE *loc)
+new_bodystmt(struct parser_params *p, NODE *head, NODE *rescue, NODE *rescue_else, NODE *ensure)
 {
     NODE *result = head;
     if (rescue) {
@@ -10280,8 +10280,10 @@ new_bodystmt(struct parser_params *p, NODE *head, NODE *rescue, NODE *rescue_els
         result = block_append(p, result, rescue_else);
     }
     if (ensure) {
-        result = NEW_ENSURE(result, ensure, loc);
-        fixpos(result, head);
+        YYLTYPE ensure_loc = code_loc_gen(&result->nd_loc, &ensure->nd_loc);
+
+        result = NEW_ENSURE(result, ensure, &ensure_loc);
+        // fixpos(result, head);
     }
     return result;
 }
