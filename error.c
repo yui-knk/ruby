@@ -109,7 +109,8 @@ err_vcatf(VALUE str, const char *pre, const char *file, int line,
 }
 
 VALUE
-rb_syntax_error_append(VALUE exc, VALUE file, int line, int column,
+rb_syntax_error_append(VALUE exc, VALUE file, int line,
+                       int first_lineno, int first_column, int last_lineno, int last_column,
 		       rb_encoding *enc, const char *fmt, va_list args)
 {
     const char *fn = NIL_P(file) ? NULL : RSTRING_PTR(file);
@@ -122,8 +123,13 @@ rb_syntax_error_append(VALUE exc, VALUE file, int line, int column,
     else {
 	VALUE mesg;
 	if (NIL_P(exc)) {
+            VALUE loc;
+            VALUE args[2];
 	    mesg = rb_enc_str_new(0, 0, enc);
-	    exc = rb_class_new_instance(1, &mesg, rb_eSyntaxError);
+            loc = rb_ary_new3(4, INT2NUM(first_lineno), INT2NUM(first_column), INT2NUM(last_lineno), INT2NUM(last_column));
+            args[0] = mesg;
+            args[1] = loc;
+	    exc = rb_class_new_instance(2, args, rb_eSyntaxError);
 	}
 	else {
 	    mesg = rb_attr_get(exc, idMesg);
@@ -890,6 +896,7 @@ ID ruby_static_id_cause;
 #define id_cause ruby_static_id_cause
 static ID id_message, id_backtrace;
 static ID id_name, id_key, id_args, id_Errno, id_errno, id_i_path;
+static ID id_loc;
 static ID id_receiver, id_recv, id_iseq, id_local_variables;
 static ID id_private_call_p, id_top, id_bottom;
 #define id_bt idBt
@@ -1828,6 +1835,13 @@ key_err_initialize(int argc, VALUE *argv, VALUE self)
     return self;
 }
 
+static VALUE
+syntax_error_init_attr(VALUE exc, VALUE loc)
+{
+    rb_ivar_set(exc, id_loc, loc);
+    return exc;
+}
+
 /*
  * call-seq:
  *   SyntaxError.new([msg])  -> syntax_error
@@ -1838,13 +1852,21 @@ key_err_initialize(int argc, VALUE *argv, VALUE self)
 static VALUE
 syntax_error_initialize(int argc, VALUE *argv, VALUE self)
 {
-    VALUE mesg;
-    if (argc == 0) {
-	mesg = rb_fstring_cstr("compile error");
-	argc = 1;
-	argv = &mesg;
+    VALUE mesg, loc;
+    rb_scan_args(argc, argv, "02", &mesg, &loc);
+
+    if (NIL_P(mesg)) {
+        mesg = rb_fstring_cstr("compile error");
     }
-    return rb_call_super(argc, argv);
+
+    rb_call_super(1, &mesg);
+    return syntax_error_init_attr(self, loc);
+}
+
+static VALUE
+syntax_error_loc(VALUE self)
+{
+    return rb_attr_get(self, id_loc);
 }
 
 /*
@@ -2458,6 +2480,7 @@ Init_Exception(void)
     rb_eScriptError = rb_define_class("ScriptError", rb_eException);
     rb_eSyntaxError = rb_define_class("SyntaxError", rb_eScriptError);
     rb_define_method(rb_eSyntaxError, "initialize", syntax_error_initialize, -1);
+    rb_define_method(rb_eSyntaxError, "loc", syntax_error_loc, 0);
 
     rb_eLoadError   = rb_define_class("LoadError", rb_eScriptError);
     /* the path failed to load */
@@ -2520,6 +2543,7 @@ Init_Exception(void)
     id_warn = rb_intern_const("warn");
     id_top = rb_intern_const("top");
     id_bottom = rb_intern_const("bottom");
+    id_loc = rb_intern_const("loc");
     id_iseq = rb_make_internal_id();
     id_recv = rb_make_internal_id();
 }

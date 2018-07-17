@@ -11085,15 +11085,20 @@ static void
 parser_compile_error(struct parser_params *p, const char *fmt, ...)
 {
     va_list ap;
+    YYLTYPE current;
 
     rb_io_flush(p->debug_output);
+    RUBY_SET_YYLLOC(current);
     p->error_p = 1;
     va_start(ap, fmt);
     p->error_buffer =
 	rb_syntax_error_append(p->error_buffer,
 			       p->ruby_sourcefile_string,
 			       p->ruby_sourceline,
-			       rb_long2int(p->lex.pcur - p->lex.pbeg),
+                   current.beg_pos.lineno,
+                   current.beg_pos.column,
+                   current.end_pos.lineno,
+                   current.end_pos.column,
 			       p->enc, fmt, ap);
     va_end(ap);
 }
