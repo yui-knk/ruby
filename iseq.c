@@ -3101,6 +3101,32 @@ succ_index_lookup(const struct succ_index_table *sd, int x)
 }
 #endif
 
+static const rb_iseq_t *
+current_iseq(void)
+{
+    const rb_execution_context_t *ec = GET_EC();
+    const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
+
+    for (;cfp != end_cfp;) {
+        if (cfp->iseq) break;
+        cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
+    }
+
+    return cfp->iseq;
+}
+
+static VALUE
+rb_current_iseq(VALUE obj)
+{
+    // rb_thread_t *th = GET_THREAD(); /* main thread */
+    // rb_execution_context_t *ec = th->ec;
+    // rb_control_frame_t *cfp = ec->cfp;
+    // rb_iseq_t *iseq = cfp->iseq;
+    // rb_vm_t *vm = th->vm;
+
+    return iseqw_new(current_iseq());
+}
+
 /*
  *  Document-class: RubyVM::InstructionSequence
  *
@@ -3166,4 +3192,5 @@ Init_ISeq(void)
 
     rb_undef_method(CLASS_OF(rb_cISeq), "translate");
     rb_undef_method(CLASS_OF(rb_cISeq), "load_iseq");
+    rb_define_global_function("current_iseq", rb_current_iseq, 0);
 }
