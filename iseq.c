@@ -1986,13 +1986,14 @@ iseq_inspect(const rb_iseq_t *iseq)
     }
     else {
 	const rb_code_location_t *loc = &body->location.code_location;
-	return rb_sprintf("#<ISeq:%"PRIsVALUE"@%"PRIsVALUE":%d (%d,%d)-(%d,%d)>",
+	return rb_sprintf("#<ISeq:%"PRIsVALUE"@%"PRIsVALUE":%d (%d,%d)-(%d,%d) (%d)>",
 			  body->location.label, rb_iseq_path(iseq),
 			  loc->beg_pos.lineno,
 			  loc->beg_pos.lineno,
 			  loc->beg_pos.column,
 			  loc->end_pos.lineno,
-			  loc->end_pos.column);
+			  loc->end_pos.column,
+                          body->location.node_id);
     }
 }
 
