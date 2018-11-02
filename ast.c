@@ -569,6 +569,20 @@ rb_ast_node_root(VALUE self)
     return ast_new_internal(data->ast, (NODE *)data->ast->body.root);
 }
 
+static VALUE
+rb_ast_node_is_same_p(VALUE self, VALUE other)
+{
+    struct ASTNodeData *data;
+    struct ASTNodeData *data_other;
+    TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, data);
+
+    if (!rb_obj_is_kind_of(other, rb_cNode)) return Qfalse;
+
+    TypedData_Get_Struct(other, struct ASTNodeData, &rb_node_type, data_other);
+
+    return ((nd_node_id(data->node) == nd_node_id(data_other->node)) ? Qtrue : Qfalse);
+}
+
 /*
  *  call-seq:
  *     node.first_lineno -> integer
@@ -674,6 +688,7 @@ Init_ast(void)
     rb_define_singleton_method(rb_mAST, "parse_file", rb_ast_s_parse_file, 1);
     rb_define_singleton_method(rb_mAST, "of", rb_ast_s_of, 1);
     rb_define_method(rb_cNode, "type", rb_ast_node_type, 0);
+    rb_define_method(rb_cNode, "is_same?", rb_ast_node_is_same_p, 1);
     rb_define_method(rb_cNode, "first_lineno", rb_ast_node_first_lineno, 0);
     rb_define_method(rb_cNode, "first_column", rb_ast_node_first_column, 0);
     rb_define_method(rb_cNode, "last_lineno", rb_ast_node_last_lineno, 0);
