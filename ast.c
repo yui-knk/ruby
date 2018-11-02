@@ -560,6 +560,15 @@ rb_ast_node_children(VALUE self)
     return node_children(data->ast, data->node);
 }
 
+static VALUE
+rb_ast_node_root(VALUE self)
+{
+    struct ASTNodeData *data;
+    TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, data);
+
+    return ast_new_internal(data->ast, (NODE *)data->ast->body.root);
+}
+
 /*
  *  call-seq:
  *     node.first_lineno -> integer
@@ -670,5 +679,6 @@ Init_ast(void)
     rb_define_method(rb_cNode, "last_lineno", rb_ast_node_last_lineno, 0);
     rb_define_method(rb_cNode, "last_column", rb_ast_node_last_column, 0);
     rb_define_method(rb_cNode, "children", rb_ast_node_children, 0);
+    rb_define_method(rb_cNode, "root", rb_ast_node_root, 0);
     rb_define_method(rb_cNode, "inspect", rb_ast_node_inspect, 0);
 }
