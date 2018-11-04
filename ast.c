@@ -593,11 +593,12 @@ node_parent_find(VALUE self, const int node_id)
         VALUE child = RARRAY_AREF(ary, i);
 
         if (CLASS_OF(child) == rb_cNode) {
+            VALUE result;
             struct ASTNodeData *child_data;
             TypedData_Get_Struct(child, struct ASTNodeData, &rb_node_type, child_data);
 
             if (nd_node_id(child_data->node) == node_id) return self;
-            VALUE result = node_parent_find(child, node_id);
+            result = node_parent_find(child, node_id);
             if (RTEST(result)) return result;
         }
     }
