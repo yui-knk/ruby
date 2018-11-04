@@ -5,6 +5,7 @@
 #include "internal.h"
 #include "node.h"
 #include "vm_core.h"
+#include "iseq.h"
 
 static VALUE rb_mAST;
 static VALUE rb_cNode;
@@ -158,9 +159,18 @@ rb_ast_s_of(VALUE module, VALUE body)
     int node_id;
     const rb_iseq_t *iseq = NULL;
 
-    if (!rb_obj_is_proc(body)) return Qnil;
-    iseq = vm_proc_iseq(body);
-    if (!rb_obj_is_iseq((VALUE)iseq)) return Qnil;
+    if (rb_obj_is_proc(body)) {
+        iseq = vm_proc_iseq(body);
+
+        if (!rb_obj_is_iseq((VALUE)iseq)) {
+            iseq = NULL;
+        }
+    }
+    else {
+        iseq = rb_method_iseq(body);
+    }
+
+    if (!iseq) return Qnil;
 
     path = rb_iseq_path(iseq);
     node_id = iseq->body->location.node_id;
