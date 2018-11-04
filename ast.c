@@ -561,7 +561,7 @@ rb_ast_node_children(VALUE self)
 }
 
 static VALUE
-rb_ast_node_root(VALUE self)
+node_root(VALUE self)
 {
     struct ASTNodeData *data;
     TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, data);
@@ -570,17 +570,38 @@ rb_ast_node_root(VALUE self)
 }
 
 static VALUE
-rb_ast_node_is_same_p(VALUE self, VALUE other)
+node_parent_find(VALUE self, const int node_id)
 {
+    VALUE ary;
+    long i;
     struct ASTNodeData *data;
-    struct ASTNodeData *data_other;
     TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, data);
 
-    if (!rb_obj_is_kind_of(other, rb_cNode)) return Qfalse;
+    ary = node_children(data->ast, data->node);
 
-    TypedData_Get_Struct(other, struct ASTNodeData, &rb_node_type, data_other);
+    for (i = 0; i < RARRAY_LEN(ary); i++) {
+        VALUE child = RARRAY_AREF(ary, i);
 
-    return ((nd_node_id(data->node) == nd_node_id(data_other->node)) ? Qtrue : Qfalse);
+        if (CLASS_OF(child) == rb_cNode) {
+            struct ASTNodeData *child_data;
+            TypedData_Get_Struct(child, struct ASTNodeData, &rb_node_type, child_data);
+
+            if (nd_node_id(child_data->node) == node_id) return self;
+            VALUE result = node_parent_find(child, node_id);
+            if (RTEST(result)) return result;
+        }
+    }
+
+    return Qnil;
+}
+
+static VALUE
+rb_ast_node_parent(VALUE self)
+{
+    struct ASTNodeData *data;
+    TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, data);
+
+    return node_parent_find(node_root(self), nd_node_id(data->node));
 }
 
 /*
@@ -688,12 +709,11 @@ Init_ast(void)
     rb_define_singleton_method(rb_mAST, "parse_file", rb_ast_s_parse_file, 1);
     rb_define_singleton_method(rb_mAST, "of", rb_ast_s_of, 1);
     rb_define_method(rb_cNode, "type", rb_ast_node_type, 0);
-    rb_define_method(rb_cNode, "is_same?", rb_ast_node_is_same_p, 1);
     rb_define_method(rb_cNode, "first_lineno", rb_ast_node_first_lineno, 0);
     rb_define_method(rb_cNode, "first_column", rb_ast_node_first_column, 0);
     rb_define_method(rb_cNode, "last_lineno", rb_ast_node_last_lineno, 0);
     rb_define_method(rb_cNode, "last_column", rb_ast_node_last_column, 0);
     rb_define_method(rb_cNode, "children", rb_ast_node_children, 0);
-    rb_define_method(rb_cNode, "root", rb_ast_node_root, 0);
+    rb_define_method(rb_cNode, "parent", rb_ast_node_parent, 0);
     rb_define_method(rb_cNode, "inspect", rb_ast_node_inspect, 0);
 }
