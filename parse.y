@@ -238,6 +238,7 @@ struct parser_params {
 
     rb_ast_t *ast;
     int node_id;
+    rb_code_location_t last_loc;
 
     unsigned int command_start:1;
     unsigned int eofp: 1;
@@ -336,6 +337,25 @@ add_mark_object(struct parser_params *p, VALUE obj)
 	rb_ast_add_mark_object(p->ast, obj);
     }
     return obj;
+}
+
+static void
+print_loc(const rb_code_location_t *loc)
+{
+    fprintf(stderr,
+            "parser_set_last_loc: (%d.%d-%d.%d)\n",
+            loc->beg_pos.lineno,
+            loc->beg_pos.column,
+            loc->end_pos.lineno,
+            loc->end_pos.column
+           );
+}
+
+static void
+parser_set_last_loc(struct parser_params *p, const rb_code_location_t *loc)
+{
+    print_loc(loc);
+    p->last_loc = *loc;
 }
 
 static NODE* node_newnode(struct parser_params *, enum node_type, VALUE, VALUE, VALUE, const rb_code_location_t*);
@@ -773,6 +793,7 @@ static void token_info_warn(struct parser_params *p, const char *token, token_in
     int num;
     const struct vtable *vars;
     struct rb_strterm_struct *strterm;
+    rb_code_location_t loc;
 }
 
 %token <id>
@@ -2459,16 +2480,23 @@ primary		: literal
                         nd_set_first_loc($$, @1.beg_pos);
                     /*% %*/
 		    }
-		| k_if expr_value then
+		| k_if
+                    {
+                        $<loc>$ = p->last_loc;
+                        print_loc(&p->last_loc);
+                        parser_set_last_loc(p, &@1);
+                    }
+                  expr_value then
 		  compstmt
 		  if_tail
 		  k_end
 		    {
 		    /*%%%*/
-			$$ = new_if(p, $2, $4, $5, &@$);
-			fixpos($$, $2);
+			$$ = new_if(p, $3, $5, $6, &@$);
+                        parser_set_last_loc(p, &$<loc>2);
+			fixpos($$, $3);
 		    /*% %*/
-		    /*% ripper: if!($2, $4, escape_Qundef($5)) %*/
+		    /*% ripper: if!($3, $5, escape_Qundef($6)) %*/
 		    }
 		| k_unless expr_value then
 		  compstmt
@@ -2632,6 +2660,10 @@ primary		: literal
 			p->in_class = $<num>1 & 1;
 		    }
 		| k_def fname
+                    {
+                        $<loc>$ = p->last_loc;
+                        parser_set_last_loc(p, &@1);
+                    }
 		    {
 			local_push(p, 0);
 			$<id>$ = p->cur_arg;
@@ -2646,18 +2678,23 @@ primary		: literal
 		  k_end
 		    {
 		    /*%%%*/
-			NODE *body = remove_begin($6);
+			NODE *body = remove_begin($7);
+                        parser_set_last_loc(p, &$<loc>3);
 			reduce_nodes(p, &body);
-			$$ = NEW_DEFN($2, $5, body, &@$);
-			nd_set_line($$->nd_defn, @7.end_pos.lineno);
+			$$ = NEW_DEFN($2, $6, body, &@$);
+			nd_set_line($$->nd_defn, @8.end_pos.lineno);
 			set_line_body(body, @1.beg_pos.lineno);
 		    /*% %*/
-		    /*% ripper: def!($2, $5, $6) %*/
+		    /*% ripper: def!($2, $6, $7) %*/
 			local_pop(p);
-			p->in_def = $<num>4 & 1;
-			p->cur_arg = $<id>3;
+			p->in_def = $<num>5 & 1;
+			p->cur_arg = $<id>4;
 		    }
 		| k_def singleton dot_or_colon {SET_LEX_STATE(EXPR_FNAME);} fname
+                    {
+                        $<loc>$ = p->last_loc;
+                        parser_set_last_loc(p, &@1);
+                    }
 		    {
 			$<num>4 = p->in_def;
 			p->in_def = 1;
@@ -2671,16 +2708,17 @@ primary		: literal
 		  k_end
 		    {
 		    /*%%%*/
-			NODE *body = remove_begin($8);
+			NODE *body = remove_begin($9);
+                        parser_set_last_loc(p, &$<loc>6);
 			reduce_nodes(p, &body);
-			$$ = NEW_DEFS($2, $5, $7, body, &@$);
-			nd_set_line($$->nd_defn, @9.end_pos.lineno);
+			$$ = NEW_DEFS($2, $5, $8, body, &@$);
+			nd_set_line($$->nd_defn, @10.end_pos.lineno);
 			set_line_body(body, @1.beg_pos.lineno);
 		    /*% %*/
-		    /*% ripper: defs!($2, $3, $5, $7, $8) %*/
+		    /*% ripper: defs!($2, $3, $5, $8, $9) %*/
 			local_pop(p);
 			p->in_def = $<num>4 & 1;
-			p->cur_arg = $<id>6;
+			p->cur_arg = $<id>7;
 		    }
 		| keyword_break
 		    {
@@ -4644,6 +4682,16 @@ parser_yyerror(struct parser_params *p, const YYLTYPE *yylloc, const char *msg)
     long len;
     int i;
     YYLTYPE current;
+
+    if (p->last_loc.beg_pos.lineno != 0) {
+        fprintf(stderr,
+                "(%d, %d)..(%d, %d)\n",
+                p->last_loc.beg_pos.lineno,
+                p->last_loc.beg_pos.column,
+                p->last_loc.end_pos.lineno,
+                p->last_loc.end_pos.column
+               );
+    }
 
     if (!yylloc) {
 	RUBY_SET_YYLLOC(current);
