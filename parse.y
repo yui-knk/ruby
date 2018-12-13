@@ -344,7 +344,7 @@ static void
 print_loc(const rb_code_location_t *loc)
 {
     fprintf(stderr,
-            "parser_set_last_loc: (%d.%d-%d.%d)\n",
+            "(%d.%d-%d.%d)\n",
             loc->beg_pos.lineno,
             loc->beg_pos.column,
             loc->end_pos.lineno,
@@ -4744,6 +4744,7 @@ parser_yyerror(struct parser_params *p, const YYLTYPE *yylloc, const char *msg)
     YYLTYPE current;
 
     if (p->last_loc.beg_pos.lineno != 0) {
+        fprintf(stderr, "'end' is needed for\n");
         print_loc(&p->last_loc);
     }
 
