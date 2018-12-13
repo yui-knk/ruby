@@ -356,14 +356,14 @@ print_loc(const rb_code_location_t *loc)
 static void
 parser_set_last_loc(struct parser_params *p, const rb_code_location_t *loc)
 {
-    // print_loc(loc);
+    /* print_loc(loc); */
     p->last_loc = *loc;
 }
 
 static void
 parser_reset_last_loc(struct parser_params *p)
 {
-    // fprintf(stderr, "parser_reset_last_loc\n");
+    /* fprintf(stderr, "parser_reset_last_loc\n"); */
     p->last_loc = NULL_LOC;
 }
 
