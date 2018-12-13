@@ -358,6 +358,12 @@ parser_set_last_loc(struct parser_params *p, const rb_code_location_t *loc)
     p->last_loc = *loc;
 }
 
+static void
+parser_reset_last_loc(struct parser_params *p)
+{
+    p->last_loc = NULL_LOC;
+}
+
 static NODE* node_newnode(struct parser_params *, enum node_type, VALUE, VALUE, VALUE, const rb_code_location_t*);
 #define rb_node_newnode(type, a1, a2, a3, loc) node_newnode(p, (type), (a1), (a2), (a3), (loc))
 
@@ -2480,23 +2486,20 @@ primary		: literal
                         nd_set_first_loc($$, @1.beg_pos);
                     /*% %*/
 		    }
-		| k_if
-                    {
-                        $<loc>$ = p->last_loc;
-                        print_loc(&p->last_loc);
-                        parser_set_last_loc(p, &@1);
-                    }
-                  expr_value then
+		| k_if expr_value then
 		  compstmt
 		  if_tail
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
 		  k_end
 		    {
 		    /*%%%*/
-			$$ = new_if(p, $3, $5, $6, &@$);
-                        parser_set_last_loc(p, &$<loc>2);
-			fixpos($$, $3);
+			$$ = new_if(p, $2, $4, $5, &@$);
+                        parser_reset_last_loc(p);
+			fixpos($$, $2);
 		    /*% %*/
-		    /*% ripper: if!($3, $5, escape_Qundef($6)) %*/
+		    /*% ripper: if!($2, $4, escape_Qundef($5)) %*/
 		    }
 		| k_unless expr_value then
 		  compstmt
@@ -2660,10 +2663,6 @@ primary		: literal
 			p->in_class = $<num>1 & 1;
 		    }
 		| k_def fname
-                    {
-                        $<loc>$ = p->last_loc;
-                        parser_set_last_loc(p, &@1);
-                    }
 		    {
 			local_push(p, 0);
 			$<id>$ = p->cur_arg;
@@ -2675,26 +2674,25 @@ primary		: literal
 		    }
 		  f_arglist
 		  bodystmt
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
 		  k_end
 		    {
 		    /*%%%*/
-			NODE *body = remove_begin($7);
-                        parser_set_last_loc(p, &$<loc>3);
+			NODE *body = remove_begin($6);
+                        parser_reset_last_loc(p);
 			reduce_nodes(p, &body);
-			$$ = NEW_DEFN($2, $6, body, &@$);
+			$$ = NEW_DEFN($2, $5, body, &@$);
 			nd_set_line($$->nd_defn, @8.end_pos.lineno);
 			set_line_body(body, @1.beg_pos.lineno);
 		    /*% %*/
-		    /*% ripper: def!($2, $6, $7) %*/
+		    /*% ripper: def!($2, $5, $6) %*/
 			local_pop(p);
-			p->in_def = $<num>5 & 1;
-			p->cur_arg = $<id>4;
+			p->in_def = $<num>4 & 1;
+			p->cur_arg = $<id>3;
 		    }
 		| k_def singleton dot_or_colon {SET_LEX_STATE(EXPR_FNAME);} fname
-                    {
-                        $<loc>$ = p->last_loc;
-                        parser_set_last_loc(p, &@1);
-                    }
 		    {
 			$<num>4 = p->in_def;
 			p->in_def = 1;
@@ -2705,20 +2703,23 @@ primary		: literal
 		    }
 		  f_arglist
 		  bodystmt
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
 		  k_end
 		    {
 		    /*%%%*/
-			NODE *body = remove_begin($9);
-                        parser_set_last_loc(p, &$<loc>6);
+			NODE *body = remove_begin($8);
+                        parser_reset_last_loc(p);
 			reduce_nodes(p, &body);
-			$$ = NEW_DEFS($2, $5, $8, body, &@$);
+			$$ = NEW_DEFS($2, $5, $7, body, &@$);
 			nd_set_line($$->nd_defn, @10.end_pos.lineno);
 			set_line_body(body, @1.beg_pos.lineno);
 		    /*% %*/
-		    /*% ripper: defs!($2, $3, $5, $8, $9) %*/
+		    /*% ripper: defs!($2, $3, $5, $7, $8) %*/
 			local_pop(p);
 			p->in_def = $<num>4 & 1;
-			p->cur_arg = $<id>7;
+			p->cur_arg = $<id>6;
 		    }
 		| keyword_break
 		    {
@@ -4684,13 +4685,7 @@ parser_yyerror(struct parser_params *p, const YYLTYPE *yylloc, const char *msg)
     YYLTYPE current;
 
     if (p->last_loc.beg_pos.lineno != 0) {
-        fprintf(stderr,
-                "(%d, %d)..(%d, %d)\n",
-                p->last_loc.beg_pos.lineno,
-                p->last_loc.beg_pos.column,
-                p->last_loc.end_pos.lineno,
-                p->last_loc.end_pos.column
-               );
+        print_loc(&p->last_loc);
     }
 
     if (!yylloc) {
