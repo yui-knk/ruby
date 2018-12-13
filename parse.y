@@ -339,6 +339,7 @@ add_mark_object(struct parser_params *p, VALUE obj)
     return obj;
 }
 
+#ifndef RIPPER
 static void
 print_loc(const rb_code_location_t *loc)
 {
@@ -350,17 +351,19 @@ print_loc(const rb_code_location_t *loc)
             loc->end_pos.column
            );
 }
+#endif /* !RIPPER */
 
 static void
 parser_set_last_loc(struct parser_params *p, const rb_code_location_t *loc)
 {
-    print_loc(loc);
+    // print_loc(loc);
     p->last_loc = *loc;
 }
 
 static void
 parser_reset_last_loc(struct parser_params *p)
 {
+    // fprintf(stderr, "parser_reset_last_loc\n");
     p->last_loc = NULL_LOC;
 }
 
@@ -2358,11 +2361,15 @@ primary		: literal
 			CMDARG_PUSH(0);
 		    }
 		  bodystmt
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
 		  k_end
 		    {
 			CMDARG_POP();
 		    /*%%%*/
 			set_line_body($3, @1.end_pos.lineno);
+                        parser_reset_last_loc(p);
 			$$ = NEW_BEGIN($3, &@$);
 			nd_set_line($$, @1.end_pos.lineno);
 		    /*% %*/
@@ -2504,53 +2511,77 @@ primary		: literal
 		| k_unless expr_value then
 		  compstmt
 		  opt_else
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
 		  k_end
 		    {
 		    /*%%%*/
 			$$ = new_unless(p, $2, $4, $5, &@$);
+                        parser_reset_last_loc(p);
 			fixpos($$, $2);
 		    /*% %*/
 		    /*% ripper: unless!($2, $4, escape_Qundef($5)) %*/
 		    }
 		| k_while expr_value_do
 		  compstmt
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
 		  k_end
 		    {
 		    /*%%%*/
 			$$ = NEW_WHILE(cond(p, $2, &@2), $3, 1, &@$);
+                        parser_reset_last_loc(p);
 			fixpos($$, $2);
 		    /*% %*/
 		    /*% ripper: while!($2, $3) %*/
 		    }
 		| k_until expr_value_do
 		  compstmt
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
 		  k_end
 		    {
 		    /*%%%*/
 			$$ = NEW_UNTIL(cond(p, $2, &@2), $3, 1, &@$);
+                        parser_reset_last_loc(p);
 			fixpos($$, $2);
 		    /*% %*/
 		    /*% ripper: until!($2, $3) %*/
 		    }
 		| k_case expr_value opt_terms
 		  case_body
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
 		  k_end
 		    {
 		    /*%%%*/
 			$$ = NEW_CASE($2, $4, &@$);
+                        parser_reset_last_loc(p);
 			fixpos($$, $2);
 		    /*% %*/
 		    /*% ripper: case!($2, $4) %*/
 		    }
-		| k_case opt_terms case_body k_end
+		| k_case opt_terms case_body
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
+                  k_end
 		    {
 		    /*%%%*/
 			$$ = NEW_CASE2($3, &@$);
+                        parser_reset_last_loc(p);
 		    /*% %*/
 		    /*% ripper: case!(Qnil, $3) %*/
 		    }
 		| k_for for_var keyword_in expr_value_do
 		  compstmt
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
 		  k_end
 		    {
 		    /*%%%*/
@@ -2570,6 +2601,7 @@ primary		: literal
 			ID *tbl = ALLOC_N(ID, 2);
 			tbl[0] = 1 /* length of local var table */; tbl[1] = id /* internal id */;
 			tmpbuf->ptr = (VALUE *)tbl;
+                        parser_reset_last_loc(p);
 
 			switch (nd_type($2)) {
 			  case NODE_LASGN:
@@ -2605,13 +2637,17 @@ primary		: literal
 			local_push(p, 0);
 		    }
 		  bodystmt
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
 		  k_end
 		    {
 		    /*%%%*/
 			$$ = NEW_CLASS($2, $5, $3, &@$);
-			nd_set_line($$->nd_body, @6.end_pos.lineno);
+			nd_set_line($$->nd_body, @7.end_pos.lineno);
 			set_line_body($5, @3.end_pos.lineno);
 			nd_set_line($$, @3.end_pos.lineno);
+                        parser_reset_last_loc(p);
 		    /*% %*/
 		    /*% ripper: class!($2, $3, $5) %*/
 			local_pop(p);
@@ -2626,13 +2662,17 @@ primary		: literal
 		    }
 		  term
 		  bodystmt
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
 		  k_end
 		    {
 		    /*%%%*/
 			$$ = NEW_SCLASS($3, $6, &@$);
-			nd_set_line($$->nd_body, @7.end_pos.lineno);
+			nd_set_line($$->nd_body, @8.end_pos.lineno);
 			set_line_body($6, nd_line($3));
 			fixpos($$, $3);
+                        parser_reset_last_loc(p);
 		    /*% %*/
 		    /*% ripper: sclass!($3, $6) %*/
 			local_pop(p);
@@ -2650,13 +2690,17 @@ primary		: literal
 			local_push(p, 0);
 		    }
 		  bodystmt
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
 		  k_end
 		    {
 		    /*%%%*/
 			$$ = NEW_MODULE($2, $4, &@$);
-			nd_set_line($$->nd_body, @5.end_pos.lineno);
+			nd_set_line($$->nd_body, @6.end_pos.lineno);
 			set_line_body($4, @2.end_pos.lineno);
 			nd_set_line($$, @2.end_pos.lineno);
+                        parser_reset_last_loc(p);
 		    /*% %*/
 		    /*% ripper: module!($2, $4) %*/
 			local_pop(p);
@@ -3213,15 +3257,25 @@ lambda_body	: tLAMBEG compstmt '}'
 			token_info_pop(p, "}", &@3);
 			$$ = $2;
 		    }
-		| keyword_do_LAMBDA bodystmt k_end
+		| keyword_do_LAMBDA bodystmt
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
+                  k_end
 		    {
 			$$ = $2;
+                        parser_reset_last_loc(p);
 		    }
 		;
 
-do_block	: k_do_block do_body k_end
+do_block	: k_do_block do_body
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
+                  k_end
 		    {
 			$$ = $2;
+                        parser_reset_last_loc(p);
 		    /*%%%*/
 			$$->nd_body->nd_loc = code_loc_gen(&@1, &@3);
 			nd_set_line($$, @1.end_pos.lineno);
@@ -3349,12 +3403,17 @@ brace_block	: '{' brace_body '}'
 			nd_set_line($$, @1.end_pos.lineno);
 		    /*% %*/
 		    }
-		| k_do do_body k_end
+		| k_do do_body
+                    {
+                        parser_set_last_loc(p, &@1);
+                    }
+                  k_end
 		    {
 			$$ = $2;
 		    /*%%%*/
-			$$->nd_body->nd_loc = code_loc_gen(&@1, &@3);
+			$$->nd_body->nd_loc = code_loc_gen(&@1, &@4);
 			nd_set_line($$, @1.end_pos.lineno);
+                        parser_reset_last_loc(p);
 		    /*% %*/
 		    }
 		;
