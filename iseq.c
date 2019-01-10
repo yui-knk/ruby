@@ -390,9 +390,18 @@ rb_iseq_pathobj_set(const rb_iseq_t *iseq, VALUE path, VALUE realpath)
 }
 
 static rb_iseq_location_t *
-iseq_location_setup(rb_iseq_t *iseq, VALUE name, VALUE path, VALUE realpath, VALUE first_lineno, const rb_code_location_t *code_location, const int node_id)
+iseq_location_setup(rb_iseq_t *iseq, VALUE name, VALUE path, VALUE realpath, VALUE first_lineno, const rb_code_location_t *code_location, const int node_id, enum iseq_type type)
 {
     rb_iseq_location_t *loc = &iseq->body->location;
+
+    if (code_location != NULL && FIX2INT(first_lineno) != 0) {
+
+        if (type == ISEQ_TYPE_METHOD || type == ISEQ_TYPE_BLOCK) {
+            if (FIX2INT(first_lineno) != code_location->beg_pos.lineno) {
+                rb_bug("iseq_location_setup: (%d) (%d) (%s)", FIX2INT(first_lineno), code_location->beg_pos.lineno, rb_obj_info(path));
+            }
+        }
+    }
 
     rb_iseq_pathobj_set(iseq, path, realpath);
     RB_OBJ_WRITE(iseq, &loc->label, name);
@@ -455,7 +464,7 @@ prepare_iseq_build(rb_iseq_t *iseq,
     set_relation(iseq, parent);
 
     name = rb_fstring(name);
-    iseq_location_setup(iseq, name, path, realpath, first_lineno, code_location, node_id);
+    iseq_location_setup(iseq, name, path, realpath, first_lineno, code_location, node_id, type);
     if (iseq != body->local_iseq) {
 	RB_OBJ_WRITE(iseq, &body->location.base_label, body->local_iseq->body->location.label);
     }
