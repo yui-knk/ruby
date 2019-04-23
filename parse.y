@@ -13097,3 +13097,311 @@ InitVM_ripper(void)
  * c-file-style: ruby
  * End:
  */
+#ifndef RIPPER
+
+const unsigned long yytname_len = sizeof(yytname) / sizeof(yytname[0]);
+const unsigned long yytoknum_len = sizeof(yytoknum) / sizeof(yytoknum[0]);
+const unsigned long yypact_len = sizeof(yypact) / sizeof(yypact[0]);
+const unsigned long yydefact_len = sizeof(yydefact) / sizeof(yydefact[0]);
+const unsigned long yypgoto_len = sizeof(yypgoto) / sizeof(yypgoto[0]);
+const unsigned long yydefgoto_len = sizeof(yydefgoto) / sizeof(yydefgoto[0]);
+const unsigned long yytable_len = sizeof(yytable) / sizeof(yytable[0]);
+const unsigned long yycheck_len = sizeof(yycheck) / sizeof(yycheck[0]);
+const unsigned long yystos_len = sizeof(yystos) / sizeof(yystos[0]);
+const unsigned long yyr1_len = sizeof(yyr1) / sizeof(yyr1[0]);
+const unsigned long yyr2_len = sizeof(yyr2) / sizeof(yyr2[0]);
+
+static VALUE
+rb_parsey_s_yytname(VALUE module, VALUE index)
+{
+    long i;
+
+    if (!FIXNUM_P(index)) {
+      return Qnil;
+    }
+
+    i = FIX2LONG(index);
+
+    /* Last entry of yytname is YY_NULLPTR */
+    if ((-1 < i) && ((unsigned long)i < yytname_len - 1)) {
+        return rb_fstring_cstr(yytname[i]);
+    }
+
+    return Qnil;
+}
+
+static VALUE
+rb_parsey_s_yytname_len(VALUE module)
+{
+    return INT2FIX(yytname_len);
+}
+
+static VALUE
+rb_parsey_s_yytoknum(VALUE module, VALUE index)
+{
+    long i;
+
+    if (!FIXNUM_P(index)) {
+      return Qnil;
+    }
+
+    i = FIX2LONG(index);
+
+    if ((-1 < i) && ((unsigned long)i < yytoknum_len)) {
+        return INT2FIX(yytoknum[i]);
+    }
+
+    return Qnil;
+}
+
+static VALUE
+rb_parsey_s_yytoknum_len(VALUE module)
+{
+    return INT2FIX(yytoknum_len);
+}
+
+static VALUE
+rb_parsey_s_yypact(VALUE module, VALUE index)
+{
+    long i;
+
+    if (!FIXNUM_P(index)) {
+      return Qnil;
+    }
+
+    i = FIX2LONG(index);
+
+    if ((-1 < i) && ((unsigned long)i < yypact_len)) {
+        return INT2FIX(yypact[i]);
+    }
+
+    return Qnil;
+}
+
+static VALUE
+rb_parsey_s_yypact_len(VALUE module)
+{
+    return INT2FIX(yypact_len);
+}
+
+static VALUE
+rb_parsey_s_yydefact(VALUE module, VALUE index)
+{
+    long i;
+
+    if (!FIXNUM_P(index)) {
+      return Qnil;
+    }
+
+    i = FIX2LONG(index);
+
+    if ((-1 < i) && ((unsigned long)i < yydefact_len)) {
+        return INT2FIX(yydefact[i]);
+    }
+
+    return Qnil;
+}
+
+static VALUE
+rb_parsey_s_yydefact_len(VALUE module)
+{
+    return INT2FIX(yydefact_len);
+}
+
+static VALUE
+rb_parsey_s_yypgoto(VALUE module, VALUE index)
+{
+    long i;
+
+    if (!FIXNUM_P(index)) {
+      return Qnil;
+    }
+
+    i = FIX2LONG(index);
+
+    if ((-1 < i) && ((unsigned long)i < yypgoto_len)) {
+        return INT2FIX(yypgoto[i]);
+    }
+
+    return Qnil;
+}
+
+static VALUE
+rb_parsey_s_yypgoto_len(VALUE module)
+{
+    return INT2FIX(yypgoto_len);
+}
+
+static VALUE
+rb_parsey_s_yydefgoto(VALUE module, VALUE index)
+{
+    long i;
+
+    if (!FIXNUM_P(index)) {
+      return Qnil;
+    }
+
+    i = FIX2LONG(index);
+
+    if ((-1 < i) && ((unsigned long)i < yydefgoto_len)) {
+        return INT2FIX(yydefgoto[i]);
+    }
+
+    return Qnil;
+}
+
+static VALUE
+rb_parsey_s_yydefgoto_len(VALUE module)
+{
+    return INT2FIX(yydefgoto_len);
+}
+
+static VALUE
+rb_parsey_s_yytable(VALUE module, VALUE index)
+{
+    long i;
+
+    if (!FIXNUM_P(index)) {
+      return Qnil;
+    }
+
+    i = FIX2LONG(index);
+
+    if ((-1 < i) && ((unsigned long)i < yytable_len)) {
+        return INT2FIX(yytable[i]);
+    }
+
+    return Qnil;
+}
+
+static VALUE
+rb_parsey_s_yytable_len(VALUE module)
+{
+    return INT2FIX(yytable_len);
+}
+
+static VALUE
+rb_parsey_s_yycheck(VALUE module, VALUE index)
+{
+    long i;
+
+    if (!FIXNUM_P(index)) {
+      return Qnil;
+    }
+
+    i = FIX2LONG(index);
+
+    if ((-1 < i) && ((unsigned long)i < yycheck_len)) {
+        return INT2FIX(yycheck[i]);
+    }
+
+    return Qnil;
+}
+
+static VALUE
+rb_parsey_s_yycheck_len(VALUE module)
+{
+    return INT2FIX(yycheck_len);
+}
+
+static VALUE
+rb_parsey_s_yystos(VALUE module, VALUE index)
+{
+    long i;
+
+    if (!FIXNUM_P(index)) {
+      return Qnil;
+    }
+
+    i = FIX2LONG(index);
+
+    if ((-1 < i) && ((unsigned long)i < yystos_len)) {
+        return INT2FIX(yystos[i]);
+    }
+
+    return Qnil;
+}
+
+static VALUE
+rb_parsey_s_yystos_len(VALUE module)
+{
+    return INT2FIX(yystos_len);
+}
+
+static VALUE
+rb_parsey_s_yyr1(VALUE module, VALUE index)
+{
+    long i;
+
+    if (!FIXNUM_P(index)) {
+      return Qnil;
+    }
+
+    i = FIX2LONG(index);
+
+    if ((-1 < i) && ((unsigned long)i < yyr1_len)) {
+        return INT2FIX(yyr1[i]);
+    }
+
+    return Qnil;
+}
+
+static VALUE
+rb_parsey_s_yyr1_len(VALUE module)
+{
+    return INT2FIX(yyr1_len);
+}
+
+static VALUE
+rb_parsey_s_yyr2(VALUE module, VALUE index)
+{
+    long i;
+
+    if (!FIXNUM_P(index)) {
+      return Qnil;
+    }
+
+    i = FIX2LONG(index);
+
+    if ((-1 < i) && ((unsigned long)i < yyr2_len)) {
+        return INT2FIX(yyr2[i]);
+    }
+
+    return Qnil;
+}
+
+static VALUE
+rb_parsey_s_yyr2_len(VALUE module)
+{
+    return INT2FIX(yyr2_len);
+}
+
+void
+Init_Parsey(void)
+{
+    VALUE rb_mParsey = rb_define_module("Parsey");
+
+    rb_define_singleton_method(rb_mParsey, "yytname", rb_parsey_s_yytname, 1);
+    rb_define_singleton_method(rb_mParsey, "yytname_len", rb_parsey_s_yytname_len, 0);
+    rb_define_singleton_method(rb_mParsey, "yytoknum", rb_parsey_s_yytoknum, 1);
+    rb_define_singleton_method(rb_mParsey, "yytoknum_len", rb_parsey_s_yytoknum_len, 0);
+    rb_define_singleton_method(rb_mParsey, "yypact", rb_parsey_s_yypact, 1);
+    rb_define_singleton_method(rb_mParsey, "yypact_len", rb_parsey_s_yypact_len, 0);
+    rb_define_singleton_method(rb_mParsey, "yydefact", rb_parsey_s_yydefact, 1);
+    rb_define_singleton_method(rb_mParsey, "yydefact_len", rb_parsey_s_yydefact_len, 0);
+    rb_define_singleton_method(rb_mParsey, "yypgoto", rb_parsey_s_yypgoto, 1);
+    rb_define_singleton_method(rb_mParsey, "yypgoto_len", rb_parsey_s_yypgoto_len, 0);
+    rb_define_singleton_method(rb_mParsey, "yydefgoto", rb_parsey_s_yydefgoto, 1);
+    rb_define_singleton_method(rb_mParsey, "yydefgoto_len", rb_parsey_s_yydefgoto_len, 0);
+    rb_define_singleton_method(rb_mParsey, "yytable", rb_parsey_s_yytable, 1);
+    rb_define_singleton_method(rb_mParsey, "yytable_len", rb_parsey_s_yytable_len, 0);
+    rb_define_singleton_method(rb_mParsey, "yycheck", rb_parsey_s_yycheck, 1);
+    rb_define_singleton_method(rb_mParsey, "yycheck_len", rb_parsey_s_yycheck_len, 0);
+    rb_define_singleton_method(rb_mParsey, "yystos", rb_parsey_s_yystos, 1);
+    rb_define_singleton_method(rb_mParsey, "yystos_len", rb_parsey_s_yystos_len, 0);
+    rb_define_singleton_method(rb_mParsey, "yyr1", rb_parsey_s_yyr1, 1);
+    rb_define_singleton_method(rb_mParsey, "yyr1_len", rb_parsey_s_yyr1_len, 0);
+    rb_define_singleton_method(rb_mParsey, "yyr2", rb_parsey_s_yyr2, 1);
+    rb_define_singleton_method(rb_mParsey, "yyr2_len", rb_parsey_s_yyr2_len, 0);
+}
+#endif
