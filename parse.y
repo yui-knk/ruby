@@ -13099,6 +13099,8 @@ InitVM_ripper(void)
  */
 #ifndef RIPPER
 
+const unsigned long yytranslate_len = sizeof(yytranslate) / sizeof(yytranslate[0]);
+const unsigned long yyrline_len = sizeof(yyrline) / sizeof(yyrline[0]);
 const unsigned long yytname_len = sizeof(yytname) / sizeof(yytname[0]);
 const unsigned long yytoknum_len = sizeof(yytoknum) / sizeof(yytoknum[0]);
 const unsigned long yypact_len = sizeof(yypact) / sizeof(yypact[0]);
@@ -13110,6 +13112,34 @@ const unsigned long yycheck_len = sizeof(yycheck) / sizeof(yycheck[0]);
 const unsigned long yystos_len = sizeof(yystos) / sizeof(yystos[0]);
 const unsigned long yyr1_len = sizeof(yyr1) / sizeof(yyr1[0]);
 const unsigned long yyr2_len = sizeof(yyr2) / sizeof(yyr2[0]);
+
+static VALUE
+rb_parsey_s_yytranslate(VALUE module)
+{
+    /* Last entry of yytranslate is YY_NULLPTR */
+    unsigned long l = yytranslate_len - 1;
+    VALUE ary = rb_ary_new_capa(l);
+
+    for (unsigned long i = 0; i < l; i++) {
+        rb_ary_push(ary, INT2FIX(yytranslate[i]));
+    }
+
+    return ary;
+}
+
+static VALUE
+rb_parsey_s_yyrline(VALUE module)
+{
+    /* Last entry of yyrline is YY_NULLPTR */
+    unsigned long l = yyrline_len - 1;
+    VALUE ary = rb_ary_new_capa(l);
+
+    for (unsigned long i = 0; i < l; i++) {
+        rb_ary_push(ary, INT2FIX(yyrline[i]));
+    }
+
+    return ary;
+}
 
 static VALUE
 rb_parsey_s_yytname(VALUE module)
@@ -13250,6 +13280,8 @@ Init_Parsey(void)
 {
     VALUE rb_mParsey = rb_define_module("Parsey");
 
+    rb_define_singleton_method(rb_mParsey, "yytranslate", rb_parsey_s_yytranslate, 0);
+    rb_define_singleton_method(rb_mParsey, "yyrline", rb_parsey_s_yyrline, 0);
     rb_define_singleton_method(rb_mParsey, "yytname", rb_parsey_s_yytname, 0);
     rb_define_singleton_method(rb_mParsey, "yytoknum", rb_parsey_s_yytoknum, 0);
     rb_define_singleton_method(rb_mParsey, "yypact", rb_parsey_s_yypact, 0);
