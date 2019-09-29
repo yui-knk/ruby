@@ -13275,6 +13275,12 @@ rb_parsey_s_yyr2(VALUE module)
     return ary;
 }
 
+static VALUE
+rb_parsey_s_yypact_ninf(VALUE module)
+{
+    return INT2FIX(YYPACT_NINF);
+}
+
 void
 Init_Parsey(void)
 {
@@ -13293,5 +13299,6 @@ Init_Parsey(void)
     rb_define_singleton_method(rb_mParsey, "yystos", rb_parsey_s_yystos, 0);
     rb_define_singleton_method(rb_mParsey, "yyr1", rb_parsey_s_yyr1, 0);
     rb_define_singleton_method(rb_mParsey, "yyr2", rb_parsey_s_yyr2, 0);
+    rb_define_singleton_method(rb_mParsey, "yypact_ninf", rb_parsey_s_yypact_ninf, 0);
 }
 #endif
