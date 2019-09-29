@@ -321,10 +321,10 @@ struct parser_params {
 #define STR_NEW3(ptr,len,e,func) parser_str_new((ptr),(len),(e),(func),p->enc)
 #define TOK_INTERN() intern_cstr(tok(p), toklen(p), p->enc)
 
-static int parser_yyerror(struct parser_params*, const YYLTYPE *yylloc, const char*);
-#define yyerror0(msg) parser_yyerror(p, NULL, (msg))
-#define yyerror1(loc, msg) parser_yyerror(p, (loc), (msg))
-#define yyerror(yylloc, p, msg) parser_yyerror(p, yylloc, msg)
+static int parser_yyerror(struct parser_params*, const YYLTYPE *yylloc, const int yystate, const char*);
+#define yyerror0(msg) parser_yyerror(p, NULL, -1, (msg))
+#define yyerror1(loc, msg) parser_yyerror(p, (loc), -1, (msg))
+#define yyerror(yylloc, p, msg) parser_yyerror(p, yylloc, yystate, msg)
 #define token_flush(ptr) ((ptr)->lex.ptok = (ptr)->lex.pcur)
 
 #ifdef RIPPER
@@ -5548,7 +5548,7 @@ parser_show_error_line(struct parser_params *p, const YYLTYPE *yylloc)
 }
 
 static int
-parser_yyerror(struct parser_params *p, const YYLTYPE *yylloc, const char *msg)
+parser_yyerror(struct parser_params *p, const YYLTYPE *yylloc, const int yystate, const char *msg)
 {
     YYLTYPE current;
 
@@ -5672,7 +5672,7 @@ ruby_show_error_line(VALUE errbuf, const YYLTYPE *yylloc, int lineno, VALUE str)
 }
 #else
 static int
-parser_yyerror(struct parser_params *p, const YYLTYPE *yylloc, const char *msg)
+parser_yyerror(struct parser_params *p, const YYLTYPE *yylloc, const int yystate, const char *msg)
 {
     dispatch1(parse_error, STR_NEW2(msg));
     ripper_error(p);
@@ -7085,7 +7085,7 @@ heredoc_identifier(struct parser_params *p)
 	len = 0;
 	while ((c = nextc(p)) != term) {
 	    if (c == -1 || c == '\r' || c == '\n') {
-		yyerror(NULL, p, "unterminated here document identifier");
+		parser_yyerror(p, NULL, -1, "unterminated here document identifier");
 		return -1;
 	    }
 	}
@@ -7111,7 +7111,7 @@ heredoc_identifier(struct parser_params *p)
 
     len = p->lex.pcur - (p->lex.pbeg + offset) - quote;
     if ((unsigned long)len >= HERETERM_LENGTH_MAX)
-	yyerror(NULL, p, "too long here document identifier");
+	parser_yyerror(p, NULL, -1, "too long here document identifier");
     dispatch_scan_event(p, tHEREDOC_BEG);
     lex_goto_eol(p);
 
@@ -10238,7 +10238,7 @@ rb_parser_fatal(struct parser_params *p, const char *fmt, ...)
     va_start(ap, fmt);
     rb_str_vcatf(mesg, fmt, ap);
     va_end(ap);
-    parser_yyerror(p, NULL, RSTRING_PTR(mesg));
+    parser_yyerror(p, NULL, -1, RSTRING_PTR(mesg));
     RB_GC_GUARD(mesg);
 
     mesg = rb_str_new(0, 0);
