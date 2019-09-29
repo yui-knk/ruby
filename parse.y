@@ -919,7 +919,7 @@ static ID id_warn, id_warning, id_gets, id_assoc;
 # else
 # define WARNING_CALL rb_funcall
 # endif
-PRINTF_ARGS(static void ripper_compile_error(struct parser_params*, const char *fmt, ...), 2, 3);
+PRINTF_ARGS(static void ripper_compile_error(struct parser_params*, const int yystate, const char *fmt, ...), 3, 4);
 # define compile_error ripper_compile_error
 #else
 # define WARN_S_L(s,l) s
@@ -934,7 +934,7 @@ PRINTF_ARGS(static void ripper_compile_error(struct parser_params*, const char *
 # define WARNING_ARGS(fmt,n) WARN_ARGS(fmt,n)
 # define WARNING_ARGS_L(l,fmt,n) WARN_ARGS_L(l,fmt,n)
 # define WARNING_CALL rb_compile_warning
-PRINTF_ARGS(static void parser_compile_error(struct parser_params*, const char *fmt, ...), 2, 3);
+PRINTF_ARGS(static void parser_compile_error(struct parser_params*, const int yystate, const char *fmt, ...), 3, 4);
 # define compile_error parser_compile_error
 #endif
 
@@ -3526,7 +3526,7 @@ block_call	: command do_block
 		    {
 		    /*%%%*/
 			if (nd_type($1) == NODE_YIELD) {
-			    compile_error(p, "block given to yield");
+			    compile_error(p, -1, "block given to yield");
 			}
 			else {
 			    block_dup_check(p, $1->nd_args, $2);
@@ -4212,7 +4212,7 @@ p_var_ref	: '^' tIDENTIFIER
 		    /*%%%*/
 			NODE *n = gettable(p, $2, &@$);
 			if (!(nd_type(n) == NODE_LVAR || nd_type(n) == NODE_DVAR)) {
-			    compile_error(p, "%"PRIsVALUE": no such local variable", rb_id2str($2));
+			    compile_error(p, -1, "%"PRIsVALUE": no such local variable", rb_id2str($2));
 			}
 			$$ = n;
 		    /*% %*/
@@ -5532,7 +5532,7 @@ parser_precise_mbclen(struct parser_params *p, const char *ptr)
 {
     int len = rb_enc_precise_mbclen(ptr, p->lex.pend, p->enc);
     if (!MBCLEN_CHARFOUND_P(len)) {
-	compile_error(p, "invalid multibyte char (%s)", rb_enc_name(p->enc));
+	compile_error(p, -1, "invalid multibyte char (%s)", rb_enc_name(p->enc));
 	return -1;
     }
     return len;
@@ -5561,7 +5561,7 @@ parser_yyerror(struct parser_params *p, const YYLTYPE *yylloc, const int yystate
 	      yylloc->beg_pos.column == yylloc->end_pos.column)) {
 	yylloc = 0;
     }
-    compile_error(p, "%s", msg);
+    compile_error(p, yystate, "%s", msg);
     parser_show_error_line(p, yylloc);
     return 0;
 }
@@ -6321,7 +6321,7 @@ tokadd_codepoint(struct parser_params *p, rb_encoding **encp,
 	rb_encoding *utf8 = rb_utf8_encoding();
 	if (*encp && utf8 != *encp) {
 	    YYLTYPE loc = RUBY_INIT_YYLLOC();
-	    compile_error(p, "UTF-8 mixed within %s source", rb_enc_name(*encp));
+	    compile_error(p, -1, "UTF-8 mixed within %s source", rb_enc_name(*encp));
 	    parser_show_error_line(p, &loc);
 	    return wide;
 	}
@@ -6634,7 +6634,7 @@ regx_options(struct parser_params *p)
     if (toklen(p)) {
 	YYLTYPE loc = RUBY_INIT_YYLLOC();
 	tokfix(p);
-	compile_error(p, "unknown regexp option%s - %*s",
+	compile_error(p, -1, "unknown regexp option%s - %*s",
 		      toklen(p) > 1 ? "s" : "", toklen(p), tok(p));
 	parser_show_error_line(p, &loc);
     }
@@ -6696,7 +6696,7 @@ parser_mixed_error(struct parser_params *p, rb_encoding *enc1, rb_encoding *enc2
 {
     YYLTYPE loc = RUBY_INIT_YYLLOC();
     const char *n1 = rb_enc_name(enc1), *n2 = rb_enc_name(enc2);
-    compile_error(p, "%s mixed within %s source", n1, n2);
+    compile_error(p, -1, "%s mixed within %s source", n1, n2);
     parser_show_error_line(p, &loc);
 }
 
@@ -7019,7 +7019,7 @@ parse_string(struct parser_params *p, rb_strterm_literal_t *quote)
 #ifndef RIPPER
 # define unterminated_literal(mesg) yyerror0(mesg)
 #else
-# define unterminated_literal(mesg) compile_error(p,  mesg)
+# define unterminated_literal(mesg) compile_error(p, -1, mesg)
 #endif
 	    literal_flush(p, p->lex.pcur);
 	    if (func & STR_FUNC_QWORDS) {
@@ -7396,7 +7396,7 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
 	lex_goto_eol(p);
 #endif
 	heredoc_restore(p, &p->lex.strterm->u.heredoc);
-	compile_error(p, "can't find string \"%.*s\" anywhere before EOF",
+	compile_error(p, -1, "can't find string \"%.*s\" anywhere before EOF",
 		      (int)len, eos);
 	token_flush(p);
 	p->lex.strterm = 0;
@@ -8170,7 +8170,7 @@ parse_numeric(struct parser_params *p, int c)
       trailing_uc:
 	literal_flush(p, p->lex.pcur - 1);
 	YYLTYPE loc = RUBY_INIT_YYLLOC();
-	compile_error(p, "trailing `%c' in number", nondigit);
+	compile_error(p, -1, "trailing `%c' in number", nondigit);
 	parser_show_error_line(p, &loc);
     }
     tokfix(p);
@@ -8210,7 +8210,7 @@ parse_qmark(struct parser_params *p, int space_seen)
     }
     c = nextc(p);
     if (c == -1) {
-	compile_error(p, "incomplete character syntax");
+	compile_error(p, -1, "incomplete character syntax");
 	return 0;
     }
     if (rb_enc_isspace(c, p->enc)) {
@@ -8293,7 +8293,7 @@ parse_percent(struct parser_params *p, const int space_seen, const enum lex_stat
 	    }
 	}
 	if (c == -1 || term == -1) {
-	    compile_error(p, "unterminated quoted string meets end of file");
+	    compile_error(p, -1, "unterminated quoted string meets end of file");
 	    return 0;
 	}
 	paren = term;
@@ -8488,11 +8488,11 @@ parse_gvar(struct parser_params *p, const enum lex_state_e last_state)
 	if (!parser_is_identchar(p)) {
 	    YYLTYPE loc = RUBY_INIT_YYLLOC();
 	    if (c == -1 || ISSPACE(c)) {
-		compile_error(p, "`$' without identifiers is not allowed as a global variable name");
+		compile_error(p, -1, "`$' without identifiers is not allowed as a global variable name");
 	    }
 	    else {
 		pushback(p, c);
-		compile_error(p, "`$%c' is not allowed as a global variable name", c);
+		compile_error(p, -1, "`$%c' is not allowed as a global variable name", c);
 	    }
 	    parser_show_error_line(p, &loc);
 	    set_yylval_noname();
@@ -8516,11 +8516,11 @@ parser_numbered_param(struct parser_params *p, int n)
     if (n < 0) return false;
 
     if (DVARS_TERMINAL_P(p->lvtbl->args) || DVARS_TERMINAL_P(p->lvtbl->args->prev)) {
-	compile_error(p, "numbered parameter outside block");
+	compile_error(p, -1, "numbered parameter outside block");
 	return false;
     }
     if (p->max_numparam == ORDINAL_PARAM) {
-	compile_error(p, "ordinary parameter is defined");
+	compile_error(p, -1, "ordinary parameter is defined");
 	return false;
     }
     struct vtable *args = p->lvtbl->args;
@@ -8555,10 +8555,10 @@ parse_atmark(struct parser_params *p, const enum lex_state_e last_state)
 	pushback(p, c);
 	RUBY_SET_YYLLOC(loc);
 	if (result == tIVAR) {
-	    compile_error(p, "`@' without identifiers is not allowed as an instance variable name");
+	    compile_error(p, -1, "`@' without identifiers is not allowed as an instance variable name");
 	}
 	else {
-	    compile_error(p, "`@@' without identifiers is not allowed as a class variable name");
+	    compile_error(p, -1, "`@@' without identifiers is not allowed as a class variable name");
 	}
 	parser_show_error_line(p, &loc);
 	set_yylval_noname();
@@ -8569,10 +8569,10 @@ parse_atmark(struct parser_params *p, const enum lex_state_e last_state)
 	pushback(p, c);
 	RUBY_SET_YYLLOC(loc);
 	if (result == tIVAR) {
-	    compile_error(p, "`@%c' is not allowed as an instance variable name", c);
+	    compile_error(p, -1, "`@%c' is not allowed as an instance variable name", c);
 	}
 	else {
-	    compile_error(p, "`@@%c' is not allowed as a class variable name", c);
+	    compile_error(p, -1, "`@@%c' is not allowed as a class variable name", c);
 	}
 	parser_show_error_line(p, &loc);
 	set_yylval_noname();
@@ -8881,7 +8881,7 @@ parser_yylex(struct parser_params *p)
 		    first_p = FALSE;
 		    c = nextc(p);
 		    if (c == -1) {
-			compile_error(p, "embedded document meets end of file");
+			compile_error(p, -1, "embedded document meets end of file");
 			return 0;
 		    }
 		    if (c != '=') continue;
@@ -9375,7 +9375,7 @@ parser_yylex(struct parser_params *p)
 
       default:
 	if (!parser_is_identchar(p)) {
-	    compile_error(p, "Invalid char `\\x%02X' in expression", c);
+	    compile_error(p, -1, "Invalid char `\\x%02X' in expression", c);
             token_flush(p);
 	    goto retry;
 	}
@@ -9581,7 +9581,7 @@ literal_concat0(struct parser_params *p, VALUE head, VALUE tail)
 {
     if (NIL_P(tail)) return 1;
     if (!rb_enc_compatible(head, tail)) {
-	compile_error(p, "string literal encodings differ (%s / %s)",
+	compile_error(p, -1, "string literal encodings differ (%s / %s)",
 		      rb_enc_name(rb_enc_get(head)),
 		      rb_enc_name(rb_enc_get(tail)));
 	rb_str_resize(head, 0);
@@ -9829,7 +9829,7 @@ numparam_nested_p(struct parser_params *p)
     NODE *inner = p->numparam.inner;
     if (outer || inner) {
 	NODE *used = outer ? outer : inner;
-	compile_error(p, "numbered parameter is already used in\n"
+	compile_error(p, -1, "numbered parameter is already used in\n"
 		      "%s:%d: %s block here",
 		      p->ruby_sourcefile, nd_line(used),
 		      outer ? "outer" : "inner");
@@ -9922,7 +9922,7 @@ gettable(struct parser_params *p, ID id, const YYLTYPE *loc)
       case ID_CLASS:
 	return NEW_CVAR(id, loc);
     }
-    compile_error(p, "identifier %"PRIsVALUE" is not valid to get", rb_id2str(id));
+    compile_error(p, -1, "identifier %"PRIsVALUE" is not valid to get", rb_id2str(id));
     return 0;
 }
 
@@ -10118,7 +10118,7 @@ id_is_var(struct parser_params *p, ID id)
 	    return 0;
 	}
     }
-    compile_error(p, "identifier %"PRIsVALUE" is not valid to get", rb_id2str(id));
+    compile_error(p, -1, "identifier %"PRIsVALUE" is not valid to get", rb_id2str(id));
     return 0;
 }
 
@@ -10136,7 +10136,7 @@ new_regexp(struct parser_params *p, VALUE re, VALUE opt, const YYLTYPE *loc)
 	opt = RNODE(opt)->nd_rval;
     }
     if (src && NIL_P(parser_reg_compile(p, src, options, &err))) {
-	compile_error(p, "%"PRIsVALUE, err);
+	compile_error(p, -1, "%"PRIsVALUE, err);
     }
     return dispatch2(regexp_literal, re, opt);
 }
@@ -10243,13 +10243,13 @@ rb_parser_fatal(struct parser_params *p, const char *fmt, ...)
 
     mesg = rb_str_new(0, 0);
     append_lex_state_name(p->lex.state, mesg);
-    compile_error(p, "lex.state: %"PRIsVALUE, mesg);
+    compile_error(p, -1, "lex.state: %"PRIsVALUE, mesg);
     rb_str_resize(mesg, 0);
     append_bitstack_value(p->cond_stack, mesg);
-    compile_error(p, "cond_stack: %"PRIsVALUE, mesg);
+    compile_error(p, -1, "cond_stack: %"PRIsVALUE, mesg);
     rb_str_resize(mesg, 0);
     append_bitstack_value(p->cmdarg_stack, mesg);
-    compile_error(p, "cmdarg_stack: %"PRIsVALUE, mesg);
+    compile_error(p, -1, "cmdarg_stack: %"PRIsVALUE, mesg);
     if (p->debug_output == rb_stdout)
 	p->debug_output = rb_stderr;
     p->debug = TRUE;
@@ -10386,13 +10386,13 @@ assignable0(struct parser_params *p, ID id, const char **err)
 	{
 	    int idx = vtable_included(p->lvtbl->args, id);
 	    if (idx) {
-		compile_error(p, "Can't assign to numbered parameter @%d", idx);
+		compile_error(p, -1, "Can't assign to numbered parameter @%d", idx);
 		break;
 	    }
 	}
 	/* fallthru */
       default:
-	compile_error(p, "identifier %"PRIsVALUE" is not valid to set", rb_id2str(id));
+	compile_error(p, -1, "identifier %"PRIsVALUE" is not valid to set", rb_id2str(id));
     }
     return -1;
 }
@@ -10473,7 +10473,7 @@ new_bv(struct parser_params *p, ID name)
 {
     if (!name) return;
     if (!is_local_id(name)) {
-	compile_error(p, "invalid local variable - %"PRIsVALUE,
+	compile_error(p, -1, "invalid local variable - %"PRIsVALUE,
 		      rb_id2str(name));
 	return;
     }
@@ -10492,7 +10492,7 @@ static void
 block_dup_check(struct parser_params *p, NODE *node1, NODE *node2)
 {
     if (node2 && node1 && nd_type(node1) == NODE_BLOCK_PASS) {
-	compile_error(p, "both block arg and actual block given");
+	compile_error(p, -1, "both block arg and actual block given");
     }
 }
 
@@ -10508,10 +10508,10 @@ rb_backref_error(struct parser_params *p, NODE *node)
 {
     switch (nd_type(node)) {
       case NODE_NTH_REF:
-	compile_error(p, "Can't set variable $%ld", node->nd_nth);
+	compile_error(p, -1, "Can't set variable $%ld", node->nd_nth);
 	break;
       case NODE_BACK_REF:
-	compile_error(p, "Can't set variable $%c", (int)node->nd_nth);
+	compile_error(p, -1, "Can't set variable $%c", (int)node->nd_nth);
 	break;
     }
 }
@@ -11096,7 +11096,7 @@ static void
 no_blockarg(struct parser_params *p, NODE *node)
 {
     if (node && nd_type(node) == NODE_BLOCK_PASS) {
-	compile_error(p, "block argument should not be given");
+	compile_error(p, -1, "block argument should not be given");
     }
 }
 
@@ -11943,7 +11943,7 @@ dvar_curr(struct parser_params *p, ID id)
 static void
 reg_fragment_enc_error(struct parser_params* p, VALUE str, int c)
 {
-    compile_error(p,
+    compile_error(p, -1,
         "regexp encoding option '%c' differs from source encoding '%s'",
         c, rb_enc_name(rb_enc_get(str)));
 }
@@ -12001,7 +12001,7 @@ reg_fragment_check(struct parser_params* p, VALUE str, int options)
     err = rb_reg_check_preprocess(str);
     if (err != Qnil) {
         err = rb_obj_as_string(err);
-        compile_error(p, "%"PRIsVALUE, err);
+        compile_error(p, -1, "%"PRIsVALUE, err);
 	return 0;
     }
     return 1;
@@ -12080,7 +12080,7 @@ reg_compile(struct parser_params* p, VALUE str, int options)
     if (NIL_P(re)) {
 	VALUE m = rb_attr_get(rb_errinfo(), idMesg);
 	rb_set_errinfo(err);
-	compile_error(p, "%"PRIsVALUE, m);
+	compile_error(p, -1, "%"PRIsVALUE, m);
 	return Qnil;
     }
     return re;
@@ -12518,7 +12518,7 @@ rb_parser_printf(struct parser_params *p, const char *fmt, ...)
 }
 
 static void
-parser_compile_error(struct parser_params *p, const char *fmt, ...)
+parser_compile_error(struct parser_params *p, const int yystate, const char *fmt, ...)
 {
     va_list ap;
 
@@ -12526,11 +12526,12 @@ parser_compile_error(struct parser_params *p, const char *fmt, ...)
     p->error_p = 1;
     va_start(ap, fmt);
     p->error_buffer =
-	rb_syntax_error_append(p->error_buffer,
-			       p->ruby_sourcefile_string,
-			       p->ruby_sourceline,
-			       rb_long2int(p->lex.pcur - p->lex.pbeg),
-			       p->enc, fmt, ap);
+        rb_syntax_error_append(p->error_buffer,
+                               p->ruby_sourcefile_string,
+                               yystate,
+                               p->ruby_sourceline,
+                               rb_long2int(p->lex.pcur - p->lex.pbeg),
+                               p->enc, fmt, ap);
     va_end(ap);
 }
 
@@ -12748,7 +12749,7 @@ ripper_error(struct parser_params *p)
 }
 
 static void
-ripper_compile_error(struct parser_params *p, const char *fmt, ...)
+ripper_compile_error(struct parser_params *p, const int yystate, const char *fmt, ...)
 {
     VALUE str;
     va_list args;

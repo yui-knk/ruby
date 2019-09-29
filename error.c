@@ -49,6 +49,7 @@
 VALUE rb_iseqw_local_variables(VALUE iseqval);
 VALUE rb_iseqw_new(const rb_iseq_t *);
 int rb_str_end_with_asciichar(VALUE str, int c);
+static VALUE syntax_error_set_current_state(VALUE self, VALUE state);
 
 VALUE rb_eEAGAIN;
 VALUE rb_eEWOULDBLOCK;
@@ -100,7 +101,7 @@ err_vcatf(VALUE str, const char *pre, const char *file, int line,
 }
 
 VALUE
-rb_syntax_error_append(VALUE exc, VALUE file, int line, int column,
+rb_syntax_error_append(VALUE exc, VALUE file, const int yystate, int line, int column,
 		       rb_encoding *enc, const char *fmt, va_list args)
 {
     const char *fn = NIL_P(file) ? NULL : RSTRING_PTR(file);
@@ -115,6 +116,8 @@ rb_syntax_error_append(VALUE exc, VALUE file, int line, int column,
 	if (NIL_P(exc)) {
 	    mesg = rb_enc_str_new(0, 0, enc);
 	    exc = rb_class_new_instance(1, &mesg, rb_eSyntaxError);
+
+            if (yystate != -1) syntax_error_set_current_state(exc, INT2FIX(yystate));
 	}
 	else {
 	    mesg = rb_attr_get(exc, idMesg);
@@ -898,6 +901,7 @@ ID ruby_static_id_cause;
 static ID id_message, id_backtrace;
 static ID id_key, id_args, id_Errno, id_errno, id_i_path;
 static ID id_receiver, id_recv, id_iseq, id_local_variables;
+static ID id_current_state;
 static ID id_private_call_p, id_top, id_bottom;
 #define id_bt idBt
 #define id_bt_locations idBt_locations
@@ -1895,6 +1899,24 @@ syntax_error_initialize(int argc, VALUE *argv, VALUE self)
     return rb_call_super(argc, argv);
 }
 
+static VALUE
+syntax_error_current_state(VALUE self)
+{
+    VALUE state;
+
+    state = rb_ivar_lookup(self, id_current_state, Qundef);
+    if (state != Qundef) return state;
+
+    return Qnil;
+}
+
+static VALUE
+syntax_error_set_current_state(VALUE self, VALUE state)
+{
+    rb_ivar_set(self, id_current_state, state);
+    return state;
+}
+
 /*
  *  Document-module: Errno
  *
@@ -2521,6 +2543,7 @@ Init_Exception(void)
     rb_eScriptError = rb_define_class("ScriptError", rb_eException);
     rb_eSyntaxError = rb_define_class("SyntaxError", rb_eScriptError);
     rb_define_method(rb_eSyntaxError, "initialize", syntax_error_initialize, -1);
+    rb_define_method(rb_eSyntaxError, "current_state", syntax_error_current_state, 0);
 
     rb_eLoadError   = rb_define_class("LoadError", rb_eScriptError);
     /* the path failed to load */
@@ -2577,6 +2600,7 @@ Init_Exception(void)
     id_key = rb_intern_const("key");
     id_args = rb_intern_const("args");
     id_receiver = rb_intern_const("receiver");
+    id_current_state = rb_intern_const("current_state");
     id_private_call_p = rb_intern_const("private_call?");
     id_local_variables = rb_intern_const("local_variables");
     id_Errno = rb_intern_const("Errno");

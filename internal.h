@@ -1516,7 +1516,7 @@ PRINTF_ARGS(void rb_syserr_warn(int err, const char *fmt, ...), 2, 3);
 PRINTF_ARGS(void rb_sys_warning(const char *fmt, ...), 1, 2);
 PRINTF_ARGS(void rb_syserr_warning(int err, const char *fmt, ...), 2, 3);
 #ifdef RUBY_ENCODING_H
-VALUE rb_syntax_error_append(VALUE, VALUE, int, int, rb_encoding*, const char*, va_list);
+VALUE rb_syntax_error_append(VALUE, VALUE, const int, int, int, rb_encoding*, const char*, va_list);
 PRINTF_ARGS(void rb_enc_warn(rb_encoding *enc, const char *fmt, ...), 2, 3);
 PRINTF_ARGS(void rb_sys_enc_warn(rb_encoding *enc, const char *fmt, ...), 2, 3);
 PRINTF_ARGS(void rb_syserr_enc_warn(int err, rb_encoding *enc, const char *fmt, ...), 3, 4);
