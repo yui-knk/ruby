@@ -245,6 +245,7 @@ struct parser_params {
     int heredoc_line_indent;
     char *tokenbuf;
     struct local_vars *lvtbl;
+    int state;
     int line_count;
     int ruby_sourceline;	/* current line no. */
     const char *ruby_sourcefile; /* current source file */
@@ -341,7 +342,7 @@ static int parser_yyerror(struct parser_params*, const YYLTYPE *yylloc, const in
 
 #define lambda_beginning_p() (p->lex.lpar_beg == p->lex.paren_nest)
 
-static enum yytokentype yylex(YYSTYPE*, YYLTYPE*, struct parser_params*);
+static enum yytokentype yylex(YYSTYPE*, YYLTYPE*, const int yystate, struct parser_params*);
 
 #ifndef RIPPER
 static inline void
@@ -946,6 +947,7 @@ static void token_info_warn(struct parser_params *p, const char *token, token_in
 
 %expect 0
 %define api.pure
+%lex-param {const int yystate}
 %lex-param {struct parser_params *p}
 %parse-param {struct parser_params *p}
 %initial-action
@@ -5674,6 +5676,7 @@ ruby_show_error_line(VALUE errbuf, const YYLTYPE *yylloc, int lineno, VALUE str)
 static int
 parser_yyerror(struct parser_params *p, const YYLTYPE *yylloc, const int yystate, const char *msg)
 {
+    p->state = yystate;
     dispatch1(parse_error, STR_NEW2(msg));
     ripper_error(p);
     return 0;
@@ -9388,11 +9391,12 @@ parser_yylex(struct parser_params *p)
 }
 
 static enum yytokentype
-yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
+yylex(YYSTYPE *lval, YYLTYPE *yylloc, const int yystate, struct parser_params *p)
 {
     enum yytokentype t;
 
     p->lval = lval;
+    p->state = yystate;
     lval->val = Qundef;
     t = parser_yylex(p);
     if (has_delayed_token(p))
@@ -12182,6 +12186,7 @@ parser_initialize(struct parser_params *p)
     p->ruby_sourcefile_string = Qnil;
     p->lex.lpar_beg = -1; /* make lambda_beginning_p() == FALSE at first */
     p->node_id = 0;
+    p->state = -1;
 #ifdef RIPPER
     p->delayed = Qnil;
     p->result = Qnil;
@@ -12522,6 +12527,7 @@ parser_compile_error(struct parser_params *p, const int yystate, const char *fmt
 {
     va_list ap;
 
+// fprintf(stderr, "parser_compile_error: %d, %d\n", p->state, yystate);
     rb_io_flush(p->debug_output);
     p->error_p = 1;
     va_start(ap, fmt);
@@ -12757,6 +12763,8 @@ ripper_compile_error(struct parser_params *p, const int yystate, const char *fmt
     va_start(args, fmt);
     str = rb_vsprintf(fmt, args);
     va_end(args);
+    p->state = yystate;
+    // fprintf(stderr, "ripper_compile_error: %d\n", yystate);
     rb_funcall(p->value, rb_intern("compile_error"), 1, str);
     ripper_error(p);
 }
@@ -12990,6 +12998,19 @@ ripper_token(VALUE self)
     return rb_str_subseq(p->lex.lastline, pos, len);
 }
 
+static VALUE
+ripper_parser_state(VALUE self)
+{
+    struct parser_params *p;
+
+    TypedData_Get_Struct(self, struct parser_params, &parser_data_type, p);
+    if (!ripper_initialized_p(p)) {
+        rb_raise(rb_eArgError, "method called for uninitialized object");
+    }
+    if (p->state == -1) return Qnil;
+    return INT2FIX(p->state);
+}
+
 #ifdef RIPPER_DEBUG
 /* :nodoc: */
 static VALUE
@@ -13053,6 +13074,7 @@ InitVM_ripper(void)
     rb_define_method(Ripper, "lineno", ripper_lineno, 0);
     rb_define_method(Ripper, "state", ripper_state, 0);
     rb_define_method(Ripper, "token", ripper_token, 0);
+    rb_define_method(Ripper, "parser_state", ripper_parser_state, 0);
     rb_define_method(Ripper, "end_seen?", rb_parser_end_seen_p, 0);
     rb_define_method(Ripper, "encoding", rb_parser_encoding, 0);
     rb_define_method(Ripper, "yydebug", rb_parser_get_yydebug, 0);
