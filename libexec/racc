@@ -42,7 +42,7 @@ def main
     debug_parser = fl
   }
   parser.on('-v', '--verbose',
-            'Creates <filename>.output log file.') {|fl|
+            'Creates <input>.output log file.') {|fl|
     make_logfile = fl
   }
   parser.on('-O', '--log-file=PATH',

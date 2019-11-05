@@ -31,7 +31,7 @@ end
 # == Command-line Reference
 #
 #     racc [-o<var>filename</var>] [--output-file=<var>filename</var>]
-#          [-e<var>rubypath</var>] [--embedded=<var>rubypath</var>]
+#          [-e<var>rubypath</var>] [--executable=<var>rubypath</var>]
 #          [-v] [--verbose]
 #          [-O<var>filename</var>] [--log-file=<var>filename</var>]
 #          [-g] [--debug]
@@ -41,15 +41,15 @@ end
 #          [-a] [--no-omit-actions]
 #          [-C] [--check-only]
 #          [-S] [--output-status]
-#          [--version] [--copyright] [--help] <var>grammarfile</var>
+#          [--version] [--copyright] [--help] <var>input</var>
 #
-# [+filename+]
+# [+input+]
 #   Racc grammar file. Any extension is permitted.
 # [-o+outfile+, --output-file=+outfile+]
-#   A filename for output. default is <+filename+>.tab.rb
+#   A filename for output. default is <+input+>.tab.rb
 # [-O+filename+, --log-file=+filename+]
 #   Place logging output in file +filename+.
-#   Default log file name is <+filename+>.output.
+#   Default log file name is <+input+>.output.
 # [-e+rubypath+, --executable=+rubypath+]
 #   output executable file(mode 755). where +path+ is the Ruby interpreter.
 # [-v, --verbose]
