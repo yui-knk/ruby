@@ -250,6 +250,7 @@ struct parser_params {
     int heredoc_line_indent;
     char *tokenbuf;
     struct local_vars *lvtbl;
+    int state;
     int line_count;
     int ruby_sourceline;	/* current line no. */
     const char *ruby_sourcefile; /* current source file */
@@ -343,7 +344,7 @@ static int parser_yyerror(struct parser_params*, const YYLTYPE *yylloc, const ch
 
 #define lambda_beginning_p() (p->lex.lpar_beg == p->lex.paren_nest)
 
-static enum yytokentype yylex(YYSTYPE*, YYLTYPE*, struct parser_params*);
+static enum yytokentype yylex(YYSTYPE*, YYLTYPE*, const int state, struct parser_params*);
 
 #ifndef RIPPER
 static inline void
@@ -962,6 +963,7 @@ static int looking_at_eol_p(struct parser_params *p);
 
 %expect 0
 %define api.pure
+%lex-param {const int yystate}
 %lex-param {struct parser_params *p}
 %parse-param {struct parser_params *p}
 %initial-action
@@ -5623,6 +5625,8 @@ parser_yyerror(struct parser_params *p, const YYLTYPE *yylloc, const char *msg)
 {
     YYLTYPE current;
 
+    fprintf(stderr, "parser_yyerror: state is %d\n", p->state);
+
     if (!yylloc) {
 	yylloc = RUBY_SET_YYLLOC(current);
     }
@@ -9473,11 +9477,12 @@ parser_yylex(struct parser_params *p)
 }
 
 static enum yytokentype
-yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
+yylex(YYSTYPE *lval, YYLTYPE *yylloc, const int yystate, struct parser_params *p)
 {
     enum yytokentype t;
 
     p->lval = lval;
+    p->state = yystate;
     lval->val = Qundef;
     t = parser_yylex(p);
     if (has_delayed_token(p))
