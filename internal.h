@@ -1975,6 +1975,7 @@ struct RBasicRaw {
 #endif
 VALUE rb_parser_get_yydebug(VALUE);
 VALUE rb_parser_set_yydebug(VALUE, VALUE);
+void rb_expected_token_list_print(void);
 RUBY_SYMBOL_EXPORT_BEGIN
 VALUE rb_parser_set_context(VALUE, const struct rb_iseq_struct *, int);
 RUBY_SYMBOL_EXPORT_END

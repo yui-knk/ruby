@@ -964,6 +964,7 @@ static int looking_at_eol_p(struct parser_params *p);
 %}
 
 %expect 0
+%define lr.default-reduction accepting
 %define api.pure
 %lex-param {struct parser_params *p}
 %parse-param {struct parser_params *p}
@@ -12702,6 +12703,14 @@ expected_tokens(const int yystate)
     }
 
     return ary;
+}
+
+void
+rb_expected_token_list_print(void)
+{
+    for (int i = 0; i < YYNSTATES; i++) {
+        fprintf(stderr, "%d: %"PRIsVALUE"\n", i, expected_tokens(i));
+    }
 }
 
 /*
