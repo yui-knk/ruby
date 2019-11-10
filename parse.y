@@ -12607,6 +12607,53 @@ count_char(const char *str, int c)
     return n;
 }
 
+static void
+add_yydefact(VALUE ary, const int state, const int yytoken)
+{
+    int defact = yydefact[state];
+
+    if (defact != 0) {
+        rb_ary_push(ary, rb_str_new2(yytname[yytoken]));
+    }
+}
+
+/* See also: yysyntax_error and yybackup */
+static VALUE
+expected_tokens(const int yystate)
+{
+    VALUE ary = rb_ary_new();
+
+    for (int yytoken = 0; yytoken < YYNTOKENS; ++yytoken) {
+        int yyn = yypact[yystate];
+
+        /* See: yydefault label */
+        if (yypact_value_is_default(yyn)) {
+            add_yydefact(ary, yystate, yytoken);
+            continue;
+        }
+
+        yyn += yytoken;
+        if (yyn < 0 || YYLAST < yyn || yycheck[yyn] != yytoken) {
+            add_yydefact(ary, yystate, yytoken);
+            continue;
+        }
+
+        yyn = yytable[yyn];
+        if (yyn <= 0) {
+            if (!yytable_value_is_error(yyn)) {
+                rb_ary_push(ary, rb_str_new2(yytname[yytoken]));
+                continue;
+            }
+        }
+        else {
+            rb_ary_push(ary, rb_str_new2(yytname[yytoken]));
+            continue;
+        }
+    }
+
+    return ary;
+}
+
 /*
  * strip enclosing double-quotes, same as the default yytnamerr except
  * for that single-quotes matching back-quotes do not stop stripping.
