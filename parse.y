@@ -9455,7 +9455,6 @@ static enum yytokentype
 yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p, int yystate, short *yyss, short *yyssp)
 {
     enum yytokentype t;
-    VALUE yysstack;
 
     p->lval = lval;
     lval->val = Qundef;
@@ -9463,10 +9462,13 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p, int yystate, shor
     p->yystate = yystate;
     p->yyss = yyss;
     p->yyssp = yyssp;
-    yysstack = yysstack_new(yyss, yyssp);
 
     if (p->debug) {
-        VALUE tokens = expected_tokens(yystate, yysstack);
+        VALUE yysstack;
+        VALUE tokens;
+
+        yysstack = yysstack_new(yyss, yyssp);
+        tokens = expected_tokens(yystate, yysstack);
         rb_parser_printf(p, "\nexpected_tokens (state = %d): %"PRIsVALUE"\n", yystate, tokens);
         // rb_parser_printf(p, "\nyysstack: %"PRIsVALUE"\n", yysstack);
     }
