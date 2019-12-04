@@ -60,9 +60,9 @@ class Ripper
       def nobits?(i) to_int.nobits?(i) end
     end
 
-    Elem = Struct.new(:pos, :event, :tok, :state, :message) do
-      def initialize(pos, event, tok, state, message = nil)
-        super(pos, event, tok, State.new(state), message)
+    Elem = Struct.new(:pos, :event, :tok, :state, :expected_tokens, :message) do
+      def initialize(pos, event, tok, state, expected_tokens, message = nil)
+        super(pos, event, tok, State.new(state), expected_tokens, message)
       end
 
       def inspect
@@ -147,7 +147,7 @@ class Ripper
               e.event = :on_ignored_sp
               next
             end
-            ignored_sp << [i, Elem.new(e.pos.dup, :on_ignored_sp, tok[0, n], e.state)]
+            ignored_sp << [i, Elem.new(e.pos.dup, :on_ignored_sp, tok[0, n], e.state, e.expected_tokens)]
             e.pos[1] += n
           end
         end
@@ -163,20 +163,20 @@ class Ripper
       buf = []
       @buf.push buf
       @buf = buf
-      @buf.push Elem.new([lineno(), column()], __callee__, tok, state())
+      @buf.push Elem.new([lineno(), column()], __callee__, tok, state(), expected_tokens())
     end
 
     def on_heredoc_end(tok)
-      @buf.push Elem.new([lineno(), column()], __callee__, tok, state())
+      @buf.push Elem.new([lineno(), column()], __callee__, tok, state(), expected_tokens())
       @buf = @stack.pop
     end
 
     def _push_token(tok)
-      @buf.push Elem.new([lineno(), column()], __callee__, tok, state())
+      @buf.push Elem.new([lineno(), column()], __callee__, tok, state(), expected_tokens())
     end
 
     def on_error(mesg)
-      @errors.push Elem.new([lineno(), column()], __callee__, token(), state(), mesg)
+      @errors.push Elem.new([lineno(), column()], __callee__, token(), state(), expected_tokens(), mesg)
     end
     alias on_parse_error on_error
     alias compile_error on_error

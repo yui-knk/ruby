@@ -252,6 +252,9 @@ struct parser_params {
     struct local_vars *lvtbl;
     st_table *pvtbl;
     int line_count;
+    int yystate;
+    short *yyss;
+    short *yyssp;
     int ruby_sourceline;	/* current line no. */
     const char *ruby_sourcefile; /* current source file */
     VALUE ruby_sourcefile_string;
@@ -9457,6 +9460,9 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p, int yystate, shor
     p->lval = lval;
     lval->val = Qundef;
 
+    p->yystate = yystate;
+    p->yyss = yyss;
+    p->yyssp = yyssp;
     yysstack = yysstack_new(yyss, yyssp);
 
     if (p->debug) {
@@ -13176,6 +13182,22 @@ ripper_token(VALUE self)
     return rb_str_subseq(p->lex.lastline, pos, len);
 }
 
+static VALUE
+ripper_expected_tokens(VALUE self)
+{
+    struct parser_params *p;
+    VALUE yysstack;
+
+    TypedData_Get_Struct(self, struct parser_params, &parser_data_type, p);
+    if (!ripper_initialized_p(p)) {
+        rb_raise(rb_eArgError, "method called for uninitialized object");
+    }
+
+    yysstack = yysstack_new(p->yyss, p->yyssp);
+
+    return expected_tokens(p->yystate, yysstack);
+}
+
 #ifdef RIPPER_DEBUG
 /* :nodoc: */
 static VALUE
@@ -13239,6 +13261,7 @@ InitVM_ripper(void)
     rb_define_method(Ripper, "lineno", ripper_lineno, 0);
     rb_define_method(Ripper, "state", ripper_state, 0);
     rb_define_method(Ripper, "token", ripper_token, 0);
+    rb_define_method(Ripper, "expected_tokens", ripper_expected_tokens, 0);
     rb_define_method(Ripper, "end_seen?", rb_parser_end_seen_p, 0);
     rb_define_method(Ripper, "encoding", rb_parser_encoding, 0);
     rb_define_method(Ripper, "yydebug", rb_parser_get_yydebug, 0);
