@@ -9479,6 +9479,113 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p, int yystate, shor
     return t;
 }
 
+static int
+default_reduce(const int state, const int yytoken, VALUE yysstack)
+{
+    long yysstack_len;
+    int yylen;
+    int yylhs;
+    int yyi;
+    int yystate;
+    int yyssp;
+    int yyn = yydefact[state];
+
+    /* If yydefact entry is zero, it means the default is an error. */
+    if (yyn == 0) {
+        return -1;
+    }
+
+    /* If the default is not an error, we reduce current stack. 
+     * See: yyreduce
+     */
+    yylen = yyr2[yyn];
+
+    for (int i = 0; i < yylen; i++) {
+        rb_ary_pop(yysstack);
+    }
+
+    yylhs = yyr1[yyn] - YYNTOKENS;
+    yysstack_len = RARRAY_LEN(yysstack);
+    // rb_warn("\ndefault_reduce current stack: %"PRIsVALUE"\n", yysstack);
+    yyssp = FIX2INT(RARRAY_AREF(yysstack, yysstack_len - 1));
+    yyi = yypgoto[yylhs] + yyssp;
+    yystate = (0 <= yyi && yyi <= YYLAST && yycheck[yyi] == yyssp
+               ? yytable[yyi]
+               : yydefgoto[yylhs]);
+
+    // rb_warn("\ndefault_reduce push: %d\n", yystate);
+    rb_ary_push(yysstack, INT2FIX(yystate));
+
+    return yystate;
+}
+
+static VALUE
+yysstack_new(const short *yyss, const short *yyssp)
+{
+    VALUE ary = rb_ary_new();
+
+    for (; yyss <= yyssp; yyss++) {
+        rb_ary_push(ary, INT2FIX(*yyss));
+    }
+
+    return ary;
+}
+
+
+static void
+push_expected_token(VALUE ary, const int yystate, const int yytoken, VALUE yysstack)
+{
+    int yyn = yypact[yystate];
+
+    /* See: yydefault label */
+    if (yypact_value_is_default(yyn)) {
+        int new_state;
+
+        if ((new_state = default_reduce(yystate, yytoken, yysstack)) >= 0) {
+            /* yysstack is changed */
+            push_expected_token(ary, new_state, yytoken, yysstack);
+        }
+
+        return;
+    }
+
+    yyn += yytoken;
+    if (yyn < 0 || YYLAST < yyn || yycheck[yyn] != yytoken) {
+        int new_state;
+
+        if ((new_state = default_reduce(yystate, yytoken, yysstack)) >= 0) {
+            /* yysstack is changed */
+            push_expected_token(ary, new_state, yytoken, yysstack);
+        }
+        return;
+    }
+
+    yyn = yytable[yyn];
+    if (yyn <= 0) {
+        if (!yytable_value_is_error(yyn)) {
+            rb_ary_push(ary, rb_str_new2(yytname[yytoken]));
+            return;
+        }
+    }
+    else {
+        rb_ary_push(ary, rb_str_new2(yytname[yytoken]));
+        return;
+    }
+}
+
+/* See also: yysyntax_error and yybackup */
+static VALUE
+expected_tokens(const int yystate, VALUE yysstack)
+{
+    VALUE ary = rb_ary_new();
+
+    for (int yytoken = 0; yytoken < YYNTOKENS; ++yytoken) {
+        push_expected_token(ary, yystate, yytoken, rb_ary_dup(yysstack));
+    }
+
+    return ary;
+}
+
 #define LVAR_USED ((ID)1 << (sizeof(ID) * CHAR_BIT - 1))
 
 static NODE*
@@ -12620,113 +12727,6 @@ count_char(const char *str, int c)
     int n = 0;
     while (str[n] == c) ++n;
     return n;
-}
-
-static int
-default_reduce(const int state, const int yytoken, VALUE yysstack)
-{
-    long yysstack_len;
-    int yylen;
-    int yylhs;
-    int yyi;
-    int yystate;
-    int yyssp;
-    int yyn = yydefact[state];
-
-    /* If yydefact entry is zero, it means the default is an error. */
-    if (yyn == 0) {
-        return -1;
-    }
-
-    /* If the default is not an error, we reduce current stack. 
-     * See: yyreduce
-     */
-    yylen = yyr2[yyn];
-
-    for (int i = 0; i < yylen; i++) {
-        rb_ary_pop(yysstack);
-    }
-
-    yylhs = yyr1[yyn] - YYNTOKENS;
-    yysstack_len = RARRAY_LEN(yysstack);
-    // rb_warn("\ndefault_reduce current stack: %"PRIsVALUE"\n", yysstack);
-    yyssp = FIX2INT(RARRAY_AREF(yysstack, yysstack_len - 1));
-    yyi = yypgoto[yylhs] + yyssp;
-    yystate = (0 <= yyi && yyi <= YYLAST && yycheck[yyi] == yyssp
-               ? yytable[yyi]
-               : yydefgoto[yylhs]);
-
-    // rb_warn("\ndefault_reduce push: %d\n", yystate);
-    rb_ary_push(yysstack, INT2FIX(yystate));
-
-    return yystate;
-}
-
-static VALUE
-yysstack_new(const short *yyss, const short *yyssp)
-{
-    VALUE ary = rb_ary_new();
-
-    for (; yyss <= yyssp; yyss++) {
-        rb_ary_push(ary, INT2FIX(*yyss));
-    }
-
-    return ary;
-}
-
-
-static void
-push_expected_token(VALUE ary, const int yystate, const int yytoken, VALUE yysstack)
-{
-    int yyn = yypact[yystate];
-
-    /* See: yydefault label */
-    if (yypact_value_is_default(yyn)) {
-        int new_state;
-
-        if ((new_state = default_reduce(yystate, yytoken, yysstack)) >= 0) {
-            /* yysstack is changed */
-            push_expected_token(ary, new_state, yytoken, yysstack);
-        }
-
-        return;
-    }
-
-    yyn += yytoken;
-    if (yyn < 0 || YYLAST < yyn || yycheck[yyn] != yytoken) {
-        int new_state;
-
-        if ((new_state = default_reduce(yystate, yytoken, yysstack)) >= 0) {
-            /* yysstack is changed */
-            push_expected_token(ary, new_state, yytoken, yysstack);
-        }
-        return;
-    }
-
-    yyn = yytable[yyn];
-    if (yyn <= 0) {
-        if (!yytable_value_is_error(yyn)) {
-            rb_ary_push(ary, rb_str_new2(yytname[yytoken]));
-            return;
-        }
-    }
-    else {
-        rb_ary_push(ary, rb_str_new2(yytname[yytoken]));
-        return;
-    }
-}
-
-/* See also: yysyntax_error and yybackup */
-static VALUE
-expected_tokens(const int yystate, VALUE yysstack)
-{
-    VALUE ary = rb_ary_new();
-
-    for (int yytoken = 0; yytoken < YYNTOKENS; ++yytoken) {
-        push_expected_token(ary, yystate, yytoken, rb_ary_dup(yysstack));
-    }
-
-    return ary;
 }
 
 /*
