@@ -101,7 +101,7 @@ err_vcatf(VALUE str, const char *pre, const char *file, int line,
 }
 
 VALUE
-rb_syntax_error_append(VALUE exc, VALUE file, int line, int column,
+rb_syntax_error_append(VALUE exc, VALUE file, VALUE expected_tokens, int line, int column,
 		       rb_encoding *enc, const char *fmt, va_list args)
 {
     const char *fn = NIL_P(file) ? NULL : RSTRING_PTR(file);
@@ -124,6 +124,7 @@ rb_syntax_error_append(VALUE exc, VALUE file, int line, int column,
 	}
 	err_vcatf(mesg, NULL, fn, line, fmt, args);
     }
+    rb_ivar_set(exc, idExpected_tokens, expected_tokens);
 
     return exc;
 }
@@ -1965,6 +1966,12 @@ syntax_error_initialize(int argc, VALUE *argv, VALUE self)
     return rb_call_super(argc, argv);
 }
 
+static VALUE
+syntax_error_expected_tokens(VALUE self)
+{
+    return rb_ivar_lookup(self, idExpected_tokens, Qnil);
+}
+
 /*
  *  Document-module: Errno
  *
@@ -2578,6 +2585,7 @@ Init_Exception(void)
     rb_eScriptError = rb_define_class("ScriptError", rb_eException);
     rb_eSyntaxError = rb_define_class("SyntaxError", rb_eScriptError);
     rb_define_method(rb_eSyntaxError, "initialize", syntax_error_initialize, -1);
+    rb_define_method(rb_eSyntaxError, "expected_tokens", syntax_error_expected_tokens, 0);
 
     rb_eLoadError   = rb_define_class("LoadError", rb_eScriptError);
     /* the path failed to load */

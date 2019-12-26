@@ -867,7 +867,12 @@ PHONY:
 	$(Q)$(BASERUBY) $(srcdir)/tool/id2token.rb --path-separator=.$(PATH_SEPARATOR)./ --vpath=$(VPATH) id.h $(SRC_FILE) > parse.tmp.y
 	$(Q)$(BASERUBY) $(srcdir)/tool/pure_parser.rb parse.tmp.y $(YACC)
 	$(Q)$(YACC) -d $(YFLAGS) -o y.tab.c parse.tmp.y
+	$(Q)sed -e "s/^\/\* %define lr\.default-reduction accepting \*\//%define lr\.default-reduction accepting/g" parse.tmp.y > parse.default-reduction-accepting.tmp.y
+	$(Q)$(YACC) -d $(YFLAGS) -o y.tab.default-reduction-accepting.c parse.default-reduction-accepting.tmp.y
+	$(Q)$(BASERUBY) $(srcdir)/tool/yytables.rb y.tab.default-reduction-accepting.c > default-reduction-accepting.c
 	$(Q)$(RM) parse.tmp.y
+	$(Q)$(RM) parse.default-reduction-accepting.tmp.y
+	$(Q)$(RM) y.tab.default-reduction-accepting.c y.tab.default-reduction-accepting.h
 	$(Q)sed -f $(srcdir)/tool/ytab.sed -e "/^#/s|parse\.tmp\.[iy]|$(SRC_FILE)|" -e "/^#/s!y\.tab\.c!$@!" y.tab.c > $@.new
 	$(Q)$(MV) $@.new $@
 	$(Q)sed -e "/^#line.*y\.tab\.h/d;/^#line.*parse.*\.y/d" y.tab.h > $(@:.c=.h)
