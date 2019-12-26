@@ -6,7 +6,7 @@ File.open(ARGV.first, "rb").each do |f|
   f.each_line do |l|
     l.chomp!
 
-    if /\A#define (YYPACT_NINF|YYLAST)\s+(-?\d+)\z/ =~ l
+    if /\A#define (YYPACT_NINF|YYLAST)\s+\(?(-?\d+)\)?\z/ =~ l
       puts "#define #{$1}_NO_DEFAULT_REDUCTION #{$2}\n\n"
       next
     end
