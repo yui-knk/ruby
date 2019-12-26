@@ -1174,15 +1174,11 @@ static int looking_at_eol_p(struct parser_params *p);
 %token tLAST_TOKEN
 
 %%
-program		:  {
-			SET_LEX_STATE(EXPR_BEG);
-			local_push(p, ifndef_ripper(1)+0);
-		    }
-		  top_compstmt
+program		: top_compstmt
 		    {
 		    /*%%%*/
-			if ($2 && !compile_for_eval) {
-			    NODE *node = $2;
+			if ($1 && !compile_for_eval) {
+			    NODE *node = $1;
 			    /* last expression should not be void */
 			    if (nd_type(node) == NODE_BLOCK) {
 				while (node->nd_next) {
@@ -1193,9 +1189,9 @@ program		:  {
 			    node = remove_begin(node);
 			    void_expr(p, node);
 			}
-			p->eval_tree = NEW_SCOPE(0, block_append(p, p->eval_tree, $2), &@$);
+			p->eval_tree = NEW_SCOPE(0, block_append(p, p->eval_tree, $1), &@$);
 		    /*% %*/
-		    /*% ripper[final]: program!($2) %*/
+		    /*% ripper[final]: program!($1) %*/
 			local_pop(p);
 		    }
 		;
@@ -8027,6 +8023,8 @@ parser_prepare(struct parser_params *p)
     }
     pushback(p, c);
     p->enc = rb_enc_get(p->lex.lastline);
+    SET_LEX_STATE(EXPR_BEG);
+    local_push(p, ifndef_ripper(1)+0);
 }
 
 #ifndef RIPPER
