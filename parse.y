@@ -968,6 +968,7 @@ static int looking_at_eol_p(struct parser_params *p);
 
 %expect 0
 %define api.pure
+%define api.push-pull both
 %lex-param {struct parser_params *p}
 %parse-param {struct parser_params *p}
 %initial-action

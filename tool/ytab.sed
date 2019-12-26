@@ -69,6 +69,8 @@ a\
 }
 s/^yysyntax_error (/&struct parser_params *p, /
 s/ yysyntax_error (/&p, /
+s/^yypstate_delete (/&struct parser_params *p, /
+s/ yypstate_delete (/&p, /
 s/\( YYFPRINTF *(\)yyoutput,/\1p,/
 s/\( YYFPRINTF *(\)yyo,/\1p,/
 s/\( YYFPRINTF *(\)stderr,/\1p,/
