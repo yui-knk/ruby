@@ -253,6 +253,7 @@ struct parser_params {
     st_table *pvtbl;
     st_table *pktbl;
     int line_count;
+    int yystate;
     int ruby_sourceline;	/* current line no. */
     const char *ruby_sourcefile; /* current source file */
     VALUE ruby_sourcefile_string;
@@ -376,7 +377,7 @@ static int parser_yyerror(struct parser_params*, const YYLTYPE *yylloc, const ch
 
 #define lambda_beginning_p() (p->lex.lpar_beg == p->lex.paren_nest)
 
-static enum yytokentype yylex(YYSTYPE*, YYLTYPE*, struct parser_params*);
+static enum yytokentype yylex(YYSTYPE*, YYLTYPE*, struct parser_params*, int yystate);
 
 #ifndef RIPPER
 static inline void
@@ -968,7 +969,9 @@ static int looking_at_eol_p(struct parser_params *p);
 %expect 0
 %define api.pure
 %define api.push-pull both
+/* %define lr.default-reduction accepting */
 %lex-param {struct parser_params *p}
+%lex-param {int yystate}
 %parse-param {struct parser_params *p}
 
 %union {
@@ -9482,13 +9485,22 @@ parser_yylex(struct parser_params *p)
     return parse_ident(p, c, cmd_state);
 }
 
+static VALUE expected_tokens(const int yystate);
+
 static enum yytokentype
-yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
+yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p, int yystate)
 {
     enum yytokentype t;
 
     p->lval = lval;
     lval->val = Qundef;
+    p->yystate = yystate;
+
+    if (p->debug) {
+        VALUE tokens = expected_tokens(yystate);
+        rb_parser_printf(p, "\nexpected_tokens (state = %d): %"PRIsVALUE"\n", yystate, tokens);
+    }
+
     t = parser_yylex(p);
     if (has_delayed_token(p))
 	dispatch_delayed_token(p, t);
@@ -9501,6 +9513,57 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
 	RUBY_SET_YYLLOC(*yylloc);
 
     return t;
+}
+
+#include "default-reduction-accepting.c"
+
+#define yypact_value_is_default_no_default_reduction(Yystate) \
+  (!!((Yystate) == (YYPACT_NINF_NO_DEFAULT_REDUCTION)))
+
+#define yytable_value_is_error_no_default_reduction(Yytable_value) \
+  0
+
+static void
+push_expected_token(VALUE ary, const int yystate, const int yytoken)
+{
+    int yyn = yypact_no_default_reduction[yystate];
+
+    /* See: yydefault label */
+    if (yypact_value_is_default_no_default_reduction(yyn)) {
+        /* Only accepting has default*/
+        return;
+    }
+
+    yyn += yytoken;
+    if (yyn < 0 || YYLAST_NO_DEFAULT_REDUCTION < yyn || yycheck_no_default_reduction[yyn] != yytoken) {
+        /* Only accepting has default*/
+        return;
+    }
+
+    yyn = yytable_no_default_reduction[yyn];
+    if (yyn <= 0) {
+        if (!yytable_value_is_error_no_default_reduction(yyn)) {
+            rb_ary_push(ary, rb_str_new2(yytname[yytoken]));
+            return;
+        }
+    }
+    else {
+        rb_ary_push(ary, rb_str_new2(yytname[yytoken]));
+        return;
+    }
+}
+
+/* See also: yysyntax_error and yybackup */
+static VALUE
+expected_tokens(const int yystate)
+{
+    VALUE ary = rb_ary_new();
+
+    for (int yytoken = 0; yytoken < YYNTOKENS; ++yytoken) {
+        push_expected_token(ary, yystate, yytoken);
+    }
+
+    return ary;
 }
 
 #define LVAR_USED ((ID)1 << (sizeof(ID) * CHAR_BIT - 1))
@@ -12653,6 +12716,7 @@ parser_compile_error(struct parser_params *p, const char *fmt, ...)
     p->error_buffer =
 	rb_syntax_error_append(p->error_buffer,
 			       p->ruby_sourcefile_string,
+                               expected_tokens(p->yystate),
 			       p->ruby_sourceline,
 			       rb_long2int(p->lex.pcur - p->lex.pbeg),
 			       p->enc, fmt, ap);
