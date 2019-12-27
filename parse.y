@@ -8660,6 +8660,7 @@ parse_atmark(struct parser_params *p, const enum lex_state_e last_state)
 	else {
 	    compile_error(p, "`@@' without identifiers is not allowed as a class variable name");
 	}
+        result = YYTERROR;
 	parser_show_error_line(p, &loc);
 	set_yylval_noname();
 	SET_LEX_STATE(EXPR_END);
@@ -8674,6 +8675,7 @@ parse_atmark(struct parser_params *p, const enum lex_state_e last_state)
 	else {
 	    compile_error(p, "`@@%c' is not allowed as a class variable name", c);
 	}
+        result = YYTERROR;
 	parser_show_error_line(p, &loc);
 	set_yylval_noname();
 	SET_LEX_STATE(EXPR_END);
