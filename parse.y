@@ -19,6 +19,7 @@
 #define YYSTACK_USE_ALLOCA 0
 #define YYLTYPE rb_code_location_t
 #define YYLTYPE_IS_DECLARED 1
+#define YYINITDEPTH 1
 
 #include "ruby/ruby.h"
 #include "ruby/st.h"
