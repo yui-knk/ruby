@@ -8011,6 +8011,9 @@ parser_prepare(struct parser_params *p)
 {
     int c = nextc(p);
     p->token_info_enabled = !compile_for_eval && RTEST(ruby_verbose);
+    SET_LEX_STATE(EXPR_BEG);
+    local_push(p, ifndef_ripper(1)+0);
+
     switch (c) {
       case '#':
 	if (peek(p, '!')) p->has_shebang = 1;
@@ -8030,8 +8033,6 @@ parser_prepare(struct parser_params *p)
     }
     pushback(p, c);
     p->enc = rb_enc_get(p->lex.lastline);
-    SET_LEX_STATE(EXPR_BEG);
-    local_push(p, ifndef_ripper(1)+0);
 }
 
 #ifndef RIPPER
