@@ -61,15 +61,13 @@
 	}								\
       else								\
         {                                                               \
-          (Current).beg_pos = YYRHSLOC(Rhs, 0).end_pos;                 \
+          (Current).beg_pos = YYRHSLOC(Rhs, 0).beg_pos;                 \
           (Current).end_pos = YYRHSLOC(Rhs, 0).end_pos;                 \
         }                                                               \
     while (0)
 
 #define RUBY_SET_YYLLOC_FROM_STRTERM_HEREDOC(Current)			\
     rb_parser_set_location_from_strterm_heredoc(p, &p->lex.strterm->u.heredoc, &(Current))
-#define RUBY_SET_YYLLOC_OF_NONE(Current)					\
-    rb_parser_set_location_of_none(p, &(Current))
 #define RUBY_SET_YYLLOC(Current)					\
     rb_parser_set_location(p, &(Current))
 #define RUBY_INIT_YYLLOC() \
@@ -597,7 +595,6 @@ VALUE rb_parser_lex_state_name(enum lex_state_e state);
 void rb_parser_show_bitstack(struct parser_params *, stack_type, const char *, int);
 PRINTF_ARGS(void rb_parser_fatal(struct parser_params *p, const char *fmt, ...), 2, 3);
 YYLTYPE *rb_parser_set_location_from_strterm_heredoc(struct parser_params *p, rb_strterm_heredoc_t *here, YYLTYPE *yylloc);
-YYLTYPE *rb_parser_set_location_of_none(struct parser_params *p, YYLTYPE *yylloc);
 YYLTYPE *rb_parser_set_location(struct parser_params *p, YYLTYPE *yylloc);
 RUBY_SYMBOL_EXPORT_END
 
@@ -972,10 +969,6 @@ static int looking_at_eol_p(struct parser_params *p);
 %define api.push-pull both
 %lex-param {struct parser_params *p}
 %parse-param {struct parser_params *p}
-%initial-action
-{
-    RUBY_SET_YYLLOC_OF_NONE(@$);
-};
 
 %union {
     VALUE val;
@@ -1196,7 +1189,7 @@ program		:   {
 			    node = remove_begin(node);
 			    void_expr(p, node);
 			}
-			p->eval_tree = NEW_SCOPE(0, block_append(p, p->eval_tree, $2), &@$);
+			p->eval_tree = NEW_SCOPE(0, block_append(p, p->eval_tree, $2), &@2);
 		    /*% %*/
 		    /*% ripper[final]: program!($2) %*/
 			local_pop(p);
@@ -10364,16 +10357,6 @@ rb_parser_set_location_from_strterm_heredoc(struct parser_params *p, rb_strterm_
     yylloc->beg_pos.column = beg_pos;
     yylloc->end_pos.lineno = sourceline;
     yylloc->end_pos.column = end_pos;
-    return yylloc;
-}
-
-YYLTYPE *
-rb_parser_set_location_of_none(struct parser_params *p, YYLTYPE *yylloc)
-{
-    yylloc->beg_pos.lineno = p->ruby_sourceline;
-    yylloc->beg_pos.column = (int)(p->lex.ptok - p->lex.pbeg);
-    yylloc->end_pos.lineno = p->ruby_sourceline;
-    yylloc->end_pos.column = (int)(p->lex.ptok - p->lex.pbeg);
     return yylloc;
 }
 
