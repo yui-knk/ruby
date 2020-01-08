@@ -1392,6 +1392,13 @@ rb_ast_dispose(rb_ast_t *ast)
 }
 
 void
+rb_ast_dispose_d(rb_ast_t *ast, int b)
+{
+    if (b) fprintf(stderr, "rb_ast_dispose is called\n");
+    rb_ast_dispose(ast);
+}
+
+void
 rb_ast_add_mark_object(rb_ast_t *ast, VALUE obj)
 {
     if (NIL_P(ast->node_buffer->mark_hash)) {

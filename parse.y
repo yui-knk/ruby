@@ -267,6 +267,7 @@ struct parser_params {
     ID cur_arg;
 
     rb_ast_t *ast;
+    yypstate *yyps;
     int node_id;
 
     int max_numparam;
@@ -12348,6 +12349,13 @@ parser_free(void *ptr)
     if (p->tokenbuf) {
         ruby_sized_xfree(p->tokenbuf, p->toksiz);
     }
+    if (p->yyps) {
+        yypstate_delete(p, p->yyps);
+    }
+    if (p->ast) {
+        rb_ast_dispose_d(p->ast, p->debug);
+        p->ast = 0;
+    }
     for (local = p->lvtbl; local; local = prev) {
 	if (local->vars) xfree(local->vars);
 	prev = local->prev;
@@ -12900,6 +12908,7 @@ ripper_s_allocate(VALUE klass)
 }
 
 #define ripper_initialized_p(r) ((r)->lex.input != 0)
+#define ripper_yyps_p(r) ((r)->yyps != 0)
 
 /*
  *  call-seq:
@@ -12957,7 +12966,7 @@ ripper_parse0(VALUE parser_v)
     parser_prepare(p);
     p->ast = rb_ast_new();
     ripper_yyparse((void*)p);
-    rb_ast_dispose(p->ast);
+    rb_ast_dispose_d(p->ast, p->debug);
     p->ast = 0;
     return p->result;
 }
@@ -13132,6 +13141,69 @@ ripper_lex_state_name(VALUE self, VALUE state)
     return rb_parser_lex_state_name(NUM2INT(state));
 }
 
+static VALUE
+push_parser_initialize(int argc, VALUE *argv, VALUE self)
+{
+    struct parser_params *p;
+    VALUE fname;
+
+    TypedData_Get_Struct(self, struct parser_params, &parser_data_type, p);
+    if (argc != 0) {
+        rb_raise(rb_eArgError, "0 args is expected");
+    }
+    p->lex.gets = lex_get_str;
+    p->eofp = 0;
+    p->debug = 1;
+    fname = STR_NEW2("(ripper)");
+    OBJ_FREEZE(fname);
+    parser_initialize(p);
+
+    p->ruby_sourcefile_string = fname;
+    p->ruby_sourcefile = RSTRING_PTR(fname);
+    p->ruby_sourceline = 0;
+    p->yyps = yypstate_new();
+
+    return Qnil;
+}
+
+static VALUE
+push_parser_push_parse(int argc, VALUE *argv, VALUE self)
+{
+    struct parser_params *p;
+    int yystatus;
+    VALUE str, eof;
+    YYLTYPE yylloc = {{1, 0}, {1, 0}};
+
+    TypedData_Get_Struct(self, struct parser_params, &parser_data_type, p);
+    rb_scan_args(argc, argv, "11", &str, &eof);
+    StringValue(str);
+    if (!ripper_yyps_p(p)) {
+        rb_raise(rb_eArgError, "method called for uninitialized object");
+    }
+    if (!p->lex.input) {
+        parser_prepare(p);
+        p->ast = rb_ast_new();
+    }
+    p->lex.input = str;
+
+    p->ruby_sourceline++;
+    p->lex.pbeg = p->lex.pcur = RSTRING_PTR(str);
+    p->lex.pend = p->lex.pcur + RSTRING_LEN(str);
+    token_flush(p);
+    p->eofp = 0;
+
+    do {
+        YYSTYPE yylvall;
+        int yychar = yylex(&yylvall, &yylloc, p);
+        fprintf(stderr, "p->debug: %d, yychar: %d\n", p->debug, yychar);
+        if (!yychar && !RTEST(eof)) break;
+        yystatus =
+          yypush_parse(p->yyps, yychar, &yylvall, &yylloc, p);
+    } while (yystatus == YYPUSH_MORE);
+
+    return INT2FIX(yystatus);
+}
+
 void
 Init_ripper(void)
 {
@@ -13150,7 +13222,7 @@ Init_ripper(void)
 void
 InitVM_ripper(void)
 {
-    VALUE Ripper;
+    VALUE Ripper, PushParser;
 
     Ripper = rb_define_class("Ripper", rb_cObject);
     /* version of Ripper */
@@ -13187,6 +13259,10 @@ InitVM_ripper(void)
 <% end %>
     ripper_init_eventids1_table(Ripper);
     ripper_init_eventids2_table(Ripper);
+
+    PushParser = rb_define_class_under(Ripper, "PushParser", Ripper);
+    rb_define_method(PushParser, "initialize", push_parser_initialize, -1);
+    rb_define_method(PushParser, "push_parse", push_parser_push_parse, -1);
 
 # if 0
     /* Hack to let RDoc document SCRIPT_LINES__ */
