@@ -13263,7 +13263,7 @@ push_parser_push_parse(int argc, VALUE *argv, VALUE self)
 
     do {
         YYSTYPE yylvall;
-        int yychar = yylex(&yylvall, &yylloc, p);
+        int yychar = yylex(&yylvall, &yylloc, p, p->yyps);
         // fprintf(stderr, "p->debug: %d, yychar: %d\n", p->debug, yychar);
         if (!yychar && !RTEST(eof)) break;
         yystatus =
