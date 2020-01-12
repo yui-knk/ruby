@@ -9497,11 +9497,6 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p, yypstate *yyps)
     lval->val = Qundef;
     p->pyystate = lyystate = yystate;
 
-    if (p->debug) {
-        VALUE tokens = expected_tokens(lyystate);
-        rb_parser_printf(p, "\nexpected_tokens (state = %d): %"PRIsVALUE"\n", lyystate, tokens);
-    }
-
     t = parser_yylex(p);
     if (has_delayed_token(p))
 	dispatch_delayed_token(p, t);
