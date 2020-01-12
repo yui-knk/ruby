@@ -253,7 +253,7 @@ struct parser_params {
     st_table *pvtbl;
     st_table *pktbl;
     int line_count;
-    int yystate;
+    int pyystate;
     int ruby_sourceline;	/* current line no. */
     const char *ruby_sourcefile; /* current source file */
     VALUE ruby_sourcefile_string;
@@ -377,7 +377,7 @@ static int parser_yyerror(struct parser_params*, const YYLTYPE *yylloc, const ch
 
 #define lambda_beginning_p() (p->lex.lpar_beg == p->lex.paren_nest)
 
-static enum yytokentype yylex(YYSTYPE*, YYLTYPE*, struct parser_params*, int yystate);
+static enum yytokentype yylex(YYSTYPE*, YYLTYPE*, struct parser_params*, yypstate *yyps);
 
 #ifndef RIPPER
 static inline void
@@ -971,7 +971,7 @@ static int looking_at_eol_p(struct parser_params *p);
 %define api.push-pull both
 /* %define lr.default-reduction accepting */
 %lex-param {struct parser_params *p}
-%lex-param {int yystate}
+%lex-param {yypstate *yyps}
 %parse-param {struct parser_params *p}
 
 %union {
@@ -9485,20 +9485,21 @@ parser_yylex(struct parser_params *p)
     return parse_ident(p, c, cmd_state);
 }
 
-static VALUE expected_tokens(const int yystate);
+static VALUE expected_tokens(const int ayystate);
 
 static enum yytokentype
-yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p, int yystate)
+yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p, yypstate *yyps)
 {
     enum yytokentype t;
+    int lyystate;
 
     p->lval = lval;
     lval->val = Qundef;
-    p->yystate = yystate;
+    p->pyystate = lyystate = yystate;
 
     if (p->debug) {
-        VALUE tokens = expected_tokens(yystate);
-        rb_parser_printf(p, "\nexpected_tokens (state = %d): %"PRIsVALUE"\n", yystate, tokens);
+        VALUE tokens = expected_tokens(lyystate);
+        rb_parser_printf(p, "\nexpected_tokens (state = %d): %"PRIsVALUE"\n", lyystate, tokens);
     }
 
     t = parser_yylex(p);
@@ -9524,9 +9525,9 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p, int yystate)
   0
 
 static void
-push_expected_token(VALUE ary, const int yystate, const int yytoken)
+push_expected_token(VALUE ary, const int ayystate, const int yytoken)
 {
-    int yyn = yypact_no_default_reduction[yystate];
+    int yyn = yypact_no_default_reduction[ayystate];
 
     /* See: yydefault label */
     if (yypact_value_is_default_no_default_reduction(yyn)) {
@@ -9555,12 +9556,12 @@ push_expected_token(VALUE ary, const int yystate, const int yytoken)
 
 /* See also: yysyntax_error and yybackup */
 static VALUE
-expected_tokens(const int yystate)
+expected_tokens(const int ayystate)
 {
     VALUE ary = rb_ary_new();
 
     for (int yytoken = 0; yytoken < YYNTOKENS; ++yytoken) {
-        push_expected_token(ary, yystate, yytoken);
+        push_expected_token(ary, ayystate, yytoken);
     }
 
     return ary;
