@@ -1157,6 +1157,7 @@ node_buffer_list_free(node_buffer_list_t * nb)
     while (nbe != nb->last) {
 	void *buf = nbe;
 	nbe = nbe->next;
+    // fprintf(stderr, "  node_buffer_list_free: %p\n", buf);
 	xfree(buf);
     }
 }
@@ -1166,6 +1167,7 @@ rb_node_buffer_free(node_buffer_t *nb)
 {
     node_buffer_list_free(&nb->unmarkable);
     node_buffer_list_free(&nb->markable);
+    // fprintf(stderr, "  rb_node_buffer_free: %p\n", nb);
     xfree(nb);
 }
 
@@ -1353,6 +1355,7 @@ rb_ast_mark(rb_ast_t *ast)
 void
 rb_ast_free(rb_ast_t *ast)
 {
+    // fprintf(stderr, "rb_ast_free is called: %p\n", ast);
     if (ast->node_buffer) {
 	rb_node_buffer_free(ast->node_buffer);
 	ast->node_buffer = 0;
@@ -1394,7 +1397,7 @@ rb_ast_dispose(rb_ast_t *ast)
 void
 rb_ast_dispose_d(rb_ast_t *ast, int b)
 {
-    if (b) fprintf(stderr, "rb_ast_dispose is called\n");
+    // if (b) fprintf(stderr, "rb_ast_dispose is called: %p\n", ast);
     rb_ast_dispose(ast);
 }
 

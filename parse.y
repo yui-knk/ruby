@@ -12345,16 +12345,17 @@ parser_free(void *ptr)
 {
     struct parser_params *p = (struct parser_params*)ptr;
     struct local_vars *local, *prev;
+    // fprintf(stderr, "parser_free: %p\n", ptr);
 
     if (p->tokenbuf) {
         ruby_sized_xfree(p->tokenbuf, p->toksiz);
     }
     if (p->yyps) {
+        // fprintf(stderr, "  Calling yypstate_delete: %p\n", p->yyss);
+        /* rb_imemo_tmpbuf_t will be freed by GC, then skip YYSTACK_FREE call in yypstate_delete */
+        p->yyps->yynew = 1;
         yypstate_delete(p, p->yyps);
-    }
-    if (p->ast) {
-        rb_ast_dispose_d(p->ast, p->debug);
-        p->ast = 0;
+        p->yyps = 0;
     }
     for (local = p->lvtbl; local; local = prev) {
 	if (local->vars) xfree(local->vars);
@@ -12569,6 +12570,7 @@ rb_parser_malloc(struct parser_params *p, size_t size)
     size_t cnt = HEAPCNT(1, size);
     rb_imemo_tmpbuf_t *n = NEWHEAP();
     void *ptr = xmalloc(size);
+    // fprintf(stderr, "rb_parser_malloc: %p\n", ptr);
 
     return ADD2HEAP(n, cnt, ptr);
 }
@@ -12579,6 +12581,7 @@ rb_parser_calloc(struct parser_params *p, size_t nelem, size_t size)
     size_t cnt = HEAPCNT(nelem, size);
     rb_imemo_tmpbuf_t *n = NEWHEAP();
     void *ptr = xcalloc(nelem, size);
+    // fprintf(stderr, "rb_parser_calloc: %p\n", ptr);
 
     return ADD2HEAP(n, cnt, ptr);
 }
@@ -12599,7 +12602,9 @@ rb_parser_realloc(struct parser_params *p, void *ptr, size_t size)
 	} while ((n = n->next) != NULL);
     }
     n = NEWHEAP();
+    // fprintf(stderr, "rb_parser_realloc: from %p\n", ptr);
     ptr = xrealloc(ptr, size);
+    // fprintf(stderr, "rb_parser_realloc: to %p\n", ptr);
     return ADD2HEAP(n, cnt, ptr);
 }
 
@@ -12608,6 +12613,7 @@ rb_parser_free(struct parser_params *p, void *ptr)
 {
     rb_imemo_tmpbuf_t **prev = &p->heap, *n;
 
+    // fprintf(stderr, "rb_parser_free: %p\n", ptr);
     while ((n = *prev) != NULL) {
 	if (n->ptr == ptr) {
 	    *prev = n->next;
@@ -13145,15 +13151,13 @@ static VALUE
 push_parser_initialize(int argc, VALUE *argv, VALUE self)
 {
     struct parser_params *p;
-    VALUE fname;
+    VALUE fname, debug;
 
     TypedData_Get_Struct(self, struct parser_params, &parser_data_type, p);
-    if (argc != 0) {
-        rb_raise(rb_eArgError, "0 args is expected");
-    }
+    rb_scan_args(argc, argv, "01", &debug);
     p->lex.gets = lex_get_str;
     p->eofp = 0;
-    p->debug = 1;
+    if (RTEST(debug)) p->debug = 1;
     fname = STR_NEW2("(ripper)");
     OBJ_FREEZE(fname);
     parser_initialize(p);
@@ -13195,7 +13199,7 @@ push_parser_push_parse(int argc, VALUE *argv, VALUE self)
     do {
         YYSTYPE yylvall;
         int yychar = yylex(&yylvall, &yylloc, p);
-        fprintf(stderr, "p->debug: %d, yychar: %d\n", p->debug, yychar);
+        // fprintf(stderr, "p->debug: %d, yychar: %d\n", p->debug, yychar);
         if (!yychar && !RTEST(eof)) break;
         yystatus =
           yypush_parse(p->yyps, yychar, &yylvall, &yylloc, p);
