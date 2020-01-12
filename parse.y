@@ -13273,6 +13273,19 @@ push_parser_push_parse(int argc, VALUE *argv, VALUE self)
     return INT2FIX(yystatus);
 }
 
+static VALUE
+push_parser_expected_tokens(VALUE self)
+{
+    struct parser_params *p;
+
+    TypedData_Get_Struct(self, struct parser_params, &parser_data_type, p);
+    if (!ripper_yyps_p(p)) {
+        rb_raise(rb_eArgError, "method called for uninitialized object");
+    }
+
+    return expected_tokens(p->pyystate);
+}
+
 void
 Init_ripper(void)
 {
@@ -13332,6 +13345,7 @@ InitVM_ripper(void)
     PushParser = rb_define_class_under(Ripper, "PushParser", Ripper);
     rb_define_method(PushParser, "initialize", push_parser_initialize, -1);
     rb_define_method(PushParser, "push_parse", push_parser_push_parse, -1);
+    rb_define_method(PushParser, "expected_tokens", push_parser_expected_tokens, 0);
 
 # if 0
     /* Hack to let RDoc document SCRIPT_LINES__ */
