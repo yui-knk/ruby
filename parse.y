@@ -971,7 +971,7 @@ static int looking_at_eol_p(struct parser_params *p);
 %define api.push-pull both
 /* %define lr.default-reduction accepting */
 %lex-param {struct parser_params *p}
-%lex-param {yypstate *yyps}
+%lex-param {yypstate *yyps_local}
 %parse-param {struct parser_params *p}
 
 %union {
