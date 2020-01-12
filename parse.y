@@ -12717,7 +12717,7 @@ parser_compile_error(struct parser_params *p, const char *fmt, ...)
     p->error_buffer =
 	rb_syntax_error_append(p->error_buffer,
 			       p->ruby_sourcefile_string,
-                               expected_tokens(p->yystate),
+                               expected_tokens(p->pyystate),
 			       p->ruby_sourceline,
 			       rb_long2int(p->lex.pcur - p->lex.pbeg),
 			       p->enc, fmt, ap);
