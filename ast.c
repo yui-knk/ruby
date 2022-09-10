@@ -65,6 +65,7 @@ ast_new_internal(rb_ast_t *ast, const NODE *node)
 }
 
 static VALUE rb_ast_parse_str(VALUE str, VALUE keep_script_lines);
+static VALUE rb_ast_parse_str_2(VALUE module, VALUE str);
 static VALUE rb_ast_parse_file(VALUE path, VALUE keep_script_lines);
 
 static VALUE
@@ -90,6 +91,12 @@ ast_s_parse(rb_execution_context_t *ec, VALUE module, VALUE str, VALUE keep_scri
     return rb_ast_parse_str(str, keep_script_lines);
 }
 
+// static VALUE
+// ast_s_parse_2(rb_execution_context_t *ec, VALUE module, VALUE str, VALUE keep_script_lines)
+// {
+//     return rb_ast_parse_str_2(str, keep_script_lines);
+// }
+
 static VALUE
 rb_ast_parse_str(VALUE str, VALUE keep_script_lines)
 {
@@ -100,6 +107,21 @@ rb_ast_parse_str(VALUE str, VALUE keep_script_lines)
     if (RTEST(keep_script_lines)) rb_parser_keep_script_lines(vparser);
     ast = rb_parser_compile_string_path(vparser, Qnil, str, 1);
     return ast_parse_done(ast);
+}
+
+static VALUE
+rb_ast_parse_str_2(VALUE module, VALUE str)
+{
+    VALUE ary;
+    rb_ast_t *ast;
+
+    StringValue(str);
+    VALUE vparser = ast_parse_new();
+    // if (RTEST(keep_script_lines)) rb_parser_keep_script_lines(vparser);
+    ary = rb_parser_compile_string_path_2(vparser, Qnil, str, 1);
+    ast = (rb_ast_t *)rb_ary_entry(ary, 0);
+    rb_ary_store(ary, 0, ast_parse_done(ast));
+    return ary;
 }
 
 static VALUE
@@ -735,5 +757,6 @@ Init_ast(void)
 {
     rb_mAST = rb_define_module_under(rb_cRubyVM, "AbstractSyntaxTree");
     rb_cNode = rb_define_class_under(rb_mAST, "Node", rb_cObject);
+    rb_define_singleton_method(rb_mAST, "parse_2", rb_ast_parse_str_2, 1);
     rb_undef_alloc_func(rb_cNode);
 }

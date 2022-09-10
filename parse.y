@@ -318,6 +318,8 @@ struct parser_params {
     VALUE debug_buffer;
     VALUE debug_output;
 
+    VALUE comments;
+
     ID cur_arg;
 
     rb_ast_t *ast;
@@ -6405,10 +6407,12 @@ yycompile0(VALUE arg)
     return TRUE;
 }
 
-static rb_ast_t *
+static VALUE
 yycompile(VALUE vparser, struct parser_params *p, VALUE fname, int line)
 {
     rb_ast_t *ast;
+    VALUE comments;
+
     if (NIL_P(fname)) {
 	p->ruby_sourcefile_string = Qnil;
 	p->ruby_sourcefile = "(none)";
@@ -6422,15 +6426,17 @@ yycompile(VALUE vparser, struct parser_params *p, VALUE fname, int line)
     p->lvtbl = NULL;
 
     p->ast = ast = rb_ast_new();
+    p->comments = comments = rb_ary_new();
     rb_suppress_tracing(yycompile0, (VALUE)p);
     p->ast = 0;
+    p->comments = 0;
     RB_GC_GUARD(vparser); /* prohibit tail call optimization */
 
     while (p->lvtbl) {
         local_pop(p);
     }
 
-    return ast;
+    return rb_ary_new_from_args(2, (VALUE)ast, comments);
 }
 #endif /* !RIPPER */
 
@@ -6490,6 +6496,21 @@ parser_compile_string(VALUE vparser, VALUE fname, VALUE s, int line)
     p->lex.input = rb_str_new_frozen(s);
     p->lex.pbeg = p->lex.pcur = p->lex.pend = 0;
 
+    return (rb_ast_t *)rb_ary_entry(yycompile(vparser, p, fname, line), 0);
+}
+
+static VALUE
+parser_compile_string_2(VALUE vparser, VALUE fname, VALUE s, int line)
+{
+    struct parser_params *p;
+
+    TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
+
+    p->lex.gets = lex_get_str;
+    p->lex.gets_.ptr = 0;
+    p->lex.input = rb_str_new_frozen(s);
+    p->lex.pbeg = p->lex.pcur = p->lex.pend = 0;
+
     return yycompile(vparser, p, fname, line);
 }
 
@@ -6504,6 +6525,13 @@ rb_parser_compile_string_path(VALUE vparser, VALUE f, VALUE s, int line)
 {
     must_be_ascii_compatible(s);
     return parser_compile_string(vparser, f, s, line);
+}
+
+VALUE
+rb_parser_compile_string_path_2(VALUE vparser, VALUE f, VALUE s, int line)
+{
+    must_be_ascii_compatible(s);
+    return parser_compile_string_2(vparser, f, s, line);
 }
 
 VALUE rb_io_gets_internal(VALUE io);
@@ -6525,7 +6553,7 @@ rb_parser_compile_file_path(VALUE vparser, VALUE fname, VALUE file, int start)
     p->lex.input = file;
     p->lex.pbeg = p->lex.pcur = p->lex.pend = 0;
 
-    return yycompile(vparser, p, fname, start);
+    return (rb_ast_t *)rb_ary_entry(yycompile(vparser, p, fname, start), 0);
 }
 
 static VALUE
@@ -6546,7 +6574,7 @@ rb_parser_compile_generic(VALUE vparser, VALUE (*lex_gets)(VALUE, int), VALUE fn
     p->lex.input = input;
     p->lex.pbeg = p->lex.pcur = p->lex.pend = 0;
 
-    return yycompile(vparser, p, fname, start);
+    return (rb_ast_t *)rb_ary_entry(yycompile(vparser, p, fname, start), 0);
 }
 #endif  /* !RIPPER */
 
@@ -8444,6 +8472,17 @@ parser_magic_comment(struct parser_params *p, const char *str, long len)
 }
 
 static void
+parser_append_comment(struct parser_params *p)
+{
+     int beg_pos;
+     VALUE s;
+
+     beg_pos = (int)(p->lex.ptok - p->lex.pbeg);
+     s = STR_NEW(p->lex.ptok, p->lex.pend - p->lex.ptok);
+     rb_ary_push(p->comments, rb_ary_new_from_args(3, s, INT2FIX(p->line_count), INT2FIX(beg_pos)));
+}
+
+static void
 set_file_encoding(struct parser_params *p, const char *str, const char *send)
 {
     int sep = 0;
@@ -9353,6 +9392,7 @@ parser_yylex(struct parser_params *p)
 		set_file_encoding(p, p->lex.pcur, p->lex.pend);
 	    }
 	}
+	parser_append_comment(p);
 	lex_goto_eol(p);
         dispatch_scan_event(p, tCOMMENT);
         fallthru = TRUE;
@@ -13223,6 +13263,7 @@ parser_mark(void *ptr)
 #endif
     rb_gc_mark(p->debug_buffer);
     rb_gc_mark(p->debug_output);
+    rb_gc_mark(p->comments);
 #ifdef YYMALLOC
     rb_gc_mark((VALUE)p->heap);
 #endif
