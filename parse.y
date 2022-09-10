@@ -10431,7 +10431,8 @@ new_qcall(struct parser_params* p, ID atype, NODE *recv, ID mid, NODE *args, con
 {
     NODE *qcall = NEW_QCALL(atype, recv, mid, args, loc);
     nd_set_line(qcall, op_loc->beg_pos.lineno);
-    parser_append_meta(p, qcall, ID2SYM(rb_intern("call_op")), location_to_array(call_op_loc));
+    parser_append_meta(p, qcall, ID2SYM(rb_intern("loc_call_op")), location_to_array(call_op_loc));
+    parser_append_meta(p, qcall, ID2SYM(rb_intern("loc_mid")), location_to_array(op_loc));
     return qcall;
 }
 
