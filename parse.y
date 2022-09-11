@@ -1612,11 +1612,6 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    /*% ripper: massign!($1, $4) %*/
 		    }
 		| expr
-		| error term /* TOOD: Need term? */
-		   {
-			/* TODO: It might be better to define new node type for error and store info? */
-			$$ = NEW_BEGIN(0, &@$);
-		   }
 		;
 
 command_asgn	: lhs '=' lex_ctxt command_rhs
@@ -2991,7 +2986,7 @@ primary		: literal
 			CMDARG_PUSH(0);
 		    }
 		  bodystmt
-		  k_end
+		  end_or_error
 		    {
 			CMDARG_POP();
 		    /*%%%*/
@@ -3114,7 +3109,7 @@ primary		: literal
 		| k_if expr_value then
 		  compstmt
 		  if_tail
-		  k_end
+		  end_or_error
 		    {
 		    /*%%%*/
 			$$ = new_if(p, $2, $4, $5, &@$);
@@ -3125,7 +3120,7 @@ primary		: literal
 		| k_unless expr_value then
 		  compstmt
 		  opt_else
-		  k_end
+		  end_or_error
 		    {
 		    /*%%%*/
 			$$ = new_unless(p, $2, $4, $5, &@$);
@@ -3135,7 +3130,7 @@ primary		: literal
 		    }
 		| k_while expr_value_do
 		  compstmt
-		  k_end
+		  end_or_error
 		    {
 		    /*%%%*/
 			$$ = NEW_WHILE(cond(p, $2, &@2), $3, 1, &@$);
@@ -3145,7 +3140,7 @@ primary		: literal
 		    }
 		| k_until expr_value_do
 		  compstmt
-		  k_end
+		  end_or_error
 		    {
 		    /*%%%*/
 			$$ = NEW_UNTIL(cond(p, $2, &@2), $3, 1, &@$);
@@ -3159,7 +3154,7 @@ primary		: literal
 			p->case_labels = Qnil;
 		    }
 		  case_body
-		  k_end
+		  end_or_error
 		    {
 			if (RTEST(p->case_labels)) rb_hash_clear(p->case_labels);
 			p->case_labels = $<val>4;
@@ -3175,7 +3170,7 @@ primary		: literal
 			p->case_labels = 0;
 		    }
 		  case_body
-		  k_end
+		  end_or_error
 		    {
 			if (RTEST(p->case_labels)) rb_hash_clear(p->case_labels);
 			p->case_labels = $<val>3;
@@ -3186,7 +3181,7 @@ primary		: literal
 		    }
 		| k_case expr_value opt_terms
 		  p_case_body
-		  k_end
+		  end_or_error
 		    {
 		    /*%%%*/
 			$$ = NEW_CASE3($2, $4, &@$);
@@ -3195,7 +3190,7 @@ primary		: literal
 		    }
 		| k_for for_var keyword_in expr_value_do
 		  compstmt
-		  k_end
+		  end_or_error
 		    {
 		    /*%%%*/
 			/*
@@ -3245,7 +3240,7 @@ primary		: literal
 			local_push(p, 0);
 		    }
 		  bodystmt
-		  k_end
+		  end_or_error
 		    {
 		    /*%%%*/
 			$$ = NEW_CLASS($2, $5, $3, &@$);
@@ -3266,7 +3261,7 @@ primary		: literal
 		    }
 		  term
 		  bodystmt
-		  k_end
+		  end_or_error
 		    {
 		    /*%%%*/
 			$$ = NEW_SCLASS($3, $6, &@$);
@@ -3290,7 +3285,7 @@ primary		: literal
 			local_push(p, 0);
 		    }
 		  bodystmt
-		  k_end
+		  end_or_error
 		    {
 		    /*%%%*/
 			$$ = NEW_MODULE($2, $4, &@$);
@@ -3306,7 +3301,7 @@ primary		: literal
 		| defn_head
 		  f_arglist
 		  bodystmt
-		  k_end
+		  end_or_error
 		    {
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
@@ -3318,7 +3313,7 @@ primary		: literal
 		| defs_head
 		  f_arglist
 		  bodystmt
-		  k_end
+		  end_or_error
 		    {
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
@@ -3860,13 +3855,13 @@ lambda_body	: tLAMBEG compstmt '}'
 			token_info_pop(p, "}", &@3);
 			$$ = $2;
 		    }
-		| keyword_do_LAMBDA bodystmt k_end
+		| keyword_do_LAMBDA bodystmt end_or_error
 		    {
 			$$ = $2;
 		    }
 		;
 
-do_block	: k_do_block do_body k_end
+do_block	: k_do_block do_body end_or_error
 		    {
 			$$ = $2;
 		    /*%%%*/
@@ -3996,7 +3991,7 @@ brace_block	: '{' brace_body '}'
 			nd_set_line($$, @1.end_pos.lineno);
 		    /*% %*/
 		    }
-		| k_do do_body k_end
+		| k_do do_body end_or_error
 		    {
 			$$ = $2;
 		    /*%%%*/
@@ -5795,7 +5790,7 @@ terms		: term
 		;
 
 end_or_error	: k_end
-		| error term
+		| error
 		;
 
 none		: /* none */
