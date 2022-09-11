@@ -98,6 +98,7 @@ rb_ast_parse_str(VALUE str, VALUE keep_script_lines)
     StringValue(str);
     VALUE vparser = ast_parse_new();
     if (RTEST(keep_script_lines)) rb_parser_keep_script_lines(vparser);
+    rb_parser_suppress_syntax_error(vparser);
     ast = rb_parser_compile_string_path(vparser, Qnil, str, 1);
     return ast_parse_done(ast);
 }

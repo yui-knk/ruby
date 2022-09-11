@@ -348,6 +348,7 @@ struct parser_params {
     unsigned int do_chomp: 1;
     unsigned int do_split: 1;
     unsigned int keep_script_lines: 1;
+    unsigned int suppress_syntax_error: 1;
 
     NODE *eval_tree_begin;
     NODE *eval_tree;
@@ -1094,6 +1095,7 @@ PRINTF_ARGS(static void parser_compile_error(struct parser_params*, const char *
      (void)rb_warning0("`" tok "' at the end of line without an expression") : \
      (void)0)
 static int looking_at_eol_p(struct parser_params *p);
+#define DEBUG_NODE(node) rb_io_write(rb_stdout, rb_parser_dump_tree(node, FALSE))
 %}
 
 %expect 0
@@ -1389,10 +1391,6 @@ top_stmts	: none
 		    /*% %*/
 		    /*% ripper: stmts_add!($1, $3) %*/
 		    }
-		| error top_stmt
-		    {
-			$$ = remove_begin($2);
-		    }
 		;
 
 top_stmt	: stmt
@@ -1461,10 +1459,6 @@ stmts		: none
 			$$ = block_append(p, $1, newline_node($3));
 		    /*% %*/
 		    /*% ripper: stmts_add!($1, $3) %*/
-		    }
-		| error stmt
-		    {
-			$$ = remove_begin($2);
 		    }
 		;
 
@@ -1618,6 +1612,11 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    /*% ripper: massign!($1, $4) %*/
 		    }
 		| expr
+		| error term /* TOOD: Need term? */
+		   {
+			/* TODO: It might be better to define new node type for error and store info? */
+			$$ = NEW_BEGIN(0, &@$);
+		   }
 		;
 
 command_asgn	: lhs '=' lex_ctxt command_rhs
@@ -5795,6 +5794,10 @@ terms		: term
 		| terms ';' {yyerrok;}
 		;
 
+end_or_error	: k_end
+		| error term
+		;
+
 none		: /* none */
 		    {
 			$$ = Qnull;
@@ -6384,7 +6387,9 @@ yycompile0(VALUE arg)
 	    mesg = rb_class_new_instance(0, 0, rb_eSyntaxError);
 	}
 	rb_set_errinfo(mesg);
-	return FALSE;
+        if (!p->suppress_syntax_error) {
+            return FALSE;
+        }
     }
     tree = p->eval_tree;
     if (!tree) {
@@ -13318,6 +13323,15 @@ rb_parser_keep_script_lines(VALUE vparser)
 
     TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
     p->keep_script_lines = 1;
+}
+
+void
+rb_parser_suppress_syntax_error(VALUE vparser)
+{
+    struct parser_params *p;
+
+    TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
+    p->suppress_syntax_error = 1;
 }
 #endif
 

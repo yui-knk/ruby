@@ -1935,6 +1935,9 @@ process_options(int argc, char **argv, ruby_cmdline_options_t *opt)
     if (opt->dump & DUMP_BIT(yydebug)) {
         rb_parser_set_yydebug(parser, Qtrue);
     }
+    if (opt->dump & DUMP_BIT(parsetree)) {
+        rb_parser_suppress_syntax_error(parser);
+    }
     if (opt->ext.enc.name != 0) {
         opt->ext.enc.index = opt_enc_index(opt->ext.enc.name);
     }
