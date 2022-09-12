@@ -325,8 +325,6 @@ struct parser_params {
 
     int max_numparam;
 
-    int num_dummy_eofp;
-
     struct lex_context ctxt;
 
     unsigned int command_start:1;
@@ -357,6 +355,7 @@ struct parser_params {
     VALUE error_buffer;
     VALUE debug_lines;
     const struct rb_iseq_struct *parent_iseq;
+    int num_dummy_eofp;
 #else
     /* Ripper only */
 
@@ -410,6 +409,7 @@ pop_pktbl(struct parser_params *p, st_table *tbl)
     p->pktbl = tbl;
 }
 
+#ifndef RIPPER
 static void flush_debug_buffer(struct parser_params *p, VALUE out, VALUE str);
 
 static void
@@ -435,6 +435,7 @@ pop_dummy_eofp(struct parser_params *p)
     p->num_dummy_eofp--;
     debug_dummy_eofp(p, "pop_dummy_eofp", 0);
 }
+#endif
 
 RBIMPL_ATTR_NONNULL((1, 2, 3))
 static int parser_yyerror(struct parser_params*, const YYLTYPE *yylloc, const char*);
@@ -1643,7 +1644,9 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		| expr
 		| error
 		    {
+		    /*%%%*/
 			$$ = NEW_BEGIN(0, &@$);
+		    /*% %*/
 		    }
 		;
 
@@ -1704,11 +1707,11 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
+			pop_dummy_eofp(p);
 		    /*% %*/
 		    /*% ripper[$4]: bodystmt!($4, Qnil, Qnil, Qnil) %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
 			local_pop(p);
-                        pop_dummy_eofp(p);
 		    }
 		| defn_head f_opt_paren_args '=' command modifier_rescue arg
 		    {
@@ -1717,11 +1720,11 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*%%%*/
 			$4 = rescued_expr(p, $4, $6, &@4, &@5, &@6);
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
+			pop_dummy_eofp(p);
 		    /*% %*/
 		    /*% ripper[$4]: bodystmt!(rescue_mod!($4, $6), Qnil, Qnil, Qnil) %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
 			local_pop(p);
-                        pop_dummy_eofp(p);
 		    }
 		| defs_head f_opt_paren_args '=' command
 		    {
@@ -1729,13 +1732,13 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
+			pop_dummy_eofp(p);
 		    /*%
 			$1 = get_value($1);
 		    %*/
 		    /*% ripper[$4]: bodystmt!($4, Qnil, Qnil, Qnil) %*/
 		    /*% ripper: defs!(AREF($1, 0), AREF($1, 1), AREF($1, 2), $2, $4) %*/
 			local_pop(p);
-                        pop_dummy_eofp(p);
 		    }
 		| defs_head f_opt_paren_args '=' command modifier_rescue arg
 		    {
@@ -1744,13 +1747,13 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*%%%*/
 			$4 = rescued_expr(p, $4, $6, &@4, &@5, &@6);
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
+			pop_dummy_eofp(p);
 		    /*%
 			$1 = get_value($1);
 		    %*/
 		    /*% ripper[$4]: bodystmt!(rescue_mod!($4, $6), Qnil, Qnil, Qnil) %*/
 		    /*% ripper: defs!(AREF($1, 0), AREF($1, 1), AREF($1, 2), $2, $4) %*/
 			local_pop(p);
-                        pop_dummy_eofp(p);
 		    }
 		| backref tOP_ASGN lex_ctxt command_rhs
 		    {
@@ -2645,11 +2648,11 @@ arg		: lhs '=' lex_ctxt arg_rhs
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
+			pop_dummy_eofp(p);
 		    /*% %*/
 		    /*% ripper[$4]: bodystmt!($4, Qnil, Qnil, Qnil) %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
 			local_pop(p);
-                        pop_dummy_eofp(p);
 		    }
 		| defn_head f_opt_paren_args '=' arg modifier_rescue arg
 		    {
@@ -2658,11 +2661,11 @@ arg		: lhs '=' lex_ctxt arg_rhs
 		    /*%%%*/
 			$4 = rescued_expr(p, $4, $6, &@4, &@5, &@6);
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
+			pop_dummy_eofp(p);
 		    /*% %*/
 		    /*% ripper[$4]: bodystmt!(rescue_mod!($4, $6), Qnil, Qnil, Qnil) %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
 			local_pop(p);
-                        pop_dummy_eofp(p);
 		    }
 		| defs_head f_opt_paren_args '=' arg
 		    {
@@ -2670,13 +2673,13 @@ arg		: lhs '=' lex_ctxt arg_rhs
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
+			pop_dummy_eofp(p);
 		    /*%
 			$1 = get_value($1);
 		    %*/
 		    /*% ripper[$4]: bodystmt!($4, Qnil, Qnil, Qnil) %*/
 		    /*% ripper: defs!(AREF($1, 0), AREF($1, 1), AREF($1, 2), $2, $4) %*/
 			local_pop(p);
-                        pop_dummy_eofp(p);
 		    }
 		| defs_head f_opt_paren_args '=' arg modifier_rescue arg
 		    {
@@ -2685,13 +2688,13 @@ arg		: lhs '=' lex_ctxt arg_rhs
 		    /*%%%*/
 			$4 = rescued_expr(p, $4, $6, &@4, &@5, &@6);
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
+			pop_dummy_eofp(p);
 		    /*%
 			$1 = get_value($1);
 		    %*/
 		    /*% ripper[$4]: bodystmt!(rescue_mod!($4, $6), Qnil, Qnil, Qnil) %*/
 		    /*% ripper: defs!(AREF($1, 0), AREF($1, 1), AREF($1, 2), $2, $4) %*/
 			local_pop(p);
-                        pop_dummy_eofp(p);
 		    }
 		| primary
 		    {
@@ -3342,7 +3345,9 @@ primary		: literal
 		| defn_head
 		  f_arglist
 		    {
+		    /*%%%*/
 			push_dummy_eofp(p);
+		    /*% %*/
 		    }
 		  bodystmt
 		  end_or_error
@@ -3357,7 +3362,9 @@ primary		: literal
 		| defs_head
 		  f_arglist
 		    {
+		    /*%%%*/
 			push_dummy_eofp(p);
+		    /*% %*/
 		    }
 		  bodystmt
 		  end_or_error
@@ -3411,7 +3418,9 @@ primary_value	: primary
 k_begin		: keyword_begin
 		    {
 			token_info_push(p, "begin", &@$);
+		    /*%%%*/
 			push_dummy_eofp(p);
+		    /*% %*/
 		    }
 		;
 
@@ -3429,42 +3438,54 @@ k_if		: keyword_if
 				p->token_info->nonspc = 0;
 			    }
 			}
+		    /*%%%*/
 			push_dummy_eofp(p);
+		    /*% %*/
 		    }
 		;
 
 k_unless	: keyword_unless
 		    {
 			token_info_push(p, "unless", &@$);
+		    /*%%%*/
 			push_dummy_eofp(p);
+		    /*% %*/
 		    }
 		;
 
 k_while		: keyword_while
 		    {
 			token_info_push(p, "while", &@$);
+		    /*%%%*/
 			push_dummy_eofp(p);
+		    /*% %*/
 		    }
 		;
 
 k_until		: keyword_until
 		    {
 			token_info_push(p, "until", &@$);
+		    /*%%%*/
 			push_dummy_eofp(p);
+		    /*% %*/
 		    }
 		;
 
 k_case		: keyword_case
 		    {
 			token_info_push(p, "case", &@$);
+		    /*%%%*/
 			push_dummy_eofp(p);
+		    /*% %*/
 		    }
 		;
 
 k_for		: keyword_for
 		    {
 			token_info_push(p, "for", &@$);
+		    /*%%%*/
 			push_dummy_eofp(p);
+		    /*% %*/
 		    }
 		;
 
@@ -3472,7 +3493,9 @@ k_class		: keyword_class
 		    {
 			token_info_push(p, "class", &@$);
 			$<ctxt>$ = p->ctxt;
+		    /*%%%*/
 			push_dummy_eofp(p);
+		    /*% %*/
 		    }
 		;
 
@@ -3480,7 +3503,9 @@ k_module	: keyword_module
 		    {
 			token_info_push(p, "module", &@$);
 			$<ctxt>$ = p->ctxt;
+		    /*%%%*/
 			push_dummy_eofp(p);
+		    /*% %*/
 		    }
 		;
 
@@ -3494,14 +3519,18 @@ k_def		: keyword_def
 k_do		: keyword_do
 		    {
 			token_info_push(p, "do", &@$);
+		    /*%%%*/
 			push_dummy_eofp(p);
+		    /*% %*/
 		    }
 		;
 
 k_do_block	: keyword_do_block
 		    {
 			token_info_push(p, "do", &@$);
+		    /*%%%*/
 			push_dummy_eofp(p);
+		    /*% %*/
 		    }
 		;
 
@@ -3915,7 +3944,9 @@ lambda_body	: tLAMBEG compstmt '}'
 		    }
 		| keyword_do_LAMBDA
 		    {
+		    /*%%%*/
 			push_dummy_eofp(p);
+		    /*% %*/
 		    }
 		bodystmt end_or_error
 		    {
@@ -5853,7 +5884,9 @@ terms		: term
 
 end_or_error	: k_end
 		    {
+		    /*%%%*/
 			pop_dummy_eofp(p);
+		    /*%%*/
 		    }
 		| tDUMNY_EOI
 		    {
@@ -9384,11 +9417,12 @@ parser_yylex(struct parser_params *p)
       case '\004':		/* ^D */
       case '\032':		/* ^Z */
       case -1:			/* end of script. */
+#ifndef RIPPER
 	if (p->num_dummy_eofp > 0) {
 	    p->num_dummy_eofp--;
 	    return tDUMNY_EOI;
 	}
-
+#endif
 	return 0;
 	/* white spaces */
       case '\r':
