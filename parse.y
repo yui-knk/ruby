@@ -325,6 +325,8 @@ struct parser_params {
 
     int max_numparam;
 
+    int num_dummy_eofp;
+
     struct lex_context ctxt;
 
     unsigned int command_start:1;
@@ -406,6 +408,18 @@ pop_pktbl(struct parser_params *p, st_table *tbl)
 {
     if (p->pktbl) st_free_table(p->pktbl);
     p->pktbl = tbl;
+}
+
+static void
+push_dummy_eofp(struct parser_params *p)
+{
+    p->num_dummy_eofp++;
+}
+
+static void
+pop_dummy_eofp(struct parser_params *p)
+{
+    p->num_dummy_eofp--;
 }
 
 RBIMPL_ATTR_NONNULL((1, 2, 3))
@@ -1215,6 +1229,7 @@ static int looking_at_eol_p(struct parser_params *p);
 %token <node> tBACK_REF      "back reference"
 %token <node> tSTRING_CONTENT "literal content"
 %token <num>  tREGEXP_END
+%token <num>  tDUMNY_EOI     "dummy end of input"
 
 %type <node> singleton strings string string1 xstring regexp
 %type <node> string_contents xstring_contents regexp_contents string_content
@@ -1612,6 +1627,10 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    /*% ripper: massign!($1, $4) %*/
 		    }
 		| expr
+		| error
+		    {
+			$$ = NEW_BEGIN(0, &@$);
+		    }
 		;
 
 command_asgn	: lhs '=' lex_ctxt command_rhs
@@ -3364,6 +3383,7 @@ primary_value	: primary
 k_begin		: keyword_begin
 		    {
 			token_info_push(p, "begin", &@$);
+			push_dummy_eofp(p);
 		    }
 		;
 
@@ -3381,36 +3401,42 @@ k_if		: keyword_if
 				p->token_info->nonspc = 0;
 			    }
 			}
+			push_dummy_eofp(p);
 		    }
 		;
 
 k_unless	: keyword_unless
 		    {
 			token_info_push(p, "unless", &@$);
+			push_dummy_eofp(p);
 		    }
 		;
 
 k_while		: keyword_while
 		    {
 			token_info_push(p, "while", &@$);
+			push_dummy_eofp(p);
 		    }
 		;
 
 k_until		: keyword_until
 		    {
 			token_info_push(p, "until", &@$);
+			push_dummy_eofp(p);
 		    }
 		;
 
 k_case		: keyword_case
 		    {
 			token_info_push(p, "case", &@$);
+			push_dummy_eofp(p);
 		    }
 		;
 
 k_for		: keyword_for
 		    {
 			token_info_push(p, "for", &@$);
+			push_dummy_eofp(p);
 		    }
 		;
 
@@ -3418,6 +3444,7 @@ k_class		: keyword_class
 		    {
 			token_info_push(p, "class", &@$);
 			$<ctxt>$ = p->ctxt;
+			push_dummy_eofp(p);
 		    }
 		;
 
@@ -3425,6 +3452,7 @@ k_module	: keyword_module
 		    {
 			token_info_push(p, "module", &@$);
 			$<ctxt>$ = p->ctxt;
+			push_dummy_eofp(p);
 		    }
 		;
 
@@ -3432,18 +3460,21 @@ k_def		: keyword_def
 		    {
 			token_info_push(p, "def", &@$);
 			p->ctxt.in_argdef = 1;
+			push_dummy_eofp(p);
 		    }
 		;
 
 k_do		: keyword_do
 		    {
 			token_info_push(p, "do", &@$);
+			push_dummy_eofp(p);
 		    }
 		;
 
 k_do_block	: keyword_do_block
 		    {
 			token_info_push(p, "do", &@$);
+			push_dummy_eofp(p);
 		    }
 		;
 
@@ -3855,9 +3886,13 @@ lambda_body	: tLAMBEG compstmt '}'
 			token_info_pop(p, "}", &@3);
 			$$ = $2;
 		    }
-		| keyword_do_LAMBDA bodystmt end_or_error
+		| keyword_do_LAMBDA
 		    {
-			$$ = $2;
+			push_dummy_eofp(p);
+		    }
+		bodystmt end_or_error
+		    {
+			$$ = $3;
 		    }
 		;
 
@@ -5790,7 +5825,14 @@ terms		: term
 		;
 
 end_or_error	: k_end
-		| error
+		    {
+			pop_dummy_eofp(p);
+		    }
+		| tDUMNY_EOI
+		    {
+			/* set syntax error otherwise ... */
+			compile_error(p, "syntax error, unexpected end-of-input");
+		    }
 		;
 
 none		: /* none */
@@ -9315,9 +9357,12 @@ parser_yylex(struct parser_params *p)
       case '\004':		/* ^D */
       case '\032':		/* ^Z */
       case -1:			/* end of script. */
-	p->eofp  = 1;
-	return 0;
+	if (p->num_dummy_eofp > 0) {
+	    p->num_dummy_eofp--;
+	    return tDUMNY_EOI;
+	}
 
+	return 0;
 	/* white spaces */
       case '\r':
 	if (!p->cr_seen) {
