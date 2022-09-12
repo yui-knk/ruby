@@ -1708,6 +1708,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*% ripper[$4]: bodystmt!($4, Qnil, Qnil, Qnil) %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
 			local_pop(p);
+                        pop_dummy_eofp(p);
 		    }
 		| defn_head f_opt_paren_args '=' command modifier_rescue arg
 		    {
@@ -1720,6 +1721,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*% ripper[$4]: bodystmt!(rescue_mod!($4, $6), Qnil, Qnil, Qnil) %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
 			local_pop(p);
+                        pop_dummy_eofp(p);
 		    }
 		| defs_head f_opt_paren_args '=' command
 		    {
@@ -1733,6 +1735,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*% ripper[$4]: bodystmt!($4, Qnil, Qnil, Qnil) %*/
 		    /*% ripper: defs!(AREF($1, 0), AREF($1, 1), AREF($1, 2), $2, $4) %*/
 			local_pop(p);
+                        pop_dummy_eofp(p);
 		    }
 		| defs_head f_opt_paren_args '=' command modifier_rescue arg
 		    {
@@ -1747,6 +1750,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*% ripper[$4]: bodystmt!(rescue_mod!($4, $6), Qnil, Qnil, Qnil) %*/
 		    /*% ripper: defs!(AREF($1, 0), AREF($1, 1), AREF($1, 2), $2, $4) %*/
 			local_pop(p);
+                        pop_dummy_eofp(p);
 		    }
 		| backref tOP_ASGN lex_ctxt command_rhs
 		    {
@@ -2645,6 +2649,7 @@ arg		: lhs '=' lex_ctxt arg_rhs
 		    /*% ripper[$4]: bodystmt!($4, Qnil, Qnil, Qnil) %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
 			local_pop(p);
+                        pop_dummy_eofp(p);
 		    }
 		| defn_head f_opt_paren_args '=' arg modifier_rescue arg
 		    {
@@ -2657,6 +2662,7 @@ arg		: lhs '=' lex_ctxt arg_rhs
 		    /*% ripper[$4]: bodystmt!(rescue_mod!($4, $6), Qnil, Qnil, Qnil) %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
 			local_pop(p);
+                        pop_dummy_eofp(p);
 		    }
 		| defs_head f_opt_paren_args '=' arg
 		    {
@@ -2670,6 +2676,7 @@ arg		: lhs '=' lex_ctxt arg_rhs
 		    /*% ripper[$4]: bodystmt!($4, Qnil, Qnil, Qnil) %*/
 		    /*% ripper: defs!(AREF($1, 0), AREF($1, 1), AREF($1, 2), $2, $4) %*/
 			local_pop(p);
+                        pop_dummy_eofp(p);
 		    }
 		| defs_head f_opt_paren_args '=' arg modifier_rescue arg
 		    {
@@ -2684,6 +2691,7 @@ arg		: lhs '=' lex_ctxt arg_rhs
 		    /*% ripper[$4]: bodystmt!(rescue_mod!($4, $6), Qnil, Qnil, Qnil) %*/
 		    /*% ripper: defs!(AREF($1, 0), AREF($1, 1), AREF($1, 2), $2, $4) %*/
 			local_pop(p);
+                        pop_dummy_eofp(p);
 		    }
 		| primary
 		    {
