@@ -410,16 +410,30 @@ pop_pktbl(struct parser_params *p, st_table *tbl)
     p->pktbl = tbl;
 }
 
+static void flush_debug_buffer(struct parser_params *p, VALUE out, VALUE str);
+
+static void
+debug_dummy_eofp(struct parser_params *p, const char *name, int line)
+{
+    if(p->debug) {
+        VALUE mesg = rb_sprintf("%s: ", name);
+        rb_str_catf(mesg, " %d, at line %d\n", p->num_dummy_eofp, line);
+        flush_debug_buffer(p, p->debug_output, mesg);
+    }
+}
+
 static void
 push_dummy_eofp(struct parser_params *p)
 {
     p->num_dummy_eofp++;
+    debug_dummy_eofp(p, "push_dummy_eofp", 0);
 }
 
 static void
 pop_dummy_eofp(struct parser_params *p)
 {
     p->num_dummy_eofp--;
+    debug_dummy_eofp(p, "pop_dummy_eofp", 0);
 }
 
 RBIMPL_ATTR_NONNULL((1, 2, 3))
