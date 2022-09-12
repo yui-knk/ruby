@@ -3341,28 +3341,34 @@ primary		: literal
 		    }
 		| defn_head
 		  f_arglist
+		    {
+			push_dummy_eofp(p);
+		    }
 		  bodystmt
 		  end_or_error
 		    {
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
-			$$ = set_defun_body(p, $1, $2, $3, &@$);
+			$$ = set_defun_body(p, $1, $2, $4, &@$);
 		    /*% %*/
-		    /*% ripper: def!(get_value($1), $2, $3) %*/
+		    /*% ripper: def!(get_value($1), $2, $4) %*/
 			local_pop(p);
 		    }
 		| defs_head
 		  f_arglist
+		    {
+			push_dummy_eofp(p);
+		    }
 		  bodystmt
 		  end_or_error
 		    {
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
-			$$ = set_defun_body(p, $1, $2, $3, &@$);
+			$$ = set_defun_body(p, $1, $2, $4, &@$);
 		    /*%
 			$1 = get_value($1);
 		    %*/
-		    /*% ripper: defs!(AREF($1, 0), AREF($1, 1), AREF($1, 2), $2, $3) %*/
+		    /*% ripper: defs!(AREF($1, 0), AREF($1, 1), AREF($1, 2), $2, $4) %*/
 			local_pop(p);
 		    }
 		| keyword_break
@@ -3482,7 +3488,6 @@ k_def		: keyword_def
 		    {
 			token_info_push(p, "def", &@$);
 			p->ctxt.in_argdef = 1;
-			push_dummy_eofp(p);
 		    }
 		;
 
