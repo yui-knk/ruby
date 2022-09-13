@@ -9417,6 +9417,7 @@ parser_yylex(struct parser_params *p)
       case '\004':		/* ^D */
       case '\032':		/* ^Z */
       case -1:			/* end of script. */
+	p->eofp  = 1;
 #ifndef RIPPER
 	if (p->num_dummy_eofp > 0) {
 	    p->num_dummy_eofp--;
