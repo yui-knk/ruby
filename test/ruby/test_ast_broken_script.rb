@@ -1,4 +1,18 @@
 class TestAstBrokenScript < Test::Unit::TestCase
+  def test_if_broken_1
+    node = RubyVM::AbstractSyntaxTree.parse(<<~STR, suppress_syntax_error: true)
+      class A
+        def m
+          a = 10
+          if # here
+        end
+      end
+    STR
+
+    # pp node
+  end
+
+
   def test_defn_bodystmt_is_broken_1
     node = RubyVM::AbstractSyntaxTree.parse(<<~STR, suppress_syntax_error: true)
       class A
@@ -69,4 +83,36 @@ class TestAstBrokenScript < Test::Unit::TestCase
 
     # pp node
   end
+
+  def test_braces_1
+    node = RubyVM::AbstractSyntaxTree.parse(<<~STR, suppress_syntax_error: true)
+    class A
+      def m1
+        a = 1
+        10.times {
+        b = 2
+      end
+
+      def m2
+        c = 3
+        11.times {
+        d = 4
+      end
+    end
+    STR
+
+    # pp node
+  end
+
+
+
+  # def test_string_interpolation_1
+  #   node = RubyVM::AbstractSyntaxTree.parse(<<~'STR', suppress_syntax_error: true)
+  #   a = 1
+  #   str = "#{a}_#{"
+  #   b = 2
+  #   STR
+
+  #   pp node
+  # end
 end
