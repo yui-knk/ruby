@@ -355,7 +355,8 @@ struct parser_params {
     VALUE error_buffer;
     VALUE debug_lines;
     const struct rb_iseq_struct *parent_iseq;
-    int num_dummy_eofp;
+    /* store specific keyword localtion to generate dummy end token */
+    VALUE num_dummy_eofp;
 #else
     /* Ripper only */
 
@@ -417,23 +418,32 @@ debug_dummy_eofp(struct parser_params *p, const char *name, int line)
 {
     if(p->debug) {
         VALUE mesg = rb_sprintf("%s: ", name);
-        rb_str_catf(mesg, " %d, at line %d\n", p->num_dummy_eofp, line);
+        rb_str_catf(mesg, " %"PRIsVALUE", at line %d\n", p->num_dummy_eofp, line);
         flush_debug_buffer(p, p->debug_output, mesg);
     }
 }
 
 static void
-push_dummy_eofp(struct parser_params *p)
+push_dummy_eofp(struct parser_params *p, const rb_code_position_t *pos)
 {
-    p->num_dummy_eofp++;
+    if(NIL_P(p->num_dummy_eofp)) return;
+    rb_ary_push(p->num_dummy_eofp, rb_ary_new_from_args(2, INT2NUM(pos->lineno), INT2NUM(pos->column)));
     debug_dummy_eofp(p, "push_dummy_eofp", 0);
 }
 
 static void
 pop_dummy_eofp(struct parser_params *p)
 {
-    p->num_dummy_eofp--;
+    if(NIL_P(p->num_dummy_eofp)) return;
+    rb_ary_pop(p->num_dummy_eofp);
     debug_dummy_eofp(p, "pop_dummy_eofp", 0);
+}
+
+static VALUE
+peek_dummy_eofp(struct parser_params *p)
+{
+    if(NIL_P(p->num_dummy_eofp)) return Qnil;
+    return rb_ary_last(0, 0, p->num_dummy_eofp);
 }
 #endif
 
@@ -3352,7 +3362,7 @@ primary		: literal
 		  f_arglist
 		    {
 		    /*%%%*/
-			push_dummy_eofp(p);
+			push_dummy_eofp(p, &@1.beg_pos);
 		    /*% %*/
 		    }
 		  bodystmt
@@ -3369,7 +3379,7 @@ primary		: literal
 		  f_arglist
 		    {
 		    /*%%%*/
-			push_dummy_eofp(p);
+			push_dummy_eofp(p, &@1.beg_pos);
 		    /*% %*/
 		    }
 		  bodystmt
@@ -3425,7 +3435,7 @@ k_begin		: keyword_begin
 		    {
 			token_info_push(p, "begin", &@$);
 		    /*%%%*/
-			push_dummy_eofp(p);
+			push_dummy_eofp(p, &@1.beg_pos);
 		    /*% %*/
 		    }
 		;
@@ -3445,7 +3455,7 @@ k_if		: keyword_if
 			    }
 			}
 		    /*%%%*/
-			push_dummy_eofp(p);
+			push_dummy_eofp(p, &@1.beg_pos);
 		    /*% %*/
 		    }
 		;
@@ -3454,7 +3464,7 @@ k_unless	: keyword_unless
 		    {
 			token_info_push(p, "unless", &@$);
 		    /*%%%*/
-			push_dummy_eofp(p);
+			push_dummy_eofp(p, &@1.beg_pos);
 		    /*% %*/
 		    }
 		;
@@ -3463,7 +3473,7 @@ k_while		: keyword_while
 		    {
 			token_info_push(p, "while", &@$);
 		    /*%%%*/
-			push_dummy_eofp(p);
+			push_dummy_eofp(p, &@1.beg_pos);
 		    /*% %*/
 		    }
 		;
@@ -3472,7 +3482,7 @@ k_until		: keyword_until
 		    {
 			token_info_push(p, "until", &@$);
 		    /*%%%*/
-			push_dummy_eofp(p);
+			push_dummy_eofp(p, &@1.beg_pos);
 		    /*% %*/
 		    }
 		;
@@ -3481,7 +3491,7 @@ k_case		: keyword_case
 		    {
 			token_info_push(p, "case", &@$);
 		    /*%%%*/
-			push_dummy_eofp(p);
+			push_dummy_eofp(p, &@1.beg_pos);
 		    /*% %*/
 		    }
 		;
@@ -3490,7 +3500,7 @@ k_for		: keyword_for
 		    {
 			token_info_push(p, "for", &@$);
 		    /*%%%*/
-			push_dummy_eofp(p);
+			push_dummy_eofp(p, &@1.beg_pos);
 		    /*% %*/
 		    }
 		;
@@ -3500,7 +3510,7 @@ k_class		: keyword_class
 			token_info_push(p, "class", &@$);
 			$<ctxt>$ = p->ctxt;
 		    /*%%%*/
-			push_dummy_eofp(p);
+			push_dummy_eofp(p, &@1.beg_pos);
 		    /*% %*/
 		    }
 		;
@@ -3510,7 +3520,7 @@ k_module	: keyword_module
 			token_info_push(p, "module", &@$);
 			$<ctxt>$ = p->ctxt;
 		    /*%%%*/
-			push_dummy_eofp(p);
+			push_dummy_eofp(p, &@1.beg_pos);
 		    /*% %*/
 		    }
 		;
@@ -3526,7 +3536,7 @@ k_do		: keyword_do
 		    {
 			token_info_push(p, "do", &@$);
 		    /*%%%*/
-			push_dummy_eofp(p);
+			push_dummy_eofp(p, &@1.beg_pos);
 		    /*% %*/
 		    }
 		;
@@ -3535,7 +3545,7 @@ k_do_block	: keyword_do_block
 		    {
 			token_info_push(p, "do", &@$);
 		    /*%%%*/
-			push_dummy_eofp(p);
+			push_dummy_eofp(p, &@1.beg_pos);
 		    /*% %*/
 		    }
 		;
@@ -3951,7 +3961,7 @@ lambda_body	: tLAMBEG compstmt '}'
 		| keyword_do_LAMBDA
 		    {
 		    /*%%%*/
-			push_dummy_eofp(p);
+			push_dummy_eofp(p, &@1.beg_pos);
 		    /*% %*/
 		    }
 		bodystmt end_or_error
@@ -9300,6 +9310,7 @@ parse_ident(struct parser_params *p, int c, int cmd_state)
     int mb = ENC_CODERANGE_7BIT;
     const enum lex_state_e last_state = p->lex.state;
     ID ident;
+    int enforce_keyword_end = 0;
 
     do {
 	if (!ISASCII(c)) mb = ENC_CODERANGE_UNKNOWN;
@@ -9329,7 +9340,34 @@ parse_ident(struct parser_params *p, int c, int cmd_state)
 	    return tLABEL;
 	}
     }
-    if (mb == ENC_CODERANGE_7BIT && !IS_lex_state(EXPR_DOT)) {
+
+#ifndef RIPPER
+    if (!NIL_P(peek_dummy_eofp(p))) {
+	VALUE end_loc;
+	int lineno, column;
+	int beg_pos = (int)(p->lex.ptok - p->lex.pbeg);
+
+	end_loc = peek_dummy_eofp(p);
+	lineno = NUM2INT(rb_ary_entry(end_loc, 0));
+	column = NUM2INT(rb_ary_entry(end_loc, 1));
+
+	if (p->debug) {
+	    rb_parser_printf(p, "[DEBUG]: %"PRIsVALUE", %d, %d, %d, %d\n",
+				end_loc, lineno, column, p->ruby_sourceline, beg_pos);
+	}
+
+	if ((p->ruby_sourceline > lineno) && (beg_pos <= column)) {
+	    const struct kwtable *kw;
+
+	    if ((IS_lex_state(EXPR_DOT)) && (kw = rb_reserved_word(tok(p), toklen(p))) && (kw && kw->id[0] == keyword_end)) {
+		if (p->debug) rb_parser_printf(p, "[DEBUG] enforce_keyword_end!\n");
+		enforce_keyword_end = 1;
+	    }
+	}
+    }
+#endif
+
+    if (mb == ENC_CODERANGE_7BIT && (!IS_lex_state(EXPR_DOT) || enforce_keyword_end)) {
 	const struct kwtable *kw;
 
 	/* See if it is a reserved word.  */
@@ -9381,6 +9419,7 @@ parse_ident(struct parser_params *p, int c, int cmd_state)
     }
 
     ident = tokenize_ident(p, last_state);
+
     if (result == tCONSTANT && is_local_id(ident)) result = tIDENTIFIER;
     if (!IS_lex_state_for(last_state, EXPR_DOT|EXPR_FNAME) &&
 	(result == tIDENTIFIER) && /* not EXPR_FNAME, not attrasgn */
@@ -9425,8 +9464,8 @@ parser_yylex(struct parser_params *p)
       case -1:			/* end of script. */
 	p->eofp  = 1;
 #ifndef RIPPER
-	if (p->num_dummy_eofp > 0) {
-	    p->num_dummy_eofp--;
+	if (!NIL_P(p->num_dummy_eofp) && RARRAY_LEN(p->num_dummy_eofp) > 0) {
+	    pop_dummy_eofp(p);
 	    return tDUMNY_EOI;
 	}
 #endif
@@ -13300,6 +13339,7 @@ parser_initialize(struct parser_params *p)
     p->parsing_thread = Qnil;
 #else
     p->error_buffer = Qfalse;
+    p->num_dummy_eofp = Qnil;
 #endif
     p->debug_buffer = Qnil;
     p->debug_output = rb_ractor_stdout();
@@ -13328,6 +13368,7 @@ parser_mark(void *ptr)
     rb_gc_mark(p->debug_lines);
     rb_gc_mark(p->compile_option);
     rb_gc_mark(p->error_buffer);
+    rb_gc_mark(p->num_dummy_eofp);
 #else
     rb_gc_mark(p->delayed.token);
     rb_gc_mark(p->value);
@@ -13440,6 +13481,7 @@ rb_parser_suppress_syntax_error(VALUE vparser)
 
     TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
     p->suppress_syntax_error = 1;
+    p->num_dummy_eofp = rb_ary_new();
 }
 #endif
 
