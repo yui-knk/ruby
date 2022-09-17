@@ -1,5 +1,5 @@
 class TestAstBrokenScript < Test::Unit::TestCase
-  def test_if_broken_1
+  def test_if_1
     node = RubyVM::AbstractSyntaxTree.parse(<<~STR, suppress_syntax_error: true)
       class A
         def m
@@ -9,11 +9,25 @@ class TestAstBrokenScript < Test::Unit::TestCase
       end
     STR
 
-    # pp node
+    pp node
   end
 
+  def test_method_call_1
+    node = RubyVM::AbstractSyntaxTree.parse(<<~STR, suppress_syntax_error: true)
+      module Z
+        class Foo
+          foo.
+        end
+      
+        def bar
+        end
+      end
+    STR
 
-  def test_defn_bodystmt_is_broken_1
+    pp node
+  end
+
+  def test_defn_bodystmt_is_1
     node = RubyVM::AbstractSyntaxTree.parse(<<~STR, suppress_syntax_error: true)
       class A
         def m1
@@ -25,7 +39,7 @@ class TestAstBrokenScript < Test::Unit::TestCase
     # pp node
   end
 
-  def test_defn_bodystmt_is_broken_2
+  def test_defn_bodystmt_is_2
     node = RubyVM::AbstractSyntaxTree.parse(<<~STR, suppress_syntax_error: true)
       class A
         def m1
@@ -38,7 +52,7 @@ class TestAstBrokenScript < Test::Unit::TestCase
     # pp node
   end
 
-  def test_defn_bodystmt_is_broken_3
+  def test_defn_bodystmt_is_3
     node = RubyVM::AbstractSyntaxTree.parse(<<~STR, suppress_syntax_error: true)
       class A
         def m1
@@ -55,7 +69,7 @@ class TestAstBrokenScript < Test::Unit::TestCase
     # pp node
   end
 
-  def test_defn_bodystmt_is_broken_4
+  def test_defn_bodystmt_is_4
     node = RubyVM::AbstractSyntaxTree.parse(<<~STR, suppress_syntax_error: true)
       class A
         def m1
