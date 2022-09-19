@@ -1655,7 +1655,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		| error
 		    {
 		    /*%%%*/
-			$$ = NEW_BEGIN(0, &@$);
+			$$ = NEW_ERROR(&@$);
 		    /*% %*/
 		    }
 		;
@@ -1909,7 +1909,7 @@ expr_value	: expr
 		| error
 		    {
 		    /*%%%*/
-			$$ = NEW_BEGIN(0, &@$);
+			$$ = NEW_ERROR(&@$);
 		    /*% %*/
 		    }
 		;

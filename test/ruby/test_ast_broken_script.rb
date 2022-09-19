@@ -43,7 +43,7 @@ class TestAstBrokenScript < Test::Unit::TestCase
                          block: nil)
                       body:
                         (BLOCK@3:4-6:3 (LASGN@3:4-3:10 :a (LIT@3:8-3:10 10))
-                           (IF@4:4-6:3 (BEGIN@5:2-5:5 nil) nil nil))))))))
+                           (IF@4:4-6:3 (ERROR@5:2-5:5) nil nil))))))))
     EXP
   end
 
@@ -76,8 +76,7 @@ class TestAstBrokenScript < Test::Unit::TestCase
                      (SCOPE@2:2-4:5
                       tbl: []
                       args: nil
-                      body:
-                        (BLOCK@2:11-4:5 (BEGIN@2:11-2:11 nil) (BEGIN@3:4-4:5 nil))))
+                      body: (BLOCK@2:11-4:5 (BEGIN@2:11-2:11 nil) (ERROR@3:4-4:5))))
                   (DEFN@6:2-7:5
                    mid: :bar
                    body:
@@ -138,7 +137,7 @@ class TestAstBrokenScript < Test::Unit::TestCase
                          kw: nil
                          kwrest: nil
                          block: nil)
-                      body: nil))))))
+                      body: (ERROR@3:4-4:5)))))))
     EXP
   end
 
@@ -184,7 +183,7 @@ class TestAstBrokenScript < Test::Unit::TestCase
                          block: nil)
                       body:
                         (BLOCK@3:4-5:5 (LASGN@3:4-3:10 :v (LIT@3:8-3:10 10))
-                           nil)))))))
+                           (ERROR@4:4-5:5))))))))
     EXP
   end
 
@@ -232,7 +231,7 @@ class TestAstBrokenScript < Test::Unit::TestCase
                          kw: nil
                          kwrest: nil
                          block: nil)
-                      body: nil))
+                      body: (ERROR@3:4-4:5)))
                   (DEFN@6:2-9:5
                    mid: :m2
                    body:
@@ -252,7 +251,7 @@ class TestAstBrokenScript < Test::Unit::TestCase
                          block: nil)
                       body:
                         (BLOCK@7:4-9:5 (LASGN@7:4-7:10 :v (LIT@7:8-7:10 10))
-                           nil)))))))
+                           (ERROR@8:4-9:5))))))))
     EXP
   end
 
@@ -401,7 +400,9 @@ class TestAstBrokenScript < Test::Unit::TestCase
                          kw: nil
                          kwrest: nil
                          block: nil)
-                      body: (BLOCK@3:4-6:5 (LASGN@3:4-3:9 :a (LIT@3:8-3:9 1)) nil)))
+                      body:
+                        (BLOCK@3:4-6:5 (LASGN@3:4-3:9 :a (LIT@3:8-3:9 1))
+                           (ERROR@4:4-6:5))))
                   (DEFN@8:2-12:5
                    mid: :m2
                    body:
@@ -420,7 +421,8 @@ class TestAstBrokenScript < Test::Unit::TestCase
                          kwrest: nil
                          block: nil)
                       body:
-                        (BLOCK@9:4-12:5 (LASGN@9:4-9:9 :c (LIT@9:8-9:9 3)) nil)))))))
+                        (BLOCK@9:4-12:5 (LASGN@9:4-9:9 :c (LIT@9:8-9:9 3))
+                           (ERROR@10:4-12:5))))))))
     EXP
   end
 
