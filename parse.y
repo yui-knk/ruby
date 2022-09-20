@@ -1235,6 +1235,7 @@ static int looking_at_eol_p(struct parser_params *p);
 %type <node> f_kwarg f_kw f_block_kwarg f_block_kw
 %type <node> bv_decls opt_bv_decl bvar
 %type <node> lambda f_larglist lambda_body brace_body do_body
+%type <node> linq
 %type <node> brace_block cmd_brace_block do_block lhs none fitem
 %type <node> mlhs mlhs_head mlhs_basic mlhs_item mlhs_node mlhs_post mlhs_inner
 %type <node> p_case_body p_cases p_top_expr p_top_expr_body
@@ -3236,6 +3237,7 @@ primary		: literal
 		    /*% %*/
 		    /*% ripper: for!($2, $4, $5) %*/
 		    }
+		| linq
 		| k_class cpath superclass
 		    {
 			if (p->ctxt.in_def) {
@@ -3795,6 +3797,11 @@ bvar		: tIDENTIFIER
 			$$ = 0;
 		    }
 		;
+
+linq		: keyword_from tIDENTIFIER keyword_in 
+		    {
+			$$ = 0;
+		    }
 
 lambda		: tLAMBDA
 		    {
