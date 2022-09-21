@@ -3798,7 +3798,7 @@ bvar		: tIDENTIFIER
 		    }
 		;
 
-linq		: keyword_from tIDENTIFIER keyword_in 
+linq		: tIDENTIFIER tIDENTIFIER keyword_in 
 		    {
 			$$ = 0;
 		    }
