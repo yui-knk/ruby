@@ -3811,7 +3811,7 @@ bvar		: tIDENTIFIER
 		;
 
 query_expression : {$<vars>$ = dyna_push(p);}
-		   from_clause query_body ';'
+		   from_clause query_body k_end
 		    {
 			NODE *iter = NEW_ITER($2->nd_from_arg, $3, &@$);
 			$$ = method_add_block(p, $2->nd_from_call, iter, &@$);
