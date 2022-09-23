@@ -586,7 +586,16 @@ if defined?(RubyVM::AbstractSyntaxTree)
     end
 
     def pretty_print(q)
-      q.group(1, "(#{type}@#{first_lineno}:#{first_column}-#{last_lineno}:#{last_column}", ")") {
+      str = "(#{type}@#{first_lineno}:#{first_column}-#{last_lineno}:#{last_column}"
+      if cst
+        if cst.count <= 1
+          str << cst.to_s
+        else
+          str << [cst.first, cst.last].to_s
+        end
+      end
+
+      q.group(1, str, ")") {
         case type
         when :SCOPE
           pretty_print_children(q, %w"tbl args body")

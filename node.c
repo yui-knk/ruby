@@ -28,10 +28,11 @@
 #define A_LONG(val) rb_str_catf(buf, "%ld", (val))
 #define A_LIT(lit) AR(rb_dump_literal(lit))
 #define A_NODE_HEADER(node, term) \
-    rb_str_catf(buf, "@ %s (id: %d, line: %d, location: (%d,%d)-(%d,%d))%s"term, \
+    rb_str_catf(buf, "@ %s (id: %d, line: %d, location: (%d,%d)-(%d,%d), sym: %d)%s"term, \
                 ruby_node_name(nd_type(node)), nd_node_id(node), nd_line(node), \
                 nd_first_lineno(node), nd_first_column(node), \
                 nd_last_lineno(node), nd_last_column(node), \
+                nd_symbol_id(node), \
                 (node->flags & NODE_FL_NEWLINE ? "*" : ""))
 #define A_FIELD_HEADER(len, name, term) \
     rb_str_catf(buf, "+- %.*s:"term, (len), (name))
@@ -1110,8 +1111,36 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
     rb_bug("dump_node: unknown node: %s", ruby_node_name(nd_type(node)));
 }
 
+
+typedef struct node_buffer_elem_struct {
+    struct node_buffer_elem_struct *next;
+    long len;
+    NODE buf[FLEX_ARY_LEN];
+} node_buffer_elem_t;
+
+typedef struct {
+    long idx, len;
+    node_buffer_elem_t *head;
+    node_buffer_elem_t *last;
+} node_buffer_list_t;
+
+struct node_buffer_struct {
+    node_buffer_list_t unmarkable;
+    node_buffer_list_t markable;
+    struct rb_ast_local_table_link *local_tables;
+    VALUE mark_hash;
+    // - id: sequence number
+    // - token_type:
+    // - text: text of token
+    // (- location info)
+    // Array, whose entry is array
+    VALUE tokens;
+    VALUE nterm_tokens;
+};
+
+
 VALUE
-rb_parser_dump_tree(const NODE *node, int comment)
+rb_parser_dump_tree(const rb_ast_t *ast, int comment)
 {
     VALUE buf = rb_str_new_cstr(
         "###########################################################\n"
@@ -1119,7 +1148,9 @@ rb_parser_dump_tree(const NODE *node, int comment)
         "## debug and research.  Compatibility is not guaranteed. ##\n"
         "###########################################################\n\n"
     );
-    dump_node(buf, rb_str_new_cstr("# "), comment, node);
+    rb_str_catf(buf, "%"PRIsVALUE"\n", ast->node_buffer->tokens);
+    //rb_str_catf(buf, "%"PRIsVALUE"\n\n", ast->node_buffer->nterm_tokens);
+    dump_node(buf, rb_str_new_cstr("# "), comment, ast->body.root);
     return buf;
 }
 
@@ -1143,25 +1174,6 @@ rb_node_init(NODE *n, enum node_type type, VALUE a0, VALUE a1, VALUE a2)
     n->nd_loc.end_pos.column = 0;
     n->node_id = -1;
 }
-
-typedef struct node_buffer_elem_struct {
-    struct node_buffer_elem_struct *next;
-    long len;
-    NODE buf[FLEX_ARY_LEN];
-} node_buffer_elem_t;
-
-typedef struct {
-    long idx, len;
-    node_buffer_elem_t *head;
-    node_buffer_elem_t *last;
-} node_buffer_list_t;
-
-struct node_buffer_struct {
-    node_buffer_list_t unmarkable;
-    node_buffer_list_t markable;
-    struct rb_ast_local_table_link *local_tables;
-    VALUE mark_hash;
-};
 
 static void
 init_node_buffer_list(node_buffer_list_t * nb, node_buffer_elem_t *head)
@@ -1187,6 +1199,8 @@ rb_node_buffer_new(void)
     init_node_buffer_list(&nb->markable, (node_buffer_elem_t*)((size_t)nb->unmarkable.head + bucket_size));
     nb->local_tables = 0;
     nb->mark_hash = Qnil;
+    nb->tokens = Qnil;
+    nb->nterm_tokens = Qnil;
     return nb;
 }
 
@@ -1418,7 +1432,11 @@ rb_ast_update_references(rb_ast_t *ast)
 void
 rb_ast_mark(rb_ast_t *ast)
 {
-    if (ast->node_buffer) rb_gc_mark(ast->node_buffer->mark_hash);
+    if (ast->node_buffer) {
+        rb_gc_mark(ast->node_buffer->mark_hash);
+        rb_gc_mark(ast->node_buffer->tokens);
+        rb_gc_mark(ast->node_buffer->nterm_tokens);
+    }
     if (ast->body.compile_option) rb_gc_mark(ast->body.compile_option);
     if (ast->node_buffer) {
         node_buffer_t *nb = ast->node_buffer;
@@ -1476,4 +1494,28 @@ rb_ast_add_mark_object(rb_ast_t *ast, VALUE obj)
         RB_OBJ_WRITE(ast, &ast->node_buffer->mark_hash, rb_ident_hash_new());
     }
     rb_hash_aset(ast->node_buffer->mark_hash, obj, Qtrue);
+}
+
+VALUE
+rb_ast_tokens(rb_ast_t *ast)
+{
+    return ast->node_buffer->tokens;
+}
+
+void
+rb_ast_set_tokens(rb_ast_t *ast, VALUE tokens)
+{
+    RB_OBJ_WRITE(ast, &ast->node_buffer->tokens, tokens);
+}
+
+VALUE
+rb_ast_nterm_tokens(rb_ast_t *ast)
+{
+    return ast->node_buffer->nterm_tokens;
+}
+
+void
+rb_ast_set_nterm_tokens(rb_ast_t *ast, VALUE tokens)
+{
+    RB_OBJ_WRITE(ast, &ast->node_buffer->nterm_tokens, tokens);
 }
