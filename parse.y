@@ -334,6 +334,7 @@ struct parser_params {
     unsigned int has_shebang: 1;
     unsigned int token_seen: 1;
     unsigned int token_info_enabled: 1;
+    unsigned int in_query: 1;
 # if WARN_PAST_SCOPE
     unsigned int past_scope_enabled: 1;
 # endif
@@ -1101,11 +1102,19 @@ static int looking_at_eol_p(struct parser_params *p);
 %define parse.error verbose
 %printer {
 #ifndef RIPPER
+    if ($$) {
+	rb_parser_printf(p, "%s", ruby_node_name(nd_type($$)));
+    }
+#else
+#endif
+} <node>
+%printer {
+#ifndef RIPPER
     rb_parser_printf(p, "%"PRIsVALUE, rb_id2str($$));
 #else
     rb_parser_printf(p, "%"PRIsVALUE, RNODE($$)->nd_rval);
 #endif
-} tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL tOP_ASGN
+} <id>
 %printer {
 #ifndef RIPPER
     rb_parser_printf(p, "%+"PRIsVALUE, $$->nd_lit);
@@ -1235,7 +1244,7 @@ static int looking_at_eol_p(struct parser_params *p);
 %type <node> f_kwarg f_kw f_block_kwarg f_block_kw
 %type <node> bv_decls opt_bv_decl bvar
 %type <node> lambda f_larglist lambda_body brace_body do_body
-%type <node> linq
+%type <node> query_expression from_clause query_body select_or_group_clause select_clause
 %type <node> brace_block cmd_brace_block do_block lhs none fitem
 %type <node> mlhs mlhs_head mlhs_basic mlhs_item mlhs_node mlhs_post mlhs_inner
 %type <node> p_case_body p_cases p_top_expr p_top_expr_body
@@ -1248,7 +1257,7 @@ static int looking_at_eol_p(struct parser_params *p);
 %type <id>   f_kwrest f_label f_arg_asgn call_op call_op2 reswords relop dot_or_colon
 %type <id>   p_rest p_kwrest p_kwnorest p_any_kwrest p_kw_label
 %type <id>   f_no_kwarg f_any_kwrest args_forward excessed_comma nonlocal_var
- %type <ctxt> lex_ctxt /* keep <ctxt> in ripper */
+%type <ctxt> lex_ctxt /* keep <ctxt> in ripper */
 %token END_OF_INPUT 0	"end-of-input"
 %token <id> '.'
 /* escaped chars, should be ignored otherwise */
@@ -1305,6 +1314,9 @@ static int looking_at_eol_p(struct parser_params *p);
 %token tSTRING_END	"terminator"
 %token tSTRING_DEND	"'}'"
 %token tSTRING_DBEG tSTRING_DVAR tLAMBEG tLABEL_END
+%token tFROM		"from"
+%token tSELECT		"select"
+%token tWHERE		"where"
 
 /*
  *	precedence table
@@ -3237,7 +3249,7 @@ primary		: literal
 		    /*% %*/
 		    /*% ripper: for!($2, $4, $5) %*/
 		    }
-		| linq
+		| query_expression
 		| k_class cpath superclass
 		    {
 			if (p->ctxt.in_def) {
@@ -3798,9 +3810,42 @@ bvar		: tIDENTIFIER
 		    }
 		;
 
-linq		: tIDENTIFIER tIDENTIFIER keyword_in 
+query_expression : from_clause query_body term
 		    {
-			$$ = 0;
+			NODE *iter = NEW_ITER(Qnull, $2, &@$);
+			$$ = method_add_block(p, $1, iter, &@$);
+			fixpos($$, $1);
+			nd_set_last_loc($1, @2.end_pos);
+			p->in_query = 0;
+		    }
+
+
+from_clause	: tFROM tIDENTIFIER keyword_in expr
+		    {
+			NODE *pre_args, *tail, *arg;
+			ID id = get_id($2);
+
+			arg_var(p, id);
+			pre_args = NEW_ARGS_AUX(id, 1, &NULL_LOC);;
+			tail = new_args_tail(p, Qnone, Qnone, Qnone, &@0);
+			arg = new_args(p, pre_args, Qnone, Qnone, Qnone, tail, &@$);
+
+			$$ = new_qcall(p, ID2VAL(idCOLON2), $4, rb_intern("map"), arg, &@4, &@$);
+		    }
+
+query_body	: select_or_group_clause
+		    {
+			$$ = $1;
+		    }
+
+select_or_group_clause : select_clause
+		    {
+			$$ = $1;
+		    }
+
+select_clause	: tSELECT expr
+		    {
+			$$ = $2;
 		    }
 
 lambda		: tLAMBDA
@@ -9261,6 +9306,22 @@ parse_ident(struct parser_params *p, int c, int cmd_state)
 		    SET_LEX_STATE(EXPR_BEG | EXPR_LABEL);
 		return kw->id[1];
 	    }
+	}
+    }
+
+    //
+    if (strncmp(tok(p), "from", 4) == 0) {
+	p->in_query = 1;
+	return tFROM;
+    }
+
+    if (p->in_query) {
+	if (strncmp(tok(p), "select", 6) == 0) {
+	    return tSELECT;
+	}
+
+	if (strncmp(tok(p), "where", 5) == 0) {
+	    return tWHERE;
 	}
     }
 
