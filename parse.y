@@ -1055,6 +1055,62 @@ endless_method_name(struct parser_params *p, NODE *defn, const YYLTYPE *loc)
     token_info_drop(p, "def", loc->beg_pos);
 }
 
+static inline VALUE
+code_loc_to_array(const rb_code_location_t *loc)
+{
+    return rb_ary_new_from_args(4, INT2NUM(loc->beg_pos.lineno), INT2NUM(loc->beg_pos.column), INT2NUM(loc->end_pos.lineno), INT2NUM(loc->end_pos.column));
+}
+
+static inline void
+nd_append_locations(NODE *node, VALUE v)
+{
+    if (nd_locations(node)) {
+    	nd_locations(node);
+    }
+    else {
+	nd_set_locations(node, v);
+    }
+}
+
+static inline VALUE
+locations_gen_1(const rb_code_location_t *loc1, const char * c1)
+{
+    VALUE h = rb_hash_new_with_size(1);
+    rb_hash_aset(h, ID2SYM(rb_intern(c1)), code_loc_to_array(loc1));
+    return h;
+}
+
+static inline VALUE
+locations_gen_2(const rb_code_location_t *loc1, const rb_code_location_t *loc2, const char * c1, const char * c2)
+{
+    VALUE h = rb_hash_new_with_size(2);
+    rb_hash_aset(h, ID2SYM(rb_intern(c1)), code_loc_to_array(loc1));
+    rb_hash_aset(h, ID2SYM(rb_intern(c2)), code_loc_to_array(loc2));
+    return h;
+}
+
+static inline VALUE
+locations_gen_3(const rb_code_location_t *loc1, const rb_code_location_t *loc2, const rb_code_location_t *loc3, const char * c1, const char * c2, const char * c3)
+{
+    VALUE h = rb_hash_new_with_size(3);
+    rb_hash_aset(h, ID2SYM(rb_intern(c1)), code_loc_to_array(loc1));
+    rb_hash_aset(h, ID2SYM(rb_intern(c2)), code_loc_to_array(loc2));
+    rb_hash_aset(h, ID2SYM(rb_intern(c3)), code_loc_to_array(loc3));
+    return h;
+}
+
+static inline VALUE
+locations_gen_4(const rb_code_location_t *loc1, const rb_code_location_t *loc2, const rb_code_location_t *loc3, const rb_code_location_t *loc4, const char * c1, const char * c2, const char * c3, const char * c4)
+{
+    VALUE h = rb_hash_new_with_size(4);
+    rb_hash_aset(h, ID2SYM(rb_intern(c1)), code_loc_to_array(loc1));
+    rb_hash_aset(h, ID2SYM(rb_intern(c2)), code_loc_to_array(loc2));
+    rb_hash_aset(h, ID2SYM(rb_intern(c3)), code_loc_to_array(loc3));
+    rb_hash_aset(h, ID2SYM(rb_intern(c4)), code_loc_to_array(loc4));
+    return h;
+}
+
+
 #ifndef RIPPER
 # define Qnone 0
 # define Qnull 0
@@ -1436,6 +1492,7 @@ top_stmt	: stmt
 		| keyword_BEGIN begin_block
 		    {
 			$$ = $2;
+			nd_set_locations($$, locations_gen_1(&@1, "BEGIN"));
 		    }
 		;
 
@@ -1445,6 +1502,7 @@ begin_block	: '{' top_compstmt '}'
 			p->eval_tree_begin = block_append(p, p->eval_tree_begin,
 							  NEW_BEGIN($2, &@$));
 			$$ = NEW_BEGIN(0, &@$);
+			nd_set_locations($$, locations_gen_3(&@1, &@2, &@3, "{", "top_compstmt", "}"));
 		    /*% %*/
 		    /*% ripper: BEGIN!($2) %*/
 		    }
@@ -1458,6 +1516,7 @@ bodystmt	: compstmt
 		    {
 		    /*%%%*/
 			$$ = new_bodystmt(p, $1, $2, $5, $6, &@$);
+			nd_set_locations($$, locations_gen_5($1, $2, $3, $5, $6, "compstmt1", "rescue", "else", "compstmt2", "ensure"));
 		    /*% %*/
 		    /*% ripper: bodystmt!(escape_Qundef($1), escape_Qundef($2), escape_Qundef($5), escape_Qundef($6)) %*/
 		    }
@@ -1467,6 +1526,7 @@ bodystmt	: compstmt
 		    {
 		    /*%%%*/
 			$$ = new_bodystmt(p, $1, $2, 0, $3, &@$);
+			nd_set_locations($$, locations_gen_3($1, $2, $3, "compstmt1", "rescue", "else", "compstmt2", "ensure"));
 		    /*% %*/
 		    /*% ripper: bodystmt!(escape_Qundef($1), escape_Qundef($2), Qnil, escape_Qundef($3)) %*/
 		    }
@@ -1924,6 +1984,7 @@ block_command	: block_call
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, $2, $1, $3, $4, &@3, &@$);
+			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, $2, $3), $4) %*/
 		    }
@@ -1973,6 +2034,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, $2, $1, $3, $4, Qnull, &@3, &@$);
+			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: command_call!($1, $2, $3, $4) %*/
 		    }
@@ -1980,6 +2042,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, $2, $1, $3, $4, $5, &@3, &@$);
+			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: method_add_block!(command_call!($1, $2, $3, $4), $5) %*/
 		    }
@@ -1987,6 +2050,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, ID2VAL(idCOLON2), $1, $3, $4, Qnull, &@3, &@$);
+			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: command_call!($1, ID2VAL(idCOLON2), $3, $4) %*/
 		    }
@@ -1994,6 +2058,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, ID2VAL(idCOLON2), $1, $3, $4, $5, &@3, &@$);
+			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: method_add_block!(command_call!($1, ID2VAL(idCOLON2), $3, $4), $5) %*/
 		   }
@@ -2903,6 +2968,7 @@ command_args	:   {
 			CMDARG_POP();
 			if (lookahead) CMDARG_PUSH(0);
 			$$ = $2;
+			@$ = @2;
 		    }
 		;
 
@@ -3997,6 +4063,7 @@ block_call	: command do_block
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, $2, $1, $3, $4, &@3, &@$);
+			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: opt_event(:method_add_arg!, call!($1, $2, $3), $4) %*/
 		    }
@@ -4004,6 +4071,7 @@ block_call	: command do_block
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, $2, $1, $3, $4, $5, &@3, &@$);
+			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: opt_event(:method_add_block!, command_call!($1, $2, $3, $4), $5) %*/
 		    }
@@ -4011,6 +4079,7 @@ block_call	: command do_block
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, $2, $1, $3, $4, $5, &@3, &@$);
+			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: method_add_block!(command_call!($1, $2, $3, $4), $5) %*/
 		    }
@@ -4029,6 +4098,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, $2, $1, $3, $4, &@3, &@$);
+			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 			nd_set_line($$, @3.end_pos.lineno);
 		    /*% %*/
 		    /*% ripper: opt_event(:method_add_arg!, call!($1, $2, $3), $4) %*/
@@ -4037,6 +4107,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, ID2VAL(idCOLON2), $1, $3, $4, &@3, &@$);
+			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 			nd_set_line($$, @3.end_pos.lineno);
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, ID2VAL(idCOLON2), $3), $4) %*/
@@ -4045,6 +4116,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, ID2VAL(idCOLON2), $1, $3, Qnull, &@3, &@$);
+			nd_set_locations($$, locations_gen_3(&@1, &@2, &@3, "receiver", "op", "method"));
 		    /*% %*/
 		    /*% ripper: call!($1, ID2VAL(idCOLON2), $3) %*/
 		    }
@@ -4052,6 +4124,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, $2, $1, ID2VAL(idCall), $3, &@2, &@$);
+			nd_set_locations($$, locations_gen_3(&@1, &@2, &@3, "receiver", "op", "method"));
 			nd_set_line($$, @2.end_pos.lineno);
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, $2, ID2VAL(idCall)), $3) %*/
@@ -4060,6 +4133,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, ID2VAL(idCOLON2), $1, ID2VAL(idCall), $3, &@2, &@$);
+			nd_set_locations($$, locations_gen_3(&@1, &@2, &@3, "receiver", "op", "method"));
 			nd_set_line($$, @2.end_pos.lineno);
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, ID2VAL(idCOLON2), ID2VAL(idCall)), $3) %*/
@@ -5614,6 +5688,7 @@ f_opt		: f_arg_asgn f_eq arg_value
 			p->ctxt.in_argdef = 1;
 		    /*%%%*/
 			$$ = NEW_OPT_ARG(0, assignable(p, $1, $3, &@$), &@$);
+			nd_set_locations($$, locations_gen_3(&@1, &@2, &@3, "left", "=", "right"));
 		    /*% %*/
 		    /*% ripper: rb_assoc_new(get_value(assignable(p, $1)), get_value($3)) %*/
 		    }
@@ -5625,6 +5700,7 @@ f_block_opt	: f_arg_asgn f_eq primary_value
 			p->ctxt.in_argdef = 1;
 		    /*%%%*/
 			$$ = NEW_OPT_ARG(0, assignable(p, $1, $3, &@$), &@$);
+			nd_set_locations($$, locations_gen_3(&@1, &@2, &@3, "left", "=", "right"));
 		    /*% %*/
 		    /*% ripper: rb_assoc_new(get_value(assignable(p, $1)), get_value($3)) %*/
 		    }

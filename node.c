@@ -28,10 +28,11 @@
 #define A_LONG(val) rb_str_catf(buf, "%ld", (val))
 #define A_LIT(lit) AR(rb_dump_literal(lit))
 #define A_NODE_HEADER(node, term) \
-    rb_str_catf(buf, "@ %s (id: %d, line: %d, location: (%d,%d)-(%d,%d))%s"term, \
+    rb_str_catf(buf, "@ %s (id: %d, line: %d, location: (%d,%d)-(%d,%d), locs: %"PRIsVALUE")%s"term, \
                 ruby_node_name(nd_type(node)), nd_node_id(node), nd_line(node), \
                 nd_first_lineno(node), nd_first_column(node), \
                 nd_last_lineno(node), nd_last_column(node), \
+                (nd_locations(node) ? nd_locations(node) : Qnil), \
                 (node->flags & NODE_FL_NEWLINE ? "*" : ""))
 #define A_FIELD_HEADER(len, name, term) \
     rb_str_catf(buf, "+- %.*s:"term, (len), (name))
@@ -1350,6 +1351,8 @@ iterate_node_values(node_buffer_list_t *nb, node_itr_t * func, void *ctx)
 static void
 mark_ast_value(void *ctx, NODE * node)
 {
+    rb_gc_mark_movable(nd_locations(node));
+
     switch (nd_type(node)) {
       case NODE_ARGS:
         {
@@ -1379,6 +1382,8 @@ mark_ast_value(void *ctx, NODE * node)
 static void
 update_ast_value(void *ctx, NODE * node)
 {
+    rb_gc_location(nd_locations(node));
+
     switch (nd_type(node)) {
       case NODE_ARGS:
         {
