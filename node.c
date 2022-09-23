@@ -1100,6 +1100,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         return;
 
       case NODE_ARGS_AUX:
+      case NODE_FROM:
       case NODE_LAST:
         break;
     }

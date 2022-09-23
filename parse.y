@@ -3810,27 +3810,29 @@ bvar		: tIDENTIFIER
 		    }
 		;
 
-query_expression : from_clause query_body term
+query_expression : {$<vars>$ = dyna_push(p);}
+		   from_clause query_body ';'
 		    {
-			NODE *iter = NEW_ITER(Qnull, $2, &@$);
-			$$ = method_add_block(p, $1, iter, &@$);
-			fixpos($$, $1);
-			nd_set_last_loc($1, @2.end_pos);
+			NODE *iter = NEW_ITER($2->nd_from_arg, $3, &@$);
+			$$ = method_add_block(p, $2->nd_from_call, iter, &@$);
+			fixpos($$, $2);
+			nd_set_last_loc($2, @3.end_pos);
 			p->in_query = 0;
+			dyna_pop(p, $<vars>1);
 		    }
 
 
 from_clause	: tFROM tIDENTIFIER keyword_in expr
 		    {
-			NODE *pre_args, *tail, *arg;
+			NODE *pre_args, *tail, *arg, *qcall;
 			ID id = get_id($2);
 
 			arg_var(p, id);
 			pre_args = NEW_ARGS_AUX(id, 1, &NULL_LOC);;
 			tail = new_args_tail(p, Qnone, Qnone, Qnone, &@0);
 			arg = new_args(p, pre_args, Qnone, Qnone, Qnone, tail, &@$);
-
-			$$ = new_qcall(p, ID2VAL(idCOLON2), $4, rb_intern("map"), arg, &@4, &@$);
+			qcall = new_qcall(p, ID2VAL(idCOLON2), $4, rb_intern("map"), Qnull, &@4, &@$);
+			$$ = NEW_FROM(arg, qcall, &@$);
 		    }
 
 query_body	: select_or_group_clause

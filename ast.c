@@ -646,6 +646,7 @@ node_children(rb_ast_t *ast, const NODE *node)
                                         kwrest);
         }
       case NODE_ARGS_AUX:
+      case NODE_FROM:
       case NODE_LAST:
         break;
     }

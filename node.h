@@ -125,6 +125,7 @@ enum node_type {
     NODE_ARYPTN,
     NODE_HSHPTN,
     NODE_FNDPTN,
+    NODE_FROM,
     NODE_LAST
 };
 
@@ -284,6 +285,10 @@ typedef struct RNode {
 #define nd_plen  u2.argc
 #define nd_cflag u2.id
 
+// for NODE_FROM
+#define nd_from_arg  u1.node
+#define nd_from_call u2.node
+
 // for ripper
 #define nd_cval  u3.value
 #define nd_rval  u2.value
@@ -383,9 +388,9 @@ typedef struct RNode {
 #define NEW_FALSE(loc) NEW_NODE(NODE_FALSE,0,0,0,loc)
 #define NEW_ERRINFO(loc) NEW_NODE(NODE_ERRINFO,0,0,0,loc)
 #define NEW_DEFINED(e,loc) NEW_NODE(NODE_DEFINED,e,0,0,loc)
-#define NEW_PREEXE(b,loc) NEW_SCOPE(b,loc)
 #define NEW_POSTEXE(b,loc) NEW_NODE(NODE_POSTEXE,0,b,0,loc)
 #define NEW_ATTRASGN(r,m,a,loc) NEW_NODE(NODE_ATTRASGN,r,m,a,loc)
+#define NEW_FROM(arg,call,loc) NEW_NODE(NODE_FROM,arg,call,0,loc)
 
 #define NODE_SPECIAL_REQUIRED_KEYWORD ((NODE *)-1)
 #define NODE_REQUIRED_KEYWORD_P(node) ((node)->nd_value == NODE_SPECIAL_REQUIRED_KEYWORD)
