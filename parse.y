@@ -4065,7 +4065,7 @@ method_call	: fcall paren_args
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, ID2VAL(idCOLON2), ID2VAL(idCall)), $3) %*/
 		    }
-		| primary_value call_op error
+		| primary_value call_op2 error
 		    {
 		    /*%%%*/
 			NODE *args = NEW_ERROR(&@3);
