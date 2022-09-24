@@ -256,6 +256,7 @@ typedef struct token_info {
 } token_info;
 
 typedef struct rb_strterm_struct rb_strterm_t;
+typedef struct parser_params parser_params_t;
 
 /*
     Structure of Lexer Buffer:
@@ -597,6 +598,8 @@ static int literal_concat0(struct parser_params *p, VALUE head, VALUE tail);
 static NODE *heredoc_dedent(struct parser_params*,NODE*);
 
 static void check_literal_when(struct parser_params *p, NODE *args, const YYLTYPE *loc);
+
+static int query_expression_prefix_match_p(struct parser_params *p1);
 
 #define get_id(id) (id)
 #define get_value(val) (val)
@@ -9311,10 +9314,11 @@ parse_ident(struct parser_params *p, int c, int cmd_state)
 	}
     }
 
-    //
     if (strncmp(tok(p), "from", 4) == 0) {
-	p->in_query = 1;
-	return tFROM;
+        if (query_expression_prefix_match_p(p)) {
+	    p->in_query = 1;
+	    return tFROM;
+        }
     }
 
     if (p->in_query) {
@@ -10086,6 +10090,28 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
 	dispatch_scan_event(p, t);
 
     return t;
+}
+
+static int
+query_expression_prefix_match_p(struct parser_params *p1)
+{
+    struct parser_params *p2;
+    VALUE vparser = rb_parser_new();
+    int result = 0;
+
+    TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p2);
+    memcpy(p2, p1, sizeof(parser_params_t));
+
+    /* Current token is "from" */
+    result = (tIDENTIFIER == parser_yylex(p2) && keyword_in == parser_yylex(p2));
+
+    /* See: parser_free */
+    // TODO: May be need to rewind file pointer?
+    p2->tokenbuf = NULL;
+    p2->lvtbl = NULL;
+    p2->token_info = NULL;
+
+    return result;
 }
 
 #define LVAR_USED ((ID)1 << (sizeof(ID) * CHAR_BIT - 1))
