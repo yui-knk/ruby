@@ -2117,6 +2117,7 @@ expr_value	: expr
 expr_value_do	: {COND_PUSH(1);} expr_value do {COND_POP();}
 		    {
 			$$ = $2;
+			@$ = code_loc_gen(&@2, &@3);
 		    }
 		;
 
@@ -3108,6 +3109,7 @@ command_args	:   {
 			CMDARG_POP();
 			if (lookahead) CMDARG_PUSH(0);
 			$$ = $2;
+			@$ = @2;
 		    }
 		;
 
@@ -3934,7 +3936,11 @@ f_any_kwrest	: f_kwrest
 		| f_no_kwarg {$$ = ID2VAL(idNil);}
 		;
 
-f_eq		: {p->ctxt.in_argdef = 0;} '=';
+f_eq		: {p->ctxt.in_argdef = 0;} '='
+		    {
+			@$ = @2;
+		    }
+		;
 
 block_args_tail	: f_block_kwarg ',' f_kwrest opt_f_block_arg
 		    {
@@ -4329,6 +4335,7 @@ brace_body	: {$<vars>$ = dyna_push(p);}
 			$4 = args_with_numbered(p, $4, max_numparam);
 		    /*%%%*/
 			$$ = NEW_ITER($4, $5, &@$);
+			@$ = code_loc_gen(&@4, &@5);
 		    /*% %*/
 		    /*% ripper: brace_block!(escape_Qundef($4), $5) %*/
 			numparam_pop(p, $<node>3);
@@ -4352,6 +4359,7 @@ do_body 	: {$<vars>$ = dyna_push(p);}
 			$4 = args_with_numbered(p, $4, max_numparam);
 		    /*%%%*/
 			$$ = NEW_ITER($4, $5, &@$);
+			@$ = code_loc_gen(&@4, &@5);
 		    /*% %*/
 		    /*% ripper: do_block!(escape_Qundef($4), $5) %*/
 			CMDARG_POP();
@@ -5494,6 +5502,7 @@ f_arglist	: f_paren_args
 			$$ = $2;
 			SET_LEX_STATE(EXPR_BEG);
 			p->command_start = TRUE;
+			@$ = code_loc_gen(&@2, &@3);
 		    }
 		;
 
