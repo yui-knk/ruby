@@ -4065,6 +4065,14 @@ method_call	: fcall paren_args
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, ID2VAL(idCOLON2), ID2VAL(idCall)), $3) %*/
 		    }
+		| primary_value call_op error
+		    {
+		    /*%%%*/
+			NODE *args = NEW_ERROR(&@3);
+			$$ = new_qcall(p, $2, $1, rb_intern("?"), args, &@3, &@$);
+			nd_set_line($$, @2.end_pos.lineno);
+		    /*% %*/
+		    }
 		| keyword_super paren_args
 		    {
 		    /*%%%*/

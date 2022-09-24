@@ -76,7 +76,10 @@ class TestAstBrokenScript < Test::Unit::TestCase
                      (SCOPE@2:2-4:5
                       tbl: []
                       args: nil
-                      body: (BLOCK@2:11-4:5 (BEGIN@2:11-2:11 nil) (ERROR@3:4-4:5))))
+                      body:
+                        (BLOCK@2:11-4:5 (BEGIN@2:11-2:11 nil)
+                           (CALL@3:4-4:5 (VCALL@3:4-3:7 :foo) :"?"
+                              (ERROR@4:2-4:5)))))
                   (DEFN@6:2-7:5
                    mid: :bar
                    body:
