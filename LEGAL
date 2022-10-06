@@ -373,6 +373,7 @@ mentioned below.
 
 [parse.c]
 [parse.h]
+[yacc.c]
 
   These files are licensed under the GPL, but are incorporated into Ruby and
   redistributed under the terms of the Ruby license, as permitted by the
