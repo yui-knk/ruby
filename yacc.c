@@ -1613,6 +1613,8 @@ yypush_parse (yypstate *yyps]b4_pure_if([[,
 | yyparse.  |
 `----------*/
 
+#include "parse_error.h"
+
 ]m4_ifdef([b4_start_symbols],
 [[// Extract data from the parser.
 typedef struct
@@ -1651,6 +1653,11 @@ yyparse (]m4_ifset([b4_parse_param], [b4_formals(b4_parse_param)], [void])[)]])]
   int yyn;
   /* The return value of yyparse.  */
   int yyresult;
+
+  int yy_recovery_count = 0;
+  int yychar_er_backup;
+  YYSTYPE yylval_er_backup;
+
   /* Lookahead symbol kind.  */
   yysymbol_kind_t yytoken = ]b4_symbol(empty, kind)[;
   /* The variables used to return semantic value and location from the
@@ -1686,6 +1693,8 @@ yyparse (]m4_ifset([b4_parse_param], [b4_formals(b4_parse_param)], [void])[)]])]
     default:
       break;
     }]])[
+
+  initialize_recovery_semantic_values();
 
   YYDPRINTF ((stderr, "Starting parse\n"));
 
@@ -1798,6 +1807,18 @@ yysetstate:
 
   goto yybackup;
 
+/*-----------.
+| yyrecover. |
+`-----------*/
+yyrecover:
+  yychar_er_backup = yychar;
+  yylval_er_backup = yylval;
+  yychar = recovery_tokens[yystate * YY_RECOVER_LIMIT + yy_recovery_count];
+  yylval = recovery_semantic_values[yystate * YY_RECOVER_LIMIT + yy_recovery_count];
+  yy_recovery_count++;
+  YY_SYMBOL_PRINT ("Using a recovery token:", YYTRANSLATE (yychar), &yylval, &yylloc);
+  goto yybackup;
+
 
 /*-----------.
 | yybackup.  |
@@ -1830,13 +1851,22 @@ yybackup:
       yylval = yypushed_val;]b4_locations_if([[
       yylloc = yypushed_loc;]])])[
 yyread_pushed_token:]])[
-      YYDPRINTF ((stderr, "Reading a token\n"));]b4_push_if([b4_pure_if([[
-      yychar = yypushed_char;
-      if (yypushed_val)
-        yylval = *yypushed_val;]b4_locations_if([[
-      if (yypushed_loc)
-        yylloc = *yypushed_loc;]])])], [[
-      yychar = ]b4_yylex[;]])[
+      if (yy_recovery_count)
+        {
+          YYDPRINTF ((stderr, "Restore a token\n"));
+          yychar = yychar_er_backup;
+          yylval = yylval_er_backup;
+        }
+      else
+        {
+          YYDPRINTF ((stderr, "Reading a token\n"));]b4_push_if([b4_pure_if([[
+          yychar = yypushed_char;
+          if (yypushed_val)
+            yylval = *yypushed_val;]b4_locations_if([[
+          if (yypushed_loc)
+            yylloc = *yypushed_loc;]])])], [[
+          yychar = ]b4_yylex[;]])[
+        }
     }
 
   if (yychar <= ]b4_symbol(eof, [id])[)
@@ -1875,7 +1905,16 @@ yyread_pushed_token:]])[
   if (yyn <= 0)
     {
       if (yytable_value_is_error (yyn))
-        goto yyerrlab;
+        {
+          YYDPRINTF ((stderr, "Checking a recovery token: %d -> %d\n", yystate * YY_RECOVER_LIMIT + yy_recovery_count, recovery_tokens[yystate * YY_RECOVER_LIMIT + yy_recovery_count]));
+          if (recovery_tokens[yystate * YY_RECOVER_LIMIT + yy_recovery_count] == YY_CANNOT_RECOVER || yy_recovery_count >= YY_RECOVER_LIMIT)
+          {
+            yy_recovery_count = 0;
+            goto yyerrlab;
+          }
+
+          goto yyrecover;
+        }
       yyn = -yyn;]b4_lac_if([[
       YY_LAC_ESTABLISH;]])[
       goto yyreduce;
@@ -1888,6 +1927,13 @@ yyread_pushed_token:]])[
 
   /* Shift the lookahead token.  */
   YY_SYMBOL_PRINT ("Shifting", yytoken, &yylval, &yylloc);
+  if (yychar == yychar_er_backup)
+    {
+      YYDPRINTF ((stderr, "Recovered\n"));
+      yychar_er_backup = 0;
+      yylval_er_backup.id = 0;
+      yy_recovery_count = 0;
+    }
   yystate = yyn;
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   *++yyvsp = yylval;
@@ -1906,7 +1952,16 @@ yyread_pushed_token:]])[
 yydefault:
   yyn = yydefact[yystate];
   if (yyn == 0)
-    goto yyerrlab;
+    {
+      YYDPRINTF ((stderr, "Checking a recovery token: %d -> %d\n", yystate * YY_RECOVER_LIMIT + yy_recovery_count, recovery_tokens[yystate * YY_RECOVER_LIMIT + yy_recovery_count]));
+      if (recovery_tokens[yystate * YY_RECOVER_LIMIT + yy_recovery_count] == YY_CANNOT_RECOVER || yy_recovery_count >= YY_RECOVER_LIMIT)
+        {
+          yy_recovery_count = 0;
+          goto yyerrlab;
+        }
+
+      goto yyrecover;
+    }
   goto yyreduce;
 
 
