@@ -32,7 +32,7 @@
                 ruby_node_name(nd_type(node)), nd_node_id(node), nd_line(node), \
                 nd_first_lineno(node), nd_first_column(node), \
                 nd_last_lineno(node), nd_last_column(node), \
-                (nd_locations(node) ? nd_locations(node) : Qnil), \
+                (nd_token_locs(node) ? nd_token_locs(node) : Qnil), \
                 (node->flags & NODE_FL_NEWLINE ? "*" : ""))
 #define A_FIELD_HEADER(len, name, term) \
     rb_str_catf(buf, "+- %.*s:"term, (len), (name))
@@ -1351,7 +1351,7 @@ iterate_node_values(node_buffer_list_t *nb, node_itr_t * func, void *ctx)
 static void
 mark_ast_value(void *ctx, NODE * node)
 {
-    rb_gc_mark_movable(nd_locations(node));
+    rb_gc_mark_movable(nd_token_locs(node));
 
     switch (nd_type(node)) {
       case NODE_ARGS:
@@ -1382,7 +1382,7 @@ mark_ast_value(void *ctx, NODE * node)
 static void
 update_ast_value(void *ctx, NODE * node)
 {
-    rb_gc_location(nd_locations(node));
+    rb_gc_location(nd_token_locs(node));
 
     switch (nd_type(node)) {
       case NODE_ARGS:

@@ -178,7 +178,7 @@ typedef struct RNode {
     } u3;
     rb_code_location_t nd_loc;
     int node_id;
-    VALUE locations;
+    VALUE token_locs;
 } NODE;
 
 #define RNODE(obj)  ((struct RNode *)(obj))
@@ -204,8 +204,8 @@ typedef struct RNode {
 #define nd_line(n) (int)(((SIGNED_VALUE)(n)->flags)>>NODE_LSHIFT)
 #define nd_set_line(n,l) \
     (n)->flags=(((n)->flags&~((VALUE)(-1)<<NODE_LSHIFT))|((VALUE)((l)&NODE_LMASK)<<NODE_LSHIFT))
-#define nd_set_locations(n, v) ((n)->locations = (v))
-#define nd_locations(n) ((n)->locations)
+#define nd_set_token_locs(n, v) ((n)->token_locs = (v))
+#define nd_token_locs(n) ((n)->token_locs)
 
 #define nd_first_column(n) ((int)((n)->nd_loc.beg_pos.column))
 #define nd_set_first_column(n, v) ((n)->nd_loc.beg_pos.column = (v))

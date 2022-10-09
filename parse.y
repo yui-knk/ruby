@@ -1061,53 +1061,84 @@ code_loc_to_array(const rb_code_location_t *loc)
     return rb_ary_new_from_args(4, INT2NUM(loc->beg_pos.lineno), INT2NUM(loc->beg_pos.column), INT2NUM(loc->end_pos.lineno), INT2NUM(loc->end_pos.column));
 }
 
+static void
+nd_token_locs_debug(struct parser_params *p, NODE *node)
+{
+    VALUE mesg;
+
+    if (!node) return;
+    if (!nd_token_locs(node))
+	mesg = rb_sprintf("token_locs_debug: No token locs\n");
+    else
+	mesg = rb_sprintf("token_locs_debug: %"PRIsVALUE"\n", nd_token_locs(node));
+
+    flush_debug_buffer(p, p->debug_output, mesg);
+}
+
 static inline void
-nd_append_locations(NODE *node, VALUE v)
+nd_token_locs_concat(NODE *node1, NODE *node2)
 {
-    if (nd_locations(node)) {
-    	nd_locations(node);
+    if (!node2 || !nd_token_locs(node2)) {
+	return;
     }
-    else {
-	nd_set_locations(node, v);
+
+    if (!node1 || !nd_token_locs(node1)) {
+	nd_set_token_locs(node1, nd_token_locs(node2));
+	return;
     }
+
+    rb_ary_concat(nd_token_locs(node1), nd_token_locs(node2));
+}
+
+static inline void
+nd_token_locs_append(NODE *node, rb_code_location_t *loc, const char * c)
+{
+    if (!nd_token_locs(node)) {
+	nd_set_token_locs(node, rb_ary_new());
+    }
+
+    rb_ary_push(nd_token_locs(node), ID2SYM(rb_intern(c)));
+    rb_ary_push(nd_token_locs(node), code_loc_to_array(loc));
+}
+
+#define loc_has_length_p(loc) (!((loc->beg_pos.lineno == loc->end_pos.lineno) && (loc->beg_pos.column == loc->end_pos.column)))
+
+static inline VALUE
+token_locs_gen_1(const rb_code_location_t *loc1, const char * c1)
+{
+    VALUE ary = rb_ary_new();
+    if (loc_has_length_p(loc1)) rb_ary_push(ary, ID2SYM(rb_intern(c1))), rb_ary_push(ary, code_loc_to_array(loc1));
+    return ary;
 }
 
 static inline VALUE
-locations_gen_1(const rb_code_location_t *loc1, const char * c1)
+token_locs_gen_2(const rb_code_location_t *loc1, const rb_code_location_t *loc2, const char * c1, const char * c2)
 {
-    VALUE h = rb_hash_new_with_size(1);
-    rb_hash_aset(h, ID2SYM(rb_intern(c1)), code_loc_to_array(loc1));
-    return h;
+    VALUE ary = rb_ary_new();
+    if (loc_has_length_p(loc1)) rb_ary_push(ary, ID2SYM(rb_intern(c1))), rb_ary_push(ary, code_loc_to_array(loc1));
+    if (loc_has_length_p(loc2)) rb_ary_push(ary, ID2SYM(rb_intern(c2))), rb_ary_push(ary, code_loc_to_array(loc2));
+    return ary;
 }
 
 static inline VALUE
-locations_gen_2(const rb_code_location_t *loc1, const rb_code_location_t *loc2, const char * c1, const char * c2)
+token_locs_gen_3(const rb_code_location_t *loc1, const rb_code_location_t *loc2, const rb_code_location_t *loc3, const char * c1, const char * c2, const char * c3)
 {
-    VALUE h = rb_hash_new_with_size(2);
-    rb_hash_aset(h, ID2SYM(rb_intern(c1)), code_loc_to_array(loc1));
-    rb_hash_aset(h, ID2SYM(rb_intern(c2)), code_loc_to_array(loc2));
-    return h;
+    VALUE ary = rb_ary_new();
+    if (loc_has_length_p(loc1)) rb_ary_push(ary, ID2SYM(rb_intern(c1))), rb_ary_push(ary, code_loc_to_array(loc1));
+    if (loc_has_length_p(loc2)) rb_ary_push(ary, ID2SYM(rb_intern(c2))), rb_ary_push(ary, code_loc_to_array(loc2));
+    if (loc_has_length_p(loc3)) rb_ary_push(ary, ID2SYM(rb_intern(c3))), rb_ary_push(ary, code_loc_to_array(loc3));
+    return ary;
 }
 
 static inline VALUE
-locations_gen_3(const rb_code_location_t *loc1, const rb_code_location_t *loc2, const rb_code_location_t *loc3, const char * c1, const char * c2, const char * c3)
+token_locs_gen_4(const rb_code_location_t *loc1, const rb_code_location_t *loc2, const rb_code_location_t *loc3, const rb_code_location_t *loc4, const char * c1, const char * c2, const char * c3, const char * c4)
 {
-    VALUE h = rb_hash_new_with_size(3);
-    rb_hash_aset(h, ID2SYM(rb_intern(c1)), code_loc_to_array(loc1));
-    rb_hash_aset(h, ID2SYM(rb_intern(c2)), code_loc_to_array(loc2));
-    rb_hash_aset(h, ID2SYM(rb_intern(c3)), code_loc_to_array(loc3));
-    return h;
-}
-
-static inline VALUE
-locations_gen_4(const rb_code_location_t *loc1, const rb_code_location_t *loc2, const rb_code_location_t *loc3, const rb_code_location_t *loc4, const char * c1, const char * c2, const char * c3, const char * c4)
-{
-    VALUE h = rb_hash_new_with_size(4);
-    rb_hash_aset(h, ID2SYM(rb_intern(c1)), code_loc_to_array(loc1));
-    rb_hash_aset(h, ID2SYM(rb_intern(c2)), code_loc_to_array(loc2));
-    rb_hash_aset(h, ID2SYM(rb_intern(c3)), code_loc_to_array(loc3));
-    rb_hash_aset(h, ID2SYM(rb_intern(c4)), code_loc_to_array(loc4));
-    return h;
+    VALUE ary = rb_ary_new();
+    if (loc_has_length_p(loc1)) rb_ary_push(ary, ID2SYM(rb_intern(c1))), rb_ary_push(ary, code_loc_to_array(loc1));
+    if (loc_has_length_p(loc2)) rb_ary_push(ary, ID2SYM(rb_intern(c2))), rb_ary_push(ary, code_loc_to_array(loc2));
+    if (loc_has_length_p(loc3)) rb_ary_push(ary, ID2SYM(rb_intern(c3))), rb_ary_push(ary, code_loc_to_array(loc3));
+    if (loc_has_length_p(loc4)) rb_ary_push(ary, ID2SYM(rb_intern(c4))), rb_ary_push(ary, code_loc_to_array(loc4));
+    return ary;
 }
 
 
@@ -1492,7 +1523,7 @@ top_stmt	: stmt
 		| keyword_BEGIN begin_block
 		    {
 			$$ = $2;
-			nd_set_locations($$, locations_gen_1(&@1, "BEGIN"));
+			nd_set_token_locs($$, token_locs_gen_1(&@1, "BEGIN"));
 		    }
 		;
 
@@ -1502,7 +1533,7 @@ begin_block	: '{' top_compstmt '}'
 			p->eval_tree_begin = block_append(p, p->eval_tree_begin,
 							  NEW_BEGIN($2, &@$));
 			$$ = NEW_BEGIN(0, &@$);
-			nd_set_locations($$, locations_gen_3(&@1, &@2, &@3, "{", "top_compstmt", "}"));
+			nd_set_token_locs($$, token_locs_gen_2(&@1, &@3, "{", "}"));
 		    /*% %*/
 		    /*% ripper: BEGIN!($2) %*/
 		    }
@@ -1516,7 +1547,7 @@ bodystmt	: compstmt
 		    {
 		    /*%%%*/
 			$$ = new_bodystmt(p, $1, $2, $5, $6, &@$);
-			nd_set_locations($$, locations_gen_5($1, $2, $3, $5, $6, "compstmt1", "rescue", "else", "compstmt2", "ensure"));
+			nd_set_token_locs($$, token_locs_gen_3(&@2, &@3, &@6, "rescue", "else", "ensure"));
 		    /*% %*/
 		    /*% ripper: bodystmt!(escape_Qundef($1), escape_Qundef($2), escape_Qundef($5), escape_Qundef($6)) %*/
 		    }
@@ -1526,7 +1557,7 @@ bodystmt	: compstmt
 		    {
 		    /*%%%*/
 			$$ = new_bodystmt(p, $1, $2, 0, $3, &@$);
-			nd_set_locations($$, locations_gen_3($1, $2, $3, "compstmt1", "rescue", "else", "compstmt2", "ensure"));
+			nd_set_token_locs($$, token_locs_gen_2(&@2, &@3, "rescue", "ensure"));
 		    /*% %*/
 		    /*% ripper: bodystmt!(escape_Qundef($1), escape_Qundef($2), Qnil, escape_Qundef($3)) %*/
 		    }
@@ -1579,6 +1610,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = NEW_ALIAS($2, $4, &@$);
+			nd_set_token_locs($$, token_locs_gen_1(&@1, "alias"));
 		    /*% %*/
 		    /*% ripper: alias!($2, $4) %*/
 		    }
@@ -1586,6 +1618,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = NEW_VALIAS($2, $3, &@$);
+			nd_set_token_locs($$, token_locs_gen_3(&@1, &@2, &@3, "alias", "gvar_l", "gvar_r"));
 		    /*% %*/
 		    /*% ripper: var_alias!($2, $3) %*/
 		    }
@@ -1596,6 +1629,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			buf[0] = '$';
 			buf[1] = (char)$3->nd_nth;
 			$$ = NEW_VALIAS($2, rb_intern2(buf, 2), &@$);
+			nd_set_token_locs($$, token_locs_gen_3(&@1, &@2, &@3, "alias", "gvar", "back_ref"));
 		    /*% %*/
 		    /*% ripper: var_alias!($2, $3) %*/
 		    }
@@ -1612,6 +1646,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = $2;
+			nd_set_token_locs($$, token_locs_gen_1(&@1, "undef"));
 		    /*% %*/
 		    /*% ripper: undef!($2) %*/
 		    }
@@ -1619,6 +1654,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = new_if(p, $3, remove_begin($1), 0, &@$);
+			nd_set_token_locs($$, token_locs_gen_1(&@2, "if"));
 			fixpos($$, $3);
 		    /*% %*/
 		    /*% ripper: if_mod!($3, $1) %*/
@@ -1627,6 +1663,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = new_unless(p, $3, remove_begin($1), 0, &@$);
+			nd_set_token_locs($$, token_locs_gen_1(&@2, "unless"));
 			fixpos($$, $3);
 		    /*% %*/
 		    /*% ripper: unless_mod!($3, $1) %*/
@@ -1640,6 +1677,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			else {
 			    $$ = NEW_WHILE(cond(p, $3, &@3), $1, 1, &@$);
 			}
+			nd_set_token_locs($$, token_locs_gen_1(&@2, "while"));
 		    /*% %*/
 		    /*% ripper: while_mod!($3, $1) %*/
 		    }
@@ -1652,6 +1690,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			else {
 			    $$ = NEW_UNTIL(cond(p, $3, &@3), $1, 1, &@$);
 			}
+			nd_set_token_locs($$, token_locs_gen_1(&@2, "until"));
 		    /*% %*/
 		    /*% ripper: until_mod!($3, $1) %*/
 		    }
@@ -1662,6 +1701,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			YYLTYPE loc = code_loc_gen(&@2, &@3);
 			resq = NEW_RESBODY(0, remove_begin($3), 0, &loc);
 			$$ = NEW_RESCUE(remove_begin($1), resq, 0, &@$);
+			nd_set_token_locs($$, token_locs_gen_1(&@2, "rescue"));
 		    /*% %*/
 		    /*% ripper: rescue_mod!($1, $3) %*/
 		    }
@@ -1676,6 +1716,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 				NODE_SCOPE, 0 /* tbl */, $3 /* body */, 0 /* args */, &@$);
 			    $$ = NEW_POSTEXE(scope, &@$);
 			}
+			nd_set_token_locs($$, token_locs_gen_3(&@1, &@2, &@4, "END", "{", "}"));
 		    /*% %*/
 		    /*% ripper: END!($3) %*/
 		    }
@@ -1685,6 +1726,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    /*%%%*/
 			value_expr($4);
 			$$ = node_assign(p, $1, $4, $3, &@$);
+			nd_set_token_locs($$, token_locs_gen_1(&@2, "="));
 		    /*% %*/
 		    /*% ripper: massign!($1, $4) %*/
 		    }
@@ -1692,6 +1734,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = node_assign(p, $1, $4, $3, &@$);
+			nd_set_token_locs($$, token_locs_gen_1(&@2, "="));
 		    /*% %*/
 		    /*% ripper: assign!($1, $4) %*/
 		    }
@@ -1700,6 +1743,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
                     /*%%%*/
                         YYLTYPE loc = code_loc_gen(&@5, &@6);
 			$$ = node_assign(p, $1, NEW_RESCUE($4, NEW_RESBODY(0, remove_begin($6), 0, &loc), 0, &@$), $3, &@$);
+			nd_set_token_locs($$, token_locs_gen_2(&@2, &@5, "=", "rescue"));
                     /*% %*/
                     /*% ripper: massign!($1, rescue_mod!($4, $6)) %*/
                     }
@@ -1707,6 +1751,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = node_assign(p, $1, $4, $3, &@$);
+			nd_set_token_locs($$, token_locs_gen_1(&@2, "="));
 		    /*% %*/
 		    /*% ripper: massign!($1, $4) %*/
 		    }
@@ -1723,6 +1768,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = node_assign(p, $1, $4, $3, &@$);
+			nd_set_token_locs($$, token_locs_gen_1(&@2, "="));
 		    /*% %*/
 		    /*% ripper: assign!($1, $4) %*/
 		    }
@@ -1730,6 +1776,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = new_op_assign(p, $1, $2, $4, $3, &@$);
+			nd_set_token_locs($$, token_locs_gen_1(&@2, "op_asgn"));
 		    /*% %*/
 		    /*% ripper: opassign!($1, $2, $4) %*/
 		    }
@@ -1737,6 +1784,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = new_ary_op_assign(p, $1, $3, $5, $7, &@3, &@$);
+			nd_set_token_locs($$, token_locs_gen_3(&@2, &@4, &@5, "[", "]", "op_asgn"));
 		    /*% %*/
 		    /*% ripper: opassign!(aref_field!($1, escape_Qundef($3)), $5, $7) %*/
 
@@ -1745,6 +1793,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = new_attr_op_assign(p, $1, $2, $3, $4, $6, &@$);
+			nd_set_token_locs($$, token_locs_gen_2(&@3, &@4, "identifier", "op_asgn"));
 		    /*% %*/
 		    /*% ripper: opassign!(field!($1, $2, $3), $4, $6) %*/
 		    }
@@ -1752,6 +1801,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = new_attr_op_assign(p, $1, $2, $3, $4, $6, &@$);
+			nd_set_token_locs($$, token_locs_gen_2(&@3, &@4, "constant", "op_asgn"));
 		    /*% %*/
 		    /*% ripper: opassign!(field!($1, $2, $3), $4, $6) %*/
 		    }
@@ -1760,6 +1810,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*%%%*/
 			YYLTYPE loc = code_loc_gen(&@1, &@3);
 			$$ = new_const_op_assign(p, NEW_COLON2($1, $3, &loc), $4, $6, $5, &@$);
+			nd_set_token_locs($$, token_locs_gen_3(&@2, &@3, &@4, "::", "constant", "op_asgn"));
 		    /*% %*/
 		    /*% ripper: opassign!(const_path_field!($1, $3), $4, $6) %*/
 		    }
@@ -1767,6 +1818,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = new_attr_op_assign(p, $1, ID2VAL(idCOLON2), $3, $4, $6, &@$);
+			nd_set_token_locs($$, token_locs_gen_3(&@2, &@3, &@4, "::", "identifier", "op_asgn"));
 		    /*% %*/
 		    /*% ripper: opassign!(field!($1, ID2VAL(idCOLON2), $3), $4, $6) %*/
 		    }
@@ -1776,6 +1828,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
+			nd_set_token_locs($$, token_locs_gen_1(&@3, "="));
 		    /*% %*/
 		    /*% ripper[$4]: bodystmt!($4, Qnil, Qnil, Qnil) %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
@@ -1788,6 +1841,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*%%%*/
 			$4 = rescued_expr(p, $4, $6, &@4, &@5, &@6);
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
+			nd_set_token_locs($$, token_locs_gen_2(&@3, &@5, "=", "rescue"));
 		    /*% %*/
 		    /*% ripper[$4]: bodystmt!(rescue_mod!($4, $6), Qnil, Qnil, Qnil) %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
@@ -1799,6 +1853,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
+			nd_set_token_locs($$, token_locs_gen_1(&@3, "="));
 		    /*%
 			$1 = get_value($1);
 		    %*/
@@ -1813,6 +1868,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*%%%*/
 			$4 = rescued_expr(p, $4, $6, &@4, &@5, &@6);
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
+			nd_set_token_locs($$, token_locs_gen_2(&@3, &@5, "=", "rescue"));
 		    /*%
 			$1 = get_value($1);
 		    %*/
@@ -1841,6 +1897,7 @@ command_rhs	: command_call   %prec tOP_ASGN
 			YYLTYPE loc = code_loc_gen(&@2, &@3);
 			value_expr($1);
 			$$ = NEW_RESCUE($1, NEW_RESBODY(0, remove_begin($3), 0, &loc), 0, &@$);
+			nd_set_token_locs($$, token_locs_gen_1(&@2, "rescue"));
 		    /*% %*/
 		    /*% ripper: rescue_mod!($1, $3) %*/
 		    }
@@ -1851,18 +1908,30 @@ expr		: command_call
 		| expr keyword_and expr
 		    {
 			$$ = logop(p, idAND, $1, $3, &@2, &@$);
+		    /*%%%*/
+			nd_set_token_locs($$, token_locs_gen_1(&@2, "and"));
+		    /*% %*/
 		    }
 		| expr keyword_or expr
 		    {
 			$$ = logop(p, idOR, $1, $3, &@2, &@$);
+		    /*%%%*/
+			nd_set_token_locs($$, token_locs_gen_1(&@2, "or"));
+		    /*% %*/
 		    }
 		| keyword_not opt_nl expr
 		    {
 			$$ = call_uni_op(p, method_cond(p, $3, &@3), METHOD_NOT, &@1, &@$);
+		    /*%%%*/
+			nd_set_token_locs($$, token_locs_gen_1(&@1, "not"));
+		    /*% %*/
 		    }
 		| '!' command_call
 		    {
 			$$ = call_uni_op(p, method_cond(p, $2, &@2), '!', &@1, &@$);
+		    /*%%%*/
+			nd_set_token_locs($$, token_locs_gen_1(&@1, "!"));
+		    /*% %*/
 		    }
 		| arg tASSOC
 		    {
@@ -1905,6 +1974,7 @@ expr		: command_call
 			p->ctxt.in_kwarg = $<ctxt>2.in_kwarg;
 		    /*%%%*/
 			$$ = NEW_CASE3($1, NEW_IN($5, NEW_TRUE(&@5), NEW_FALSE(&@5), &@5), &@$);
+			nd_set_token_locs($$, token_locs_gen_1(&@2, "in"));
 		    /*% %*/
 		    /*% ripper: case!($1, in!($5, Qnil, Qnil)) %*/
 		    }
@@ -1933,6 +2003,7 @@ defn_head	: k_def def_name
 			$$ = $2;
 		    /*%%%*/
 			$$ = NEW_NODE(NODE_DEFN, 0, $$->nd_mid, $$, &@$);
+			nd_set_token_locs($$, token_locs_gen_2(&@1, &@2, "def", "def_name"));
 		    /*% %*/
 		    }
 		;
@@ -1948,6 +2019,7 @@ defs_head	: k_def singleton dot_or_colon
 			$$ = $5;
 		    /*%%%*/
 			$$ = NEW_NODE(NODE_DEFS, $2, $$->nd_mid, $$, &@$);
+			nd_set_token_locs($$, token_locs_gen_2(&@1, &@3, "def", "dot_or_colon"));
 		    /*%
 			VALUE ary = rb_ary_new_from_args(3, $2, $3, get_value($$));
 			add_mark_object(p, ary);
@@ -1972,6 +2044,9 @@ expr_value	: expr
 expr_value_do	: {COND_PUSH(1);} expr_value do {COND_POP();}
 		    {
 			$$ = $2;
+		    /*%%%*/
+			nd_set_token_locs($$, token_locs_gen_1(&@3, "do"));
+		    /*% %*/
 		    }
 		;
 
@@ -1984,7 +2059,7 @@ block_command	: block_call
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, $2, $1, $3, $4, &@3, &@$);
-			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
+			nd_set_token_locs($$, token_locs_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, $2, $3), $4) %*/
 		    }
@@ -2034,7 +2109,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, $2, $1, $3, $4, Qnull, &@3, &@$);
-			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
+			nd_set_token_locs($$, token_locs_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: command_call!($1, $2, $3, $4) %*/
 		    }
@@ -2042,7 +2117,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, $2, $1, $3, $4, $5, &@3, &@$);
-			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
+			nd_set_token_locs($$, token_locs_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: method_add_block!(command_call!($1, $2, $3, $4), $5) %*/
 		    }
@@ -2050,7 +2125,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, ID2VAL(idCOLON2), $1, $3, $4, Qnull, &@3, &@$);
-			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
+			nd_set_token_locs($$, token_locs_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: command_call!($1, ID2VAL(idCOLON2), $3, $4) %*/
 		    }
@@ -2058,7 +2133,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, ID2VAL(idCOLON2), $1, $3, $4, $5, &@3, &@$);
-			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
+			nd_set_token_locs($$, token_locs_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: method_add_block!(command_call!($1, ID2VAL(idCOLON2), $3, $4), $5) %*/
 		   }
@@ -2844,6 +2919,8 @@ paren_args	: '(' opt_call_args rparen
 		    {
 		    /*%%%*/
 			$$ = $2;
+			nd_token_locs_append($$, &@1, "(");
+			nd_token_locs_append($$, &@3, ")");
 		    /*% %*/
 		    /*% ripper: arg_paren!(escape_Qundef($2)) %*/
 		    }
@@ -2911,6 +2988,8 @@ call_args	: command
 		    {
 		    /*%%%*/
 			$$ = arg_blk_pass($1, $2);
+			nd_token_locs_concat($1, $2);
+			nd_token_locs_debug(p, $$);
 		    /*% %*/
 		    /*% ripper: args_add_block!($1, $2) %*/
 		    }
@@ -3006,6 +3085,8 @@ args		: arg_value
 		    {
 		    /*%%%*/
 			$$ = NEW_LIST($1, &@$);
+			nd_set_token_locs($$, token_locs_gen_1(&@1, "arg"));
+			nd_token_locs_debug(p, $$);
 		    /*% %*/
 		    /*% ripper: args_add!(args_new!, $1) %*/
 		    }
@@ -3030,6 +3111,9 @@ args		: arg_value
 		    {
 		    /*%%%*/
 			$$ = last_arg_append(p, $1, $3, &@$);
+			nd_token_locs_append($1, &@2, ",");
+			nd_token_locs_concat($1, $3);
+			nd_token_locs_debug(p, $$);
 		    /*% %*/
 		    /*% ripper: args_add!($1, $3) %*/
 		    }
@@ -3428,6 +3512,7 @@ primary		: literal
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
+			nd_token_locs_append($$, &@5, "end");
 		    /*% %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
 			local_pop(p);
@@ -3445,6 +3530,7 @@ primary		: literal
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
+			nd_token_locs_append($$, &@5, "end");
 		    /*%
 			$1 = get_value($1);
 		    %*/
@@ -4063,7 +4149,7 @@ block_call	: command do_block
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, $2, $1, $3, $4, &@3, &@$);
-			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
+			nd_set_token_locs($$, token_locs_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: opt_event(:method_add_arg!, call!($1, $2, $3), $4) %*/
 		    }
@@ -4071,7 +4157,7 @@ block_call	: command do_block
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, $2, $1, $3, $4, $5, &@3, &@$);
-			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
+			nd_set_token_locs($$, token_locs_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: opt_event(:method_add_block!, command_call!($1, $2, $3, $4), $5) %*/
 		    }
@@ -4079,7 +4165,7 @@ block_call	: command do_block
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, $2, $1, $3, $4, $5, &@3, &@$);
-			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
+			nd_set_token_locs($$, token_locs_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 		    /*% %*/
 		    /*% ripper: method_add_block!(command_call!($1, $2, $3, $4), $5) %*/
 		    }
@@ -4098,7 +4184,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, $2, $1, $3, $4, &@3, &@$);
-			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
+			nd_set_token_locs($$, token_locs_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 			nd_set_line($$, @3.end_pos.lineno);
 		    /*% %*/
 		    /*% ripper: opt_event(:method_add_arg!, call!($1, $2, $3), $4) %*/
@@ -4107,7 +4193,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, ID2VAL(idCOLON2), $1, $3, $4, &@3, &@$);
-			nd_set_locations($$, locations_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
+			nd_set_token_locs($$, token_locs_gen_4(&@1, &@2, &@3, &@4, "receiver", "op", "method", "args"));
 			nd_set_line($$, @3.end_pos.lineno);
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, ID2VAL(idCOLON2), $3), $4) %*/
@@ -4116,7 +4202,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, ID2VAL(idCOLON2), $1, $3, Qnull, &@3, &@$);
-			nd_set_locations($$, locations_gen_3(&@1, &@2, &@3, "receiver", "op", "method"));
+			nd_set_token_locs($$, token_locs_gen_3(&@1, &@2, &@3, "receiver", "op", "method"));
 		    /*% %*/
 		    /*% ripper: call!($1, ID2VAL(idCOLON2), $3) %*/
 		    }
@@ -4124,7 +4210,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, $2, $1, ID2VAL(idCall), $3, &@2, &@$);
-			nd_set_locations($$, locations_gen_3(&@1, &@2, &@3, "receiver", "op", "method"));
+			nd_set_token_locs($$, token_locs_gen_3(&@1, &@2, &@3, "receiver", "op", "method"));
 			nd_set_line($$, @2.end_pos.lineno);
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, $2, ID2VAL(idCall)), $3) %*/
@@ -4133,7 +4219,7 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, ID2VAL(idCOLON2), $1, ID2VAL(idCall), $3, &@2, &@$);
-			nd_set_locations($$, locations_gen_3(&@1, &@2, &@3, "receiver", "op", "method"));
+			nd_set_token_locs($$, token_locs_gen_3(&@1, &@2, &@3, "receiver", "op", "method"));
 			nd_set_line($$, @2.end_pos.lineno);
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, ID2VAL(idCOLON2), ID2VAL(idCall)), $3) %*/
@@ -5341,6 +5427,7 @@ f_paren_args	: '(' f_args rparen
 		    {
 		    /*%%%*/
 			$$ = $2;
+			nd_set_token_locs($$, token_locs_gen_2(&@1, &@3, "(", ")"));
 		    /*% %*/
 		    /*% ripper: paren!($2) %*/
 			SET_LEX_STATE(EXPR_BEG);
@@ -5532,6 +5619,7 @@ f_arg_item	: f_arg_asgn
 			p->cur_arg = 0;
 		    /*%%%*/
 			$$ = NEW_ARGS_AUX($1, 1, &NULL_LOC);
+			nd_set_token_locs($$, token_locs_gen_1(&@1, "arg"));
 		    /*% %*/
 		    /*% ripper: get_value($1) %*/
 		    }
@@ -5551,6 +5639,7 @@ f_arg_item	: f_arg_asgn
 			}
 			$$ = NEW_ARGS_AUX(tid, 1, &NULL_LOC);
 			$$->nd_next = $2;
+			nd_set_token_locs($$, token_locs_gen_2(&@1, &@3, "(", ")"));
 		    /*% %*/
 		    /*% ripper: mlhs_paren!($2) %*/
 		    }
@@ -5565,6 +5654,8 @@ f_arg		: f_arg_item
 			$$->nd_plen++;
 			$$->nd_next = block_append(p, $$->nd_next, $3->nd_next);
 			rb_discard_node(p, $3);
+			nd_token_locs_append($1, &@2, ",");
+			nd_token_locs_concat($1, $3);
 		    /*% %*/
 		    /*% ripper: rb_ary_push($1, get_value($3)) %*/
 		    }
@@ -5688,7 +5779,7 @@ f_opt		: f_arg_asgn f_eq arg_value
 			p->ctxt.in_argdef = 1;
 		    /*%%%*/
 			$$ = NEW_OPT_ARG(0, assignable(p, $1, $3, &@$), &@$);
-			nd_set_locations($$, locations_gen_3(&@1, &@2, &@3, "left", "=", "right"));
+			nd_set_token_locs($$, token_locs_gen_3(&@1, &@2, &@3, "left", "=", "right"));
 		    /*% %*/
 		    /*% ripper: rb_assoc_new(get_value(assignable(p, $1)), get_value($3)) %*/
 		    }
@@ -5700,7 +5791,7 @@ f_block_opt	: f_arg_asgn f_eq primary_value
 			p->ctxt.in_argdef = 1;
 		    /*%%%*/
 			$$ = NEW_OPT_ARG(0, assignable(p, $1, $3, &@$), &@$);
-			nd_set_locations($$, locations_gen_3(&@1, &@2, &@3, "left", "=", "right"));
+			nd_set_token_locs($$, token_locs_gen_3(&@1, &@2, &@3, "left", "=", "right"));
 		    /*% %*/
 		    /*% ripper: rb_assoc_new(get_value(assignable(p, $1)), get_value($3)) %*/
 		    }
@@ -5871,6 +5962,7 @@ assoc		: arg_value tASSOC arg_value
 		    {
 		    /*%%%*/
 			$$ = list_append(p, NEW_LIST(NEW_LIT(ID2SYM($1), &@1), &@$), $2);
+			nd_set_token_locs($$, token_locs_gen_2(&@1, &@2, "label", "value"));
 		    /*% %*/
 		    /*% ripper: assoc_new!($1, $2) %*/
 		    }
@@ -12293,6 +12385,10 @@ new_args(struct parser_params *p, NODE *pre_args, NODE *opt_args, ID rest_arg, N
 
     p->ruby_sourceline = saved_line;
     nd_set_loc(tail, loc);
+
+    if (pre_args)  nd_token_locs_concat(tail, pre_args);
+    if (opt_args)  nd_token_locs_concat(tail, opt_args);
+    if (post_args) nd_token_locs_concat(tail, post_args);
 
     return tail;
 }
