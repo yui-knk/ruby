@@ -580,6 +580,21 @@ dummy
     assert_equal(:SCOPE, node.type)
   end
 
+  def test_error_tolerant_does_not_set_exception
+    node = RubyVM::AbstractSyntaxTree.parse(<<~STR, error_tolerant: true)
+      def m
+        if
+      end
+    STR
+
+    assert_nil($!)
+  end
+
+  def test_error_tolerant_exit_with_success
+    code = 'RubyVM::AbstractSyntaxTree.parse("def m\n  if\nend\n", error_tolerant: true)'
+    assert_ruby_status([], code)
+  end
+
   def test_error_tolerant_end_is_short_for_method_define
     node = RubyVM::AbstractSyntaxTree.parse(<<~STR, error_tolerant: true)
       def m

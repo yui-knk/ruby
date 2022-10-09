@@ -6509,6 +6509,7 @@ yycompile0(VALUE arg)
     }
     p->ast->body.root = tree;
     if (!p->ast->body.script_lines) p->ast->body.script_lines = INT2FIX(p->line_count);
+    if (p->error_tolerant) rb_set_errinfo(Qnil);
     return TRUE;
 }
 
