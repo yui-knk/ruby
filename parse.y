@@ -5307,6 +5307,7 @@ var_ref		: user_variable
 		    {
 		    /*%%%*/
 			if (!($$ = gettable(p, $1, &@$))) $$ = NEW_BEGIN(0, &@$);
+			parser_current_tokens_buffer_flush(p, $$);
 		    /*%
 			if (id_is_var(p, get_id($1))) {
 			    $$ = dispatch1(var_ref, $1);
@@ -6135,6 +6136,7 @@ parser_current_tokens_buffer_flush(struct parser_params *p, NODE *node)
 
 	if (FIX2INT(v1) == -2) continue;
 
+	rb_ary_push(nd_token_locs(node), rb_str_new2(yysymbol_name(YYTRANSLATE(FIX2INT(v1)))));
 	rb_ary_push(nd_token_locs(node), v1);
 	rb_ary_push(nd_token_locs(node), v2);
     }
