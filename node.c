@@ -1351,7 +1351,8 @@ iterate_node_values(node_buffer_list_t *nb, node_itr_t * func, void *ctx)
 static void
 mark_ast_value(void *ctx, NODE * node)
 {
-    rb_gc_mark_movable(nd_token_locs(node));
+    rb_gc_mark(nd_token_locs(node));
+    printf("mark_1 %s, %lu, %lu\n", ruby_node_name(nd_type(node)), nd_token_locs(node), node);
 
     switch (nd_type(node)) {
       case NODE_ARGS:
@@ -1380,10 +1381,15 @@ mark_ast_value(void *ctx, NODE * node)
 }
 
 static void
+mark_ast_value_2(void *ctx, NODE * node)
+{
+    rb_gc_mark(nd_token_locs(node));
+    printf("mark_2 %s, %lu, %lu\n", ruby_node_name(nd_type(node)), nd_token_locs(node), node);
+}
+
+static void
 update_ast_value(void *ctx, NODE * node)
 {
-    rb_gc_location(nd_token_locs(node));
-
     switch (nd_type(node)) {
       case NODE_ARGS:
         {
@@ -1413,6 +1419,7 @@ update_ast_value(void *ctx, NODE * node)
 void
 rb_ast_update_references(rb_ast_t *ast)
 {
+    printf("rb_ast_update_references\n");
     if (ast->node_buffer) {
         node_buffer_t *nb = ast->node_buffer;
 
@@ -1423,12 +1430,14 @@ rb_ast_update_references(rb_ast_t *ast)
 void
 rb_ast_mark(rb_ast_t *ast)
 {
+    printf("rb_ast_mark\n");
     if (ast->node_buffer) rb_gc_mark(ast->node_buffer->mark_hash);
     if (ast->body.compile_option) rb_gc_mark(ast->body.compile_option);
     if (ast->node_buffer) {
         node_buffer_t *nb = ast->node_buffer;
 
         iterate_node_values(&nb->markable, mark_ast_value, NULL);
+        iterate_node_values(&nb->unmarkable, mark_ast_value_2, NULL);
     }
     if (ast->body.script_lines) rb_gc_mark(ast->body.script_lines);
 }
@@ -1481,4 +1490,11 @@ rb_ast_add_mark_object(rb_ast_t *ast, VALUE obj)
         RB_OBJ_WRITE(ast, &ast->node_buffer->mark_hash, rb_ident_hash_new());
     }
     rb_hash_aset(ast->node_buffer->mark_hash, obj, Qtrue);
+}
+
+void
+nd_set_token_locs(NODE *node, VALUE v)
+{
+    if (!RB_TYPE_P(v, T_ARRAY)) rb_bug("unreachable node %s", ruby_node_name(nd_type(node)));
+    node->token_locs = v;
 }

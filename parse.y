@@ -1066,6 +1066,7 @@ nd_token_locs_debug(struct parser_params *p, NODE *node)
 {
     VALUE mesg;
 
+    if (!p->debug) return;
     if (!node) return;
     if (!nd_token_locs(node))
 	mesg = rb_sprintf("token_locs_debug: No token locs\n");
@@ -1076,27 +1077,31 @@ nd_token_locs_debug(struct parser_params *p, NODE *node)
 }
 
 static inline void
-nd_token_locs_concat(NODE *node1, NODE *node2)
+nd_token_locs_concat(struct parser_params *p, NODE *node1, NODE *node2)
 {
     if (!node2 || !nd_token_locs(node2)) {
 	return;
     }
 
     if (!node1 || !nd_token_locs(node1)) {
-	nd_set_token_locs(node1, nd_token_locs(node2));
+	//nd_set_token_locs(node1, nd_token_locs(node2));
 	return;
     }
 
+    rb_parser_printf(p, "%"PRIsVALUE", %"PRIsVALUE"\n", nd_token_locs(node1), nd_token_locs(node2));
     rb_ary_concat(nd_token_locs(node1), nd_token_locs(node2));
 }
 
 static inline void
-nd_token_locs_append(NODE *node, rb_code_location_t *loc, const char * c)
+nd_token_locs_append(struct parser_params *p, NODE *node, rb_code_location_t *loc, const char * c)
 {
+    if (!node) return;
     if (!nd_token_locs(node)) {
 	nd_set_token_locs(node, rb_ary_new());
     }
 
+    if (!RB_TYPE_P(nd_token_locs(node), T_ARRAY)) rb_bug("unreachable node %s, %lu, %d, %lu", ruby_node_name(nd_type(node)), nd_token_locs(node), TYPE(nd_token_locs(node)), node);
+    rb_parser_printf(p, "%"PRIsVALUE"\n", nd_token_locs(node));
     rb_ary_push(nd_token_locs(node), ID2SYM(rb_intern(c)));
     rb_ary_push(nd_token_locs(node), code_loc_to_array(loc));
 }
@@ -1108,6 +1113,7 @@ token_locs_gen_1(const rb_code_location_t *loc1, const char * c1)
 {
     VALUE ary = rb_ary_new();
     if (loc_has_length_p(loc1)) rb_ary_push(ary, ID2SYM(rb_intern(c1))), rb_ary_push(ary, code_loc_to_array(loc1));
+    printf("token_locs_gen_1 %d, %lu\n", TYPE(ary), ary);
     return ary;
 }
 
@@ -1117,6 +1123,7 @@ token_locs_gen_2(const rb_code_location_t *loc1, const rb_code_location_t *loc2,
     VALUE ary = rb_ary_new();
     if (loc_has_length_p(loc1)) rb_ary_push(ary, ID2SYM(rb_intern(c1))), rb_ary_push(ary, code_loc_to_array(loc1));
     if (loc_has_length_p(loc2)) rb_ary_push(ary, ID2SYM(rb_intern(c2))), rb_ary_push(ary, code_loc_to_array(loc2));
+    printf("token_locs_gen_2 %d, %lu\n", TYPE(ary), ary);
     return ary;
 }
 
@@ -1127,6 +1134,7 @@ token_locs_gen_3(const rb_code_location_t *loc1, const rb_code_location_t *loc2,
     if (loc_has_length_p(loc1)) rb_ary_push(ary, ID2SYM(rb_intern(c1))), rb_ary_push(ary, code_loc_to_array(loc1));
     if (loc_has_length_p(loc2)) rb_ary_push(ary, ID2SYM(rb_intern(c2))), rb_ary_push(ary, code_loc_to_array(loc2));
     if (loc_has_length_p(loc3)) rb_ary_push(ary, ID2SYM(rb_intern(c3))), rb_ary_push(ary, code_loc_to_array(loc3));
+    printf("token_locs_gen_3 %d, %lu\n", TYPE(ary), ary);
     return ary;
 }
 
@@ -1138,6 +1146,7 @@ token_locs_gen_4(const rb_code_location_t *loc1, const rb_code_location_t *loc2,
     if (loc_has_length_p(loc2)) rb_ary_push(ary, ID2SYM(rb_intern(c2))), rb_ary_push(ary, code_loc_to_array(loc2));
     if (loc_has_length_p(loc3)) rb_ary_push(ary, ID2SYM(rb_intern(c3))), rb_ary_push(ary, code_loc_to_array(loc3));
     if (loc_has_length_p(loc4)) rb_ary_push(ary, ID2SYM(rb_intern(c4))), rb_ary_push(ary, code_loc_to_array(loc4));
+    printf("token_locs_gen_4 %d, %lu\n", TYPE(ary), ary);
     return ary;
 }
 
@@ -2919,8 +2928,8 @@ paren_args	: '(' opt_call_args rparen
 		    {
 		    /*%%%*/
 			$$ = $2;
-			nd_token_locs_append($$, &@1, "(");
-			nd_token_locs_append($$, &@3, ")");
+			nd_token_locs_append(p, $$, &@1, "(");
+			nd_token_locs_append(p, $$, &@3, ")");
 		    /*% %*/
 		    /*% ripper: arg_paren!(escape_Qundef($2)) %*/
 		    }
@@ -2988,7 +2997,7 @@ call_args	: command
 		    {
 		    /*%%%*/
 			$$ = arg_blk_pass($1, $2);
-			nd_token_locs_concat($1, $2);
+			nd_token_locs_concat(p, $1, $2);
 			nd_token_locs_debug(p, $$);
 		    /*% %*/
 		    /*% ripper: args_add_block!($1, $2) %*/
@@ -3111,8 +3120,8 @@ args		: arg_value
 		    {
 		    /*%%%*/
 			$$ = last_arg_append(p, $1, $3, &@$);
-			nd_token_locs_append($1, &@2, ",");
-			nd_token_locs_concat($1, $3);
+			nd_token_locs_append(p, $1, &@2, ",");
+			nd_token_locs_concat(p, $1, $3);
 			nd_token_locs_debug(p, $$);
 		    /*% %*/
 		    /*% ripper: args_add!($1, $3) %*/
@@ -3512,7 +3521,7 @@ primary		: literal
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
-			nd_token_locs_append($$, &@5, "end");
+			nd_token_locs_append(p, $$, &@5, "end");
 		    /*% %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
 			local_pop(p);
@@ -3530,7 +3539,7 @@ primary		: literal
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
-			nd_token_locs_append($$, &@5, "end");
+			nd_token_locs_append(p, $$, &@5, "end");
 		    /*%
 			$1 = get_value($1);
 		    %*/
@@ -5654,8 +5663,8 @@ f_arg		: f_arg_item
 			$$->nd_plen++;
 			$$->nd_next = block_append(p, $$->nd_next, $3->nd_next);
 			rb_discard_node(p, $3);
-			nd_token_locs_append($1, &@2, ",");
-			nd_token_locs_concat($1, $3);
+			nd_token_locs_append(p, $1, &@2, ",");
+			nd_token_locs_concat(p, $1, $3);
 		    /*% %*/
 		    /*% ripper: rb_ary_push($1, get_value($3)) %*/
 		    }
@@ -10338,6 +10347,8 @@ node_newnode(struct parser_params *p, enum node_type type, VALUE a0, VALUE a1, V
 
     nd_set_loc(n, loc);
     nd_set_node_id(n, parser_get_node_id(p));
+    nd_set_token_locs(n, rb_ary_new());
+    printf("node_newnode %s, %lu, %lu\n", ruby_node_name(nd_type(n)), nd_token_locs(n), n);
     return n;
 }
 
@@ -12386,9 +12397,9 @@ new_args(struct parser_params *p, NODE *pre_args, NODE *opt_args, ID rest_arg, N
     p->ruby_sourceline = saved_line;
     nd_set_loc(tail, loc);
 
-    if (pre_args)  nd_token_locs_concat(tail, pre_args);
-    if (opt_args)  nd_token_locs_concat(tail, opt_args);
-    if (post_args) nd_token_locs_concat(tail, post_args);
+    if (pre_args)  nd_token_locs_concat(p, tail, pre_args);
+    if (opt_args)  nd_token_locs_concat(p, tail, opt_args);
+    if (post_args) nd_token_locs_concat(p, tail, post_args);
 
     return tail;
 }
