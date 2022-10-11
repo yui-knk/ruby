@@ -107,13 +107,11 @@ RBIMPL_WARNING_POP()
     do									\
       if (N)								\
 	{								\
-	  parser_tokens_buffer_move(p, N);				\
 	  (Current).beg_pos = YYRHSLOC(Rhs, 1).beg_pos;			\
 	  (Current).end_pos = YYRHSLOC(Rhs, N).end_pos;			\
 	}								\
       else								\
         {                                                               \
-          parser_tokens_buffer_append_dummp(p); 	                \
           (Current).beg_pos = YYRHSLOC(Rhs, 0).end_pos;                 \
           (Current).end_pos = YYRHSLOC(Rhs, 0).end_pos;                 \
         }                                                               \
@@ -361,7 +359,6 @@ struct parser_params {
     VALUE end_expect_token_locations;
     /* Array */
     VALUE tokens_buffer;
-    VALUE current_tokens_buffer;
 #else
     /* Ripper only */
 
@@ -558,9 +555,9 @@ static void reduce_nodes(struct parser_params*,NODE**);
 static void block_dup_check(struct parser_params*,NODE*,NODE*);
 
 static void parser_tokens_buffer_append(struct parser_params *p, enum yytokentype t, const YYLTYPE *loc);
-static void parser_tokens_buffer_append_dummp(struct parser_params *p);
-static void parser_tokens_buffer_move(struct parser_params *p, long n);
-static void parser_current_tokens_buffer_flush(struct parser_params *p, NODE *node);
+static void nd_token_locs_append_id(struct parser_params *p, NODE *node, ID id, const YYLTYPE *loc);
+static void nd_token_locs_append_cstr(struct parser_params *p, NODE *node, const char *name, const YYLTYPE *loc);
+static void parser_tokens_buffer_flush(struct parser_params *p, NODE *node);
 
 static NODE *block_append(struct parser_params*,NODE*,NODE*);
 static NODE *list_append(struct parser_params*,NODE*,NODE*);
@@ -655,9 +652,7 @@ static void check_literal_when(struct parser_params *p, NODE *args, const YYLTYP
 #define NEW_RIPPER(a,b,c,loc) (VALUE)NEW_CDECL(a,b,c,loc)
 
 #define parser_tokens_buffer_append(p, t, loc) ((void)0)
-#define parser_tokens_buffer_append_dummp(p) ((void)0)
-#define parser_tokens_buffer_move(p, n) ((void)0)
-#define parser_current_tokens_buffer_flush(p, node) ((void)0)
+#define nd_token_locs_append_cstr(p, node, name, loc) ((void)0)
 
 static inline int ripper_is_node_yylval(VALUE n);
 
@@ -1479,7 +1474,7 @@ top_stmt	: stmt
 		| keyword_BEGIN begin_block
 		    {
 			$$ = $2;
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "BEGIN", &@1);
 		    }
 		;
 
@@ -1489,7 +1484,8 @@ begin_block	: '{' top_compstmt '}'
 			p->eval_tree_begin = block_append(p, p->eval_tree_begin,
 							  NEW_BEGIN($2, &@$));
 			$$ = NEW_BEGIN(0, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "{", &@1);
+			nd_token_locs_append_cstr(p, $$, "}", &@3);
 		    /*% %*/
 		    /*% ripper: BEGIN!($2) %*/
 		    }
@@ -1503,7 +1499,7 @@ bodystmt	: compstmt
 		    {
 		    /*%%%*/
 			$$ = new_bodystmt(p, $1, $2, $5, $6, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "else", &@3);
 		    /*% %*/
 		    /*% ripper: bodystmt!(escape_Qundef($1), escape_Qundef($2), escape_Qundef($5), escape_Qundef($6)) %*/
 		    }
@@ -1513,7 +1509,6 @@ bodystmt	: compstmt
 		    {
 		    /*%%%*/
 			$$ = new_bodystmt(p, $1, $2, 0, $3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
 		    /*% %*/
 		    /*% ripper: bodystmt!(escape_Qundef($1), escape_Qundef($2), Qnil, escape_Qundef($3)) %*/
 		    }
@@ -1566,7 +1561,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = NEW_ALIAS($2, $4, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $1, &@1);
 		    /*% %*/
 		    /*% ripper: alias!($2, $4) %*/
 		    }
@@ -1574,7 +1569,9 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = NEW_VALIAS($2, $3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $1, &@1);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
 		    /*% %*/
 		    /*% ripper: var_alias!($2, $3) %*/
 		    }
@@ -1585,7 +1582,8 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			buf[0] = '$';
 			buf[1] = (char)$3->nd_nth;
 			$$ = NEW_VALIAS($2, rb_intern2(buf, 2), &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $1, &@1);
+			nd_token_locs_append_id(p, $$, $2, &@2);
 		    /*% %*/
 		    /*% ripper: var_alias!($2, $3) %*/
 		    }
@@ -1602,7 +1600,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = $2;
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $1, &@1);
 		    /*% %*/
 		    /*% ripper: undef!($2) %*/
 		    }
@@ -1611,7 +1609,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    /*%%%*/
 			$$ = new_if(p, $3, remove_begin($1), 0, &@$);
 			fixpos($$, $3);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
 		    /*% %*/
 		    /*% ripper: if_mod!($3, $1) %*/
 		    }
@@ -1620,7 +1618,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    /*%%%*/
 			$$ = new_unless(p, $3, remove_begin($1), 0, &@$);
 			fixpos($$, $3);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
 		    /*% %*/
 		    /*% ripper: unless_mod!($3, $1) %*/
 		    }
@@ -1633,7 +1631,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			else {
 			    $$ = NEW_WHILE(cond(p, $3, &@3), $1, 1, &@$);
 			}
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
 		    /*% %*/
 		    /*% ripper: while_mod!($3, $1) %*/
 		    }
@@ -1646,7 +1644,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			else {
 			    $$ = NEW_UNTIL(cond(p, $3, &@3), $1, 1, &@$);
 			}
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
 		    /*% %*/
 		    /*% ripper: until_mod!($3, $1) %*/
 		    }
@@ -1657,7 +1655,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 			YYLTYPE loc = code_loc_gen(&@2, &@3);
 			resq = NEW_RESBODY(0, remove_begin($3), 0, &loc);
 			$$ = NEW_RESCUE(remove_begin($1), resq, 0, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
 		    /*% %*/
 		    /*% ripper: rescue_mod!($1, $3) %*/
 		    }
@@ -1672,7 +1670,9 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 				NODE_SCOPE, 0 /* tbl */, $3 /* body */, 0 /* args */, &@$);
 			    $$ = NEW_POSTEXE(scope, &@$);
 			}
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $1, &@1);
+			nd_token_locs_append_cstr(p, $$, "{", &@2);
+			nd_token_locs_append_cstr(p, $$, "}", &@4);
 		    /*% %*/
 		    /*% ripper: END!($3) %*/
 		    }
@@ -1682,7 +1682,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    /*%%%*/
 			value_expr($4);
 			$$ = node_assign(p, $1, $4, $3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "=", &@2);
 		    /*% %*/
 		    /*% ripper: massign!($1, $4) %*/
 		    }
@@ -1690,7 +1690,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = node_assign(p, $1, $4, $3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "=", &@2);
 		    /*% %*/
 		    /*% ripper: assign!($1, $4) %*/
 		    }
@@ -1699,7 +1699,8 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
                     /*%%%*/
                         YYLTYPE loc = code_loc_gen(&@5, &@6);
 			$$ = node_assign(p, $1, NEW_RESCUE($4, NEW_RESBODY(0, remove_begin($6), 0, &loc), 0, &@$), $3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "=", &@2);
+			nd_token_locs_append_id(p, $$, $5, &@5);
                     /*% %*/
                     /*% ripper: massign!($1, rescue_mod!($4, $6)) %*/
                     }
@@ -1707,7 +1708,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    {
 		    /*%%%*/
 			$$ = node_assign(p, $1, $4, $3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "=", &@2);
 		    /*% %*/
 		    /*% ripper: massign!($1, $4) %*/
 		    }
@@ -1724,7 +1725,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = node_assign(p, $1, $4, $3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "=", &@2);
 		    /*% %*/
 		    /*% ripper: assign!($1, $4) %*/
 		    }
@@ -1732,7 +1733,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = new_op_assign(p, $1, $2, $4, $3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
 		    /*% %*/
 		    /*% ripper: opassign!($1, $2, $4) %*/
 		    }
@@ -1740,7 +1741,9 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = new_ary_op_assign(p, $1, $3, $5, $7, &@3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "[", &@2);
+			nd_token_locs_append_cstr(p, $$, "]", &@4);
+			nd_token_locs_append_id(p, $$, $5, &@5);
 		    /*% %*/
 		    /*% ripper: opassign!(aref_field!($1, escape_Qundef($3)), $5, $7) %*/
 
@@ -1749,7 +1752,9 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = new_attr_op_assign(p, $1, $2, $3, $4, $6, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
+			nd_token_locs_append_id(p, $$, $4, &@4);
 		    /*% %*/
 		    /*% ripper: opassign!(field!($1, $2, $3), $4, $6) %*/
 		    }
@@ -1757,7 +1762,9 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = new_attr_op_assign(p, $1, $2, $3, $4, $6, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
+			nd_token_locs_append_id(p, $$, $4, &@4);
 		    /*% %*/
 		    /*% ripper: opassign!(field!($1, $2, $3), $4, $6) %*/
 		    }
@@ -1766,7 +1773,9 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*%%%*/
 			YYLTYPE loc = code_loc_gen(&@1, &@3);
 			$$ = new_const_op_assign(p, NEW_COLON2($1, $3, &loc), $4, $6, $5, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
+			nd_token_locs_append_id(p, $$, $4, &@4);
 		    /*% %*/
 		    /*% ripper: opassign!(const_path_field!($1, $3), $4, $6) %*/
 		    }
@@ -1774,17 +1783,18 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = new_attr_op_assign(p, $1, ID2VAL(idCOLON2), $3, $4, $6, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
+			nd_token_locs_append_id(p, $$, $4, &@4);
 		    /*% %*/
 		    /*% ripper: opassign!(field!($1, ID2VAL(idCOLON2), $3), $4, $6) %*/
 		    }
 		| defn_head f_opt_paren_args '=' command
 		    {
 			endless_method_name(p, $<node>1, &@1);
-			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "=", &@3);
 		    /*% %*/
 		    /*% ripper[$4]: bodystmt!($4, Qnil, Qnil, Qnil) %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
@@ -1797,7 +1807,8 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*%%%*/
 			$4 = rescued_expr(p, $4, $6, &@4, &@5, &@6);
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "=", &@3);
+			nd_token_locs_append_cstr(p, $$, "rescue", &@5);
 		    /*% %*/
 		    /*% ripper[$4]: bodystmt!(rescue_mod!($4, $6), Qnil, Qnil, Qnil) %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
@@ -1809,7 +1820,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "=", &@3);
 		    /*%
 			$1 = get_value($1);
 		    %*/
@@ -1824,7 +1835,8 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*%%%*/
 			$4 = rescued_expr(p, $4, $6, &@4, &@5, &@6);
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "=", &@3);
+			nd_token_locs_append_cstr(p, $$, "rescue", &@5);
 		    /*%
 			$1 = get_value($1);
 		    %*/
@@ -1853,7 +1865,7 @@ command_rhs	: command_call   %prec tOP_ASGN
 			YYLTYPE loc = code_loc_gen(&@2, &@3);
 			value_expr($1);
 			$$ = NEW_RESCUE($1, NEW_RESBODY(0, remove_begin($3), 0, &loc), 0, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "rescue", &@2);
 		    /*% %*/
 		    /*% ripper: rescue_mod!($1, $3) %*/
 		    }
@@ -1865,28 +1877,28 @@ expr		: command_call
 		    {
 			$$ = logop(p, idAND, $1, $3, &@2, &@$);
 		    /*%%%*/
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "and", &@2);
 		    /*% %*/
 		    }
 		| expr keyword_or expr
 		    {
 			$$ = logop(p, idOR, $1, $3, &@2, &@$);
 		    /*%%%*/
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "or", &@2);
 		    /*% %*/
 		    }
 		| keyword_not opt_nl expr
 		    {
 			$$ = call_uni_op(p, method_cond(p, $3, &@3), METHOD_NOT, &@1, &@$);
 		    /*%%%*/
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "not", &@1);
 		    /*% %*/
 		    }
 		| '!' command_call
 		    {
 			$$ = call_uni_op(p, method_cond(p, $2, &@2), '!', &@1, &@$);
 		    /*%%%*/
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "!", &@1);
 		    /*% %*/
 		    }
 		| arg tASSOC
@@ -1930,7 +1942,7 @@ expr		: command_call
 			p->ctxt.in_kwarg = $<ctxt>2.in_kwarg;
 		    /*%%%*/
 			$$ = NEW_CASE3($1, NEW_IN($5, NEW_TRUE(&@5), NEW_FALSE(&@5), &@5), &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "in", &@2);
 		    /*% %*/
 		    /*% ripper: case!($1, in!($5, Qnil, Qnil)) %*/
 		    }
@@ -1959,7 +1971,8 @@ defn_head	: k_def def_name
 			$$ = $2;
 		    /*%%%*/
 			$$ = NEW_NODE(NODE_DEFN, 0, $$->nd_mid, $$, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "def", &@1);
+			nd_token_locs_append_id(p, $$, $2->nd_mid, &@2);
 		    /*% %*/
 		    }
 		;
@@ -1975,7 +1988,8 @@ defs_head	: k_def singleton dot_or_colon
 			$$ = $5;
 		    /*%%%*/
 			$$ = NEW_NODE(NODE_DEFS, $2, $$->nd_mid, $$, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "def", &@1);
+			nd_token_locs_append_id(p, $$, $3, &@3);
 		    /*%
 			VALUE ary = rb_ary_new_from_args(3, $2, $3, get_value($$));
 			add_mark_object(p, ary);
@@ -2001,7 +2015,7 @@ expr_value_do	: {COND_PUSH(1);} expr_value do {COND_POP();}
 		    {
 			$$ = $2;
 		    /*%%%*/
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "do", &@3);
 		    /*% %*/
 		    }
 		;
@@ -2015,7 +2029,8 @@ block_command	: block_call
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, $2, $1, $3, $4, &@3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, $2, $3), $4) %*/
 		    }
@@ -2027,6 +2042,8 @@ cmd_brace_block	: tLBRACE_ARG brace_body '}'
 		    /*%%%*/
 			$$->nd_body->nd_loc = code_loc_gen(&@1, &@3);
 			nd_set_line($$, @1.end_pos.lineno);
+			nd_token_locs_append_cstr(p, $$, "{", &@1);
+			nd_token_locs_append_cstr(p, $$, "}", &@3);
 		    /*% %*/
 		    }
 		;
@@ -2065,7 +2082,8 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, $2, $1, $3, $4, Qnull, &@3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
 		    /*% %*/
 		    /*% ripper: command_call!($1, $2, $3, $4) %*/
 		    }
@@ -2073,7 +2091,8 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, $2, $1, $3, $4, $5, &@3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
 		    /*% %*/
 		    /*% ripper: method_add_block!(command_call!($1, $2, $3, $4), $5) %*/
 		    }
@@ -2081,7 +2100,8 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, ID2VAL(idCOLON2), $1, $3, $4, Qnull, &@3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
 		    /*% %*/
 		    /*% ripper: command_call!($1, ID2VAL(idCOLON2), $3, $4) %*/
 		    }
@@ -2089,7 +2109,8 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, ID2VAL(idCOLON2), $1, $3, $4, $5, &@3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
 		    /*% %*/
 		    /*% ripper: method_add_block!(command_call!($1, ID2VAL(idCOLON2), $3, $4), $5) %*/
 		   }
@@ -3037,7 +3058,6 @@ args		: arg_value
 		    {
 		    /*%%%*/
 			$$ = NEW_LIST($1, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
 		    /*% %*/
 		    /*% ripper: args_add!(args_new!, $1) %*/
 		    }
@@ -3045,6 +3065,7 @@ args		: arg_value
 		    {
 		    /*%%%*/
 			$$ = NEW_SPLAT($2, &@$);
+			nd_token_locs_append_cstr(p, $$, "*", &@1);
 		    /*% %*/
 		    /*% ripper: args_add_star!(args_new!, $2) %*/
 		    }
@@ -3055,6 +3076,7 @@ args		: arg_value
                         }
 		    /*%%%*/
 			$$ = NEW_SPLAT(NEW_LVAR(ANON_REST_ID, &@1), &@$);
+			nd_token_locs_append_cstr(p, $$, "*", &@1);
 		    /*% %*/
 		    /*% ripper: args_add_star!(args_new!, Qnil) %*/
 		    }
@@ -3062,7 +3084,7 @@ args		: arg_value
 		    {
 		    /*%%%*/
 			$$ = last_arg_append(p, $1, $3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, ",", &@2);
 		    /*% %*/
 		    /*% ripper: args_add!($1, $3) %*/
 		    }
@@ -3070,6 +3092,8 @@ args		: arg_value
 		    {
 		    /*%%%*/
 			$$ = rest_arg_append(p, $1, $4, &@$);
+			nd_token_locs_append_cstr(p, $$, ",", &@2);
+			nd_token_locs_append_cstr(p, $$, "*", &@3);
 		    /*% %*/
 		    /*% ripper: args_add_star!($1, $4) %*/
 		    }
@@ -3080,6 +3104,8 @@ args		: arg_value
                         }
 		    /*%%%*/
 			$$ = rest_arg_append(p, $1, NEW_LVAR(ANON_REST_ID, &@3), &@$);
+			nd_token_locs_append_cstr(p, $$, ",", &@2);
+			nd_token_locs_append_cstr(p, $$, "*", &@3);
 		    /*% %*/
 		    /*% ripper: args_add_star!($1, Qnil) %*/
 		    }
@@ -3095,6 +3121,7 @@ mrhs		: args ',' arg_value
 		    {
 		    /*%%%*/
 			$$ = last_arg_append(p, $1, $3, &@$);
+			nd_token_locs_append_cstr(p, $$, ",", &@2);
 		    /*% %*/
 		    /*% ripper: mrhs_add!(mrhs_new_from_args!($1), $3) %*/
 		    }
@@ -3102,6 +3129,8 @@ mrhs		: args ',' arg_value
 		    {
 		    /*%%%*/
 			$$ = rest_arg_append(p, $1, $4, &@$);
+			nd_token_locs_append_cstr(p, $$, ",", &@2);
+			nd_token_locs_append_cstr(p, $$, "*", &@3);
 		    /*% %*/
 		    /*% ripper: mrhs_add_star!(mrhs_new_from_args!($1), $4) %*/
 		    }
@@ -3461,7 +3490,7 @@ primary		: literal
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "end", &@5);
 		    /*% %*/
 		    /*% ripper: def!(get_value($1), $2, $4) %*/
 			local_pop(p);
@@ -3479,7 +3508,7 @@ primary		: literal
 			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "end", &@5);
 		    /*%
 			$1 = get_value($1);
 		    %*/
@@ -3490,6 +3519,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_BREAK(0, &@$);
+			nd_token_locs_append_cstr(p, $$, "break", &@1);
 		    /*% %*/
 		    /*% ripper: break!(args_new!) %*/
 		    }
@@ -3497,6 +3527,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_NEXT(0, &@$);
+			nd_token_locs_append_cstr(p, $$, "next", &@1);
 		    /*% %*/
 		    /*% ripper: next!(args_new!) %*/
 		    }
@@ -3504,6 +3535,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_REDO(&@$);
+			nd_token_locs_append_cstr(p, $$, "redo", &@1);
 		    /*% %*/
 		    /*% ripper: redo! %*/
 		    }
@@ -3511,6 +3543,7 @@ primary		: literal
 		    {
 		    /*%%%*/
 			$$ = NEW_RETRY(&@$);
+			nd_token_locs_append_cstr(p, $$, "retry", &@1);
 		    /*% %*/
 		    /*% ripper: retry! %*/
 		    }
@@ -4098,7 +4131,8 @@ block_call	: command do_block
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, $2, $1, $3, $4, &@3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
 		    /*% %*/
 		    /*% ripper: opt_event(:method_add_arg!, call!($1, $2, $3), $4) %*/
 		    }
@@ -4106,7 +4140,8 @@ block_call	: command do_block
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, $2, $1, $3, $4, $5, &@3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
 		    /*% %*/
 		    /*% ripper: opt_event(:method_add_block!, command_call!($1, $2, $3, $4), $5) %*/
 		    }
@@ -4114,7 +4149,8 @@ block_call	: command do_block
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, $2, $1, $3, $4, $5, &@3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
 		    /*% %*/
 		    /*% ripper: method_add_block!(command_call!($1, $2, $3, $4), $5) %*/
 		    }
@@ -4133,8 +4169,9 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, $2, $1, $3, $4, &@3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
 			nd_set_line($$, @3.end_pos.lineno);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
 		    /*% %*/
 		    /*% ripper: opt_event(:method_add_arg!, call!($1, $2, $3), $4) %*/
 		    }
@@ -4142,8 +4179,9 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, ID2VAL(idCOLON2), $1, $3, $4, &@3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
 			nd_set_line($$, @3.end_pos.lineno);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, ID2VAL(idCOLON2), $3), $4) %*/
 		    }
@@ -4151,7 +4189,8 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, ID2VAL(idCOLON2), $1, $3, Qnull, &@3, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $2, &@2);
+			nd_token_locs_append_id(p, $$, $3, &@3);
 		    /*% %*/
 		    /*% ripper: call!($1, ID2VAL(idCOLON2), $3) %*/
 		    }
@@ -4159,8 +4198,8 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, $2, $1, ID2VAL(idCall), $3, &@2, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
 			nd_set_line($$, @2.end_pos.lineno);
+			nd_token_locs_append_id(p, $$, $2, &@2);
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, $2, ID2VAL(idCall)), $3) %*/
 		    }
@@ -4168,8 +4207,8 @@ method_call	: fcall paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, ID2VAL(idCOLON2), $1, ID2VAL(idCall), $3, &@2, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
 			nd_set_line($$, @2.end_pos.lineno);
+			nd_token_locs_append_id(p, $$, $2, &@2);
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, ID2VAL(idCOLON2), ID2VAL(idCall)), $3) %*/
 		    }
@@ -5307,7 +5346,7 @@ var_ref		: user_variable
 		    {
 		    /*%%%*/
 			if (!($$ = gettable(p, $1, &@$))) $$ = NEW_BEGIN(0, &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $1, &@1);
 		    /*%
 			if (id_is_var(p, get_id($1))) {
 			    $$ = dispatch1(var_ref, $1);
@@ -5377,7 +5416,8 @@ f_paren_args	: '(' f_args rparen
 		    {
 		    /*%%%*/
 			$$ = $2;
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "(", &@1);
+			nd_token_locs_append_cstr(p, $$, ")", &@3);
 		    /*% %*/
 		    /*% ripper: paren!($2) %*/
 			SET_LEX_STATE(EXPR_BEG);
@@ -5569,7 +5609,7 @@ f_arg_item	: f_arg_asgn
 			p->cur_arg = 0;
 		    /*%%%*/
 			$$ = NEW_ARGS_AUX($1, 1, &NULL_LOC);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $1, &@1);
 		    /*% %*/
 		    /*% ripper: get_value($1) %*/
 		    }
@@ -5589,7 +5629,8 @@ f_arg_item	: f_arg_asgn
 			}
 			$$ = NEW_ARGS_AUX(tid, 1, &NULL_LOC);
 			$$->nd_next = $2;
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, "(", &@1);
+			nd_token_locs_append_cstr(p, $$, ")", &@3);
 		    /*% %*/
 		    /*% ripper: mlhs_paren!($2) %*/
 		    }
@@ -5604,7 +5645,7 @@ f_arg		: f_arg_item
 			$$->nd_plen++;
 			$$->nd_next = block_append(p, $$->nd_next, $3->nd_next);
 			rb_discard_node(p, $3);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_cstr(p, $$, ",", &@2);
 		    /*% %*/
 		    /*% ripper: rb_ary_push($1, get_value($3)) %*/
 		    }
@@ -5728,7 +5769,8 @@ f_opt		: f_arg_asgn f_eq arg_value
 			p->ctxt.in_argdef = 1;
 		    /*%%%*/
 			$$ = NEW_OPT_ARG(0, assignable(p, $1, $3, &@$), &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $1, &@1);
+			nd_token_locs_append_cstr(p, $$, "=", &@2);
 		    /*% %*/
 		    /*% ripper: rb_assoc_new(get_value(assignable(p, $1)), get_value($3)) %*/
 		    }
@@ -5740,7 +5782,8 @@ f_block_opt	: f_arg_asgn f_eq primary_value
 			p->ctxt.in_argdef = 1;
 		    /*%%%*/
 			$$ = NEW_OPT_ARG(0, assignable(p, $1, $3, &@$), &@$);
-			parser_current_tokens_buffer_flush(p, $$);
+			nd_token_locs_append_id(p, $$, $1, &@1);
+			nd_token_locs_append_cstr(p, $$, "=", &@2);
 		    /*% %*/
 		    /*% ripper: rb_assoc_new(get_value(assignable(p, $1)), get_value($3)) %*/
 		    }
@@ -5911,7 +5954,6 @@ assoc		: arg_value tASSOC arg_value
 		    {
 		    /*%%%*/
 			$$ = list_append(p, NEW_LIST(NEW_LIT(ID2SYM($1), &@1), &@$), $2);
-			parser_current_tokens_buffer_flush(p, $$);
 		    /*% %*/
 		    /*% ripper: assoc_new!($1, $2) %*/
 		    }
@@ -6079,17 +6121,11 @@ ripper_yylval_id(struct parser_params *p, ID x)
 #define has_delayed_token(p) (0)
 
 static void
-parser_tokens_buffer_append_dummp(struct parser_params *p)
-{
-    parser_tokens_buffer_append(p, -2, &NULL_LOC);
-}
-
-static void
 parser_tokens_buffer_append(struct parser_params *p, enum yytokentype t, const YYLTYPE *loc)
 {
     // if (!loc_has_length_p(loc)) return;
 
-    rb_ary_push(p->tokens_buffer, INT2FIX(t));
+    rb_ary_push(p->tokens_buffer, rb_str_new2(yysymbol_name(YYTRANSLATE(t))));
     rb_ary_push(p->tokens_buffer, code_loc_to_array(loc));
 
     if (p->debug) {
@@ -6098,47 +6134,51 @@ parser_tokens_buffer_append(struct parser_params *p, enum yytokentype t, const Y
 }
 
 static void
-parser_tokens_buffer_move(struct parser_params *p, long n)
+nd_token_locs_append_id(struct parser_params *p, NODE *node, ID id, const YYLTYPE *loc)
 {
-    if (RARRAY_LEN(p->tokens_buffer) < (n * 2)) {
-	rb_bug("Can not move %ld tokens to current buffer (%ld).", n, RARRAY_LEN(p->tokens_buffer) / 2);
-    }
+    VALUE ary;
+    // if (!loc_has_length_p(loc)) return;
 
-    for (long i = 0; i < (n * 2); i++) {
-	VALUE v = rb_ary_pop(p->tokens_buffer);
-	rb_ary_push(p->current_tokens_buffer, v);
-    }
+    ary = code_loc_to_array(loc);
+    rb_ary_unshift(ary, rb_id2str(id));
+    rb_ary_push(nd_token_locs(node), ary);
 
     if (p->debug) {
-	rb_parser_printf(p, "Move %ld tokens to current_tokens_buffer. %"PRIsVALUE"\n", n, p->tokens_buffer);
+	rb_parser_printf(p, "Append id to node. %"PRIsVALUE"\n", nd_token_locs(node));
     }
-
-    parser_tokens_buffer_append_dummp(p);
 }
 
 static void
-parser_current_tokens_buffer_flush(struct parser_params *p, NODE *node)
+nd_token_locs_append_cstr(struct parser_params *p, NODE *node, const char *name, const YYLTYPE *loc)
 {
-    long i, len = RARRAY_LEN(p->current_tokens_buffer) / 2;
+    VALUE ary;
+    // if (!loc_has_length_p(loc)) return;
+
+    ary = code_loc_to_array(loc);
+    rb_ary_unshift(ary, rb_str_new2(name));
+    rb_ary_push(nd_token_locs(node), ary);
+
+    if (p->debug) {
+	rb_parser_printf(p, "Append string to node. %"PRIsVALUE"\n", nd_token_locs(node));
+    }
+}
+
+static void
+parser_tokens_buffer_flush(struct parser_params *p, NODE *node)
+{
+    long i, len = RARRAY_LEN(p->tokens_buffer) / 2;
 
     if (!node) {
-	rb_bug("parser_current_tokens_buffer_flush is called for NULL node.");
+	rb_bug("parser_tokens_buffer_flush is called for NULL node.");
     }
 
     if (p->debug) {
-	rb_parser_printf(p, "Flush current_tokens_buffer. %"PRIsVALUE"\n", p->current_tokens_buffer);
+	rb_parser_printf(p, "Flush tokens_buffer. %"PRIsVALUE"\n", p->tokens_buffer);
     }
 
     for (i = 0; i < len; i++) {
-	VALUE v1, v2;
-	v1 = rb_ary_pop(p->current_tokens_buffer);
-	v2 = rb_ary_pop(p->current_tokens_buffer);
-
-	if (FIX2INT(v1) == -2) continue;
-
-	rb_ary_push(nd_token_locs(node), rb_str_new2(yysymbol_name(YYTRANSLATE(FIX2INT(v1)))));
-	rb_ary_push(nd_token_locs(node), v1);
-	rb_ary_push(nd_token_locs(node), v2);
+	rb_ary_push(nd_token_locs(node), rb_ary_pop(p->tokens_buffer));
+	rb_ary_push(nd_token_locs(node), rb_ary_pop(p->tokens_buffer));
     }
 }
 #else
@@ -10337,8 +10377,6 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
     else if (t != 0)
 	dispatch_scan_event(p, t);
 
-    parser_tokens_buffer_append(p, t, yylloc);
-
     return t;
 }
 
@@ -13511,7 +13549,6 @@ parser_initialize(struct parser_params *p)
     p->error_buffer = Qfalse;
     p->end_expect_token_locations = Qnil;
     p->tokens_buffer = rb_ary_new();
-    p->current_tokens_buffer = rb_ary_new();
 #endif
     p->debug_buffer = Qnil;
     p->debug_output = rb_ractor_stdout();
@@ -13542,7 +13579,6 @@ parser_mark(void *ptr)
     rb_gc_mark(p->error_buffer);
     rb_gc_mark(p->end_expect_token_locations);
     rb_gc_mark(p->tokens_buffer);
-    rb_gc_mark(p->current_tokens_buffer);
 #else
     rb_gc_mark(p->delayed.token);
     rb_gc_mark(p->value);
