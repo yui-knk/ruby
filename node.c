@@ -1131,7 +1131,7 @@ struct node_buffer_struct {
     struct rb_ast_local_table_link *local_tables;
     VALUE mark_hash;
     // - id: sequence number
-    // - token_type: 
+    // - token_type:
     // - text: text of token
     // (- location info)
     // Array, whose entry is array
@@ -1516,10 +1516,22 @@ rb_ast_add_mark_object(rb_ast_t *ast, VALUE obj)
     rb_hash_aset(ast->node_buffer->mark_hash, obj, Qtrue);
 }
 
+VALUE
+rb_ast_tokens(rb_ast_t *ast)
+{
+    return ast->node_buffer->tokens;
+}
+
 void
 rb_ast_set_tokens(rb_ast_t *ast, VALUE tokens)
 {
     RB_OBJ_WRITE(ast, &ast->node_buffer->tokens, tokens);
+}
+
+VALUE
+rb_ast_nterm_tokens(rb_ast_t *ast)
+{
+    return ast->node_buffer->nterm_tokens;
 }
 
 void

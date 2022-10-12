@@ -1122,11 +1122,13 @@ endless_method_name(struct parser_params *p, NODE *defn, const YYLTYPE *loc)
 
 #ifndef RIPPER
 
+#if 0
 static inline VALUE
 code_loc_to_array(const rb_code_location_t *loc)
 {
     return rb_ary_new_from_args(4, INT2NUM(loc->beg_pos.lineno), INT2NUM(loc->beg_pos.column), INT2NUM(loc->end_pos.lineno), INT2NUM(loc->end_pos.column));
 }
+#endif
 
 #endif /* !RIPPER */
 
@@ -1216,14 +1218,6 @@ static int looking_at_eol_p(struct parser_params *p);
 %expect 0
 %define api.pure
 %define parse.error verbose
-%printer {
-#ifndef RIPPER
-    if ($$) {
-       rb_parser_printf(p, "%s", ruby_node_name(nd_type($$)));
-    }
-#else
-#endif
-} <node>
 %printer {
 #ifndef RIPPER
     rb_parser_printf(p, "%"PRIsVALUE, rb_id2str($$));

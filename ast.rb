@@ -121,6 +121,10 @@ module RubyVM::AbstractSyntaxTree
       Primitive.ast_node_last_column
     end
 
+    def cst
+      Primitive.ast_node_cst
+    end
+
     #  call-seq:
     #     node.children -> array
     #
