@@ -9442,9 +9442,7 @@ parser_yylex(struct parser_params *p)
     p->token_seen = TRUE;
   retry:
     last_state = p->lex.state;
-#ifndef RIPPER
-    token_flush(p);
-#endif
+
     switch (c = nextc(p)) {
       case '\0':		/* NUL */
       case '\004':		/* ^D */
@@ -9470,7 +9468,6 @@ parser_yylex(struct parser_params *p)
       case ' ': case '\t': case '\f':
       case '\13': /* '\v' */
 	space_seen = 1;
-#ifdef RIPPER
 	while ((c = nextc(p))) {
 	    switch (c) {
 	      case ' ': case '\t': case '\f': case '\r':
@@ -9483,7 +9480,6 @@ parser_yylex(struct parser_params *p)
       outofloop:
 	pushback(p, c);
 	dispatch_scan_event(p, tSP);
-#endif
 	goto retry;
 
       case '#':		/* it's a comment */
