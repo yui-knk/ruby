@@ -1111,8 +1111,35 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
     rb_bug("dump_node: unknown node: %s", ruby_node_name(nd_type(node)));
 }
 
+
+typedef struct node_buffer_elem_struct {
+    struct node_buffer_elem_struct *next;
+    long len;
+    NODE buf[FLEX_ARY_LEN];
+} node_buffer_elem_t;
+
+typedef struct {
+    long idx, len;
+    node_buffer_elem_t *head;
+    node_buffer_elem_t *last;
+} node_buffer_list_t;
+
+struct node_buffer_struct {
+    node_buffer_list_t unmarkable;
+    node_buffer_list_t markable;
+    struct rb_ast_local_table_link *local_tables;
+    VALUE mark_hash;
+    // - id: sequence number
+    // - token_type: 
+    // - text: text of token
+    // (- location info)
+    // Array, whose entry is array
+    VALUE tokens;
+};
+
+
 VALUE
-rb_parser_dump_tree(const NODE *node, int comment)
+rb_parser_dump_tree(const rb_ast_t *ast, int comment)
 {
     VALUE buf = rb_str_new_cstr(
         "###########################################################\n"
@@ -1120,7 +1147,8 @@ rb_parser_dump_tree(const NODE *node, int comment)
         "## debug and research.  Compatibility is not guaranteed. ##\n"
         "###########################################################\n\n"
     );
-    dump_node(buf, rb_str_new_cstr("# "), comment, node);
+    rb_str_catf(buf, "%"PRIsVALUE"\n\n", ast->node_buffer->tokens);
+    dump_node(buf, rb_str_new_cstr("# "), comment, ast->body.root);
     return buf;
 }
 
@@ -1146,25 +1174,6 @@ rb_node_init(NODE *n, enum node_type type, VALUE a0, VALUE a1, VALUE a2)
     n->token_locs = 0;
 }
 
-typedef struct node_buffer_elem_struct {
-    struct node_buffer_elem_struct *next;
-    long len;
-    NODE buf[FLEX_ARY_LEN];
-} node_buffer_elem_t;
-
-typedef struct {
-    long idx, len;
-    node_buffer_elem_t *head;
-    node_buffer_elem_t *last;
-} node_buffer_list_t;
-
-struct node_buffer_struct {
-    node_buffer_list_t unmarkable;
-    node_buffer_list_t markable;
-    struct rb_ast_local_table_link *local_tables;
-    VALUE mark_hash;
-};
-
 static void
 init_node_buffer_list(node_buffer_list_t * nb, node_buffer_elem_t *head)
 {
@@ -1189,6 +1198,7 @@ rb_node_buffer_new(void)
     init_node_buffer_list(&nb->markable, (node_buffer_elem_t*)((size_t)nb->unmarkable.head + bucket_size));
     nb->local_tables = 0;
     nb->mark_hash = Qnil;
+    nb->tokens = Qnil;
     return nb;
 }
 
@@ -1438,6 +1448,7 @@ void
 rb_ast_mark(rb_ast_t *ast)
 {
     if (ast->node_buffer) rb_gc_mark(ast->node_buffer->mark_hash);
+    if (ast->node_buffer) rb_gc_mark(ast->node_buffer->tokens);
     if (ast->body.compile_option) rb_gc_mark(ast->body.compile_option);
     if (ast->node_buffer) {
         node_buffer_t *nb = ast->node_buffer;
@@ -1496,4 +1507,10 @@ rb_ast_add_mark_object(rb_ast_t *ast, VALUE obj)
         RB_OBJ_WRITE(ast, &ast->node_buffer->mark_hash, rb_ident_hash_new());
     }
     rb_hash_aset(ast->node_buffer->mark_hash, obj, Qtrue);
+}
+
+void
+rb_ast_set_tokens(rb_ast_t *ast, VALUE tokens)
+{
+    RB_OBJ_WRITE(ast, &ast->node_buffer->tokens, tokens);
 }

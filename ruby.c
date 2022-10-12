@@ -2112,7 +2112,7 @@ process_options(int argc, char **argv, ruby_cmdline_options_t *opt)
     }
 
     if (dump & (DUMP_BIT(parsetree)|DUMP_BIT(parsetree_with_comment))) {
-        rb_io_write(rb_stdout, rb_parser_dump_tree(ast->body.root, dump & DUMP_BIT(parsetree_with_comment)));
+        rb_io_write(rb_stdout, rb_parser_dump_tree(ast, dump & DUMP_BIT(parsetree_with_comment)));
         rb_io_flush(rb_stdout);
         dump &= ~DUMP_BIT(parsetree)&~DUMP_BIT(parsetree_with_comment);
         if (!dump) {
