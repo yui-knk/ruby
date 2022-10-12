@@ -9440,6 +9440,9 @@ parser_yylex(struct parser_params *p)
     cmd_state = p->command_start;
     p->command_start = FALSE;
     p->token_seen = TRUE;
+#ifndef RIPPER
+    token_flush(p);
+#endif
   retry:
     last_state = p->lex.state;
 
@@ -9480,6 +9483,9 @@ parser_yylex(struct parser_params *p)
       outofloop:
 	pushback(p, c);
 	dispatch_scan_event(p, tSP);
+#ifndef RIPPER
+	token_flush(p);
+#endif
 	goto retry;
 
       case '#':		/* it's a comment */
