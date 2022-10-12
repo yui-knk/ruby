@@ -137,8 +137,13 @@ typedef struct rb_code_position_struct {
 typedef struct rb_code_location_struct {
     rb_code_position_t beg_pos;
     rb_code_position_t end_pos;
-    VALUE token_ids;
+    //   -1: ignore
+    //  odd: id for nterms
+    // even: id for terms
+    int symbol_id;
 } rb_code_location_t;
+
+#define NODE_SYMBOL_ID_IGNORE -1
 
 static inline rb_code_location_t
 code_loc_gen(const rb_code_location_t *loc1, const rb_code_location_t *loc2)
@@ -221,6 +226,7 @@ typedef struct RNode {
 #define nd_set_last_lineno(n, v) ((n)->nd_loc.end_pos.lineno = (v))
 #define nd_last_loc(n) ((n)->nd_loc.end_pos)
 #define nd_set_last_loc(n, v) (nd_last_loc(n) = (v))
+#define nd_symbol_id(n) ((n)->nd_loc.symbol_id)
 #define nd_node_id(n) ((n)->node_id)
 #define nd_set_node_id(n,id) ((n)->node_id = (id))
 
@@ -426,6 +432,7 @@ void rb_ast_free(rb_ast_t*);
 size_t rb_ast_memsize(const rb_ast_t*);
 void rb_ast_add_mark_object(rb_ast_t*, VALUE);
 void rb_ast_set_tokens(rb_ast_t*, VALUE);
+void rb_ast_set_nterm_tokens(rb_ast_t*, VALUE);
 NODE *rb_ast_newnode(rb_ast_t*, enum node_type type);
 void rb_ast_delete_node(rb_ast_t*, NODE *n);
 rb_ast_id_table_t *rb_ast_new_local_table(rb_ast_t*, int);

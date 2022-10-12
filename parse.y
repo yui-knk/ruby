@@ -100,29 +100,49 @@ RBIMPL_WARNING_POP()
 #define YYFREE(ptr)		rb_parser_free(p, (ptr))
 #define YYFPRINTF		rb_parser_printf
 #define YY_LOCATION_PRINT(File, loc) \
-     rb_parser_printf(p, "%d.%d-%d.%d %"PRIsVALUE"", \
+     rb_parser_printf(p, "%d.%d-%d.%d %d", \
 		      (loc).beg_pos.lineno, (loc).beg_pos.column,\
-		      (loc).end_pos.lineno, (loc).end_pos.column, (loc).token_ids)
+		      (loc).end_pos.lineno, (loc).end_pos.column, (loc).symbol_id)
+#ifndef RIPPER
 #define YYLLOC_DEFAULT(Current, Rhs, N)					\
     do									\
       if (N)								\
 	{								\
 	  VALUE ary = rb_ary_new();					\
+	  int nterm_id = p->nterm_id;					\
+	  p->nterm_id++;						\
 	  (Current).beg_pos = YYRHSLOC(Rhs, 1).beg_pos;			\
 	  (Current).end_pos = YYRHSLOC(Rhs, N).end_pos;			\
+	  /* symbol_id for nterm should be odd number */		\
+	  (Current).symbol_id = nterm_id * 2 + 1;			\
 	  for (int i = 0; i < N; i++) {					\
-	    rb_ary_concat(ary, YYRHSLOC(Rhs, i+1).token_ids);		\
-	    rb_ary_clear(YYRHSLOC(Rhs, i+1).token_ids);			\
+	    ary_append_token(p, ary, &YYRHSLOC(Rhs, i+1));		\
 	  }								\
-	  rb_ary_concat((Current).token_ids, ary);			\
+	  rb_ary_store(p->nterm_tokens, nterm_id, ary);			\
 	}								\
       else								\
         {                                                               \
           (Current).beg_pos = YYRHSLOC(Rhs, 0).end_pos;                 \
           (Current).end_pos = YYRHSLOC(Rhs, 0).end_pos;                 \
-          rb_code_location_initialize_token_ids(p, &(Current));         \
+          (Current).symbol_id = NODE_SYMBOL_ID_IGNORE;                  \
         }                                                               \
     while (0)
+#else
+#define YYLLOC_DEFAULT(Current, Rhs, N)					\
+    do									\
+      if (N)								\
+	{								\
+	  (Current).beg_pos = YYRHSLOC(Rhs, 1).beg_pos;			\
+	  (Current).end_pos = YYRHSLOC(Rhs, N).end_pos;			\
+	}								\
+      else								\
+        {                                                               \
+          (Current).beg_pos = YYRHSLOC(Rhs, 0).end_pos;                 \
+          (Current).end_pos = YYRHSLOC(Rhs, 0).end_pos;                 \
+        }                                                               \
+    while (0)
+#endif
+
 #define YY_(Msgid) \
     (((Msgid)[0] == 'm') && (strcmp((Msgid), "memory exhausted") == 0) ? \
      "nesting too deep" : (Msgid))
@@ -364,9 +384,14 @@ struct parser_params {
     const struct rb_iseq_struct *parent_iseq;
     /* store specific keyword locations to generate dummy end token */
     VALUE end_expect_token_locations;
+    /* id for terms */
     int token_id;
-    /* Array */
+    /* id for nterms */
+    int nterm_id;
+    /* Array for cst tokens */
     VALUE tokens;
+    /* Array for nterm tokens */
+    VALUE nterm_tokens;
 #else
     /* Ripper only */
 
@@ -512,19 +537,8 @@ add_mark_object(struct parser_params *p, VALUE obj)
     }
     return obj;
 }
-#define rb_code_location_initialize_token_ids(p, loc) ((void)0)
 #else
 static NODE* node_newnode_with_locals(struct parser_params *, enum node_type, VALUE, VALUE, const rb_code_location_t*);
-static void
-rb_code_location_initialize_token_ids(struct parser_params *p, YYLTYPE *yylloc)
-{
-    VALUE ary;
-
-    if (yylloc->token_ids) return;
-    ary = rb_ary_new();
-    rb_ast_add_mark_object(p->ast, ary);
-    yylloc->token_ids = ary;
-}
 #endif
 
 static NODE* node_newnode(struct parser_params *, enum node_type, VALUE, VALUE, VALUE, const rb_code_location_t*);
@@ -574,7 +588,8 @@ static NODE *void_stmts(struct parser_params*,NODE*);
 static void reduce_nodes(struct parser_params*,NODE**);
 static void block_dup_check(struct parser_params*,NODE*,NODE*);
 
-static void nd_token_locs_append_token(struct parser_params *p, NODE *node, const YYLTYPE *loc);
+static void nd_token_locs_append_token(struct parser_params *p, NODE *node, YYLTYPE *loc);
+static void ary_append_token(struct parser_params *p, VALUE ary, YYLTYPE *loc);
 
 static NODE *block_append(struct parser_params*,NODE*,NODE*);
 static NODE *list_append(struct parser_params*,NODE*,NODE*);
@@ -669,6 +684,7 @@ static void check_literal_when(struct parser_params *p, NODE *args, const YYLTYP
 #define NEW_RIPPER(a,b,c,loc) (VALUE)NEW_CDECL(a,b,c,loc)
 
 #define nd_token_locs_append_token(p, node, loc) ((void)0)
+#define ary_append_token(p, v, loc) ((void)0)
 
 static inline int ripper_is_node_yylval(VALUE n);
 
@@ -1200,6 +1216,14 @@ static int looking_at_eol_p(struct parser_params *p);
 %expect 0
 %define api.pure
 %define parse.error verbose
+%printer {
+#ifndef RIPPER
+    if ($$) {
+       rb_parser_printf(p, "%s", ruby_node_name(nd_type($$)));
+    }
+#else
+#endif
+} <node>
 %printer {
 #ifndef RIPPER
     rb_parser_printf(p, "%"PRIsVALUE, rb_id2str($$));
@@ -6144,13 +6168,27 @@ ripper_yylval_id(struct parser_params *p, ID x)
 #define has_delayed_token(p) (0)
 
 static void
-nd_token_locs_append_token(struct parser_params *p, NODE *node, const YYLTYPE *loc)
+nd_token_locs_append_token(struct parser_params *p, NODE *node, YYLTYPE *loc)
 {
     if (p->debug)
-	rb_parser_printf(p, "nd_token_locs_append_token: %"PRIsVALUE"\n", loc->token_ids);
+	rb_parser_printf(p, "nd_token_locs_append_token: %d\n %"PRIsVALUE"\n %"PRIsVALUE"\n", loc->symbol_id, p->tokens, p->nterm_tokens);
 
-    rb_ary_concat(nd_token_locs(node), loc->token_ids);
-    rb_ary_clear(loc->token_ids);
+    ary_append_token(p, nd_token_locs(node), loc);
+}
+
+static void
+ary_append_token(struct parser_params *p, VALUE ary, YYLTYPE *loc)
+{
+    if (loc->symbol_id < 0) return;
+
+    if (loc->symbol_id % 2 == 0) {
+	/* term */
+	rb_ary_push(ary, rb_ary_entry(p->tokens, loc->symbol_id / 2));
+    }
+    else {
+	/* nterm */
+	rb_ary_concat(ary, rb_ary_entry(p->nterm_tokens, loc->symbol_id / 2));
+    }
 }
 
 static bool
@@ -6721,15 +6759,18 @@ yycompile0(VALUE arg)
     else {
 	VALUE opt = p->compile_option;
 	VALUE tokens = p->tokens;
+	VALUE nterm_tokens = p->nterm_tokens;
 	NODE *prelude;
 	NODE *body = parser_append_options(p, tree->nd_body);
 	if (!opt) opt = rb_obj_hide(rb_ident_hash_new());
 	if (!tokens) tokens = rb_ary_new();
+	if (!nterm_tokens) nterm_tokens = rb_ary_new();
 	rb_hash_aset(opt, rb_sym_intern_ascii_cstr("coverage_enabled"), cov);
 	prelude = block_append(p, p->eval_tree_begin, body);
 	tree->nd_body = prelude;
         RB_OBJ_WRITE(p->ast, &p->ast->body.compile_option, opt);
         rb_ast_set_tokens(p->ast, tokens);
+        rb_ast_set_nterm_tokens(p->ast, nterm_tokens);
     }
     p->ast->body.root = tree;
     if (!p->ast->body.script_lines) p->ast->body.script_lines = INT2FIX(p->line_count);
@@ -10368,7 +10409,6 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
 
     p->lval = lval;
     lval->val = Qundef;
-    rb_ary_clear(yylloc->token_ids);
     t = parser_yylex(p);
 
     if (p->lex.strterm && (p->lex.strterm->flags & STRTERM_HEREDOC))
@@ -11265,8 +11305,8 @@ rb_parser_set_location_from_strterm_heredoc(struct parser_params *p, rb_strterm_
     int beg_pos = (int)here->offset - here->quote
 	- (rb_strlen_lit("<<-") - !(here->func & STR_FUNC_INDENT));
     int end_pos = (int)here->offset + here->length + here->quote;
-    rb_code_location_initialize_token_ids(p, yylloc);
-    rb_ary_push(yylloc->token_ids, INT2FIX(p->token_id));
+    /* symbol_id for term should be even number */
+    yylloc->symbol_id = p->token_id * 2;
 
     return rb_parser_set_pos(yylloc, sourceline, beg_pos, end_pos);
 }
@@ -11277,8 +11317,7 @@ rb_parser_set_location_of_none(struct parser_params *p, YYLTYPE *yylloc)
     int sourceline = p->ruby_sourceline;
     int beg_pos = (int)(p->lex.ptok - p->lex.pbeg);
     int end_pos = (int)(p->lex.ptok - p->lex.pbeg);
-    rb_code_location_initialize_token_ids(p, yylloc);
-    // No need to push token_id to an initial yyllocs.
+    yylloc->symbol_id = NODE_SYMBOL_ID_IGNORE;
 
     return rb_parser_set_pos(yylloc, sourceline, beg_pos, end_pos);
 }
@@ -11289,8 +11328,8 @@ rb_parser_set_location(struct parser_params *p, YYLTYPE *yylloc)
     int sourceline = p->ruby_sourceline;
     int beg_pos = (int)(p->lex.ptok - p->lex.pbeg);
     int end_pos = (int)(p->lex.pcur - p->lex.pbeg);
-    rb_code_location_initialize_token_ids(p, yylloc);
-    rb_ary_push(yylloc->token_ids, INT2FIX(p->token_id));
+    /* symbol_id for term should be even number */
+    yylloc->symbol_id = p->token_id * 2;
 
     return rb_parser_set_pos(yylloc, sourceline, beg_pos, end_pos);
 }
@@ -13561,7 +13600,9 @@ parser_initialize(struct parser_params *p)
     p->error_buffer = Qfalse;
     p->end_expect_token_locations = Qnil;
     p->token_id = 0;
+    p->nterm_id = 0;
     p->tokens = rb_ary_new();
+    p->nterm_tokens = rb_ary_new();
 #endif
     p->debug_buffer = Qnil;
     p->debug_output = rb_ractor_stdout();
@@ -13592,6 +13633,7 @@ parser_mark(void *ptr)
     rb_gc_mark(p->error_buffer);
     rb_gc_mark(p->end_expect_token_locations);
     rb_gc_mark(p->tokens);
+    rb_gc_mark(p->nterm_tokens);
 #else
     rb_gc_mark(p->delayed.token);
     rb_gc_mark(p->value);
