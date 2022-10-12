@@ -1940,6 +1940,7 @@ process_options(int argc, char **argv, ruby_cmdline_options_t *opt)
     parser = rb_parser_new();
     if (opt->dump & DUMP_BIT(yydebug)) {
         rb_parser_set_yydebug(parser, Qtrue);
+        rb_parser_cst(parser);
     }
     if (opt->dump & DUMP_BIT(error_tolerant)) {
         rb_parser_error_tolerant(parser);

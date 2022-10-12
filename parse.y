@@ -108,17 +108,19 @@ RBIMPL_WARNING_POP()
     do									\
       if (N)								\
 	{								\
-	  VALUE ary = rb_ary_new();					\
-	  int nterm_id = p->nterm_id;					\
-	  p->nterm_id++;						\
 	  (Current).beg_pos = YYRHSLOC(Rhs, 1).beg_pos;			\
 	  (Current).end_pos = YYRHSLOC(Rhs, N).end_pos;			\
-	  /* symbol_id for nterm should be odd number */		\
-	  (Current).symbol_id = nterm_id * 2 + 1;			\
-	  for (int i = 0; i < N; i++) {					\
-	    ary_append_token(p, ary, &YYRHSLOC(Rhs, i+1));		\
+	  if (p->cst) {							\
+	    VALUE ary = rb_ary_new();					\
+	    int nterm_id = p->nterm_id;					\
+	    p->nterm_id++;						\
+	    /* symbol_id for nterm should be odd number */		\
+	    (Current).symbol_id = nterm_id * 2 + 1;			\
+	    for (int i = 0; i < N; i++) {				\
+	      ary_append_token(p, ary, &YYRHSLOC(Rhs, i+1));		\
+	    }								\
+	    rb_ary_store(p->nterm_tokens, nterm_id, ary);		\
 	  }								\
-	  rb_ary_store(p->nterm_tokens, nterm_id, ary);			\
 	}								\
       else								\
         {                                                               \
@@ -376,6 +378,7 @@ struct parser_params {
     unsigned int do_split: 1;
     unsigned int keep_script_lines: 1;
     unsigned int error_tolerant: 1;
+    unsigned int cst: 1;
 
     NODE *eval_tree_begin;
     NODE *eval_tree;
@@ -6164,6 +6167,7 @@ ripper_yylval_id(struct parser_params *p, ID x)
 static void
 nd_token_locs_append_token(struct parser_params *p, NODE *node, YYLTYPE *loc)
 {
+    if (!p->cst) return;
     if (p->debug)
 	rb_parser_printf(p, "nd_token_locs_append_token: %d\n %"PRIsVALUE"\n %"PRIsVALUE"\n", loc->symbol_id, p->tokens, p->nterm_tokens);
 
@@ -6173,6 +6177,7 @@ nd_token_locs_append_token(struct parser_params *p, NODE *node, YYLTYPE *loc)
 static void
 ary_append_token(struct parser_params *p, VALUE ary, YYLTYPE *loc)
 {
+    if (!p->cst) return;
     if (loc->symbol_id < 0) return;
 
     if (loc->symbol_id % 2 == 0) {
@@ -6198,6 +6203,7 @@ parser_tokens_append(struct parser_params *p, enum yytokentype t)
     VALUE str, ary;
     int token_id;
 
+    if (!p->cst) return;
     if (!parser_has_token(p)) return;
 
     str = rb_str_new(p->lex.ptok, p->lex.pcur - p->lex.ptok);
@@ -6757,14 +6763,14 @@ yycompile0(VALUE arg)
 	NODE *prelude;
 	NODE *body = parser_append_options(p, tree->nd_body);
 	if (!opt) opt = rb_obj_hide(rb_ident_hash_new());
-	if (!tokens) tokens = rb_ary_new();
-	if (!nterm_tokens) nterm_tokens = rb_ary_new();
 	rb_hash_aset(opt, rb_sym_intern_ascii_cstr("coverage_enabled"), cov);
 	prelude = block_append(p, p->eval_tree_begin, body);
 	tree->nd_body = prelude;
         RB_OBJ_WRITE(p->ast, &p->ast->body.compile_option, opt);
-        rb_ast_set_tokens(p->ast, tokens);
-        rb_ast_set_nterm_tokens(p->ast, nterm_tokens);
+	if (p->cst) {
+	    rb_ast_set_tokens(p->ast, tokens);
+	    rb_ast_set_nterm_tokens(p->ast, nterm_tokens);
+	}
     }
     p->ast->body.root = tree;
     if (!p->ast->body.script_lines) p->ast->body.script_lines = INT2FIX(p->line_count);
@@ -13595,8 +13601,8 @@ parser_initialize(struct parser_params *p)
     p->end_expect_token_locations = Qnil;
     p->token_id = 0;
     p->nterm_id = 0;
-    p->tokens = rb_ary_new();
-    p->nterm_tokens = rb_ary_new();
+    p->tokens = Qnil;
+    p->nterm_tokens = Qnil;
 #endif
     p->debug_buffer = Qnil;
     p->debug_output = rb_ractor_stdout();
@@ -13741,6 +13747,17 @@ rb_parser_error_tolerant(VALUE vparser)
     TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
     p->error_tolerant = 1;
     p->end_expect_token_locations = rb_ary_new();
+}
+
+void
+rb_parser_cst(VALUE vparser)
+{
+    struct parser_params *p;
+
+    TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
+    p->cst = 1;
+    p->tokens = rb_ary_new();
+    p->nterm_tokens = rb_ary_new();
 }
 
 #endif

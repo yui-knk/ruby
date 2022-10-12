@@ -64,8 +64,8 @@ ast_new_internal(rb_ast_t *ast, const NODE *node)
     return obj;
 }
 
-static VALUE rb_ast_parse_str(VALUE str, VALUE keep_script_lines, VALUE error_tolerant);
-static VALUE rb_ast_parse_file(VALUE path, VALUE keep_script_lines, VALUE error_tolerant);
+static VALUE rb_ast_parse_str(VALUE str, VALUE keep_script_lines, VALUE error_tolerant, VALUE cst);
+static VALUE rb_ast_parse_file(VALUE path, VALUE keep_script_lines, VALUE error_tolerant, VALUE cst);
 
 static VALUE
 ast_parse_new(void)
@@ -85,13 +85,13 @@ ast_parse_done(rb_ast_t *ast)
 }
 
 static VALUE
-ast_s_parse(rb_execution_context_t *ec, VALUE module, VALUE str, VALUE keep_script_lines, VALUE error_tolerant)
+ast_s_parse(rb_execution_context_t *ec, VALUE module, VALUE str, VALUE keep_script_lines, VALUE error_tolerant, VALUE cst)
 {
-    return rb_ast_parse_str(str, keep_script_lines, error_tolerant);
+    return rb_ast_parse_str(str, keep_script_lines, error_tolerant, cst);
 }
 
 static VALUE
-rb_ast_parse_str(VALUE str, VALUE keep_script_lines, VALUE error_tolerant)
+rb_ast_parse_str(VALUE str, VALUE keep_script_lines, VALUE error_tolerant, VALUE cst)
 {
     rb_ast_t *ast = 0;
 
@@ -99,18 +99,19 @@ rb_ast_parse_str(VALUE str, VALUE keep_script_lines, VALUE error_tolerant)
     VALUE vparser = ast_parse_new();
     if (RTEST(keep_script_lines)) rb_parser_keep_script_lines(vparser);
     if (RTEST(error_tolerant)) rb_parser_error_tolerant(vparser);
+    if (RTEST(cst)) rb_parser_cst(vparser);
     ast = rb_parser_compile_string_path(vparser, Qnil, str, 1);
     return ast_parse_done(ast);
 }
 
 static VALUE
-ast_s_parse_file(rb_execution_context_t *ec, VALUE module, VALUE path, VALUE keep_script_lines, VALUE error_tolerant)
+ast_s_parse_file(rb_execution_context_t *ec, VALUE module, VALUE path, VALUE keep_script_lines, VALUE error_tolerant, VALUE cst)
 {
-    return rb_ast_parse_file(path, keep_script_lines, error_tolerant);
+    return rb_ast_parse_file(path, keep_script_lines, error_tolerant, cst);
 }
 
 static VALUE
-rb_ast_parse_file(VALUE path, VALUE keep_script_lines, VALUE error_tolerant)
+rb_ast_parse_file(VALUE path, VALUE keep_script_lines, VALUE error_tolerant, VALUE cst)
 {
     VALUE f;
     rb_ast_t *ast = 0;
@@ -122,6 +123,7 @@ rb_ast_parse_file(VALUE path, VALUE keep_script_lines, VALUE error_tolerant)
     VALUE vparser = ast_parse_new();
     if (RTEST(keep_script_lines)) rb_parser_keep_script_lines(vparser);
     if (RTEST(error_tolerant))  rb_parser_error_tolerant(vparser);
+    if (RTEST(cst))  rb_parser_cst(vparser);
     ast = rb_parser_compile_file_path(vparser, Qnil, f, 1);
     rb_io_close(f);
     return ast_parse_done(ast);
@@ -141,7 +143,7 @@ lex_array(VALUE array, int index)
 }
 
 static VALUE
-rb_ast_parse_array(VALUE array, VALUE keep_script_lines, VALUE error_tolerant)
+rb_ast_parse_array(VALUE array, VALUE keep_script_lines, VALUE error_tolerant, VALUE cst)
 {
     rb_ast_t *ast = 0;
 
@@ -149,6 +151,7 @@ rb_ast_parse_array(VALUE array, VALUE keep_script_lines, VALUE error_tolerant)
     VALUE vparser = ast_parse_new();
     if (RTEST(keep_script_lines)) rb_parser_keep_script_lines(vparser);
     if (RTEST(error_tolerant)) rb_parser_error_tolerant(vparser);
+    if (RTEST(cst)) rb_parser_cst(vparser);
     ast = rb_parser_compile_generic(vparser, lex_array, Qnil, array, 1);
     return ast_parse_done(ast);
 }
@@ -196,7 +199,7 @@ script_lines(VALUE path)
 }
 
 static VALUE
-ast_s_of(rb_execution_context_t *ec, VALUE module, VALUE body, VALUE keep_script_lines, VALUE error_tolerant)
+ast_s_of(rb_execution_context_t *ec, VALUE module, VALUE body, VALUE keep_script_lines, VALUE error_tolerant, VALUE cst)
 {
     VALUE node, lines = Qnil;
     const rb_iseq_t *iseq;
@@ -235,13 +238,13 @@ ast_s_of(rb_execution_context_t *ec, VALUE module, VALUE body, VALUE keep_script
     }
 
     if (!NIL_P(lines) || !NIL_P(lines = script_lines(path))) {
-        node = rb_ast_parse_array(lines, keep_script_lines, error_tolerant);
+        node = rb_ast_parse_array(lines, keep_script_lines, error_tolerant, cst);
     }
     else if (e_option) {
-        node = rb_ast_parse_str(rb_e_script, keep_script_lines, error_tolerant);
+        node = rb_ast_parse_str(rb_e_script, keep_script_lines, error_tolerant, cst);
     }
     else {
-        node = rb_ast_parse_file(path, keep_script_lines, error_tolerant);
+        node = rb_ast_parse_file(path, keep_script_lines, error_tolerant, cst);
     }
 
     return node_find(node, node_id);
@@ -706,10 +709,14 @@ ast_node_last_column(rb_execution_context_t *ec, VALUE self)
 static VALUE
 ast_node_cst(rb_execution_context_t *ec, VALUE self)
 {
+    int id;
     struct ASTNodeData *data;
     TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, data);
 
-    int id = nd_symbol_id(data->node);
+    /* cst option is not passed */
+    if (NIL_P(rb_ast_tokens(data->ast))) return Qnil;
+
+    id = nd_symbol_id(data->node);
 
     if (id % 2 == 0) {
         /* term */
