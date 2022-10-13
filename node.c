@@ -28,12 +28,11 @@
 #define A_LONG(val) rb_str_catf(buf, "%ld", (val))
 #define A_LIT(lit) AR(rb_dump_literal(lit))
 #define A_NODE_HEADER(node, term) \
-    rb_str_catf(buf, "@ %s (id: %d, line: %d, location: (%d,%d)-(%d,%d), sym: %d, locs1: %"PRIsVALUE")%s"term, \
+    rb_str_catf(buf, "@ %s (id: %d, line: %d, location: (%d,%d)-(%d,%d), sym: %d)%s"term, \
                 ruby_node_name(nd_type(node)), nd_node_id(node), nd_line(node), \
                 nd_first_lineno(node), nd_first_column(node), \
                 nd_last_lineno(node), nd_last_column(node), \
                 nd_symbol_id(node), \
-                (nd_token_locs(node) ? nd_token_locs(node) : Qnil), \
                 (node->flags & NODE_FL_NEWLINE ? "*" : ""))
 #define A_FIELD_HEADER(len, name, term) \
     rb_str_catf(buf, "+- %.*s:"term, (len), (name))
@@ -1174,7 +1173,6 @@ rb_node_init(NODE *n, enum node_type type, VALUE a0, VALUE a1, VALUE a2)
     n->nd_loc.end_pos.lineno = 0;
     n->nd_loc.end_pos.column = 0;
     n->node_id = -1;
-    n->token_locs = 0;
 }
 
 static void
@@ -1366,8 +1364,6 @@ iterate_node_values(node_buffer_list_t *nb, node_itr_t * func, void *ctx)
 static void
 mark_ast_value(void *ctx, NODE * node)
 {
-    rb_gc_mark_movable(nd_token_locs(node));
-
     switch (nd_type(node)) {
       case NODE_ARGS:
         {
@@ -1395,16 +1391,8 @@ mark_ast_value(void *ctx, NODE * node)
 }
 
 static void
-mark_ast_value_2(void *ctx, NODE * node)
-{
-    rb_gc_mark_movable(nd_token_locs(node));
-}
-
-static void
 update_ast_value(void *ctx, NODE * node)
 {
-    nd_token_locs(node) = rb_gc_location(nd_token_locs(node));
-
     switch (nd_type(node)) {
       case NODE_ARGS:
         {
@@ -1431,12 +1419,6 @@ update_ast_value(void *ctx, NODE * node)
     }
 }
 
-static void
-update_ast_value_2(void *ctx, NODE * node)
-{
-    nd_token_locs(node) = rb_gc_location(nd_token_locs(node));
-}
-
 void
 rb_ast_update_references(rb_ast_t *ast)
 {
@@ -1444,7 +1426,6 @@ rb_ast_update_references(rb_ast_t *ast)
         node_buffer_t *nb = ast->node_buffer;
 
         iterate_node_values(&nb->markable, update_ast_value, NULL);
-        iterate_node_values(&nb->unmarkable, update_ast_value_2, NULL);
     }
 }
 
@@ -1461,7 +1442,6 @@ rb_ast_mark(rb_ast_t *ast)
         node_buffer_t *nb = ast->node_buffer;
 
         iterate_node_values(&nb->markable, mark_ast_value, NULL);
-        iterate_node_values(&nb->unmarkable, mark_ast_value_2, NULL);
     }
     if (ast->body.script_lines) rb_gc_mark(ast->body.script_lines);
 }
