@@ -8131,7 +8131,7 @@ dispatch_heredoc_end(struct parser_params *p)
 }
 
 #else
-#define dispatch_heredoc_end(p) ((void)0)
+#define dispatch_heredoc_end(p) parser_tokens_append(p, tHEREDOC_END, __LINE__)
 #endif
 
 static enum yytokentype
@@ -8192,6 +8192,7 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
 	p->heredoc_line_indent = 0;
     }
     else if (whole_match_p(p, eos, len, indent)) {
+	p->lex.pcur = p->lex.pend;
 	dispatch_heredoc_end(p);
       restore:
 	heredoc_restore(p, &p->lex.strterm->u.heredoc);
