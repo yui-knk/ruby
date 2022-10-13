@@ -125,6 +125,10 @@ module RubyVM::AbstractSyntaxTree
       Primitive.ast_node_cst
     end
 
+    def tokens
+      Primitive.ast_node_tokens
+    end
+
     #  call-seq:
     #     node.children -> array
     #

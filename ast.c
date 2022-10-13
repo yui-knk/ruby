@@ -731,6 +731,15 @@ ast_node_cst(rb_execution_context_t *ec, VALUE self)
 }
 
 static VALUE
+ast_node_tokens(rb_execution_context_t *ec, VALUE self)
+{
+    struct ASTNodeData *data;
+    TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, data);
+
+    return rb_ast_tokens(data->ast);
+}
+
+static VALUE
 ast_node_inspect(rb_execution_context_t *ec, VALUE self)
 {
     VALUE str;

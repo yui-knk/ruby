@@ -6094,7 +6094,7 @@ parser_tokens_append(struct parser_params *p, enum yytokentype t, int line)
     rb_ary_push(p->tokens, ary);
 
     if (p->debug) {
-	rb_parser_printf(p, "Append token to tokens :%d %"PRIsVALUE"\n", line, ary);
+	rb_parser_printf(p, "Append tokens (line: %d) %"PRIsVALUE"\n", line, ary);
     }
 }
 #else
@@ -7717,7 +7717,6 @@ parser_string_term(struct parser_params *p, int func)
     p->lex.strterm = 0;
     if (func & STR_FUNC_REGEXP) {
 	set_yylval_num(regx_options(p));
-	dispatch_scan_event(p, tREGEXP_END);
 	SET_LEX_STATE(EXPR_END);
 	return tREGEXP_END;
     }
@@ -9676,7 +9675,10 @@ parser_yylex(struct parser_params *p)
 		break;
 	      case '#':
 		pushback(p, c);
-		if (space_seen) dispatch_scan_event(p, tSP);
+		if (space_seen) {
+		    dispatch_scan_event(p, tSP);
+		    token_flush(p);
+		}
 		goto retry;
 	      case '&':
 	      case '.': {

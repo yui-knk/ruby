@@ -132,6 +132,14 @@ class TestAst < Test::Unit::TestCase
     end
   end
 
+  Dir.glob("test/**/*.rb", base: SRCDIR).each do |path|
+    define_method("test_cst:#{path}") do
+      cst = RubyVM::AbstractSyntaxTree.parse_file("#{SRCDIR}/#{path}", cst: true)
+      source = File.read("#{SRCDIR}/#{path}")
+      assert_equal(source, cst.tokens.map { _1[2]}.join)
+    end
+  end
+
   private def parse(src)
     EnvUtil.suppress_warning {
       RubyVM::AbstractSyntaxTree.parse(src)
