@@ -9559,6 +9559,16 @@ parse_ident(struct parser_params *p, int c, int cmd_state)
     return result;
 }
 
+static void
+warn_cr(struct parser_params *p)
+{
+    if (!p->cr_seen) {
+	p->cr_seen = TRUE;
+	/* carried over with p->lex.nextline for nextc() */
+	rb_warn0("encountered \\r in middle of line, treated as a mere space");
+    }
+}
+
 static enum yytokentype
 parser_yylex(struct parser_params *p)
 {
@@ -9603,18 +9613,17 @@ parser_yylex(struct parser_params *p)
 
 	/* white spaces */
       case '\r':
-	if (!p->cr_seen) {
-	    p->cr_seen = TRUE;
-	    /* carried over with p->lex.nextline for nextc() */
-	    rb_warn0("encountered \\r in middle of line, treated as a mere space");
-	}
+	warn_cr(p);
 	/* fall through */
       case ' ': case '\t': case '\f':
       case '\13': /* '\v' */
 	space_seen = 1;
 	while ((c = nextc(p))) {
 	    switch (c) {
-	      case ' ': case '\t': case '\f': case '\r':
+	      case '\r':
+		warn_cr(p);
+		/* fall through */
+	      case ' ': case '\t': case '\f':
 	      case '\13': /* '\v' */
 		break;
 	      default:
