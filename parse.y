@@ -100,7 +100,7 @@ RBIMPL_WARNING_POP()
 #define YYFREE(ptr)		rb_parser_free(p, (ptr))
 #define YYFPRINTF		rb_parser_printf
 #define YY_LOCATION_PRINT(File, loc) \
-     rb_parser_printf(p, "%d.%d-%d.%d %d", \
+     rb_parser_printf(p, "%d.%d-%d.%d (%d)", \
 		      (loc).beg_pos.lineno, (loc).beg_pos.column,\
 		      (loc).end_pos.lineno, (loc).end_pos.column, (loc).symbol_id)
 #ifndef RIPPER
@@ -117,7 +117,7 @@ RBIMPL_WARNING_POP()
 	    /* symbol_id for nterm should be odd number */		\
 	    (Current).symbol_id = nterm_id * 2 + 1;			\
 	    for (int i = 0; i < N; i++) {				\
-	      ary_append_token(p, ary, &YYRHSLOC(Rhs, i+1));		\
+	      rb_parser_append_token(p, ary, &YYRHSLOC(Rhs, i+1));	\
 	    }								\
 	    rb_ary_store(p->nterm_tokens, nterm_id, ary);		\
 	  }								\
@@ -591,7 +591,7 @@ static NODE *void_stmts(struct parser_params*,NODE*);
 static void reduce_nodes(struct parser_params*,NODE**);
 static void block_dup_check(struct parser_params*,NODE*,NODE*);
 
-static void ary_append_token(struct parser_params *p, VALUE ary, YYLTYPE *loc);
+static void rb_parser_append_token(struct parser_params *p, VALUE ary, YYLTYPE *loc);
 
 static NODE *block_append(struct parser_params*,NODE*,NODE*);
 static NODE *list_append(struct parser_params*,NODE*,NODE*);
@@ -685,7 +685,7 @@ static void check_literal_when(struct parser_params *p, NODE *args, const YYLTYP
 #define NODE_RIPPER NODE_CDECL
 #define NEW_RIPPER(a,b,c,loc) (VALUE)NEW_CDECL(a,b,c,loc)
 
-#define ary_append_token(p, v, loc) ((void)0)
+#define rb_parser_append_token(p, v, loc) ((void)0)
 
 static inline int ripper_is_node_yylval(VALUE n);
 
@@ -1133,8 +1133,6 @@ code_loc_to_array(const rb_code_location_t *loc)
 
 #endif /* !RIPPER */
 
-#define loc_has_length_p(loc) (!((loc->beg_pos.lineno == loc->end_pos.lineno) && (loc->beg_pos.column == loc->end_pos.column)))
-
 #ifndef RIPPER
 # define Qnone 0
 # define Qnull 0
@@ -1253,6 +1251,7 @@ static int looking_at_eol_p(struct parser_params *p);
 %initial-action
 {
     RUBY_SET_YYLLOC_OF_NONE(@$);
+    @$.symbol_id = NODE_SYMBOL_ID_IGNORE;
 };
 
 %union {
@@ -6047,12 +6046,12 @@ ripper_yylval_id(struct parser_params *p, ID x)
 
 #ifndef RIPPER
 #define literal_flush(p, ptr) ((p)->lex.ptok = (ptr))
-#define dispatch_scan_event(p, t) parser_tokens_append(p, t)
+#define dispatch_scan_event(p, t) parser_tokens_append(p, t, __LINE__)
 #define dispatch_delayed_token(p, t) ((void)0)
 #define has_delayed_token(p) (0)
 
 static void
-ary_append_token(struct parser_params *p, VALUE ary, YYLTYPE *loc)
+rb_parser_append_token(struct parser_params *p, VALUE ary, YYLTYPE *loc)
 {
     if (!p->cst) return;
     if (loc->symbol_id < 0) return;
@@ -6075,7 +6074,7 @@ parser_has_token(struct parser_params *p)
 }
 
 static void
-parser_tokens_append(struct parser_params *p, enum yytokentype t)
+parser_tokens_append(struct parser_params *p, enum yytokentype t, int line)
 {
     VALUE str, ary;
     int token_id;
@@ -6084,16 +6083,18 @@ parser_tokens_append(struct parser_params *p, enum yytokentype t)
     if (!parser_has_token(p)) return;
 
     str = rb_str_new(p->lex.ptok, p->lex.pcur - p->lex.ptok);
-    ary = rb_ary_new2(3);
+    ary = rb_ary_new2(5);
     token_id = p->token_id;
     p->token_id++;
     rb_ary_push(ary, INT2FIX(token_id));
     rb_ary_push(ary, INT2FIX(t));
     rb_ary_push(ary, str);
+    rb_ary_push(ary, INT2FIX(p->ruby_sourceline));
+    rb_ary_push(ary, INT2FIX(token_column));
     rb_ary_push(p->tokens, ary);
 
     if (p->debug) {
-	// rb_parser_printf(p, "Append tokens to tokens_buffer. %"PRIsVALUE"\n", p->tokens_buffer);
+	rb_parser_printf(p, "Append token to tokens :%d %"PRIsVALUE"\n", line, ary);
     }
 }
 #else
@@ -9664,6 +9665,9 @@ parser_yylex(struct parser_params *p)
 	    }
 	    goto retry;
 	}
+#ifndef RIPPER
+	if (!fallthru) parser_tokens_append(p, '\n', __LINE__);
+#endif
 	while (1) {
 	    switch (c = nextc(p)) {
 	      case ' ': case '\t': case '\f': case '\r':
@@ -10296,6 +10300,13 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
 
     p->lval = lval;
     lval->val = Qundef;
+#ifndef RIPPER
+    /*
+     * Need to set `symbol_id' before `dispatch_scan_event' is called.
+     * symbol_id for term should be even number
+     */
+    yylloc->symbol_id = p->token_id * 2;
+#endif
     t = parser_yylex(p);
 
     if (p->lex.strterm && (p->lex.strterm->flags & STRTERM_HEREDOC))
@@ -11188,8 +11199,6 @@ rb_parser_set_location_from_strterm_heredoc(struct parser_params *p, rb_strterm_
     int beg_pos = (int)here->offset - here->quote
 	- (rb_strlen_lit("<<-") - !(here->func & STR_FUNC_INDENT));
     int end_pos = (int)here->offset + here->length + here->quote;
-    /* symbol_id for term should be even number */
-    yylloc->symbol_id = p->token_id * 2;
 
     return rb_parser_set_pos(yylloc, sourceline, beg_pos, end_pos);
 }
@@ -11200,7 +11209,6 @@ rb_parser_set_location_of_none(struct parser_params *p, YYLTYPE *yylloc)
     int sourceline = p->ruby_sourceline;
     int beg_pos = (int)(p->lex.ptok - p->lex.pbeg);
     int end_pos = (int)(p->lex.ptok - p->lex.pbeg);
-    yylloc->symbol_id = NODE_SYMBOL_ID_IGNORE;
 
     return rb_parser_set_pos(yylloc, sourceline, beg_pos, end_pos);
 }
@@ -11211,8 +11219,6 @@ rb_parser_set_location(struct parser_params *p, YYLTYPE *yylloc)
     int sourceline = p->ruby_sourceline;
     int beg_pos = (int)(p->lex.ptok - p->lex.pbeg);
     int end_pos = (int)(p->lex.pcur - p->lex.pbeg);
-    /* symbol_id for term should be even number */
-    yylloc->symbol_id = p->token_id * 2;
 
     return rb_parser_set_pos(yylloc, sourceline, beg_pos, end_pos);
 }
