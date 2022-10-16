@@ -5979,7 +5979,11 @@ trailer		: opt_nl
 		;
 
 term		: ';' {yyerrok;token_flush(p);}
-		| '\n' {token_flush(p);}
+		| '\n'
+		    {
+			@$.end_pos = @$.beg_pos;
+			token_flush(p);
+		    }
 		;
 
 terms		: term
