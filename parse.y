@@ -898,29 +898,6 @@ size_t rb_yytnamerr(struct parser_params *p, char *yyres, const char *yystr);
     tTOKEN_ATTRSET_BEGIN<(tok)&&(tok)<tTOKEN_ATTRSET_END ? TOKEN2ATTRSETID(tok) : \
     ((tok) / ((tok)<tPRESERVED_ID_END && ((tok)>=128 || rb_ispunct(tok)))))
 
-#ifndef RIPPER
-/* Copy from "eventids2.c" */
-
-enum {
-    tIGNORED_NL  = tLAST_TOKEN + 1,
-# define tIGNORED_NL ((enum yytokentype)tIGNORED_NL)
-    tCOMMENT,
-# define tCOMMENT ((enum yytokentype)tCOMMENT)
-    tEMBDOC_BEG,
-# define tEMBDOC_BEG ((enum yytokentype)tEMBDOC_BEG)
-    tEMBDOC,
-# define tEMBDOC ((enum yytokentype)tEMBDOC)
-    tEMBDOC_END,
-# define tEMBDOC_END ((enum yytokentype)tEMBDOC_END)
-    tHEREDOC_BEG,
-# define tHEREDOC_BEG ((enum yytokentype)tHEREDOC_BEG)
-    tHEREDOC_END,
-# define tHEREDOC_END ((enum yytokentype)tHEREDOC_END)
-    k__END__,
-# define k__END__ ((enum yytokentype)k__END__)
-};
-#endif
-
 /****** Ripper *******/
 
 #ifdef RIPPER
@@ -1437,6 +1414,9 @@ static int looking_at_eol_p(struct parser_params *p);
 %token tSTRING_END	"terminator"
 %token tSTRING_DEND	"'}'"
 %token tSTRING_DBEG tSTRING_DVAR tLAMBEG tLABEL_END
+
+%token tIGNORED_NL tCOMMENT tEMBDOC_BEG tEMBDOC tEMBDOC_END
+%token tHEREDOC_BEG tHEREDOC_END k__END__
 
 /*
  *	precedence table
