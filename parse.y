@@ -6298,7 +6298,6 @@ parser_show_error_line(struct parser_params *p, const YYLTYPE *yylloc)
 {
     VALUE str;
     int lineno = p->ruby_sourceline;
-    printf("%d %d.%d-%d.%d\n", p->ruby_sourceline, yylloc->beg_pos.lineno, yylloc->beg_pos.column, yylloc->end_pos.lineno, yylloc->end_pos.column);
     if (!yylloc) {
 	return;
     }
@@ -9650,6 +9649,8 @@ parser_yylex(struct parser_params *p)
 	    return tDUMNY_END;
 	}
 #endif
+	/* Set location for end-of-input because dispatch_scan_event is not called. */
+	RUBY_SET_YYLLOC(*p->yylloc);
 	return 0;
 
 	/* white spaces */
@@ -10334,11 +10335,10 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
     lval->val = Qundef;
     p->yylloc = yylloc;
     /*
-     * Need to set `symbol_id' before `dispatch_scan_event' is called.
+     * Need to set `symbol_id' before `parser_append_tokens' is called.
      * symbol_id for term should be even number
      */
     set_yylloc_symbol_id(p, yylloc);
-
     t = parser_yylex(p);
 
     if (has_delayed_token(p))
