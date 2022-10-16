@@ -1794,6 +1794,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		| defn_head f_opt_paren_args '=' command
 		    {
 			endless_method_name(p, $<node>1, &@1);
+			restore_defun(p, $<node>1->nd_defn);
 		    /*%%%*/
 			$$ = set_defun_body(p, $1, $2, $4, &@$);
 		    /*% %*/
@@ -1871,26 +1872,18 @@ expr		: command_call
 		| expr keyword_and expr
 		    {
 			$$ = logop(p, idAND, $1, $3, &@2, &@$);
-		    /*%%%*/
-		    /*% %*/
 		    }
 		| expr keyword_or expr
 		    {
 			$$ = logop(p, idOR, $1, $3, &@2, &@$);
-		    /*%%%*/
-		    /*% %*/
 		    }
 		| keyword_not opt_nl expr
 		    {
 			$$ = call_uni_op(p, method_cond(p, $3, &@3), METHOD_NOT, &@1, &@$);
-		    /*%%%*/
-		    /*% %*/
 		    }
 		| '!' command_call
 		    {
 			$$ = call_uni_op(p, method_cond(p, $2, &@2), '!', &@1, &@$);
-		    /*%%%*/
-		    /*% %*/
 		    }
 		| arg tASSOC
 		    {
@@ -2000,8 +1993,6 @@ expr_value	: expr
 expr_value_do	: {COND_PUSH(1);} expr_value do {COND_POP();}
 		    {
 			$$ = $2;
-		    /*%%%*/
-		    /*% %*/
 		    }
 		;
 
@@ -2993,7 +2984,6 @@ command_args	:   {
 			CMDARG_POP();
 			if (lookahead) CMDARG_PUSH(0);
 			$$ = $2;
-			@$ = @2;
 		    }
 		;
 
