@@ -114,30 +114,30 @@ class TestAst < Test::Unit::TestCase
 
   SRCDIR = File.expand_path("../../..", __FILE__)
 
-  # Dir.glob("test/**/*.rb", base: SRCDIR).each do |path|
-  #   define_method("test_ranges:#{path}") do
-  #     helper = Helper.new("#{SRCDIR}/#{path}")
-  #     helper.validate_range
+  Dir.glob("test/**/*.rb", base: SRCDIR).each do |path|
+    define_method("test_ranges:#{path}") do
+      helper = Helper.new("#{SRCDIR}/#{path}")
+      helper.validate_range
 
-  #     assert_equal([], helper.errors)
-  #   end
-  # end
+      assert_equal([], helper.errors)
+    end
+  end
 
-  # Dir.glob("test/**/*.rb", base: SRCDIR).each do |path|
-  #   define_method("test_not_cared:#{path}") do
-  #     helper = Helper.new("#{SRCDIR}/#{path}")
-  #     helper.validate_not_cared
+  Dir.glob("test/**/*.rb", base: SRCDIR).each do |path|
+    define_method("test_not_cared:#{path}") do
+      helper = Helper.new("#{SRCDIR}/#{path}")
+      helper.validate_not_cared
 
-  #     assert_equal([], helper.errors)
-  #   end
-  # end
+      assert_equal([], helper.errors)
+    end
+  end
 
   Dir.glob("test/**/*.rb", base: SRCDIR).each do |path|
     define_method("test_cst:#{path}") do
       cst = RubyVM::AbstractSyntaxTree.parse_file("#{SRCDIR}/#{path}", cst: true)
       tokens = cst.tokens.sort_by {[_1[3], _1[4]]}.map { _1[2]}.join.bytes
       source = File.read("#{SRCDIR}/#{path}").bytes
-      assert_equal(source, tokens, "test_cst:#{path} is failed")
+      assert_equal(source, tokens)
     end
   end
 
