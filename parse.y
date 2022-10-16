@@ -1124,7 +1124,8 @@ endless_method_name(struct parser_params *p, NODE *defn, const YYLTYPE *loc)
     token_info_drop(p, "def", loc->beg_pos);
 }
 
-#define debug_token(p, name) if (p->debug) printf(#name ". %d, %ld|%ld|%ld\n", p->ruby_sourceline, p->lex.ptok - p->lex.pbeg, p->lex.pcur - p->lex.ptok, p->lex.pend - p->lex.pcur)
+#define debug_token(p, name)            if (p->debug) printf(#name ". %d: %ld|%ld|%ld\n", p->ruby_sourceline, p->lex.ptok - p->lex.pbeg, p->lex.pcur - p->lex.ptok, p->lex.pend - p->lex.pcur)
+#define debug_token_line(p, name, line) if (p->debug) printf(#name ". (line: %d), %d: %ld|%ld|%ld\n", line, p->ruby_sourceline, p->lex.ptok - p->lex.pbeg, p->lex.pcur - p->lex.ptok, p->lex.pend - p->lex.pcur)
 
 #ifndef RIPPER
 
@@ -6042,7 +6043,7 @@ ripper_yylval_id(struct parser_params *p, ID x)
 
 #ifndef RIPPER
 #define literal_flush(p, ptr) ((p)->lex.ptok = (ptr))
-#define dispatch_scan_event(p, t) parser_append_tokens(p, t, __LINE__)
+#define dispatch_scan_event(p, t) parser_dispatch_scan_event(p, t, __LINE__)
 #define set_yylloc_symbol_id(p, yylloc) (yylloc->symbol_id = p->token_id * 2)
 
 static void
@@ -6064,12 +6065,12 @@ rb_parser_append_symbol(struct parser_params *p, VALUE ary, YYLTYPE *loc)
 static bool
 parser_has_token(struct parser_params *p)
 {
-    if (p->lex.pcur < p->lex.ptok) rb_bug("lex.pcur < lex.ptok. %d", p->ruby_sourceline);
+    if (p->lex.pcur < p->lex.ptok) rb_bug("lex.pcur < lex.ptok. (line: %d) %ld|%ld|%ld", p->ruby_sourceline, p->lex.ptok - p->lex.pbeg, p->lex.pcur - p->lex.ptok, p->lex.pend - p->lex.pcur);
     return p->lex.pcur > p->lex.ptok;
 }
 
 static void
-parser_append_tokens_0(struct parser_params *p, VALUE str, enum yytokentype t, int line)
+parser_append_tokens(struct parser_params *p, VALUE str, enum yytokentype t, int line)
 {
     VALUE ary;
     int token_id;
@@ -6090,13 +6091,13 @@ parser_append_tokens_0(struct parser_params *p, VALUE str, enum yytokentype t, i
 }
 
 static void
-parser_append_tokens(struct parser_params *p, enum yytokentype t, int line)
+parser_dispatch_scan_event(struct parser_params *p, enum yytokentype t, int line)
 {
-
+debug_token_line(p, "parser_dispatch_scan_event", line);
     if (!parser_has_token(p)) return;
     if (p->cst) {
 	VALUE str = rb_str_new(p->lex.ptok, p->lex.pcur - p->lex.ptok);
-	parser_append_tokens_0(p, str, t, line);
+	parser_append_tokens(p, str, t, line);
     }
 
     RUBY_SET_YYLLOC(*p->yylloc);
@@ -6110,14 +6111,18 @@ parser_dispatch_delayed_token(struct parser_params *p, enum yytokentype t, int l
     int saved_line = p->ruby_sourceline;
     const char *saved_tokp = p->lex.ptok;
 
-    if (!p->cst) return;
+    debug_token_line(p, "parser_dispatch_delayed_token", line);
+
     if (!has_delayed_token(p)) return;
-    p->ruby_sourceline = p->delayed.line;
-    p->lex.ptok = p->lex.pbeg + p->delayed.col;
-    parser_append_tokens_0(p, p->delayed.token, t, line);
+    if (p->cst) {
+	p->ruby_sourceline = p->delayed.line;
+	p->lex.ptok = p->lex.pbeg + p->delayed.col;
+	parser_append_tokens(p, p->delayed.token, t, line);
+	p->ruby_sourceline = saved_line;
+	p->lex.ptok = saved_tokp;
+    }
+
     p->delayed.token = Qnil;
-    p->ruby_sourceline = saved_line;
-    p->lex.ptok = saved_tokp;
 }
 #else
 #define literal_flush(p, ptr) ((void)(ptr))
@@ -6857,7 +6862,7 @@ parser_str_new(const char *ptr, long len, rb_encoding *enc, int func, rb_encodin
 static void
 add_delayed_token(struct parser_params *p, const char *tok, const char *end, int line)
 {
-    if (p->debug) printf("add_delayed_token (line: %d), %d: %ld|%ld\n", line, p->ruby_sourceline, tok - p->lex.pbeg, end - tok);
+    debug_token_line(p, "add_delayed_token", line);
     if (tok < end) {
 	if (!has_delayed_token(p)) {
 	    p->delayed.token = rb_str_buf_new(end - tok);
@@ -7646,8 +7651,6 @@ flush_string_content(struct parser_params *p, rb_encoding *enc)
 static void
 flush_string_content(struct parser_params *p, rb_encoding *enc)
 {
-    if (p->debug) rb_parser_printf(p, "flush_string_content\n");
-
     if (has_delayed_token(p)) {
 	ptrdiff_t len = p->lex.pcur - p->lex.ptok;
 	if (len > 0) {
@@ -8155,10 +8158,10 @@ parser_dispatch_heredoc_end(struct parser_params *p, int line)
 
     if (p->cst) {
 	VALUE str = rb_str_new(p->lex.ptok, p->lex.pend - p->lex.ptok);
-	parser_append_tokens_0(p, str, tHEREDOC_END, line);
+	parser_append_tokens(p, str, tHEREDOC_END, line);
     }
 
-    RUBY_SET_YYLLOC(*p->yylloc);
+    RUBY_SET_YYLLOC_FROM_STRTERM_HEREDOC(*p->yylloc);
     lex_goto_eol(p);
     token_flush(p);
 }
@@ -8289,12 +8292,10 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
 	do {
 	    pushback(p, c);
 	    enc = p->enc;
-	    debug_token(p, "here_document_0");
 	    if ((c = tokadd_string(p, func, '\n', 0, NULL, &enc, &base_enc)) == -1) {
 		if (p->eofp) goto error;
 		goto restore;
 	    }
-	    debug_token(p, "here_document_1");
 	    if (c != '\n') {
 		if (c == '\\') p->heredoc_line_indent = -1;
 	      flush:
@@ -8314,7 +8315,6 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
 	    }
 	    /*	    if (mbp && mb == ENC_CODERANGE_UNKNOWN) mbp = 0;*/
 	    if ((c = nextc(p)) == -1) goto error;
-	    debug_token(p, "here_document_2");
 	} while (!whole_match_p(p, eos, len, indent));
 	str = STR_NEW3(tok(p), toklen(p), enc, func);
     }
@@ -10333,9 +10333,6 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
     set_yylloc_symbol_id(p, yylloc);
 
     t = parser_yylex(p);
-
-    if (p->lex.strterm && (p->lex.strterm->flags & STRTERM_HEREDOC))
-	RUBY_SET_YYLLOC_FROM_STRTERM_HEREDOC(*yylloc);
 
     if (has_delayed_token(p))
 	dispatch_delayed_token(p, t);
