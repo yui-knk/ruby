@@ -6064,7 +6064,7 @@ rb_parser_append_symbol(struct parser_params *p, VALUE ary, YYLTYPE *loc)
 static bool
 parser_has_token(struct parser_params *p)
 {
-    if (p->lex.pcur < p->lex.ptok) rb_bug("lex.pcur < lex.ptok. (line: %d) %ld|%ld|%ld", p->ruby_sourceline, p->lex.ptok - p->lex.pbeg, p->lex.pcur - p->lex.ptok, p->lex.pend - p->lex.pcur);
+    if (p->cst && (p->lex.pcur < p->lex.ptok)) rb_bug("lex.pcur < lex.ptok. (line: %d) %ld|%ld|%ld", p->ruby_sourceline, p->lex.ptok - p->lex.pbeg, p->lex.pcur - p->lex.ptok, p->lex.pend - p->lex.pcur);
     return p->lex.pcur > p->lex.ptok;
 }
 
@@ -6096,7 +6096,7 @@ parser_dispatch_scan_event(struct parser_params *p, enum yytokentype t, int line
 
     if (!parser_has_token(p)) return;
     if (p->cst) {
-	VALUE str = rb_str_new(p->lex.ptok, p->lex.pcur - p->lex.ptok);
+	VALUE str = STR_NEW(p->lex.ptok, p->lex.pcur - p->lex.ptok);
 	parser_append_tokens(p, str, t, line);
     }
 
@@ -6298,7 +6298,7 @@ parser_show_error_line(struct parser_params *p, const YYLTYPE *yylloc)
 {
     VALUE str;
     int lineno = p->ruby_sourceline;
-    //printf("%d %d.%d-%d.%d\n", p->ruby_sourceline, yylloc->beg_pos.lineno, yylloc->beg_pos.column, yylloc->end_pos.lineno, yylloc->end_pos.column);
+    printf("%d %d.%d-%d.%d\n", p->ruby_sourceline, yylloc->beg_pos.lineno, yylloc->beg_pos.column, yylloc->end_pos.lineno, yylloc->end_pos.column);
     if (!yylloc) {
 	return;
     }
@@ -7741,6 +7741,7 @@ parser_string_term(struct parser_params *p, int func)
     p->lex.strterm = 0;
     if (func & STR_FUNC_REGEXP) {
 	set_yylval_num(regx_options(p));
+	dispatch_scan_event(p, tREGEXP_END);
 	SET_LEX_STATE(EXPR_END);
 	return tREGEXP_END;
     }
@@ -7825,6 +7826,7 @@ parse_string(struct parser_params *p, rb_strterm_literal_t *quote)
 	    quote->u1.func |= STR_FUNC_TERM;
 	}
     }
+
     tokfix(p);
     lit = STR_NEW3(tok(p), toklen(p), enc, func);
     set_yylval_str(lit);
@@ -8162,7 +8164,7 @@ parser_dispatch_heredoc_end(struct parser_params *p, int line)
 	dispatch_delayed_token(p, tSTRING_CONTENT);
 
     if (p->cst) {
-	VALUE str = rb_str_new(p->lex.ptok, p->lex.pend - p->lex.ptok);
+	VALUE str = STR_NEW(p->lex.ptok, p->lex.pend - p->lex.ptok);
 	parser_append_tokens(p, str, tHEREDOC_END, line);
     }
 
@@ -11234,7 +11236,6 @@ rb_parser_set_location_of_none(struct parser_params *p, YYLTYPE *yylloc)
     int sourceline = p->ruby_sourceline;
     int beg_pos = (int)(p->lex.ptok - p->lex.pbeg);
     int end_pos = (int)(p->lex.ptok - p->lex.pbeg);
-
     return rb_parser_set_pos(yylloc, sourceline, beg_pos, end_pos);
 }
 
@@ -11244,7 +11245,6 @@ rb_parser_set_location(struct parser_params *p, YYLTYPE *yylloc)
     int sourceline = p->ruby_sourceline;
     int beg_pos = (int)(p->lex.ptok - p->lex.pbeg);
     int end_pos = (int)(p->lex.pcur - p->lex.pbeg);
-
     return rb_parser_set_pos(yylloc, sourceline, beg_pos, end_pos);
 }
 #endif /* !RIPPER */
