@@ -693,11 +693,11 @@ dummy
     str = ""
     PP.pp(node, str, 80)
     assert_equal(<<~EXP, str)
-      (SCOPE@1:0-3:5
+      (SCOPE@1:0-3:4
        tbl: [:a]
        args: nil
        body:
-         (IF@1:0-3:5 (VCALL@1:3-1:7 :cond) (LASGN@2:2-2:7 :a (LIT@2:6-2:7 1))
+         (IF@1:0-3:4 (VCALL@1:3-1:7 :cond) (LASGN@2:2-2:7 :a (LIT@2:6-2:7 1))
             (BEGIN@3:4-3:4 nil)))
     EXP
   end
@@ -728,11 +728,11 @@ dummy
     str = ""
     PP.pp(node, str, 80)
     assert_equal(<<~EXP, str)
-      (SCOPE@1:0-3:5
+      (SCOPE@1:0-3:4
        tbl: [:a]
        args: nil
        body:
-         (UNLESS@1:0-3:5 (VCALL@1:7-1:11 :cond) (LASGN@2:2-2:7 :a (LIT@2:6-2:7 1))
+         (UNLESS@1:0-3:4 (VCALL@1:7-1:11 :cond) (LASGN@2:2-2:7 :a (LIT@2:6-2:7 1))
             (BEGIN@3:4-3:4 nil)))
     EXP
   end

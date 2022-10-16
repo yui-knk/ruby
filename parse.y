@@ -153,6 +153,8 @@ RBIMPL_WARNING_POP()
     rb_parser_set_location_from_strterm_heredoc(p, &p->lex.strterm->u.heredoc, &(Current))
 #define RUBY_SET_YYLLOC_OF_DELAYED_TOKEN(Current)			\
     rb_parser_set_location_of_delayed_token(p, &(Current))
+#define RUBY_SET_YYLLOC_OF_DUMMY_END(Current)			\
+    rb_parser_set_location_of_dummy_end(p, &(Current))
 #define RUBY_SET_YYLLOC_OF_NONE(Current)				\
     rb_parser_set_location_of_none(p, &(Current))
 #define RUBY_SET_YYLLOC(Current)					\
@@ -754,7 +756,8 @@ VALUE rb_parser_lex_state_name(enum lex_state_e state);
 void rb_parser_show_bitstack(struct parser_params *, stack_type, const char *, int);
 PRINTF_ARGS(void rb_parser_fatal(struct parser_params *p, const char *fmt, ...), 2, 3);
 YYLTYPE *rb_parser_set_location_from_strterm_heredoc(struct parser_params *p, rb_strterm_heredoc_t *here, YYLTYPE *yylloc);
-static YYLTYPE *rb_parser_set_location_of_delayed_token(struct parser_params *p, YYLTYPE *yylloc);
+YYLTYPE *rb_parser_set_location_of_delayed_token(struct parser_params *p, YYLTYPE *yylloc);
+YYLTYPE *rb_parser_set_location_of_dummy_end(struct parser_params *p, YYLTYPE *yylloc);
 YYLTYPE *rb_parser_set_location_of_none(struct parser_params *p, YYLTYPE *yylloc);
 YYLTYPE *rb_parser_set_location(struct parser_params *p, YYLTYPE *yylloc);
 RUBY_SYMBOL_EXPORT_END
@@ -9664,6 +9667,7 @@ parser_yylex(struct parser_params *p)
 #ifndef RIPPER
 	if (!NIL_P(p->end_expect_token_locations) && RARRAY_LEN(p->end_expect_token_locations) > 0) {
 	    pop_end_expect_token_locations(p);
+	    RUBY_SET_YYLLOC_OF_DUMMY_END(*p->yylloc);
 	    return tDUMNY_END;
 	}
 #endif
@@ -11248,13 +11252,21 @@ rb_parser_set_location_from_strterm_heredoc(struct parser_params *p, rb_strterm_
     return rb_parser_set_pos(yylloc, sourceline, beg_pos, end_pos);
 }
 
-static YYLTYPE *
+YYLTYPE *
 rb_parser_set_location_of_delayed_token(struct parser_params *p, YYLTYPE *yylloc)
 {
     yylloc->beg_pos.lineno = p->delayed.beg_line;
     yylloc->beg_pos.column = p->delayed.beg_col;
     yylloc->end_pos.lineno = p->delayed.end_line;
     yylloc->end_pos.column = p->delayed.end_col;
+
+    return yylloc;
+}
+
+YYLTYPE *
+rb_parser_set_location_of_dummy_end(struct parser_params *p, YYLTYPE *yylloc)
+{
+    yylloc->end_pos = yylloc->beg_pos;
 
     return yylloc;
 }
