@@ -6465,7 +6465,6 @@ parser_yyerror(struct parser_params *p, const YYLTYPE *yylloc, const char *msg)
 static int
 parser_yyerror0(struct parser_params *p, const char *msg)
 {
-debug_token(p, "parser_yyerror0");
     dispatch1(parse_error, STR_NEW2(msg));
     ripper_error(p);
     return 0;
