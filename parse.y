@@ -349,8 +349,10 @@ struct parser_params {
 
     struct {
 	VALUE token;
-	int line;
-	int col;
+	int beg_line;
+	int beg_col;
+	int end_line;
+	int end_col;
     } delayed;
 
     ID cur_arg;
@@ -6115,9 +6117,15 @@ parser_dispatch_delayed_token(struct parser_params *p, enum yytokentype t, int l
     debug_token_line(p, "parser_dispatch_delayed_token", line);
 
     if (!has_delayed_token(p)) return;
+
+    p->yylloc->beg_pos.lineno = p->delayed.beg_line;
+    p->yylloc->beg_pos.column = p->delayed.beg_col;
+    p->yylloc->end_pos.lineno = p->delayed.end_line;
+    p->yylloc->end_pos.column = p->delayed.end_col;
+
     if (p->cst) {
-	p->ruby_sourceline = p->delayed.line;
-	p->lex.ptok = p->lex.pbeg + p->delayed.col;
+	p->ruby_sourceline = p->delayed.beg_line;
+	p->lex.ptok = p->lex.pbeg + p->delayed.beg_col;
 	parser_append_tokens(p, p->delayed.token, t, line);
 	p->ruby_sourceline = saved_line;
 	p->lex.ptok = saved_tokp;
@@ -6169,8 +6177,8 @@ ripper_dispatch_delayed_token(struct parser_params *p, enum yytokentype t)
     const char *saved_tokp = p->lex.ptok;
 
     if (!has_delayed_token(p)) return;
-    p->ruby_sourceline = p->delayed.line;
-    p->lex.ptok = p->lex.pbeg + p->delayed.col;
+    p->ruby_sourceline = p->delayed.beg_line;
+    p->lex.ptok = p->lex.pbeg + p->delayed.beg_col;
     add_mark_object(p, yylval_rval = ripper_dispatch1(p, ripper_token2eventid(t), p->delayed.token));
     p->delayed.token = Qnil;
     p->ruby_sourceline = saved_line;
@@ -6863,16 +6871,20 @@ parser_str_new(const char *ptr, long len, rb_encoding *enc, int func, rb_encodin
 static void
 add_delayed_token(struct parser_params *p, const char *tok, const char *end, int line)
 {
+#ifndef RIPPER
     debug_token_line(p, "add_delayed_token", line);
+#endif
 
     if (tok < end) {
 	if (!has_delayed_token(p)) {
 	    p->delayed.token = rb_str_buf_new(end - tok);
 	    rb_enc_associate(p->delayed.token, p->enc);
-	    p->delayed.line = p->ruby_sourceline;
-	    p->delayed.col = rb_long2int(tok - p->lex.pbeg);
+	    p->delayed.beg_line = p->ruby_sourceline;
+	    p->delayed.beg_col = rb_long2int(tok - p->lex.pbeg);
 	}
 	rb_str_buf_cat(p->delayed.token, tok, end - tok);
+	p->delayed.end_line = p->ruby_sourceline;
+	p->delayed.end_col = rb_long2int(end - p->lex.pbeg);
 	p->lex.ptok = end;
     }
 }
