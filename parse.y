@@ -529,7 +529,6 @@ rb_discard_node(struct parser_params *p, NODE *n)
 {
     rb_ast_delete_node(p->ast, n);
 }
-
 #endif
 
 #ifdef RIPPER
@@ -6093,7 +6092,8 @@ parser_append_tokens(struct parser_params *p, VALUE str, enum yytokentype t, int
 static void
 parser_dispatch_scan_event(struct parser_params *p, enum yytokentype t, int line)
 {
-debug_token_line(p, "parser_dispatch_scan_event", line);
+    debug_token_line(p, "parser_dispatch_scan_event", line);
+
     if (!parser_has_token(p)) return;
     if (p->cst) {
 	VALUE str = rb_str_new(p->lex.ptok, p->lex.pcur - p->lex.ptok);
@@ -6102,6 +6102,7 @@ debug_token_line(p, "parser_dispatch_scan_event", line);
 
     RUBY_SET_YYLLOC(*p->yylloc);
     token_flush(p);
+    debug_token_line(p, "parser_dispatch_scan_event", line);
 }
 
 #define dispatch_delayed_token(p, t) parser_dispatch_delayed_token(p, t, __LINE__)
@@ -6297,6 +6298,7 @@ parser_show_error_line(struct parser_params *p, const YYLTYPE *yylloc)
 {
     VALUE str;
     int lineno = p->ruby_sourceline;
+    //printf("%d %d.%d-%d.%d\n", p->ruby_sourceline, yylloc->beg_pos.lineno, yylloc->beg_pos.column, yylloc->end_pos.lineno, yylloc->end_pos.column);
     if (!yylloc) {
 	return;
     }
@@ -6863,6 +6865,7 @@ static void
 add_delayed_token(struct parser_params *p, const char *tok, const char *end, int line)
 {
     debug_token_line(p, "add_delayed_token", line);
+
     if (tok < end) {
 	if (!has_delayed_token(p)) {
 	    p->delayed.token = rb_str_buf_new(end - tok);
@@ -7067,20 +7070,22 @@ tokadd_codepoint(struct parser_params *p, rb_encoding **encp,
 {
     size_t numlen;
     int codepoint = scan_hex(p->lex.pcur, wide ? p->lex.pend - p->lex.pcur : 4, &numlen);
-//    literal_flush(p, p->lex.pcur);
     p->lex.pcur += numlen;
     if (p->lex.strterm == NULL ||
         (p->lex.strterm->flags & STRTERM_HEREDOC) ||
         (p->lex.strterm->u.literal.u1.func != str_regexp)) {
         if (wide ? (numlen == 0 || numlen > 6) : (numlen < 4))  {
+            literal_flush(p, p->lex.pcur);
             yyerror0("invalid Unicode escape");
             return wide && numlen > 0;
         }
         if (codepoint > 0x10ffff) {
+            literal_flush(p, p->lex.pcur);
             yyerror0("invalid Unicode codepoint (too large)");
             return wide;
         }
         if ((codepoint & 0xfffff800) == 0xd800) {
+            literal_flush(p, p->lex.pcur);
             yyerror0("invalid Unicode codepoint");
             return wide;
         }
