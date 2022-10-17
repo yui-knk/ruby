@@ -6076,6 +6076,7 @@ parser_append_tokens(struct parser_params *p, VALUE str, enum yytokentype t, int
     rb_ary_push(ary, str);
     rb_ary_push(ary, INT2FIX(p->ruby_sourceline));
     rb_ary_push(ary, INT2FIX(token_column));
+    rb_obj_freeze(ary);
     rb_ary_push(p->tokens, ary);
     p->token_id++;
 
@@ -6661,6 +6662,8 @@ yycompile0(VALUE arg)
 	tree->nd_body = prelude;
         RB_OBJ_WRITE(p->ast, &p->ast->body.compile_option, opt);
 	if (p->cst) {
+	    rb_obj_freeze(tokens);
+	    rb_obj_freeze(nterm_tokens);
 	    rb_ast_set_tokens(p->ast, tokens);
 	    rb_ast_set_nterm_tokens(p->ast, nterm_tokens);
 	}

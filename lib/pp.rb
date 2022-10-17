@@ -567,7 +567,9 @@ if defined?(RubyVM::AbstractSyntaxTree)
 
     def pretty_print(q)
       str = "(#{type}@#{first_lineno}:#{first_column}-#{last_lineno}:#{last_column}"
-      str << "#{cst.map(&:last)}" if cst
+      if cst
+        str << cst.to_s
+      end
 
       q.group(1, str, ")") {
         case type
