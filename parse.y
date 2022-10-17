@@ -1112,18 +1112,6 @@ endless_method_name(struct parser_params *p, NODE *defn, const YYLTYPE *loc)
 #define debug_token_line(p, name, line) if (p->debug) printf(#name ". (line: %d), %d: %ld|%ld|%ld\n", line, p->ruby_sourceline, p->lex.ptok - p->lex.pbeg, p->lex.pcur - p->lex.ptok, p->lex.pend - p->lex.pcur)
 
 #ifndef RIPPER
-
-#if 0
-static inline VALUE
-code_loc_to_array(const rb_code_location_t *loc)
-{
-    return rb_ary_new_from_args(4, INT2NUM(loc->beg_pos.lineno), INT2NUM(loc->beg_pos.column), INT2NUM(loc->end_pos.lineno), INT2NUM(loc->end_pos.column));
-}
-#endif
-
-#endif /* !RIPPER */
-
-#ifndef RIPPER
 # define Qnone 0
 # define Qnull 0
 # define ifndef_ripper(x) (x)
@@ -5997,6 +5985,7 @@ static enum yytokentype here_document(struct parser_params*,rb_strterm_heredoc_t
 # define set_yylval_node(x) {				\
   YYLTYPE _cur_loc;					\
   rb_parser_set_location(p, &_cur_loc);			\
+  set_yylloc_symbol_id(p, &_cur_loc);			\
   yylval.node = (x);					\
 }
 # define set_yylval_str(x) \
@@ -6037,7 +6026,7 @@ ripper_yylval_id(struct parser_params *p, ID x)
 #define dispatch_scan_event(p, t) parser_dispatch_scan_event(p, t, __LINE__)
 
 /* symbol_id for term should be even number */
-#define set_yylloc_symbol_id(p, yylloc) (yylloc->symbol_id = p->token_id * 2)
+#define set_yylloc_symbol_id(p, yylloc) ((yylloc)->symbol_id = p->token_id * 2)
 
 static void
 rb_parser_append_symbol(struct parser_params *p, VALUE ary, YYLTYPE *loc)
@@ -6062,6 +6051,17 @@ parser_has_token(struct parser_params *p)
     return p->lex.pcur > p->lex.ptok;
 }
 
+static VALUE
+code_loc_to_ary(const rb_code_location_t *loc)
+{
+    VALUE ary = rb_ary_new_from_args(4,
+	INT2NUM(loc->beg_pos.lineno), INT2NUM(loc->beg_pos.column),
+	INT2NUM(loc->end_pos.lineno), INT2NUM(loc->end_pos.column));
+    rb_obj_freeze(ary);
+
+    return ary;
+}
+
 static void
 parser_append_tokens(struct parser_params *p, VALUE str, enum yytokentype t, int line)
 {
@@ -6069,13 +6069,12 @@ parser_append_tokens(struct parser_params *p, VALUE str, enum yytokentype t, int
     int token_id;
 
     set_yylloc_symbol_id(p, p->yylloc);
-    ary = rb_ary_new2(5);
+    ary = rb_ary_new2(4);
     token_id = p->token_id;
     rb_ary_push(ary, INT2FIX(token_id));
     rb_ary_push(ary, INT2FIX(t));
     rb_ary_push(ary, str);
-    rb_ary_push(ary, INT2FIX(p->ruby_sourceline));
-    rb_ary_push(ary, INT2FIX(token_column));
+    rb_ary_push(ary, code_loc_to_ary(p->yylloc));
     rb_obj_freeze(ary);
     rb_ary_push(p->tokens, ary);
     p->token_id++;
@@ -6091,12 +6090,14 @@ parser_dispatch_scan_event(struct parser_params *p, enum yytokentype t, int line
     debug_token_line(p, "parser_dispatch_scan_event", line);
 
     if (!parser_has_token(p)) return;
+
+    RUBY_SET_YYLLOC(*p->yylloc);
+
     if (p->cst) {
 	VALUE str = STR_NEW(p->lex.ptok, p->lex.pcur - p->lex.ptok);
 	parser_append_tokens(p, str, t, line);
     }
 
-    RUBY_SET_YYLLOC(*p->yylloc);
     token_flush(p);
 }
 
@@ -8169,12 +8170,13 @@ parser_dispatch_heredoc_end(struct parser_params *p, int line)
     if (has_delayed_token(p))
 	dispatch_delayed_token(p, tSTRING_CONTENT);
 
+    RUBY_SET_YYLLOC_FROM_STRTERM_HEREDOC(*p->yylloc);
+
     if (p->cst) {
 	VALUE str = STR_NEW(p->lex.ptok, p->lex.pend - p->lex.ptok);
 	parser_append_tokens(p, str, tHEREDOC_END, line);
     }
 
-    RUBY_SET_YYLLOC_FROM_STRTERM_HEREDOC(*p->yylloc);
     lex_goto_eol(p);
     token_flush(p);
 }
