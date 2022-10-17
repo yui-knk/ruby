@@ -135,10 +135,28 @@ class TestAst < Test::Unit::TestCase
   Dir.glob("test/**/*.rb", base: SRCDIR).each do |path|
     define_method("test_tokens:#{path}") do
       cst = RubyVM::AbstractSyntaxTree.parse_file("#{SRCDIR}/#{path}", cst: true)
-      tokens = cst.tokens.sort_by { [_1.last[0], _1.last[1]] }.map { _1[2]}.join.bytes
-      source = File.read("#{SRCDIR}/#{path}").bytes
+      tokens = cst.tokens.sort_by { [_1.last[0], _1.last[1]] }
+      tokens_bytes = tokens.map { _1[2]}.join.bytes
+      source_bytes = File.read("#{SRCDIR}/#{path}").bytes
 
-      assert_equal(source, tokens)
+      assert_equal(source_bytes, tokens_bytes)
+
+      (tokens.count - 1).times do |i|
+        token_0 = tokens[i]
+        token_1 = tokens[i + 1]
+        end_pos = token_0.last[2..3]
+        beg_pos = token_1.last[0..1]
+
+        if end_pos[0] == beg_pos[0]
+          # When both tokens are same line, column should be next
+          assert_equal(beg_pos[1], end_pos[1], "#{token_0}. #{token_1}")
+        else
+          # Line should be next
+          assert_equal(beg_pos[0], end_pos[0] + 1, "#{token_0}. #{token_1}")
+          # It should be on the top of the line
+          assert_equal(0, beg_pos[1], "#{token_0}. #{token_1}")
+        end
+      end
     end
   end
 

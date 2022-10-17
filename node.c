@@ -1149,7 +1149,7 @@ rb_parser_dump_tree(const rb_ast_t *ast, int comment)
         "###########################################################\n\n"
     );
     rb_str_catf(buf, "%"PRIsVALUE"\n", ast->node_buffer->tokens);
-    rb_str_catf(buf, "%"PRIsVALUE"\n\n", ast->node_buffer->nterm_tokens);
+    //rb_str_catf(buf, "%"PRIsVALUE"\n\n", ast->node_buffer->nterm_tokens);
     dump_node(buf, rb_str_new_cstr("# "), comment, ast->body.root);
     return buf;
 }

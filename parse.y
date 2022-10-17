@@ -7669,6 +7669,8 @@ flush_string_content(struct parser_params *p, rb_encoding *enc)
 	ptrdiff_t len = p->lex.pcur - p->lex.ptok;
 	if (len > 0) {
 	    rb_enc_str_buf_cat(p->delayed.token, p->lex.ptok, len, enc);
+	    p->delayed.end_line = p->ruby_sourceline;
+	    p->delayed.end_col = rb_long2int(p->lex.pcur - p->lex.pbeg);
 	}
 	dispatch_delayed_token(p, tSTRING_CONTENT);
 	p->lex.ptok = p->lex.pcur;
