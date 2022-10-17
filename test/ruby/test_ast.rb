@@ -133,9 +133,9 @@ class TestAst < Test::Unit::TestCase
   end
 
   Dir.glob("test/**/*.rb", base: SRCDIR).each do |path|
-    define_method("test_cst:#{path}") do
+    define_method("test_tokens:#{path}") do
       cst = RubyVM::AbstractSyntaxTree.parse_file("#{SRCDIR}/#{path}", cst: true)
-      tokens = cst.tokens.sort_by {[_1[3], _1[4]]}.map { _1[2]}.join.bytes
+      tokens = cst.tokens.sort_by { [_1.last[0], _1.last[1]] }.map { _1[2]}.join.bytes
       source = File.read("#{SRCDIR}/#{path}").bytes
 
       assert_equal(source, tokens)

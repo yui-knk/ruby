@@ -153,7 +153,9 @@ RBIMPL_WARNING_POP()
     rb_parser_set_location_from_strterm_heredoc(p, &p->lex.strterm->u.heredoc, &(Current))
 #define RUBY_SET_YYLLOC_OF_DELAYED_TOKEN(Current)			\
     rb_parser_set_location_of_delayed_token(p, &(Current))
-#define RUBY_SET_YYLLOC_OF_DUMMY_END(Current)			\
+#define RUBY_SET_YYLLOC_OF_HEREDOC_END(Current)				\
+    rb_parser_set_location_of_heredoc_end(p, &(Current))
+#define RUBY_SET_YYLLOC_OF_DUMMY_END(Current)				\
     rb_parser_set_location_of_dummy_end(p, &(Current))
 #define RUBY_SET_YYLLOC_OF_NONE(Current)				\
     rb_parser_set_location_of_none(p, &(Current))
@@ -757,6 +759,7 @@ void rb_parser_show_bitstack(struct parser_params *, stack_type, const char *, i
 PRINTF_ARGS(void rb_parser_fatal(struct parser_params *p, const char *fmt, ...), 2, 3);
 YYLTYPE *rb_parser_set_location_from_strterm_heredoc(struct parser_params *p, rb_strterm_heredoc_t *here, YYLTYPE *yylloc);
 YYLTYPE *rb_parser_set_location_of_delayed_token(struct parser_params *p, YYLTYPE *yylloc);
+YYLTYPE *rb_parser_set_location_of_heredoc_end(struct parser_params *p, YYLTYPE *yylloc);
 YYLTYPE *rb_parser_set_location_of_dummy_end(struct parser_params *p, YYLTYPE *yylloc);
 YYLTYPE *rb_parser_set_location_of_none(struct parser_params *p, YYLTYPE *yylloc);
 YYLTYPE *rb_parser_set_location(struct parser_params *p, YYLTYPE *yylloc);
@@ -8170,13 +8173,13 @@ parser_dispatch_heredoc_end(struct parser_params *p, int line)
     if (has_delayed_token(p))
 	dispatch_delayed_token(p, tSTRING_CONTENT);
 
-    RUBY_SET_YYLLOC_FROM_STRTERM_HEREDOC(*p->yylloc);
-
     if (p->cst) {
 	VALUE str = STR_NEW(p->lex.ptok, p->lex.pend - p->lex.ptok);
+	RUBY_SET_YYLLOC_OF_HEREDOC_END(*p->yylloc);
 	parser_append_tokens(p, str, tHEREDOC_END, line);
     }
 
+    RUBY_SET_YYLLOC_FROM_STRTERM_HEREDOC(*p->yylloc);
     lex_goto_eol(p);
     token_flush(p);
 }
@@ -11245,6 +11248,15 @@ rb_parser_set_location_of_delayed_token(struct parser_params *p, YYLTYPE *yylloc
     yylloc->end_pos.column = p->delayed.end_col;
 
     return yylloc;
+}
+
+YYLTYPE *
+rb_parser_set_location_of_heredoc_end(struct parser_params *p, YYLTYPE *yylloc)
+{
+    int sourceline = p->ruby_sourceline;
+    int beg_pos = (int)(p->lex.ptok - p->lex.pbeg);
+    int end_pos = (int)(p->lex.pend - p->lex.pbeg);
+    return rb_parser_set_pos(yylloc, sourceline, beg_pos, end_pos);
 }
 
 YYLTYPE *
