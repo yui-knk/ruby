@@ -137,6 +137,7 @@ class TestAst < Test::Unit::TestCase
       cst = RubyVM::AbstractSyntaxTree.parse_file("#{SRCDIR}/#{path}", cst: true)
       tokens = cst.tokens.sort_by {[_1[3], _1[4]]}.map { _1[2]}.join.bytes
       source = File.read("#{SRCDIR}/#{path}").bytes
+
       assert_equal(source, tokens)
     end
   end

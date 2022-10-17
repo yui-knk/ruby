@@ -6035,6 +6035,8 @@ ripper_yylval_id(struct parser_params *p, ID x)
 #ifndef RIPPER
 #define literal_flush(p, ptr) ((p)->lex.ptok = (ptr))
 #define dispatch_scan_event(p, t) parser_dispatch_scan_event(p, t, __LINE__)
+
+/* symbol_id for term should be even number */
 #define set_yylloc_symbol_id(p, yylloc) (yylloc->symbol_id = p->token_id * 2)
 
 static void
@@ -6066,15 +6068,16 @@ parser_append_tokens(struct parser_params *p, VALUE str, enum yytokentype t, int
     VALUE ary;
     int token_id;
 
+    set_yylloc_symbol_id(p, p->yylloc);
     ary = rb_ary_new2(5);
     token_id = p->token_id;
-    p->token_id++;
     rb_ary_push(ary, INT2FIX(token_id));
     rb_ary_push(ary, INT2FIX(t));
     rb_ary_push(ary, str);
     rb_ary_push(ary, INT2FIX(p->ruby_sourceline));
     rb_ary_push(ary, INT2FIX(token_column));
     rb_ary_push(p->tokens, ary);
+    p->token_id++;
 
     if (p->debug) {
 	rb_parser_printf(p, "Append tokens (line: %d) %"PRIsVALUE"\n", line, ary);
@@ -10336,11 +10339,7 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
     p->lval = lval;
     lval->val = Qundef;
     p->yylloc = yylloc;
-    /*
-     * Need to set `symbol_id' before `parser_append_tokens' is called.
-     * symbol_id for term should be even number
-     */
-    set_yylloc_symbol_id(p, yylloc);
+
     t = parser_yylex(p);
 
     if (has_delayed_token(p))
