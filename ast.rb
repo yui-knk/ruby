@@ -122,7 +122,13 @@ module RubyVM::AbstractSyntaxTree
     end
 
     def cst
-      Primitive.ast_node_cst
+      tokens&.each_with_object([]) do |token, a|
+        loc = token.last
+        if ([first_lineno, first_column] <=> [loc[0], loc[1]]) <= 0 &&
+           ([last_lineno, last_column]   <=> [loc[2], loc[3]]) >= 0
+           a << token
+        end
+      end
     end
 
     def tokens

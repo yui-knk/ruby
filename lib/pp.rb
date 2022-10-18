@@ -568,7 +568,11 @@ if defined?(RubyVM::AbstractSyntaxTree)
     def pretty_print(q)
       str = "(#{type}@#{first_lineno}:#{first_column}-#{last_lineno}:#{last_column}"
       if cst
-        str << cst.to_s
+        if cst.count <= 1
+          str << cst.to_s
+        else
+          str << [cst.first, cst.last].to_s
+        end
       end
 
       q.group(1, str, ")") {

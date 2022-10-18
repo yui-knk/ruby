@@ -710,30 +710,6 @@ ast_node_last_column(rb_execution_context_t *ec, VALUE self)
 }
 
 static VALUE
-ast_node_cst(rb_execution_context_t *ec, VALUE self)
-{
-    int id;
-    struct ASTNodeData *data;
-    TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, data);
-
-    /* cst option is not passed */
-    if (NIL_P(rb_ast_tokens(data->ast))) return Qnil;
-
-    id = nd_symbol_id(data->node);
-
-    if (id % 2 == 0) {
-        /* term */
-        VALUE ary = rb_ary_new_capa(1);
-        rb_ary_push(ary, rb_ary_entry(rb_ast_tokens(data->ast), id / 2));
-        return ary;
-    }
-    else {
-        /* nterm */
-        return rb_ary_entry(rb_ast_nterm_tokens(data->ast), id / 2);
-    }
-}
-
-static VALUE
 ast_node_tokens(rb_execution_context_t *ec, VALUE self)
 {
     struct ASTNodeData *data;
