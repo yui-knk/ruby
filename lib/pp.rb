@@ -566,9 +566,14 @@ if defined?(RubyVM::AbstractSyntaxTree)
     end
 
     def pretty_print(q)
+      if cst && cst.first && cst.last &&
+          cst.first.last[0] == first_lineno && cst.first.last[1] == first_column &&
+          cst.last.last[2] == last_lineno && cst.last.last[3] == last_column
+        return
+      end
       str = "(#{type}@#{first_lineno}:#{first_column}-#{last_lineno}:#{last_column}"
-      if cst
-        str << cst.to_s
+      if cst && !cst.empty?
+        str << [cst.first, cst.last].to_s
       end
 
       q.group(1, str, ")") {

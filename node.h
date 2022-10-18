@@ -223,6 +223,7 @@ typedef struct RNode {
 #define nd_set_last_lineno(n, v) ((n)->nd_loc.end_pos.lineno = (v))
 #define nd_last_loc(n) ((n)->nd_loc.end_pos)
 #define nd_set_last_loc(n, v) (nd_last_loc(n) = (v))
+
 #define nd_symbol_id(n) ((n)->nd_loc.symbol_id)
 #define nd_node_id(n) ((n)->node_id)
 #define nd_set_node_id(n,id) ((n)->node_id = (id))

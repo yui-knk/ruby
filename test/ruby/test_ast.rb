@@ -43,11 +43,12 @@ class TestAst < Test::Unit::TestCase
   class Helper
     attr_reader :errors
 
-    def initialize(path, src: nil)
+    def initialize(path, src: nil, cst: false)
       @path = path
       @errors = []
       @debug = false
-      @ast = RubyVM::AbstractSyntaxTree.parse(src) if src
+      @ast = RubyVM::AbstractSyntaxTree.parse(src, cst:) if src
+      @cst = cst
     end
 
     def validate_range
@@ -64,9 +65,24 @@ class TestAst < Test::Unit::TestCase
       @errors.empty?
     end
 
+    def validate_cst
+      @errors = []
+
+      # Top level NODE_SCOPE includes location of the first action (1.0-1.0),
+      # the action before "top_compstmt" in "program".
+      # However if source code begins with comments, these comments are not
+      # included into cst of NODE_SCOPE. Therefore skip top level node.
+      children = ast.children.grep(RubyVM::AbstractSyntaxTree::Node)
+      children.each do |node|
+        validate_cst0(node)
+      end
+
+      @errors.empty?
+    end
+
     def ast
       return @ast if defined?(@ast)
-      @ast = RubyVM::AbstractSyntaxTree.parse_file(@path)
+      @ast = RubyVM::AbstractSyntaxTree.parse_file(@path, cst: @cst)
     end
 
     private
@@ -109,6 +125,21 @@ class TestAst < Test::Unit::TestCase
       @errors << { type: :last_column,  node: node } if end_pos.column == -1
 
       children.each {|c| validate_not_cared0(c) }
+    end
+
+    def validate_cst0(node)
+      cst = node.cst
+      beg_pos, end_pos = node.beg_pos, node.end_pos
+      children = node.children.grep(RubyVM::AbstractSyntaxTree::Node)
+
+      if cst.any?(&:nil?)
+        @errors << { type: :cst_has_nil, node: node }
+      else
+        @errors << { type: :cst_beg_pos, node: node } if !cst.empty? && cst.first.last[0..1] != [beg_pos.lineno, beg_pos.column]
+        @errors << { type: :cst_end_pos, node: node } if !cst.empty? && cst.last.last[2..3] != [end_pos.lineno, end_pos.column]
+      end
+
+      children.each {|c| validate_cst0(c) }
     end
   end
 
@@ -157,6 +188,16 @@ class TestAst < Test::Unit::TestCase
           assert_equal(0, beg_pos[1], "#{token_0}. #{token_1}")
         end
       end
+    end
+  end
+
+  # Dir.glob("test/**/*.rb", base: SRCDIR).each do |path|
+  Dir.glob("test/ruby/test_arity.rb", base: SRCDIR).each do |path|
+    define_method("test_cst:#{path}") do
+      helper = Helper.new("#{SRCDIR}/#{path}", cst: true)
+      helper.validate_cst
+
+      assert_equal([], helper.errors)
     end
   end
 

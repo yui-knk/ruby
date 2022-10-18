@@ -721,6 +721,11 @@ ast_node_cst(rb_execution_context_t *ec, VALUE self)
 
     id = nd_symbol_id(data->node);
 
+    /* E.g. f_args: none */
+    if (id < 0) {
+        return rb_ary_new();
+    }
+
     if (id % 2 == 0) {
         /* term */
         VALUE ary = rb_ary_new_capa(1);

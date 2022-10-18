@@ -119,6 +119,7 @@ RBIMPL_WARNING_POP()
 	    for (int i = 0; i < N; i++) {				\
 	      rb_parser_append_symbol(p, ary, &YYRHSLOC(Rhs, i+1));	\
 	    }								\
+	    rb_obj_freeze(ary);						\
 	    rb_ary_store(p->nterm_tokens, nterm_id, ary);		\
 	  }								\
 	}								\
@@ -1559,6 +1560,7 @@ stmts		: none
 		    {
 		    /*%%%*/
 			$$ = block_append(p, $1, newline_node($3));
+			$$->nd_loc = @$;
 		    /*% %*/
 		    /*% ripper: stmts_add!($1, $3) %*/
 		    }
@@ -2016,7 +2018,7 @@ command		: fcall command_args       %prec tLOWEST
 		    {
 		    /*%%%*/
 			$1->nd_args = $2;
-			nd_set_last_loc($1, @2.end_pos);
+			$1->nd_loc = @$;
 			$$ = $1;
 		    /*% %*/
 		    /*% ripper: command!($1, $2) %*/
@@ -3027,6 +3029,7 @@ args		: arg_value
 		    {
 		    /*%%%*/
 			$$ = last_arg_append(p, $1, $3, &@$);
+			$$->nd_loc = @$;
 		    /*% %*/
 		    /*% ripper: args_add!($1, $3) %*/
 		    }
@@ -3983,10 +3986,11 @@ lambda		: tLAMBDA
 		    /*%%%*/
                         {
                             YYLTYPE loc = code_loc_gen(&@5, &@7);
+                            /* TODO: How to push both 5 and 7 into single SCOPE? */
                             $$ = NEW_LAMBDA($5, $7, &loc);
                             nd_set_line($$->nd_body, @7.end_pos.lineno);
                             nd_set_line($$, @5.end_pos.lineno);
-			    nd_set_first_loc($$, @1.beg_pos);
+			    $$->nd_loc = @$;
                         }
 		    /*% %*/
 		    /*% ripper: lambda!($5, $7) %*/
@@ -4084,7 +4088,7 @@ method_call	: fcall paren_args
 		    /*%%%*/
 			$$ = $1;
 			$$->nd_args = $2;
-			nd_set_last_loc($1, @2.end_pos);
+			$1->nd_loc = @$;
 		    /*% %*/
 		    /*% ripper: method_add_arg!(fcall!($1), $2) %*/
 		    }
@@ -4158,7 +4162,7 @@ brace_block	: '{' brace_body '}'
 		    {
 			$$ = $2;
 		    /*%%%*/
-			$$->nd_body->nd_loc = code_loc_gen(&@1, &@3);
+			$$->nd_body->nd_loc = @$;
 			nd_set_line($$, @1.end_pos.lineno);
 		    /*% %*/
 		    }
@@ -5720,6 +5724,7 @@ f_optarg	: f_opt
 		    {
 		    /*%%%*/
 			$$ = opt_arg_append($1, $3);
+			$$->nd_loc = @$;
 		    /*% %*/
 		    /*% ripper: rb_ary_push($1, get_value($3)) %*/
 		    }
