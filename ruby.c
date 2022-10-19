@@ -1988,7 +1988,7 @@ process_options(int argc, char **argv, ruby_cmdline_options_t *opt)
     }
     if (opt->dump & DUMP_BIT(error_tolerant)) {
         rb_parser_error_tolerant(parser);
-        rb_parser_cst(parser);
+        rb_parser_keep_tokens(parser);
     }
     if (opt->ext.enc.name != 0) {
         opt->ext.enc.index = opt_enc_index(opt->ext.enc.name);

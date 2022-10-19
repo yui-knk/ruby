@@ -29,8 +29,8 @@ module RubyVM::AbstractSyntaxTree
   #
   #    RubyVM::AbstractSyntaxTree.parse("x = 1 + 2")
   #    # => #<RubyVM::AbstractSyntaxTree::Node:SCOPE@1:0-1:9>
-  def self.parse string, keep_script_lines: false, error_tolerant: false, cst: false, yydebug: false
-    Primitive.ast_s_parse string, keep_script_lines, error_tolerant, cst, yydebug
+  def self.parse string, keep_script_lines: false, error_tolerant: false, keep_tokens: false, yydebug: false
+    Primitive.ast_s_parse string, keep_script_lines, error_tolerant, keep_tokens, yydebug
   end
 
   #  call-seq:
@@ -44,8 +44,8 @@ module RubyVM::AbstractSyntaxTree
   #
   #     RubyVM::AbstractSyntaxTree.parse_file("my-app/app.rb")
   #     # => #<RubyVM::AbstractSyntaxTree::Node:SCOPE@1:0-31:3>
-  def self.parse_file pathname, keep_script_lines: false, error_tolerant: false, cst: false, yydebug: false
-    Primitive.ast_s_parse_file pathname, keep_script_lines, error_tolerant, cst, yydebug
+  def self.parse_file pathname, keep_script_lines: false, error_tolerant: false, keep_tokens: false, yydebug: false
+    Primitive.ast_s_parse_file pathname, keep_script_lines, error_tolerant, keep_tokens, yydebug
   end
 
   #  call-seq:
@@ -63,8 +63,8 @@ module RubyVM::AbstractSyntaxTree
   #
   #     RubyVM::AbstractSyntaxTree.of(method(:hello))
   #     # => #<RubyVM::AbstractSyntaxTree::Node:SCOPE@1:0-3:3>
-  def self.of body, keep_script_lines: false, error_tolerant: false, cst: false, yydebug: false
-    Primitive.ast_s_of body, keep_script_lines, error_tolerant, cst, yydebug
+  def self.of body, keep_script_lines: false, error_tolerant: false, keep_tokens: false, yydebug: false
+    Primitive.ast_s_of body, keep_script_lines, error_tolerant, keep_tokens, yydebug
   end
 
   # RubyVM::AbstractSyntaxTree::Node instances are created by parse methods in
@@ -121,10 +121,10 @@ module RubyVM::AbstractSyntaxTree
       Primitive.ast_node_last_column
     end
 
-    def cst
-      return nil unless tokens
+    def tokens
+      return nil unless all_tokens
 
-      tokens.each_with_object([]) do |token, a|
+      all_tokens.each_with_object([]) do |token, a|
         loc = token.last
         if ([first_lineno, first_column] <=> [loc[0], loc[1]]) <= 0 &&
            ([last_lineno, last_column]   <=> [loc[2], loc[3]]) >= 0
@@ -133,8 +133,8 @@ module RubyVM::AbstractSyntaxTree
       end
     end
 
-    def tokens
-      Primitive.ast_node_tokens
+    def all_tokens
+      Primitive.ast_node_all_tokens
     end
 
     #  call-seq:

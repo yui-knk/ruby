@@ -110,7 +110,7 @@ RBIMPL_WARNING_POP()
 	{								\
 	  (Current).beg_pos = YYRHSLOC(Rhs, 1).beg_pos;			\
 	  (Current).end_pos = YYRHSLOC(Rhs, N).end_pos;			\
-	  if (p->cst) {							\
+	  if (p->keep_tokens) {						\
 	    VALUE ary = rb_ary_new();					\
 	    int nterm_id = p->nterm_id;					\
 	    p->nterm_id++;						\
@@ -392,7 +392,7 @@ struct parser_params {
     unsigned int do_split: 1;
     unsigned int keep_script_lines: 1;
     unsigned int error_tolerant: 1;
-    unsigned int cst: 1;
+    unsigned int keep_tokens: 1;
 
     NODE *eval_tree_begin;
     NODE *eval_tree;
@@ -405,7 +405,7 @@ struct parser_params {
     int token_id;
     /* id for nterms */
     int nterm_id;
-    /* Array for cst tokens */
+    /* Array for term tokens */
     VALUE tokens;
     /* Array for nterm tokens */
     VALUE nterm_tokens;
@@ -6330,7 +6330,7 @@ ripper_yylval_id(struct parser_params *p, ID x)
 static void
 rb_parser_append_symbol(struct parser_params *p, VALUE ary, YYLTYPE *loc)
 {
-    if (!p->cst) return;
+    if (!p->keep_tokens) return;
     if (loc->symbol_id < 0) return;
 
     if (loc->symbol_id % 2 == 0) {
@@ -6346,7 +6346,7 @@ rb_parser_append_symbol(struct parser_params *p, VALUE ary, YYLTYPE *loc)
 static bool
 parser_has_token(struct parser_params *p)
 {
-    if (p->cst && (p->lex.pcur < p->lex.ptok)) rb_bug("lex.pcur < lex.ptok. (line: %d) %ld|%ld|%ld", p->ruby_sourceline, p->lex.ptok - p->lex.pbeg, p->lex.pcur - p->lex.ptok, p->lex.pend - p->lex.pcur);
+    if (p->keep_tokens && (p->lex.pcur < p->lex.ptok)) rb_bug("lex.pcur < lex.ptok. (line: %d) %ld|%ld|%ld", p->ruby_sourceline, p->lex.ptok - p->lex.pbeg, p->lex.pcur - p->lex.ptok, p->lex.pend - p->lex.pcur);
     return p->lex.pcur > p->lex.ptok;
 }
 
@@ -6393,7 +6393,7 @@ parser_dispatch_scan_event(struct parser_params *p, enum yytokentype t, int line
 
     RUBY_SET_YYLLOC(*p->yylloc);
 
-    if (p->cst) {
+    if (p->keep_tokens) {
 	VALUE str = STR_NEW(p->lex.ptok, p->lex.pcur - p->lex.ptok);
 	parser_append_tokens(p, str, t, line);
     }
@@ -6414,7 +6414,7 @@ parser_dispatch_delayed_token(struct parser_params *p, enum yytokentype t, int l
 
     RUBY_SET_YYLLOC_OF_DELAYED_TOKEN(*p->yylloc);
 
-    if (p->cst) {
+    if (p->keep_tokens) {
 	p->ruby_sourceline = p->delayed.beg_line;
 	p->lex.ptok = p->lex.pbeg + p->delayed.beg_col;
 	parser_append_tokens(p, p->delayed.token, t, line);
@@ -6962,7 +6962,7 @@ yycompile0(VALUE arg)
 	prelude = block_append(p, p->eval_tree_begin, body);
 	tree->nd_body = prelude;
         RB_OBJ_WRITE(p->ast, &p->ast->body.compile_option, opt);
-	if (p->cst) {
+	if (p->keep_tokens) {
 	    rb_obj_freeze(tokens);
 	    rb_obj_freeze(nterm_tokens);
 	    rb_ast_set_tokens(p->ast, tokens);
@@ -8472,7 +8472,7 @@ parser_dispatch_heredoc_end(struct parser_params *p, int line)
     if (has_delayed_token(p))
 	dispatch_delayed_token(p, tSTRING_CONTENT);
 
-    if (p->cst) {
+    if (p->keep_tokens) {
 	VALUE str = STR_NEW(p->lex.ptok, p->lex.pend - p->lex.ptok);
 	RUBY_SET_YYLLOC_OF_HEREDOC_END(*p->yylloc);
 	parser_append_tokens(p, str, tHEREDOC_END, line);
@@ -14000,12 +14000,12 @@ rb_parser_error_tolerant(VALUE vparser)
 }
 
 void
-rb_parser_cst(VALUE vparser)
+rb_parser_keep_tokens(VALUE vparser)
 {
     struct parser_params *p;
 
     TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
-    p->cst = 1;
+    p->keep_tokens = 1;
     p->tokens = rb_ary_new();
     p->nterm_tokens = rb_ary_new();
 }
