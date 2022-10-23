@@ -5996,13 +5996,15 @@ ripper_dispatch_scan_event(struct parser_params *p, enum yytokentype t)
 }
 #define dispatch_scan_event(p, t) ripper_dispatch_scan_event(p, t)
 
+#define has_delayed_token(p) (!NIL_P(p->delayed.token))
+
 static void
 ripper_dispatch_delayed_token(struct parser_params *p, enum yytokentype t)
 {
     int saved_line = p->ruby_sourceline;
     const char *saved_tokp = p->lex.ptok;
 
-    if (NIL_P(p->delayed.token)) return;
+    if (!has_delayed_token(p)) return;
     p->ruby_sourceline = p->delayed.line;
     p->lex.ptok = p->lex.pbeg + p->delayed.col;
     add_mark_object(p, yylval_rval = ripper_dispatch1(p, ripper_token2eventid(t), p->delayed.token));
@@ -6011,7 +6013,6 @@ ripper_dispatch_delayed_token(struct parser_params *p, enum yytokentype t)
     p->lex.ptok = saved_tokp;
 }
 #define dispatch_delayed_token(p, t) ripper_dispatch_delayed_token(p, t)
-#define has_delayed_token(p) (!NIL_P(p->delayed.token))
 #endif /* RIPPER */
 
 static inline int
