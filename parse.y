@@ -12209,7 +12209,7 @@ new_args(struct parser_params *p, NODE *pre_args, NODE *opt_args, ID rest_arg, N
 
     if (args->forwarding) {
 	if (rest_arg) {
-	    yyerror1(&tail->nd_loc, "... after rest argument");
+	    //yyerror1(&tail->nd_loc, "... after rest argument");
 	    return tail;
 	}
 	rest_arg = idFWD_REST;
