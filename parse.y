@@ -7001,6 +7001,7 @@ add_delayed_token(struct parser_params *p, const char *tok, const char *end, int
 {
 #ifndef RIPPER
     debug_token_line(p, "add_delayed_token", line);
+    if (!p->keep_tokens) return;
 #endif
 
     if (tok < end) {
