@@ -274,7 +274,7 @@ rb_reserved_word (register const char *str, register size_t len)
 #line 23 "defs/keywords"
       {gperf_offsetof(stringpool, 46), {keyword_defined, keyword_defined}, EXPR_ARG},
 #line 21 "defs/keywords"
-      {gperf_offsetof(stringpool, 47), {keyword_class, keyword_class}, EXPR_CLASS},
+      {gperf_offsetof(stringpool, 47), {keyword_class, keyword_class}, 0},
       {-1}, {-1},
 #line 50 "defs/keywords"
       {gperf_offsetof(stringpool, 50), {keyword_while, modifier_while}, EXPR_VALUE}

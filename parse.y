@@ -3703,6 +3703,7 @@ k_for		: keyword_for
 
 k_class		: keyword_class
 		    {
+			SET_LEX_STATE(EXPR_CLASS);
 			token_info_push(p, "class", &@$);
 			$<ctxt>$ = p->ctxt;
 		    /*%%%*/
