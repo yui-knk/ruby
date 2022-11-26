@@ -149,7 +149,7 @@ enum lex_state_bits {
     EXPR_CMDARG_bit,		/* newline significant, +/- is an operator. */
     EXPR_MID_bit,		/* newline significant, +/- is an operator. */
     EXPR_FNAME_bit,		/* ignore newline, no reserved words. */
-    EXPR_DOT_bit,		/* right after `.' or `::', no reserved words. */
+    EXPR_DOT_bit,		/* right after `.', `&.' or `::', no reserved words. */
     EXPR_CLASS_bit,		/* immediate after `class', no here document. */
     EXPR_LABEL_bit,		/* flag bit, label is allowed. */
     EXPR_LABELED_bit,		/* flag bit, just after a label. */
@@ -1488,6 +1488,7 @@ static int looking_at_eol_p(struct parser_params *p);
 %type <id>   keyword_variable user_variable sym operation operation2 operation3
 %type <id>   cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg f_bad_arg
 %type <id>   f_kwrest f_label f_arg_asgn call_op call_op2 reswords relop dot_or_colon
+%type <id>   t_COLON2
 %type <id>   p_rest p_kwrest p_kwnorest p_any_kwrest p_kw_label
 %type <id>   f_no_kwarg f_any_kwrest args_forward excessed_comma nonlocal_var
  %type <ctxt> lex_ctxt /* keep <ctxt> in ripper */
@@ -1900,7 +1901,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*% %*/
 		    /*% ripper: opassign!(field!($1, $2, $3), $4, $6) %*/
 		    }
-		| primary_value tCOLON2 tCONSTANT tOP_ASGN lex_ctxt command_rhs
+		| primary_value t_COLON2 tCONSTANT tOP_ASGN lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			YYLTYPE loc = code_loc_gen(&@1, &@3);
@@ -1908,7 +1909,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*% %*/
 		    /*% ripper: opassign!(const_path_field!($1, $3), $4, $6) %*/
 		    }
-		| primary_value tCOLON2 tIDENTIFIER tOP_ASGN lex_ctxt command_rhs
+		| primary_value t_COLON2 tIDENTIFIER tOP_ASGN lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = new_attr_op_assign(p, $1, ID2VAL(idCOLON2), $3, $4, $6, &@$);
@@ -2188,14 +2189,14 @@ command		: fcall command_args       %prec tLOWEST
 		    /*% %*/
 		    /*% ripper: method_add_block!(command_call!($1, $2, $3, $4), $5) %*/
 		    }
-		| primary_value tCOLON2 operation2 command_args	%prec tLOWEST
+		| primary_value t_COLON2 operation2 command_args	%prec tLOWEST
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, ID2VAL(idCOLON2), $1, $3, $4, Qnull, &@3, &@$);
 		    /*% %*/
 		    /*% ripper: command_call!($1, ID2VAL(idCOLON2), $3, $4) %*/
 		    }
-		| primary_value tCOLON2 operation2 command_args cmd_brace_block
+		| primary_value t_COLON2 operation2 command_args cmd_brace_block
 		    {
 		    /*%%%*/
 			$$ = new_command_qcall(p, ID2VAL(idCOLON2), $1, $3, $4, $5, &@3, &@$);
@@ -2406,7 +2407,7 @@ mlhs_node	: user_variable
 		    /*% %*/
 		    /*% ripper: field!($1, $2, $3) %*/
 		    }
-		| primary_value tCOLON2 tIDENTIFIER
+		| primary_value t_COLON2 tIDENTIFIER
 		    {
 		    /*%%%*/
 			$$ = attrset(p, $1, idCOLON2, $3, &@$);
@@ -2423,7 +2424,7 @@ mlhs_node	: user_variable
 		    /*% %*/
 		    /*% ripper: field!($1, $2, $3) %*/
 		    }
-		| primary_value tCOLON2 tCONSTANT
+		| primary_value t_COLON2 tCONSTANT
 		    {
 		    /*%%%*/
 			$$ = const_decl(p, NEW_COLON2($1, $3, &@$), &@$);
@@ -2475,7 +2476,7 @@ lhs		: user_variable
 		    /*% %*/
 		    /*% ripper: field!($1, $2, $3) %*/
 		    }
-		| primary_value tCOLON2 tIDENTIFIER
+		| primary_value t_COLON2 tIDENTIFIER
 		    {
 		    /*%%%*/
 			$$ = attrset(p, $1, idCOLON2, $3, &@$);
@@ -2489,7 +2490,7 @@ lhs		: user_variable
 		    /*% %*/
 		    /*% ripper: field!($1, $2, $3) %*/
 		    }
-		| primary_value tCOLON2 tCONSTANT
+		| primary_value t_COLON2 tCONSTANT
 		    {
 		    /*%%%*/
 			$$ = const_decl(p, NEW_COLON2($1, $3, &@$), &@$);
@@ -2538,7 +2539,7 @@ cpath		: tCOLON3 cname
 		    /*% %*/
 		    /*% ripper: const_ref!($1) %*/
 		    }
-		| primary_value tCOLON2 cname
+		| primary_value t_COLON2 cname
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON2($1, $3, &@$);
@@ -2666,14 +2667,14 @@ arg		: lhs '=' lex_ctxt arg_rhs
 		    /*% %*/
 		    /*% ripper: opassign!(field!($1, $2, $3), $4, $6) %*/
 		    }
-		| primary_value tCOLON2 tIDENTIFIER tOP_ASGN lex_ctxt arg_rhs
+		| primary_value t_COLON2 tIDENTIFIER tOP_ASGN lex_ctxt arg_rhs
 		    {
 		    /*%%%*/
 			$$ = new_attr_op_assign(p, $1, ID2VAL(idCOLON2), $3, $4, $6, &@$);
 		    /*% %*/
 		    /*% ripper: opassign!(field!($1, ID2VAL(idCOLON2), $3), $4, $6) %*/
 		    }
-		| primary_value tCOLON2 tCONSTANT tOP_ASGN lex_ctxt arg_rhs
+		| primary_value t_COLON2 tCONSTANT tOP_ASGN lex_ctxt arg_rhs
 		    {
 		    /*%%%*/
 			YYLTYPE loc = code_loc_gen(&@1, &@3);
@@ -3275,7 +3276,7 @@ primary		: literal
 		    /*% %*/
 		    /*% ripper: paren!($2) %*/
 		    }
-		| primary_value tCOLON2 tCONSTANT
+		| primary_value t_COLON2 tCONSTANT
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON2($1, $3, &@$);
@@ -4239,7 +4240,7 @@ method_call	: fcall paren_args
 		    /*% %*/
 		    /*% ripper: opt_event(:method_add_arg!, call!($1, $2, $3), $4) %*/
 		    }
-		| primary_value tCOLON2 operation2 paren_args
+		| primary_value t_COLON2 operation2 paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, ID2VAL(idCOLON2), $1, $3, $4, &@3, &@$);
@@ -4247,7 +4248,7 @@ method_call	: fcall paren_args
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, ID2VAL(idCOLON2), $3), $4) %*/
 		    }
-		| primary_value tCOLON2 operation3
+		| primary_value t_COLON2 operation3
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, ID2VAL(idCOLON2), $1, $3, Qnull, &@3, &@$);
@@ -4262,7 +4263,7 @@ method_call	: fcall paren_args
 		    /*% %*/
 		    /*% ripper: method_add_arg!(call!($1, $2, ID2VAL(idCall)), $3) %*/
 		    }
-		| primary_value tCOLON2 paren_args
+		| primary_value t_COLON2 paren_args
 		    {
 		    /*%%%*/
 			$$ = new_qcall(p, ID2VAL(idCOLON2), $1, ID2VAL(idCall), $3, &@2, &@$);
@@ -4925,7 +4926,7 @@ p_const 	: tCOLON3 cname
 		    /*% %*/
 		    /*% ripper: top_const_ref!($2) %*/
 		    }
-		| p_const tCOLON2 cname
+		| p_const t_COLON2 cname
 		    {
 		    /*%%%*/
 			$$ = NEW_COLON2($1, $3, &@$);
@@ -6078,15 +6079,30 @@ operation3	: tIDENTIFIER
 		;
 
 dot_or_colon	: '.'
-		| tCOLON2
+		    {
+			SET_LEX_STATE(EXPR_DOT);
+		    }
+		| t_COLON2
 		;
 
 call_op 	: '.'
+		    {
+			SET_LEX_STATE(EXPR_DOT);
+		    }
 		| tANDDOT
+		    {
+			SET_LEX_STATE(EXPR_DOT);
+		    }
 		;
 
 call_op2	: call_op
-		| tCOLON2
+		| t_COLON2
+		;
+
+t_COLON2	: tCOLON2
+		    {
+			SET_LEX_STATE(EXPR_DOT);
+		    }
 		;
 
 opt_terms	: /* none */
@@ -10107,7 +10123,6 @@ parser_yylex(struct parser_params *p)
 	}
 	else if (c == '.') {
 	    set_yylval_id(idANDDOT);
-	    SET_LEX_STATE(EXPR_DOT);
 	    return tANDDOT;
 	}
 	pushback(p, c);
@@ -10248,7 +10263,6 @@ parser_yylex(struct parser_params *p)
 	    goto retry;
 	}
 	set_yylval_id('.');
-	SET_LEX_STATE(EXPR_DOT);
 	return '.';
       }
 
@@ -10287,7 +10301,6 @@ parser_yylex(struct parser_params *p)
 		return tCOLON3;
 	    }
 	    set_yylval_id(idCOLON2);
-	    SET_LEX_STATE(EXPR_DOT);
 	    return tCOLON2;
 	}
 	if (IS_END() || ISSPACE(c) || c == '#') {
