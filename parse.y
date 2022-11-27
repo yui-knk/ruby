@@ -2099,12 +2099,6 @@ expr_value	: expr
 			value_expr($1);
 			$$ = $1;
 		    }
-		| error
-		    {
-		    /*%%%*/
-			$$ = NEW_ERROR(&@$);
-		    /*% %*/
-		    }
 		;
 
 expr_value_do	: {COND_PUSH(1);} expr_value do {COND_POP();}
@@ -13817,7 +13811,7 @@ rb_parser_error_tolerant(VALUE vparser)
 
     TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
     p->error_tolerant = 1;
-    p->end_expect_token_locations = rb_ary_new();
+    // p->end_expect_token_locations = rb_ary_new();
 }
 
 void
