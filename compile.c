@@ -5780,6 +5780,28 @@ check_keyword(const NODE *node)
     return keyword_node_p(node);
 }
 
+static int
+only_double_splat_p(const NODE *node)
+{
+    int count = 0;
+    node = node->nd_head;
+
+    for (; node; node = node->nd_next) {
+        if (node->nd_head) count++;
+    }
+
+    return count == 1;
+}
+
+static int
+forwarding_args_p(const NODE *argn)
+{
+    if (!(nd_type_p(argn, NODE_ARGSPUSH) && nd_type_p(argn->nd_head, NODE_SPLAT) && keyword_node_p(argn->nd_body)))
+        return 0;
+
+    return only_double_splat_p(argn->nd_body);
+}
+
 static VALUE
 setup_args_core(rb_iseq_t *iseq, LINK_ANCHOR *const args, const NODE *argn,
                 int dup_rest, unsigned int *flag, struct rb_callinfo_kwarg **keywords)
@@ -5796,12 +5818,16 @@ setup_args_core(rb_iseq_t *iseq, LINK_ANCHOR *const args, const NODE *argn,
           case NODE_ARGSPUSH: {
             int next_is_list = (nd_type_p(argn->nd_head, NODE_LIST));
             VALUE argc = setup_args_core(iseq, args, argn->nd_head, 1, NULL, NULL);
+            /* Special case for foo(*arg, **kw) */
+            int forwarding_args = forwarding_args_p(argn);
             if (nd_type_p(argn->nd_body, NODE_LIST)) {
                 /* This branch is needed to avoid "newarraykwsplat" [Bug #16442] */
                 int rest_len = compile_args(iseq, args, argn->nd_body, NULL, NULL);
                 ADD_INSN1(args, argn, newarray, INT2FIX(rest_len));
             }
-            else {
+            else if (forwarding_args) {
+                NO_CHECK(COMPILE(args, "keyword splat", argn->nd_body->nd_head->nd_next->nd_head));
+            } else {
                 NO_CHECK(COMPILE(args, "args (cat: splat)", argn->nd_body));
             }
             if (flag) {
@@ -5821,6 +5847,9 @@ setup_args_core(rb_iseq_t *iseq, LINK_ANCHOR *const args, const NODE *argn,
                     ADD_INSN(args, argn, concatarray);
                     return argc;
                 }
+            }
+            else if (forwarding_args) {
+                return INT2FIX(FIX2INT(argc) + 1);
             }
             else {
                 ADD_INSN1(args, argn, newarray, INT2FIX(1));
