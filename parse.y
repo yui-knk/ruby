@@ -1851,12 +1851,6 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 		    /*% ripper: massign!($1, $4) %*/
 		    }
 		| expr
-		| error
-		    {
-		    /*%%%*/
-			$$ = NEW_ERROR(&@$);
-		    /*% %*/
-		    }
 		;
 
 command_asgn	: lhs '=' lex_ctxt command_rhs
