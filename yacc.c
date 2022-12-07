@@ -1661,6 +1661,7 @@ yyparse (]m4_ifset([b4_parse_param], [b4_formals(b4_parse_param)], [void])[)]])]
   int yy_recovery_count = 0;
   int yychar_er_backup;
   YYSTYPE yylval_er_backup;
+  yy_state_fast_t yy_error_state = 0;
 
   /* Lookahead symbol kind.  */
   yysymbol_kind_t yytoken = ]b4_symbol(empty, kind)[;
@@ -1817,8 +1818,9 @@ yysetstate:
 yyrecover:
   yychar_er_backup = yychar;
   yylval_er_backup = yylval;
-  yychar = recovery_tokens[yystate * YY_RECOVER_LIMIT + yy_recovery_count];
-  yylval = recovery_semantic_values[yystate * YY_RECOVER_LIMIT + yy_recovery_count];
+  yy_error_state = yy_error_state ? yy_error_state : yystate;
+  yychar = recovery_tokens[yy_error_state * YY_RECOVER_LIMIT + yy_recovery_count];
+  yylval = recovery_semantic_values[yy_error_state * YY_RECOVER_LIMIT + yy_recovery_count];
   yy_recovery_count++;
   YY_SYMBOL_PRINT ("Using a recovery token:", YYTRANSLATE (yychar), &yylval, &yylloc);
   goto yybackup;
@@ -1910,9 +1912,10 @@ yyread_pushed_token:]])[
     {
       if (yytable_value_is_error (yyn))
         {
+          yy_state_fast_t state = yy_error_state ? yy_error_state : yystate;
           if (!YYRECOVER_ENABLE) goto yyerrlab;
-          YYDPRINTF ((stderr, "Checking a recovery token: %d -> %d\n", yystate * YY_RECOVER_LIMIT + yy_recovery_count, recovery_tokens[yystate * YY_RECOVER_LIMIT + yy_recovery_count]));
-          if (recovery_tokens[yystate * YY_RECOVER_LIMIT + yy_recovery_count] == YY_CANNOT_RECOVER || yy_recovery_count >= YY_RECOVER_LIMIT)
+          YYDPRINTF ((stderr, "Checking a recovery token in yybackup: %d -> %d\n", state * YY_RECOVER_LIMIT + yy_recovery_count, recovery_tokens[state * YY_RECOVER_LIMIT + yy_recovery_count]));
+          if (recovery_tokens[state * YY_RECOVER_LIMIT + yy_recovery_count] == YY_CANNOT_RECOVER || yy_recovery_count >= YY_RECOVER_LIMIT)
           {
             yy_recovery_count = 0;
             goto yyerrlab;
@@ -1938,6 +1941,7 @@ yyread_pushed_token:]])[
       yychar_er_backup = 0;
       yylval_er_backup.id = 0;
       yy_recovery_count = 0;
+      yy_error_state = 0;
     }
   yystate = yyn;
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
@@ -1958,9 +1962,10 @@ yydefault:
   yyn = yydefact[yystate];
   if (yyn == 0)
     {
+      yy_state_fast_t state = yy_error_state ? yy_error_state : yystate;
       if (!YYRECOVER_ENABLE) goto yyerrlab;
-      YYDPRINTF ((stderr, "Checking a recovery token: %d -> %d\n", yystate * YY_RECOVER_LIMIT + yy_recovery_count, recovery_tokens[yystate * YY_RECOVER_LIMIT + yy_recovery_count]));
-      if (recovery_tokens[yystate * YY_RECOVER_LIMIT + yy_recovery_count] == YY_CANNOT_RECOVER || yy_recovery_count >= YY_RECOVER_LIMIT)
+      YYDPRINTF ((stderr, "Checking a recovery token in yydefault: %d -> %d\n", state * YY_RECOVER_LIMIT + yy_recovery_count, recovery_tokens[state * YY_RECOVER_LIMIT + yy_recovery_count]));
+      if (recovery_tokens[state * YY_RECOVER_LIMIT + yy_recovery_count] == YY_CANNOT_RECOVER || yy_recovery_count >= YY_RECOVER_LIMIT)
         {
           yy_recovery_count = 0;
           goto yyerrlab;
