@@ -879,6 +879,10 @@ int yydebug;
 # define YYINITDEPTH ]b4_stack_depth_init[
 #endif
 
+#ifndef YYRECOVER_ENABLE
+# define YYRECOVER_ENABLE 0
+#endif
+
 /* YYMAXDEPTH -- maximum size the stacks can grow to (effective only
    if the built-in stack extension method is used).
 
@@ -1906,6 +1910,7 @@ yyread_pushed_token:]])[
     {
       if (yytable_value_is_error (yyn))
         {
+          if (!YYRECOVER_ENABLE) goto yyerrlab;
           YYDPRINTF ((stderr, "Checking a recovery token: %d -> %d\n", yystate * YY_RECOVER_LIMIT + yy_recovery_count, recovery_tokens[yystate * YY_RECOVER_LIMIT + yy_recovery_count]));
           if (recovery_tokens[yystate * YY_RECOVER_LIMIT + yy_recovery_count] == YY_CANNOT_RECOVER || yy_recovery_count >= YY_RECOVER_LIMIT)
           {
@@ -1953,6 +1958,7 @@ yydefault:
   yyn = yydefact[yystate];
   if (yyn == 0)
     {
+      if (!YYRECOVER_ENABLE) goto yyerrlab;
       YYDPRINTF ((stderr, "Checking a recovery token: %d -> %d\n", yystate * YY_RECOVER_LIMIT + yy_recovery_count, recovery_tokens[yystate * YY_RECOVER_LIMIT + yy_recovery_count]));
       if (recovery_tokens[yystate * YY_RECOVER_LIMIT + yy_recovery_count] == YY_CANNOT_RECOVER || yy_recovery_count >= YY_RECOVER_LIMIT)
         {

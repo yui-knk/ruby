@@ -480,6 +480,7 @@ struct rb_fnd_pattern_info {
 };
 
 struct parser_params;
+int rb_parser_recover_enable_p(struct parser_params *);
 void *rb_parser_malloc(struct parser_params *, size_t);
 void *rb_parser_realloc(struct parser_params *, void *, size_t);
 void *rb_parser_calloc(struct parser_params *, size_t, size_t);

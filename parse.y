@@ -97,6 +97,8 @@ RBIMPL_WARNING_POP()
 
 #define yydebug (p->debug)	/* disable the global variable definition */
 
+#define YYRECOVER_ENABLE	rb_parser_recover_enable_p(p)
+
 #define YYMALLOC(size)		rb_parser_malloc(p, (size))
 #define YYREALLOC(ptr, size)	rb_parser_realloc(p, (ptr), (size))
 #define YYCALLOC(nelem, size)	rb_parser_calloc(p, (nelem), (size))
@@ -13957,6 +13959,12 @@ rb_parser_set_debug_output(VALUE self, VALUE output)
 #define NEWHEAP() rb_imemo_tmpbuf_parser_heap(0, p->heap, 0)
 #define ADD2HEAP(new, cnt, ptr) ((p->heap = (new))->ptr = (ptr), \
 			   (new)->cnt = (cnt), (ptr))
+
+int
+rb_parser_recover_enable_p(struct parser_params *p)
+{
+    return p->error_tolerant;
+}
 
 void *
 rb_parser_malloc(struct parser_params *p, size_t size)
