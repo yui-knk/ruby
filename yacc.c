@@ -883,6 +883,13 @@ int yydebug;
 # define YYRECOVER_ENABLE 0
 #endif
 
+# define YY_RECOVER_CHECK_TOKEN_PRINT(name, yystate, state, limit, count) \
+do {                                        \
+  if (yydebug)                              \
+    YYDPRINTF ((stderr, "Checking a recovery token in " name ": (Current state: %d, Recovery count: %d) %d -> %d\n", yystate, count, state * limit + count, recovery_tokens[state * limit + count])); \
+} while (0)
+
+
 /* YYMAXDEPTH -- maximum size the stacks can grow to (effective only
    if the built-in stack extension method is used).
 
@@ -1914,7 +1921,7 @@ yyread_pushed_token:]])[
         {
           yy_state_fast_t state = yy_error_state ? yy_error_state : yystate;
           if (!YYRECOVER_ENABLE) goto yyerrlab;
-          YYDPRINTF ((stderr, "Checking a recovery token in yybackup: %d -> %d\n", state * YY_RECOVER_LIMIT + yy_recovery_count, recovery_tokens[state * YY_RECOVER_LIMIT + yy_recovery_count]));
+          YY_RECOVER_CHECK_TOKEN_PRINT ("yybackup", yystate, state, YY_RECOVER_LIMIT, yy_recovery_count);
           if (recovery_tokens[state * YY_RECOVER_LIMIT + yy_recovery_count] == YY_CANNOT_RECOVER || yy_recovery_count >= YY_RECOVER_LIMIT)
           {
             yy_recovery_count = 0;
@@ -1964,7 +1971,7 @@ yydefault:
     {
       yy_state_fast_t state = yy_error_state ? yy_error_state : yystate;
       if (!YYRECOVER_ENABLE) goto yyerrlab;
-      YYDPRINTF ((stderr, "Checking a recovery token in yydefault: %d -> %d\n", state * YY_RECOVER_LIMIT + yy_recovery_count, recovery_tokens[state * YY_RECOVER_LIMIT + yy_recovery_count]));
+      YY_RECOVER_CHECK_TOKEN_PRINT ("yydefault", yystate, state, YY_RECOVER_LIMIT, yy_recovery_count);
       if (recovery_tokens[state * YY_RECOVER_LIMIT + yy_recovery_count] == YY_CANNOT_RECOVER || yy_recovery_count >= YY_RECOVER_LIMIT)
         {
           yy_recovery_count = 0;
