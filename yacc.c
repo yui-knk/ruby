@@ -1872,9 +1872,9 @@ yybackup:
 yyread_pushed_token:]])[
       if (yy_recovery_count)
         {
-          YYDPRINTF ((stderr, "Restore a token\n"));
           yychar = yychar_er_backup;
           yylval = yylval_er_backup;
+          YY_SYMBOL_PRINT ("Restore a token:", YYTRANSLATE (yychar), &yylval, &yylloc);
         }
       else
         {
@@ -1950,7 +1950,7 @@ yyread_pushed_token:]])[
   YY_SYMBOL_PRINT ("Shifting", yytoken, &yylval, &yylloc);
   if (yychar == yychar_er_backup)
     {
-      YYDPRINTF ((stderr, "Recovered\n"));
+      YYDPRINTF ((stderr, "Recovered (backup token is same with recovery token)\n"));
       yychar_er_backup = 0;
       yylval_er_backup.id = 0;
       yy_recovery_count = 0;
@@ -2018,7 +2018,7 @@ yyreduce:
   if (yy_recovery_count && (recovery_tokens[yy_error_state * YY_RECOVER_LIMIT + yy_recovery_count + 1] == YY_CANNOT_RECOVER))
     {
       /* TODO: Refactor here. This is same with yybackup */
-      YYDPRINTF ((p, "Recovered\n"));
+      YYDPRINTF ((p, "Recovered (all recovery tokens are consumed)\n"));
       yychar_er_backup = 0;
       yylval_er_backup.id = 0;
       yy_recovery_count = 0;
