@@ -1948,14 +1948,6 @@ yyread_pushed_token:]])[
 
   /* Shift the lookahead token.  */
   YY_SYMBOL_PRINT ("Shifting", yytoken, &yylval, &yylloc);
-  if (yychar == yychar_er_backup)
-    {
-      YYDPRINTF ((stderr, "Recovered (backup token is same with recovery token)\n"));
-      yychar_er_backup = 0;
-      yylval_er_backup.id = 0;
-      yy_recovery_count = 0;
-      yy_error_state = 0;
-    }
   yystate = yyn;
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   *++yyvsp = yylval;
@@ -2017,8 +2009,9 @@ yyreduce:
    */
   if (yy_recovery_count && (recovery_tokens[yy_error_state * YY_RECOVER_LIMIT + yy_recovery_count + 1] == YY_CANNOT_RECOVER))
     {
-      /* TODO: Refactor here. This is same with yybackup */
       YYDPRINTF ((p, "Recovered (all recovery tokens are consumed)\n"));
+      yychar = yychar_er_backup;
+      yylval = yylval_er_backup;
       yychar_er_backup = 0;
       yylval_er_backup.id = 0;
       yy_recovery_count = 0;
