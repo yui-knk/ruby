@@ -6185,13 +6185,14 @@ code_loc_to_ary(const rb_code_location_t *loc)
 }
 
 static void
-parser_append_tokens(struct parser_params *p, VALUE str, enum yytokentype t, int line)
+parser_append_tokens(struct parser_params *p, VALUE str, enum yytokentype t, int error, int line)
 {
     VALUE ary;
     int token_id;
 
     ary = rb_ary_new2(4);
     token_id = p->token_id;
+    if (error) token_id = token_id * (-1);
     rb_ary_push(ary, INT2FIX(token_id));
     rb_ary_push(ary, ID2SYM(parser_token2id(t)));
     rb_ary_push(ary, str);
@@ -6216,7 +6217,7 @@ parser_dispatch_scan_event(struct parser_params *p, enum yytokentype t, int line
 
     if (p->keep_tokens) {
 	VALUE str = STR_NEW(p->lex.ptok, p->lex.pcur - p->lex.ptok);
-	parser_append_tokens(p, str, t, line);
+	parser_append_tokens(p, str, t, 0, line);
     }
 
     token_flush(p);
@@ -6238,7 +6239,7 @@ parser_dispatch_delayed_token(struct parser_params *p, enum yytokentype t, int l
     if (p->keep_tokens) {
 	p->ruby_sourceline = p->delayed.beg_line;
 	p->lex.ptok = p->lex.pbeg + p->delayed.beg_col;
-	parser_append_tokens(p, p->delayed.token, t, line);
+	parser_append_tokens(p, p->delayed.token, t, 0, line);
 	p->ruby_sourceline = saved_line;
 	p->lex.ptok = saved_tokp;
     }
@@ -8302,7 +8303,7 @@ parser_dispatch_heredoc_end(struct parser_params *p, int line)
     if (p->keep_tokens) {
 	VALUE str = STR_NEW(p->lex.ptok, p->lex.pend - p->lex.ptok);
 	RUBY_SET_YYLLOC_OF_HEREDOC_END(*p->yylloc);
-	parser_append_tokens(p, str, tHEREDOC_END, line);
+	parser_append_tokens(p, str, tHEREDOC_END, 0, line);
     }
 
     RUBY_SET_YYLLOC_FROM_STRTERM_HEREDOC(*p->yylloc);
@@ -13969,7 +13970,7 @@ rb_parser_recover_token_found(struct parser_params *p, enum yytokentype t, YYLTY
     // printf("rb_parser_recover_token_found: %d, %s\n", t, token_str);
     if (p->keep_tokens) {
 	VALUE str = STR_NEW2(token_str);
-	parser_append_tokens(p, str, t, __LINE__);
+	parser_append_tokens(p, str, t, 1, __LINE__);
     }
 }
 
