@@ -883,6 +883,10 @@ int yydebug;
 # define YYRECOVER_ENABLE 0
 #endif
 
+#ifndef YY_RECOVER_TOKEN_FOUND
+# define YY_RECOVER_TOKEN_FOUND(yytoken, yylloc, token_string) (void)0
+#endif
+
 # define YY_RECOVER_CHECK_TOKEN_PRINT(name, yystate, state, limit, count) \
 do {                                        \
   if (yydebug)                              \
@@ -1828,8 +1832,10 @@ yyrecover:
   yy_error_state = yy_error_state ? yy_error_state : yystate;
   yychar = recovery_tokens[yy_error_state * YY_RECOVER_LIMIT + yy_recovery_count];
   yylval = recovery_semantic_values[yy_error_state * YY_RECOVER_LIMIT + yy_recovery_count];
-  yy_recovery_count++;
   YY_SYMBOL_PRINT ("Using a recovery token:", YYTRANSLATE (yychar), &yylval, &yylloc);
+  YY_RECOVER_TOKEN_FOUND (yychar, &yylloc, recovery_token_strings[yy_error_state * YY_RECOVER_LIMIT + yy_recovery_count]);
+  yy_recovery_count++;
+
   goto yybackup;
 
 

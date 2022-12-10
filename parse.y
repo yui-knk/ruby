@@ -98,6 +98,7 @@ RBIMPL_WARNING_POP()
 #define yydebug (p->debug)	/* disable the global variable definition */
 
 #define YYRECOVER_ENABLE	rb_parser_recover_enable_p(p)
+#define YY_RECOVER_TOKEN_FOUND(yychar, yylloc, str) rb_parser_recover_token_found(p, yychar, yylloc, str)
 
 #define YYMALLOC(size)		rb_parser_malloc(p, (size))
 #define YYREALLOC(ptr, size)	rb_parser_realloc(p, (ptr), (size))
@@ -669,6 +670,7 @@ static void token_info_drop(struct parser_params *p, const char *token, rb_code_
 #define lambda_beginning_p() (p->lex.lpar_beg == p->lex.paren_nest)
 
 static enum yytokentype yylex(YYSTYPE*, YYLTYPE*, struct parser_params*);
+void rb_parser_recover_token_found(struct parser_params *p, enum yytokentype t, YYLTYPE *yylloc, const char *token_str);
 
 #ifndef RIPPER
 static inline void
@@ -13817,6 +13819,7 @@ rb_parser_keep_tokens(VALUE vparser)
 
     TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
     p->keep_tokens = 1;
+    // p->debug = 1;
     p->tokens = rb_ary_new();
 }
 
@@ -13958,6 +13961,16 @@ int
 rb_parser_recover_enable_p(struct parser_params *p)
 {
     return p->error_tolerant;
+}
+
+void
+rb_parser_recover_token_found(struct parser_params *p, enum yytokentype t, YYLTYPE *yylloc, const char *token_str)
+{
+    // printf("rb_parser_recover_token_found: %d, %s\n", t, token_str);
+    if (p->keep_tokens) {
+	VALUE str = STR_NEW2(token_str);
+	parser_append_tokens(p, str, t, __LINE__);
+    }
 }
 
 void *
