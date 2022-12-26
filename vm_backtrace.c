@@ -19,7 +19,7 @@
 #include "vm_core.h"
 
 static VALUE rb_cBacktrace;
-static VALUE rb_cBacktraceLocation;
+VALUE rb_cBacktraceLocation;
 
 static VALUE
 id2str(ID id)

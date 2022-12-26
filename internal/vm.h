@@ -101,6 +101,7 @@ void rb_clear_constant_cache(void);
 void rb_print_backtrace(void);
 
 /* vm_backtrace.c */
+extern VALUE rb_cBacktraceLocation;
 VALUE rb_vm_thread_backtrace(int argc, const VALUE *argv, VALUE thval);
 VALUE rb_vm_thread_backtrace_locations(int argc, const VALUE *argv, VALUE thval);
 VALUE rb_vm_backtrace(int argc, const VALUE * argv, struct rb_execution_context_struct * ec);
