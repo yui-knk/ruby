@@ -19,7 +19,7 @@
 #include "vm_core.h"
 
 static VALUE rb_cBacktrace;
-VALUE rb_cBacktraceLocation;
+static VALUE rb_cBacktraceLocation;
 
 static VALUE
 id2str(ID id)
@@ -182,6 +182,15 @@ location_ptr(VALUE locobj)
     return vloc->loc;
 }
 
+/* same as location_ptr() with checking the data type */
+static rb_backtrace_location_t *
+rb_backtrace_location_ptr(VALUE locobj)
+{
+    struct valued_frame_info *vloc;
+    TypedData_Get_Struct(locobj, struct valued_frame_info, &location_data_type, vloc);
+    return vloc->loc;
+}
+
 static int
 location_lineno(rb_backtrace_location_t *loc)
 {
@@ -339,7 +348,7 @@ int
 rb_get_node_id_from_frame_info(VALUE obj)
 {
 #ifdef USE_ISEQ_NODE_ID
-    rb_backtrace_location_t *loc = location_ptr(obj);
+    rb_backtrace_location_t *loc = rb_backtrace_location_ptr(obj);
     return location_node_id(loc);
 #else
     return -1;
