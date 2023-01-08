@@ -1343,7 +1343,7 @@ static int looking_at_eol_p(struct parser_params *p);
 #else
     rb_parser_printf(p, "%"PRIsVALUE, RNODE($$)->nd_rval);
 #endif
-} tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL tOP_ASGN
+} tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL tOP_ASGN keyword_class
 %printer {
 #ifndef RIPPER
     rb_parser_printf(p, "%+"PRIsVALUE, $$->nd_lit);
@@ -1365,6 +1365,10 @@ static int looking_at_eol_p(struct parser_params *p);
     rb_parser_printf(p, "%"PRIsVALUE, $$);
 #endif
 } tBACK_REF
+
+%error-token {
+    $$ = rb_intern("class_er");
+} keyword_class
 
 %lex-param {struct parser_params *p}
 %parse-param {struct parser_params *p}
