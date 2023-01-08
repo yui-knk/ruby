@@ -94,6 +94,7 @@ RBIMPL_WARNING_POP()
 #endif
 
 #define TAB_WIDTH 8
+#define YYMAXREPAIR 5
 
 #define yydebug (p->debug)	/* disable the global variable definition */
 
