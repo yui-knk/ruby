@@ -9953,13 +9953,9 @@ parser_yylex(struct parser_params *p)
       case '!':
 	c = nextc(p);
 	if (IS_AFTER_OPERATOR()) {
-	    SET_LEX_STATE(EXPR_ARG);
 	    if (c == '@') {
 		return '!';
 	    }
-	}
-	else {
-	    SET_LEX_STATE(EXPR_BEG);
 	}
 	if (c == '=') {
 	    return tNEQ;
@@ -10504,6 +10500,9 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case '/':
       case '^':
       case '%':
+      case '!':
+      case tNEQ:
+      case tNMATCH:
 	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
 	break;
 
