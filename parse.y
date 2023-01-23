@@ -10366,7 +10366,6 @@ parser_yylex(struct parser_params *p)
 		return tAREF;
 	    }
 	    pushback(p, c);
-	    SET_LEX_STATE(EXPR_ARG|EXPR_LABEL);
 	    return '[';
 	}
 	else if (IS_BEG()) {
@@ -10375,7 +10374,6 @@ parser_yylex(struct parser_params *p)
 	else if (IS_ARG() && (space_seen || IS_lex_state(EXPR_LABELED))) {
 	    c = tLBRACK;
 	}
-	SET_LEX_STATE(EXPR_BEG|EXPR_LABEL);
 	COND_PUSH(0);
 	CMDARG_PUSH(0);
 	return c;
@@ -10502,6 +10500,11 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case tNMATCH:
       case '~':
 	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
+	break;
+
+      case '[':
+      case tLBRACK:
+	SET_LEX_STATE(IS_AFTER_OPERATOR() ? (EXPR_ARG|EXPR_LABEL) : (EXPR_BEG|EXPR_LABEL));
 	break;
 
       case ')':
