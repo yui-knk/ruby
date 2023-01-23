@@ -7920,7 +7920,6 @@ parser_string_term(struct parser_params *p, int func)
 	SET_LEX_STATE(EXPR_ARG|EXPR_LABELED);
 	return tLABEL_END;
     }
-    SET_LEX_STATE(EXPR_END);
     return tSTRING_END;
 }
 
@@ -7937,7 +7936,6 @@ parse_string(struct parser_params *p, rb_strterm_literal_t *quote)
 
     if (func & STR_FUNC_TERM) {
 	if (func & STR_FUNC_QWORDS) nextc(p); /* delayed term */
-	SET_LEX_STATE(EXPR_END);
 	p->lex.strterm = 0;
 	return func & STR_FUNC_REGEXP ? tREGEXP_END : tSTRING_END;
     }
@@ -8389,7 +8387,6 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
 		      (int)len, eos);
 	token_flush(p);
 	p->lex.strterm = 0;
-	SET_LEX_STATE(EXPR_END);
 	return tSTRING_END;
     }
     bol = was_bol(p);
@@ -8409,7 +8406,6 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
 	heredoc_restore(p, &p->lex.strterm->u.heredoc);
 	token_flush(p);
 	p->lex.strterm = 0;
-	SET_LEX_STATE(EXPR_END);
 	return tSTRING_END;
     }
 
@@ -10505,6 +10501,7 @@ static void
 rb_update_lex_state(struct parser_params *p, enum yytokentype t)
 {
     switch (t) {
+      case tSTRING_END:
       case tREGEXP_END:
 	SET_LEX_STATE(EXPR_END);
 	break;
