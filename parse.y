@@ -9912,7 +9912,6 @@ parser_yylex(struct parser_params *p)
 	}
       normal_newline:
 	p->command_start = TRUE;
-	SET_LEX_STATE(EXPR_BEG);
 	return '\n';
 
       case '*':
@@ -10478,6 +10477,7 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case tLAMBEG:
       case '{':
       case tLBRACE_ARG:
+      case '\n':
 	SET_LEX_STATE(EXPR_BEG);
 	break;
 
