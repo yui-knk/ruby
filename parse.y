@@ -9949,7 +9949,6 @@ parser_yylex(struct parser_params *p)
 		c = warn_balanced('*', "*", "argument prefix");
 	    }
 	}
-	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
 	return c;
 
       case '!':
@@ -10496,6 +10495,10 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case tGEQ:
       case tRSHFT:
       case '>':
+      case tDSTAR:
+      case tPOW:
+      case tSTAR:
+      case '*':
 	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
 	break;
 
