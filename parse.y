@@ -10339,7 +10339,6 @@ parser_yylex(struct parser_params *p)
 	return '^';
 
       case ';':
-	SET_LEX_STATE(EXPR_BEG);
 	p->command_start = TRUE;
 	return ';';
 
@@ -10481,7 +10480,8 @@ parser_yylex(struct parser_params *p)
 static void
 rb_update_lex_state(struct parser_params *p, enum yytokentype t)
 {
-    switch (t) {
+    switch ((int) t) {
+      case ';':
       case tOP_ASGN:
       case tANDOP:
       case tCOLON3:
