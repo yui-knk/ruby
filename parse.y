@@ -10021,13 +10021,10 @@ parser_yylex(struct parser_params *p)
 	    int token = heredoc_identifier(p);
 	    if (token) return token < 0 ? 0 : token;
 	}
-	if (IS_AFTER_OPERATOR()) {
-	    SET_LEX_STATE(EXPR_ARG);
-	}
-	else {
+	if (!IS_AFTER_OPERATOR()) {
 	    if (IS_lex_state(EXPR_CLASS))
 		p->command_start = TRUE;
-	    SET_LEX_STATE(EXPR_BEG);
+
 	}
 	if (c == '=') {
 	    if ((c = nextc(p)) == '>') {
@@ -10479,6 +10476,10 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
 	SET_LEX_STATE(EXPR_ARG);
 	break;
 
+      case tCMP:
+      case tLEQ:
+      case tLSHFT:
+      case '<':
       case tGEQ:
       case tRSHFT:
       case '>':
