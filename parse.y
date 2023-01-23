@@ -10001,7 +10001,6 @@ parser_yylex(struct parser_params *p)
 	    }
 	}
 
-	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
 	if ((c = nextc(p)) == '=') {
 	    if ((c = nextc(p)) == '=') {
 		return tEQQ;
@@ -10499,6 +10498,11 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case tPOW:
       case tSTAR:
       case '*':
+      case tEQQ:
+      case tEQ:
+      case tMATCH:
+      case tASSOC:
+      case '=':
 	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
 	break;
 
