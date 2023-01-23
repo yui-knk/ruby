@@ -9251,7 +9251,6 @@ parse_qmark(struct parser_params *p, int space_seen)
     VALUE lit;
 
     if (IS_END()) {
-	SET_LEX_STATE(EXPR_VALUE);
 	return '?';
     }
     c = nextc(p);
@@ -9268,7 +9267,6 @@ parse_qmark(struct parser_params *p, int space_seen)
 	}
       ternary:
 	pushback(p, c);
-	SET_LEX_STATE(EXPR_VALUE);
 	return '?';
     }
     newtok(p);
@@ -10458,6 +10456,10 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case '\n':
       case ':':
 	SET_LEX_STATE(EXPR_BEG);
+	break;
+
+      case '?':
+	SET_LEX_STATE(EXPR_VALUE);
 	break;
 
       case ',':
