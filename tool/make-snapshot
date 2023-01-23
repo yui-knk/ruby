@@ -485,7 +485,7 @@ touch-unicode-files:
       ENV["CACHE_SAVE"] = "no"
       make = MAKE.new(args)
       return unless make.run("update-download")
-      clean.push("rbconfig.rb", ".rbconfig.time", "enc.mk", "ext/ripper/y.output", ".revision.time")
+      clean.push("rbconfig.rb", ".rbconfig.time", "enc.mk", ".revision.time")
       Dir.glob("**/*") do |dest|
         next unless File.symlink?(dest)
         orig = File.expand_path(File.readlink(dest), File.dirname(dest))

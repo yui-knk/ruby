@@ -14,7 +14,7 @@ def main
   end
   $objs = %w(ripper.o)
   $distcleanfiles.concat %w(ripper.y ripper.c eventids1.c eventids2table.c)
-  $cleanfiles.concat %w(ripper.E ripper.output y.output .eventids2-check)
+  $cleanfiles.concat %w(ripper.E ripper.output .eventids2-check)
   $defs << '-DRIPPER'
   $defs << '-DRIPPER_DEBUG' if $debug
   $VPATH << '$(topdir)' << '$(top_srcdir)'

@@ -515,7 +515,7 @@ ruby-glommed.$(OBJEXT):
 
 clean-local::
 	$(Q)$(RM) \
-	  ext/extinit.c ext/extinit.$(OBJEXT) ext/ripper/y.output \
+	  ext/extinit.c ext/extinit.$(OBJEXT) \
 	  enc/encinit.c enc/encinit.$(OBJEXT) $(pkgconfig_DATA) \
 	  ruby-runner.$(OBJEXT) ruby-runner.h \
 	|| $(NULLCMD)
