@@ -10325,7 +10325,6 @@ parser_yylex(struct parser_params *p)
             set_yylval_id('^');
 	    return tOP_ASGN;
 	}
-	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
 	pushback(p, c);
 	return '^';
 
@@ -10504,6 +10503,7 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case tAMPER:
       case '&':
       case '/':
+      case '^':
 	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
 	break;
 
