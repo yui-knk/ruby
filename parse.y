@@ -10414,10 +10414,6 @@ parser_yylex(struct parser_params *p)
 	    c = tLBRACE;      /* hash */
 	if (c != tLBRACE) {
 	    p->command_start = TRUE;
-	    SET_LEX_STATE(EXPR_BEG);
-	}
-	else {
-	    SET_LEX_STATE(EXPR_BEG|EXPR_LABEL);
 	}
 	++p->lex.paren_nest;  /* after lambda_beginning_p() */
 	COND_PUSH(0);
@@ -10480,10 +10476,14 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case tOP_ASGN:
       case tANDOP:
       case tCOLON3:
+      case tLAMBEG:
+      case '{':
+      case tLBRACE_ARG:
 	SET_LEX_STATE(EXPR_BEG);
 	break;
 
       case ',':
+      case tLBRACE:
 	SET_LEX_STATE(EXPR_BEG|EXPR_LABEL);
 	break;
 
