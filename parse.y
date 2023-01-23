@@ -10502,6 +10502,15 @@ parser_yylex(struct parser_params *p)
     return parse_ident(p, c, cmd_state);
 }
 
+static void
+rb_update_lex_state(struct parser_params *p, enum yytokentype t)
+{
+    switch (t) {
+      default:
+	break;
+    }
+}
+
 static enum yytokentype
 yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
 {
@@ -10512,6 +10521,8 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
     p->yylloc = yylloc;
 
     t = parser_yylex(p);
+
+    rb_update_lex_state(p, t);
 
     if (has_delayed_token(p))
 	dispatch_delayed_token(p, t);
