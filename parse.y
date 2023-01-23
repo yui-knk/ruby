@@ -10147,7 +10147,6 @@ parser_yylex(struct parser_params *p)
       case '+':
 	c = nextc(p);
 	if (IS_AFTER_OPERATOR()) {
-	    SET_LEX_STATE(EXPR_ARG);
 	    if (c == '@') {
 		return tUPLUS;
 	    }
@@ -10159,14 +10158,12 @@ parser_yylex(struct parser_params *p)
 	    return tOP_ASGN;
 	}
 	if (IS_BEG() || (IS_SPCARG(c) && arg_ambiguous(p, '+'))) {
-	    SET_LEX_STATE(EXPR_BEG);
 	    pushback(p, c);
 	    if (c != -1 && ISDIGIT(c)) {
 		return parse_numeric(p, '+');
 	    }
 	    return tUPLUS;
 	}
-	SET_LEX_STATE(EXPR_BEG);
 	pushback(p, c);
 	return warn_balanced('+', "+", "unary operator");
 
@@ -10498,6 +10495,8 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case tNEQ:
       case tNMATCH:
       case '~':
+      case tUPLUS:
+      case '+':
       case tUMINUS:
       case '-':
 	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
