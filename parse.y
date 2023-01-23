@@ -10278,7 +10278,6 @@ parser_yylex(struct parser_params *p)
 	if (IS_END() || ISSPACE(c) || c == '#') {
 	    pushback(p, c);
 	    c = warn_balanced(':', ":", "symbol literal");
-	    SET_LEX_STATE(EXPR_BEG);
 	    return c;
 	}
 	switch (c) {
@@ -10458,6 +10457,7 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case '{':
       case tLBRACE_ARG:
       case '\n':
+      case ':':
 	SET_LEX_STATE(EXPR_BEG);
 	break;
 
