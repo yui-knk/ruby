@@ -9312,7 +9312,6 @@ parse_qmark(struct parser_params *p, int space_seen)
     tokfix(p);
     lit = STR_NEW3(tok(p), toklen(p), enc, 0);
     set_yylval_str(lit);
-    SET_LEX_STATE(EXPR_END);
     return tCHAR;
 }
 
@@ -10521,6 +10520,7 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case '}':
       case tSTRING_END: /* Should tSTRING_DEND also change state? */
       case tREGEXP_END:
+      case tCHAR:
 	SET_LEX_STATE(EXPR_END);
 	break;
 
