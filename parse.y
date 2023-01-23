@@ -10173,7 +10173,6 @@ parser_yylex(struct parser_params *p)
       case '-':
 	c = nextc(p);
 	if (IS_AFTER_OPERATOR()) {
-	    SET_LEX_STATE(EXPR_ARG);
 	    if (c == '@') {
 		return tUMINUS;
 	    }
@@ -10188,14 +10187,12 @@ parser_yylex(struct parser_params *p)
 	    return tLAMBDA;
 	}
 	if (IS_BEG() || (IS_SPCARG(c) && arg_ambiguous(p, '-'))) {
-	    SET_LEX_STATE(EXPR_BEG);
 	    pushback(p, c);
 	    if (c != -1 && ISDIGIT(c)) {
 		return tUMINUS_NUM;
 	    }
 	    return tUMINUS;
 	}
-	SET_LEX_STATE(EXPR_BEG);
 	pushback(p, c);
 	return warn_balanced('-', "-", "unary operator");
 
@@ -10455,6 +10452,7 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case tLBRACE_ARG:
       case '\n':
       case ':':
+      case tUMINUS_NUM:
 	SET_LEX_STATE(EXPR_BEG);
 	break;
 
@@ -10500,6 +10498,8 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case tNEQ:
       case tNMATCH:
       case '~':
+      case tUMINUS:
+      case '-':
 	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
 	break;
 
