@@ -10276,7 +10276,6 @@ parser_yylex(struct parser_params *p)
 	if (!p->lex.brace_nest--) return tSTRING_DEND;
 	COND_POP();
 	CMDARG_POP();
-	SET_LEX_STATE(EXPR_END);
 	p->lex.paren_nest--;
 	return c;
 
@@ -10497,7 +10496,8 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
 	break;
 
       case ']':
-      case tSTRING_END:
+      case '}':
+      case tSTRING_END: /* Should tSTRING_DEND also change state? */
       case tREGEXP_END:
 	SET_LEX_STATE(EXPR_END);
 	break;
