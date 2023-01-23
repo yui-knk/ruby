@@ -10116,7 +10116,6 @@ parser_yylex(struct parser_params *p)
 	}
 	else if (c == '.') {
 	    set_yylval_id(idANDDOT);
-	    SET_LEX_STATE(EXPR_DOT);
 	    return tANDDOT;
 	}
 	pushback(p, c);
@@ -10492,6 +10491,10 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
 
       case tLAMBDA:
 	SET_LEX_STATE(EXPR_ENDFN);
+	break;
+
+      case tANDDOT:
+	SET_LEX_STATE(EXPR_DOT);
 	break;
 
       case tSTRING_END:
