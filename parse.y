@@ -9409,7 +9409,6 @@ parse_percent(struct parser_params *p, const int space_seen, const enum lex_stat
     if (IS_SPCARG(c) || (IS_lex_state(EXPR_FITEM) && c == 's')) {
 	goto quotation;
     }
-    SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
     pushback(p, c);
     return warn_balanced('%', "%%", "string literal");
 }
@@ -10504,6 +10503,7 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case '&':
       case '/':
       case '^':
+      case '%':
 	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
 	break;
 
