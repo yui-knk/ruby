@@ -10318,7 +10318,6 @@ parser_yylex(struct parser_params *p)
 	    p->lex.strterm = NEW_STRTERM(str_regexp, '/', 0);
 	    return tREGEXP_BEG;
 	}
-	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
 	return warn_balanced('/', "/", "regexp literal");
 
       case '^':
@@ -10504,6 +10503,7 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case '=':
       case tAMPER:
       case '&':
+      case '/':
 	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
 	break;
 
