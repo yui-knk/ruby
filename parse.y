@@ -7913,7 +7913,6 @@ parser_string_term(struct parser_params *p, int func)
     if (func & STR_FUNC_REGEXP) {
 	set_yylval_num(regx_options(p));
 	dispatch_scan_event(p, tREGEXP_END);
-	SET_LEX_STATE(EXPR_END);
 	return tREGEXP_END;
     }
     if ((func & STR_FUNC_LABEL) && IS_LABEL_SUFFIX(0)) {
@@ -10506,6 +10505,10 @@ static void
 rb_update_lex_state(struct parser_params *p, enum yytokentype t)
 {
     switch (t) {
+      case tREGEXP_END:
+	SET_LEX_STATE(EXPR_END);
+	break;
+
       default:
 	break;
     }
