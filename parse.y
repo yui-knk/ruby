@@ -9404,7 +9404,6 @@ parse_percent(struct parser_params *p, const int space_seen, const enum lex_stat
     }
     if ((c = nextc(p)) == '=') {
 	set_yylval_id('%');
-	SET_LEX_STATE(EXPR_BEG);
 	return tOP_ASGN;
     }
     if (IS_SPCARG(c) || (IS_lex_state(EXPR_FITEM) && c == 's')) {
@@ -9920,7 +9919,6 @@ parser_yylex(struct parser_params *p)
 	if ((c = nextc(p)) == '*') {
 	    if ((c = nextc(p)) == '=') {
 		set_yylval_id(idPow);
-		SET_LEX_STATE(EXPR_BEG);
 		return tOP_ASGN;
 	    }
 	    pushback(p, c);
@@ -9938,7 +9936,6 @@ parser_yylex(struct parser_params *p)
 	else {
 	    if (c == '=') {
                 set_yylval_id('*');
-		SET_LEX_STATE(EXPR_BEG);
 		return tOP_ASGN;
 	    }
 	    pushback(p, c);
@@ -10050,7 +10047,6 @@ parser_yylex(struct parser_params *p)
 	if (c == '<') {
 	    if ((c = nextc(p)) == '=') {
 		set_yylval_id(idLTLT);
-		SET_LEX_STATE(EXPR_BEG);
 		return tOP_ASGN;
 	    }
 	    pushback(p, c);
@@ -10067,7 +10063,6 @@ parser_yylex(struct parser_params *p)
 	if (c == '>') {
 	    if ((c = nextc(p)) == '=') {
 		set_yylval_id(idGTGT);
-		SET_LEX_STATE(EXPR_BEG);
 		return tOP_ASGN;
 	    }
 	    pushback(p, c);
@@ -10111,7 +10106,6 @@ parser_yylex(struct parser_params *p)
 	    SET_LEX_STATE(EXPR_BEG);
 	    if ((c = nextc(p)) == '=') {
                 set_yylval_id(idANDOP);
-		SET_LEX_STATE(EXPR_BEG);
 		return tOP_ASGN;
 	    }
 	    pushback(p, c);
@@ -10119,7 +10113,6 @@ parser_yylex(struct parser_params *p)
 	}
 	else if (c == '=') {
             set_yylval_id('&');
-	    SET_LEX_STATE(EXPR_BEG);
 	    return tOP_ASGN;
 	}
 	else if (c == '.') {
@@ -10151,7 +10144,6 @@ parser_yylex(struct parser_params *p)
 	    SET_LEX_STATE(EXPR_BEG);
 	    if ((c = nextc(p)) == '=') {
                 set_yylval_id(idOROP);
-		SET_LEX_STATE(EXPR_BEG);
 		return tOP_ASGN;
 	    }
 	    pushback(p, c);
@@ -10164,7 +10156,6 @@ parser_yylex(struct parser_params *p)
 	}
 	if (c == '=') {
             set_yylval_id('|');
-	    SET_LEX_STATE(EXPR_BEG);
 	    return tOP_ASGN;
 	}
 	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG|EXPR_LABEL);
@@ -10183,7 +10174,6 @@ parser_yylex(struct parser_params *p)
 	}
 	if (c == '=') {
             set_yylval_id('+');
-	    SET_LEX_STATE(EXPR_BEG);
 	    return tOP_ASGN;
 	}
 	if (IS_BEG() || (IS_SPCARG(c) && arg_ambiguous(p, '+'))) {
@@ -10210,7 +10200,6 @@ parser_yylex(struct parser_params *p)
 	}
 	if (c == '=') {
             set_yylval_id('-');
-	    SET_LEX_STATE(EXPR_BEG);
 	    return tOP_ASGN;
 	}
 	if (c == '>') {
@@ -10334,7 +10323,6 @@ parser_yylex(struct parser_params *p)
 	}
 	if ((c = nextc(p)) == '=') {
             set_yylval_id('/');
-	    SET_LEX_STATE(EXPR_BEG);
 	    return tOP_ASGN;
 	}
 	pushback(p, c);
@@ -10349,7 +10337,6 @@ parser_yylex(struct parser_params *p)
       case '^':
 	if ((c = nextc(p)) == '=') {
             set_yylval_id('^');
-	    SET_LEX_STATE(EXPR_BEG);
 	    return tOP_ASGN;
 	}
 	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG);
@@ -10500,6 +10487,10 @@ static void
 rb_update_lex_state(struct parser_params *p, enum yytokentype t)
 {
     switch (t) {
+      case tOP_ASGN:
+	SET_LEX_STATE(EXPR_BEG);
+	break;
+
       case tSTRING_END:
       case tREGEXP_END:
 	SET_LEX_STATE(EXPR_END);
