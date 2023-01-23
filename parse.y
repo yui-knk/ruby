@@ -10268,7 +10268,6 @@ parser_yylex(struct parser_params *p)
       case ']':
 	COND_POP();
 	CMDARG_POP();
-	SET_LEX_STATE(EXPR_END);
 	p->lex.paren_nest--;
 	return c;
 
@@ -10497,6 +10496,7 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
 	SET_LEX_STATE(EXPR_DOT);
 	break;
 
+      case ']':
       case tSTRING_END:
       case tREGEXP_END:
 	SET_LEX_STATE(EXPR_END);
