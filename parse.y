@@ -10371,7 +10371,6 @@ parser_yylex(struct parser_params *p)
 	p->lex.paren_nest++;
 	COND_PUSH(0);
 	CMDARG_PUSH(0);
-	SET_LEX_STATE(EXPR_BEG|EXPR_LABEL);
 	return c;
 
       case '[':
@@ -10484,6 +10483,9 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
 
       case ',':
       case tLBRACE:
+      case tLPAREN:
+      case tLPAREN_ARG:
+      case '(':
 	SET_LEX_STATE(EXPR_BEG|EXPR_LABEL);
 	break;
 
