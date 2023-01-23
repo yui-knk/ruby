@@ -10286,7 +10286,6 @@ parser_yylex(struct parser_params *p)
 	c = nextc(p);
 	if (c == ':') {
 	    if (IS_BEG() || IS_lex_state(EXPR_CLASS) || IS_SPCARG(-1)) {
-		SET_LEX_STATE(EXPR_BEG);
 		return tCOLON3;
 	    }
 	    set_yylval_id(idCOLON2);
@@ -10485,6 +10484,7 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
     switch (t) {
       case tOP_ASGN:
       case tANDOP:
+      case tCOLON3:
 	SET_LEX_STATE(EXPR_BEG);
 	break;
 
