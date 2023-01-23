@@ -10379,7 +10379,6 @@ parser_yylex(struct parser_params *p)
 	if (IS_AFTER_OPERATOR()) {
 	    if ((c = nextc(p)) == ']') {
 		p->lex.paren_nest--;
-		SET_LEX_STATE(EXPR_ARG);
 		if ((c = nextc(p)) == '=') {
 		    return tASET;
 		}
@@ -10486,6 +10485,11 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
 
       case ',':
 	SET_LEX_STATE(EXPR_BEG|EXPR_LABEL);
+	break;
+
+      case tASET:
+      case tAREF:
+	SET_LEX_STATE(EXPR_ARG);
 	break;
 
       case ')':
