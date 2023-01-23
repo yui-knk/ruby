@@ -10202,7 +10202,6 @@ parser_yylex(struct parser_params *p)
 	    return tOP_ASGN;
 	}
 	if (c == '>') {
-	    SET_LEX_STATE(EXPR_ENDFN);
 	    return tLAMBDA;
 	}
 	if (IS_BEG() || (IS_SPCARG(c) && arg_ambiguous(p, '-'))) {
@@ -10489,6 +10488,10 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case tOP_ASGN:
       case tANDOP:
 	SET_LEX_STATE(EXPR_BEG);
+	break;
+
+      case tLAMBDA:
+	SET_LEX_STATE(EXPR_ENDFN);
 	break;
 
       case tSTRING_END:
