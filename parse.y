@@ -7917,7 +7917,6 @@ parser_string_term(struct parser_params *p, int func)
     }
     if ((func & STR_FUNC_LABEL) && IS_LABEL_SUFFIX(0)) {
 	nextc(p);
-	SET_LEX_STATE(EXPR_ARG|EXPR_LABELED);
 	return tLABEL_END;
     }
     return tSTRING_END;
@@ -10504,6 +10503,10 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case tSTRING_END:
       case tREGEXP_END:
 	SET_LEX_STATE(EXPR_END);
+	break;
+
+      case tLABEL_END:
+	SET_LEX_STATE(EXPR_ARG|EXPR_LABELED);
 	break;
 
       default:
