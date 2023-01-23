@@ -10290,7 +10290,6 @@ parser_yylex(struct parser_params *p)
 		return tCOLON3;
 	    }
 	    set_yylval_id(idCOLON2);
-	    SET_LEX_STATE(EXPR_DOT);
 	    return tCOLON2;
 	}
 	if (IS_END() || ISSPACE(c) || c == '#') {
@@ -10494,6 +10493,7 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
 	break;
 
       case tANDDOT:
+      case tCOLON2:
 	SET_LEX_STATE(EXPR_DOT);
 	break;
 
