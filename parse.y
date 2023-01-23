@@ -10103,7 +10103,6 @@ parser_yylex(struct parser_params *p)
 
       case '&':
 	if ((c = nextc(p)) == '&') {
-	    SET_LEX_STATE(EXPR_BEG);
 	    if ((c = nextc(p)) == '=') {
                 set_yylval_id(idANDOP);
 		return tOP_ASGN;
@@ -10488,6 +10487,7 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
 {
     switch (t) {
       case tOP_ASGN:
+      case tANDOP:
 	SET_LEX_STATE(EXPR_BEG);
 	break;
 
