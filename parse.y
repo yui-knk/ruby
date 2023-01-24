@@ -9456,7 +9456,6 @@ parse_gvar(struct parser_params *p, const enum lex_state_e last_state)
     const char *ptr = p->lex.pcur;
     register int c;
 
-    SET_LEX_STATE(EXPR_END);
     p->lex.ptok = ptr - 1; /* from '$' */
     newtok(p);
     c = nextc(p);
@@ -9554,7 +9553,6 @@ parse_gvar(struct parser_params *p, const enum lex_state_e last_state)
     }
 
     if (tokadd_ident(p, c)) return 0;
-    SET_LEX_STATE(EXPR_END);
     tokenize_ident(p, last_state);
     return tGVAR;
 }
@@ -10524,6 +10522,10 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case tRATIONAL:
       case tINTEGER:
       case tIMAGINARY:
+      case '$': /* This is "invalid token" */
+      case tGVAR:
+      case tBACK_REF:
+      case tNTH_REF:
 	SET_LEX_STATE(EXPR_END);
 	break;
 
