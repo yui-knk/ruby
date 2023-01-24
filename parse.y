@@ -8294,7 +8294,6 @@ set_number_literal(struct parser_params *p, VALUE v,
 	type = tIMAGINARY;
     }
     set_yylval_literal(v);
-    SET_LEX_STATE(EXPR_END);
     return type;
 }
 
@@ -9015,7 +9014,6 @@ parse_numeric(struct parser_params *p, int c)
     int suffix;
 
     is_float = seen_point = seen_e = nondigit = 0;
-    SET_LEX_STATE(EXPR_END);
     newtok(p);
     if (c == '-' || c == '+') {
 	tokadd(p, c);
@@ -10522,6 +10520,10 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
       case tSTRING_END: /* Should tSTRING_DEND also change state? */
       case tREGEXP_END:
       case tCHAR:
+      case tFLOAT:
+      case tRATIONAL:
+      case tINTEGER:
+      case tIMAGINARY:
 	SET_LEX_STATE(EXPR_END);
 	break;
 
