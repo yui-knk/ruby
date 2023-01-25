@@ -8989,7 +8989,7 @@ parser_prepare(struct parser_params *p)
     dispatch2(operator_ambiguous, TOKEN2VAL(tok), rb_str_new_cstr(syn))
 #endif
 #define warn_balanced(tok, op, syn) ((void) \
-    (!IS_lex_state_for(last_state, EXPR_CLASS|EXPR_DOT|EXPR_FNAME|EXPR_ENDFN) && \
+    (!IS_lex_state(EXPR_CLASS|EXPR_DOT|EXPR_FNAME|EXPR_ENDFN) && \
      space_seen && !ISSPACE(c) && \
      (ambiguous_operator(tok, op, syn), 0)), \
      (enum yytokentype)(tok))
@@ -9323,7 +9323,7 @@ parse_qmark(struct parser_params *p, int space_seen)
 }
 
 static enum yytokentype
-parse_percent(struct parser_params *p, const int space_seen, const enum lex_state_e last_state)
+parse_percent(struct parser_params *p, const int space_seen)
 {
     register int c;
     const char *ptok = p->lex.pcur;
@@ -9464,7 +9464,7 @@ parse_numvar(struct parser_params *p)
 }
 
 static enum yytokentype
-parse_gvar(struct parser_params *p, const enum lex_state_e last_state)
+parse_gvar(struct parser_params *p)
 {
     const char *ptr = p->lex.pcur;
     register int c;
@@ -9524,7 +9524,7 @@ parse_gvar(struct parser_params *p, const enum lex_state_e last_state)
       case '`':		/* $`: string before last match */
       case '\'':		/* $': string after last match */
       case '+':		/* $+: string matches last paren. */
-	if (IS_lex_state_for(last_state, EXPR_FNAME)) {
+	if (IS_lex_state(EXPR_FNAME)) {
 	    tokadd(p, '$');
 	    tokadd(p, c);
 	    goto gvar;
@@ -9541,7 +9541,7 @@ parse_gvar(struct parser_params *p, const enum lex_state_e last_state)
 	    c = nextc(p);
 	} while (c != -1 && ISDIGIT(c));
 	pushback(p, c);
-	if (IS_lex_state_for(last_state, EXPR_FNAME)) goto gvar;
+	if (IS_lex_state(EXPR_FNAME)) goto gvar;
 	tokfix(p);
 	c = parse_numvar(p);
 	set_yylval_node(NEW_NTH_REF(c, &_cur_loc));
@@ -9597,7 +9597,7 @@ parser_numbered_param(struct parser_params *p, int n)
 #endif
 
 static enum yytokentype
-parse_atmark(struct parser_params *p, const enum lex_state_e last_state)
+parse_atmark(struct parser_params *p)
 {
     const char *ptr = p->lex.pcur;
     enum yytokentype result = tIVAR;
@@ -9612,7 +9612,7 @@ parse_atmark(struct parser_params *p, const enum lex_state_e last_state)
 	tokadd(p, '@');
 	c = nextc(p);
     }
-    SET_LEX_STATE(IS_lex_state_for(last_state, EXPR_FNAME) ? EXPR_ENDFN : EXPR_END);
+    SET_LEX_STATE(IS_lex_state(EXPR_FNAME) ? EXPR_ENDFN : EXPR_END);
     if (c == -1 || !parser_is_identchar(p)) {
 	pushback(p, c);
 	RUBY_SET_YYLLOC(loc);
@@ -9789,7 +9789,6 @@ parser_yylex(struct parser_params *p)
     int space_seen = 0;
     int cmd_state;
     int label;
-    enum lex_state_e last_state;
     int fallthru = FALSE;
     int token_seen = p->token_seen;
 
@@ -9810,7 +9809,6 @@ parser_yylex(struct parser_params *p)
     token_flush(p);
 #endif
   retry:
-    last_state = p->lex.state;
     switch (c = nextc(p)) {
       case '\0':		/* NUL */
       case '\004':		/* ^D */
@@ -10154,18 +10152,18 @@ parser_yylex(struct parser_params *p)
 
       case '|':
 	if ((c = nextc(p)) == '|') {
-	    SET_LEX_STATE(EXPR_BEG);
 	    if ((c = nextc(p)) == '=') {
                 set_yylval_id(idOROP);
 		SET_LEX_STATE(EXPR_BEG);
 		return tOP_ASGN;
 	    }
 	    pushback(p, c);
-	    if (IS_lex_state_for(last_state, EXPR_BEG)) {
+	    if (IS_lex_state(EXPR_BEG)) {
 		c = '|';
 		pushback(p, '|');
 		return c;
 	    }
+	    SET_LEX_STATE(EXPR_BEG);
 	    return tOROP;
 	}
 	if (c == '=') {
@@ -10248,7 +10246,7 @@ parser_yylex(struct parser_params *p)
 		    rb_warn0("... at EOL, should be parenthesized?");
 		}
 		else if (p->lex.lpar_beg >= 0 && p->lex.lpar_beg+1 == p->lex.paren_nest) {
-		    if (IS_lex_state_for(last_state, EXPR_LABEL))
+		    if (IS_lex_state(EXPR_LABEL))
 			return tDOT3;
 		}
 		return is_beg ? tBDOT3 : tDOT3;
@@ -10467,13 +10465,13 @@ parser_yylex(struct parser_params *p)
 	return '\\';
 
       case '%':
-	return parse_percent(p, space_seen, last_state);
+	return parse_percent(p, space_seen);
 
       case '$':
-	return parse_gvar(p, last_state);
+	return parse_gvar(p);
 
       case '@':
-	return parse_atmark(p, last_state);
+	return parse_atmark(p);
 
       case '_':
 	if (was_bol(p) && whole_match_p(p, "__END__", 7, 0)) {
