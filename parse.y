@@ -9624,7 +9624,6 @@ parse_atmark(struct parser_params *p, const enum lex_state_e last_state)
 	}
 	parser_show_error_line(p, &loc);
 	set_yylval_noname();
-	SET_LEX_STATE(EXPR_END);
 	return result;
     }
     else if (ISDIGIT(c)) {
@@ -9638,7 +9637,6 @@ parse_atmark(struct parser_params *p, const enum lex_state_e last_state)
 	}
 	parser_show_error_line(p, &loc);
 	set_yylval_noname();
-	SET_LEX_STATE(EXPR_END);
 	return result;
     }
 
@@ -10266,7 +10264,6 @@ parser_yylex(struct parser_params *p)
 	    else {
 		yyerror0("no .<digit> floating literal anymore; put 0 before dot");
 	    }
-	    SET_LEX_STATE(EXPR_END);
 	    p->lex.ptok = p->lex.pcur;
 	    goto retry;
 	}
