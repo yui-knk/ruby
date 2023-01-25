@@ -9663,7 +9663,6 @@ parse_ident(struct parser_params *p, int c, int cmd_state)
 
     if (IS_LABEL_POSSIBLE()) {
 	if (IS_LABEL_SUFFIX(0)) {
-	    SET_LEX_STATE(EXPR_ARG|EXPR_LABELED);
 	    nextc(p);
 	    set_yylval_name(TOK_INTERN());
 	    return tLABEL;
@@ -10459,6 +10458,10 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t, const int cmd_s
       case tASET:
       case tAREF:
 	SET_LEX_STATE(EXPR_ARG);
+	break;
+
+      case tLABEL:
+	SET_LEX_STATE(EXPR_ARG|EXPR_LABELED);
 	break;
 
       case tCMP:
