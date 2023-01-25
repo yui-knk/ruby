@@ -10060,14 +10060,9 @@ parser_yylex(struct parser_params *p)
 
       case '`':
 	if (IS_lex_state(EXPR_FNAME)) {
-	    SET_LEX_STATE(EXPR_ENDFN);
 	    return c;
 	}
 	if (IS_lex_state(EXPR_DOT)) {
-	    if (cmd_state)
-		SET_LEX_STATE(EXPR_CMDARG);
-	    else
-		SET_LEX_STATE(EXPR_ARG);
 	    return c;
 	}
 	p->lex.strterm = NEW_STRTERM(str_xquote, '`', 0);
@@ -10433,7 +10428,7 @@ parser_yylex(struct parser_params *p)
 }
 
 static void
-rb_update_lex_state(struct parser_params *p, enum yytokentype t)
+rb_update_lex_state(struct parser_params *p, enum yytokentype t, const int cmd_state)
 {
     switch ((int) t) {
       case ';':
@@ -10533,6 +10528,19 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t)
 	SET_LEX_STATE(EXPR_ARG|EXPR_LABELED);
 	break;
 
+      case '`':
+	if (IS_lex_state(EXPR_FNAME)) {
+	    SET_LEX_STATE(EXPR_ENDFN);
+	    return;
+	}
+	if (IS_lex_state(EXPR_DOT)) {
+	    if (cmd_state)
+		SET_LEX_STATE(EXPR_CMDARG);
+	    else
+		SET_LEX_STATE(EXPR_ARG);
+	}
+	break;
+
       default:
 	break;
     }
@@ -10542,6 +10550,7 @@ static enum yytokentype
 yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
 {
     enum yytokentype t;
+    const int cmd_state = p->command_start;
 
     p->lval = lval;
     lval->val = Qundef;
@@ -10549,7 +10558,7 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
 
     t = parser_yylex(p);
 
-    rb_update_lex_state(p, t);
+    rb_update_lex_state(p, t, cmd_state);
 
     if (has_delayed_token(p))
 	dispatch_delayed_token(p, t);
