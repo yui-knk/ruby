@@ -10185,11 +10185,9 @@ parser_yylex(struct parser_params *p)
 
       case '.': {
         int is_beg = IS_BEG();
-	SET_LEX_STATE(EXPR_BEG);
 	if ((c = nextc(p)) == '.') {
 	    if ((c = nextc(p)) == '.') {
 		if (p->ctxt.in_argdef) {
-		    SET_LEX_STATE(EXPR_ENDARG);
 		    return tBDOT3;
 		}
 		if (p->lex.paren_nest == 0 && looking_at_eol_p(p)) {
@@ -10219,7 +10217,6 @@ parser_yylex(struct parser_params *p)
 	    goto retry;
 	}
 	set_yylval_id('.');
-	SET_LEX_STATE(EXPR_DOT);
 	return '.';
       }
 
@@ -10440,6 +10437,9 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t, const int cmd_s
       case '\n':
       case ':':
       case tUMINUS_NUM:
+      case tDOT3:
+      case tBDOT2:
+      case tDOT2:
 	SET_LEX_STATE(EXPR_BEG);
 	break;
 
@@ -10506,8 +10506,16 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t, const int cmd_s
 	SET_LEX_STATE(EXPR_ENDFN);
 	break;
 
+      case tBDOT3:
+	if (p->ctxt.in_argdef)
+	    SET_LEX_STATE(EXPR_ENDARG);
+	else
+	    SET_LEX_STATE(EXPR_BEG);
+	break;
+
       case tANDDOT:
       case tCOLON2:
+      case '.':
 	SET_LEX_STATE(EXPR_DOT);
 	break;
 
