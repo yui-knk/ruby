@@ -9597,7 +9597,6 @@ parse_atmark(struct parser_params *p, const enum lex_state_e last_state)
 	tokadd(p, '@');
 	c = nextc(p);
     }
-    SET_LEX_STATE(IS_lex_state_for(last_state, EXPR_FNAME) ? EXPR_ENDFN : EXPR_END);
     if (c == -1 || !parser_is_identchar(p)) {
 	pushback(p, c);
 	RUBY_SET_YYLLOC(loc);
@@ -10537,6 +10536,11 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t, const int cmd_s
 
       case tLABEL_END:
 	SET_LEX_STATE(EXPR_ARG|EXPR_LABELED);
+	break;
+
+      case tIVAR:
+      case tCVAR:
+	SET_LEX_STATE(IS_lex_state(EXPR_FNAME) ? EXPR_ENDFN : EXPR_END);
 	break;
 
       case '`':
