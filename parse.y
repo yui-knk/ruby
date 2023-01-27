@@ -9389,7 +9389,7 @@ parse_percent(struct parser_params *p, const int space_seen, const enum lex_stat
 
 	  case 's':
 	    p->lex.strterm = NEW_STRTERM(str_ssym, term, paren);
-	    SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);
+	    SET_LEX_STATE(EXPR_FNAME);
 	    return tSYMBEG;
 
 	  default:
