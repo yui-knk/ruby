@@ -9389,7 +9389,6 @@ parse_percent(struct parser_params *p, const int space_seen, const enum lex_stat
 
 	  case 's':
 	    p->lex.strterm = NEW_STRTERM(str_ssym, term, paren);
-	    SET_LEX_STATE(EXPR_FNAME);
 	    return tSYMBEG;
 
 	  default:
@@ -10263,7 +10262,6 @@ parser_yylex(struct parser_params *p)
 	    pushback(p, c);
 	    break;
 	}
-	SET_LEX_STATE(EXPR_FNAME);
 	return tSYMBEG;
 
       case '/':
@@ -10512,6 +10510,10 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t, const int cmd_s
       case tCOLON2:
       case '.':
 	SET_LEX_STATE(EXPR_DOT);
+	break;
+
+      case tSYMBEG:
+	SET_LEX_STATE(EXPR_FNAME);
 	break;
 
       case ']':
