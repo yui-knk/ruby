@@ -9702,11 +9702,9 @@ parse_ident(struct parser_params *p, int c, int cmd_state)
 	if (kw) {
 	    enum lex_state_e state = p->lex.state;
 	    if (IS_lex_state_for(state, EXPR_FNAME)) {
-		SET_LEX_STATE(EXPR_ENDFN);
 		set_yylval_name(rb_intern2(tok(p), toklen(p)));
 		return kw->id[0];
 	    }
-	    SET_LEX_STATE(kw->state);
 	    if (IS_lex_state(EXPR_BEG)) {
 		p->command_start = TRUE;
 	    }
@@ -9723,8 +9721,6 @@ parse_ident(struct parser_params *p, int c, int cmd_state)
 	    if (IS_lex_state_for(state, (EXPR_BEG | EXPR_LABELED | EXPR_CLASS)))
 		return kw->id[0];
 	    else {
-		if (kw->id[0] != kw->id[1])
-		    SET_LEX_STATE(EXPR_BEG | EXPR_LABEL);
 		return kw->id[1];
 	    }
 	}
@@ -10556,7 +10552,113 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t, const int cmd_s
 	}
 	break;
 
+      /* keywords */
+      case keyword__ENCODING__:
+      case keyword__LINE__:
+      case keyword__FILE__:
+      case keyword_BEGIN:
+      case keyword_END:
+      case keyword_end:
+      case keyword_false:
+      case keyword_nil:
+      case keyword_redo:
+      case keyword_retry:
+      case keyword_self:
+      case keyword_true:
+	if (IS_lex_state(EXPR_FNAME))
+	    SET_LEX_STATE(EXPR_ENDFN);
+	else
+	    SET_LEX_STATE(EXPR_END);
+	break;
+
+      case keyword_alias:
+      case keyword_undef:
+	if (IS_lex_state(EXPR_FNAME))
+	    SET_LEX_STATE(EXPR_ENDFN);
+	else
+	    SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);
+	break;
+
+      case keyword_and:
+      case keyword_case:
+      case keyword_elsif:
+      case keyword_for:
+      case keyword_if:
+      case keyword_in:
+      case keyword_module:
+      case keyword_or:
+      case keyword_unless:
+      case keyword_until:
+      case keyword_when:
+      case keyword_while:
+	if (IS_lex_state(EXPR_FNAME))
+	    SET_LEX_STATE(EXPR_ENDFN);
+	else
+	    SET_LEX_STATE(EXPR_VALUE);
+	break;
+
+      case keyword_begin:
+      case keyword_do:
+      case keyword_do_LAMBDA:
+      case keyword_do_cond:
+      case keyword_do_block:
+      case keyword_else:
+      case keyword_ensure:
+      case keyword_then:
+	if (IS_lex_state(EXPR_FNAME))
+	    SET_LEX_STATE(EXPR_ENDFN);
+	else
+	    SET_LEX_STATE(EXPR_BEG);
+	break;
+
+      case keyword_break:
+      case keyword_next:
+      case keyword_rescue:
+      case keyword_return:
+	if (IS_lex_state(EXPR_FNAME))
+	    SET_LEX_STATE(EXPR_ENDFN);
+	else
+	    SET_LEX_STATE(EXPR_MID);
+	break;
+
+      case keyword_class:
+	if (IS_lex_state(EXPR_FNAME))
+	    SET_LEX_STATE(EXPR_ENDFN);
+	else
+	    SET_LEX_STATE(EXPR_CLASS);
+	break;
+
+      case keyword_def:
+	if (IS_lex_state(EXPR_FNAME))
+	    SET_LEX_STATE(EXPR_ENDFN);
+	else
+	    SET_LEX_STATE(EXPR_FNAME);
+	break;
+
+      case keyword_defined:
+      case keyword_not:
+      case keyword_super:
+      case keyword_yield:
+	if (IS_lex_state(EXPR_FNAME))
+	    SET_LEX_STATE(EXPR_ENDFN);
+	else
+	    SET_LEX_STATE(EXPR_ARG);
+	break;
+
+      /* kw->id[0] != kw->id[1] */
+      case modifier_if:
+      case modifier_rescue:
+      case modifier_unless:
+      case modifier_until:
+      case modifier_while:
+	if (IS_lex_state(EXPR_FNAME))
+	    SET_LEX_STATE(EXPR_ENDFN);
+	else
+	    SET_LEX_STATE(EXPR_BEG | EXPR_LABEL);
+	break;
+
       default:
+	/* Noop */
 	break;
     }
 }
