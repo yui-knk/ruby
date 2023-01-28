@@ -10032,10 +10032,7 @@ parser_yylex(struct parser_params *p)
 	return tSTRING_BEG;
 
       case '`':
-	if (IS_lex_state(EXPR_FNAME)) {
-	    return c;
-	}
-	if (IS_lex_state(EXPR_DOT)) {
+	if (IS_lex_state(EXPR_FNAME|EXPR_DOT)) {
 	    return c;
 	}
 	p->lex.strterm = NEW_STRTERM(str_xquote, '`', 0);
