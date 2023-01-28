@@ -10115,6 +10115,7 @@ parser_yylex(struct parser_params *p)
 	    if (IS_lex_state_for(last_state, EXPR_BEG)) {
 		c = '|';
 		pushback(p, '|');
+		SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG|EXPR_LABEL);
 		return c;
 	    }
 	    return tOROP;
