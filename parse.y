@@ -10115,7 +10115,6 @@ parser_yylex(struct parser_params *p)
 	    if (IS_lex_state_for(last_state, EXPR_BEG)) {
 		c = '|';
 		pushback(p, '|');
-		SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG|EXPR_LABEL);
 		return c;
 	    }
 	    return tOROP;
@@ -10124,7 +10123,6 @@ parser_yylex(struct parser_params *p)
             set_yylval_id('|');
 	    return tOP_ASGN;
 	}
-	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG|EXPR_LABEL);
 	pushback(p, c);
 	return '|';
 
@@ -10493,6 +10491,10 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t, const int cmd_s
       case '[':
       case tLBRACK:
 	SET_LEX_STATE(IS_AFTER_OPERATOR() ? (EXPR_ARG|EXPR_LABEL) : (EXPR_BEG|EXPR_LABEL));
+	break;
+
+      case '|':
+	SET_LEX_STATE(IS_AFTER_OPERATOR() ? EXPR_ARG : EXPR_BEG|EXPR_LABEL);
 	break;
 
       case ')':
