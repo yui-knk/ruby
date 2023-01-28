@@ -9725,28 +9725,8 @@ parse_ident(struct parser_params *p, int c, int cmd_state)
 	}
     }
 
-    if (IS_lex_state(EXPR_BEG_ANY | EXPR_ARG_ANY | EXPR_DOT)) {
-	if (cmd_state) {
-	    SET_LEX_STATE(EXPR_CMDARG);
-	}
-	else {
-	    SET_LEX_STATE(EXPR_ARG);
-	}
-    }
-    else if (p->lex.state == EXPR_FNAME) {
-	SET_LEX_STATE(EXPR_ENDFN);
-    }
-    else {
-	SET_LEX_STATE(EXPR_END);
-    }
-
     ident = tokenize_ident(p, last_state);
     if (result == tCONSTANT && is_local_id(ident)) result = tIDENTIFIER;
-    if (!IS_lex_state_for(last_state, EXPR_DOT|EXPR_FNAME) &&
-	(result == tIDENTIFIER) && /* not EXPR_FNAME, not attrasgn */
-	lvar_defined(p, ident)) {
-	SET_LEX_STATE(EXPR_END|EXPR_LABEL);
-    }
     return result;
 }
 
@@ -10542,6 +10522,36 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t, const int cmd_s
       case tIVAR:
       case tCVAR:
 	SET_LEX_STATE(IS_lex_state(EXPR_FNAME) ? EXPR_ENDFN : EXPR_END);
+	break;
+
+      case tFID:
+      case tIDENTIFIER:
+      case tCONSTANT:
+	{
+	    ID ident = get_id(yylval_id());
+	    const enum lex_state_e last_state = p->lex.state;
+
+	    if (IS_lex_state(EXPR_BEG_ANY | EXPR_ARG_ANY | EXPR_DOT)) {
+		if (cmd_state) {
+		    SET_LEX_STATE(EXPR_CMDARG);
+		}
+		else {
+		    SET_LEX_STATE(EXPR_ARG);
+		}
+	    }
+	    else if (p->lex.state == EXPR_FNAME) {
+		SET_LEX_STATE(EXPR_ENDFN);
+	    }
+	    else {
+		SET_LEX_STATE(EXPR_END);
+	    }
+
+	    if (!IS_lex_state_for(last_state, EXPR_DOT|EXPR_FNAME) &&
+		(t == tIDENTIFIER) && /* not EXPR_FNAME, not attrasgn */
+		lvar_defined(p, ident)) {
+		SET_LEX_STATE(EXPR_END|EXPR_LABEL);
+	    }
+	}
 	break;
 
       case '`':
