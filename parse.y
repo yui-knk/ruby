@@ -9987,10 +9987,8 @@ parser_yylex(struct parser_params *p)
 	    int token = heredoc_identifier(p);
 	    if (token) return token < 0 ? 0 : token;
 	}
-	if (!IS_AFTER_OPERATOR()) {
-	    if (IS_lex_state(EXPR_CLASS))
-		p->command_start = TRUE;
-
+	if (IS_lex_state(EXPR_CLASS)) {
+	    p->command_start = TRUE;
 	}
 	if (c == '=') {
 	    if ((c = nextc(p)) == '>') {
