@@ -9630,7 +9630,7 @@ parse_atmark(struct parser_params *p, const enum lex_state_e last_state)
 }
 
 static enum yytokentype
-parse_ident(struct parser_params *p, int c, int cmd_state)
+parse_ident(struct parser_params *p, int c)
 {
     enum yytokentype result;
     int mb = ENC_CODERANGE_7BIT;
@@ -9744,7 +9744,6 @@ parser_yylex(struct parser_params *p)
 {
     register int c;
     int space_seen = 0;
-    int cmd_state;
     int label;
     enum lex_state_e last_state;
     int fallthru = FALSE;
@@ -9760,7 +9759,6 @@ parser_yylex(struct parser_params *p)
 	    return parse_string(p, &p->lex.strterm->u.literal);
 	}
     }
-    cmd_state = p->command_start;
     p->command_start = FALSE;
     p->token_seen = TRUE;
 #ifndef RIPPER
@@ -10377,7 +10375,7 @@ parser_yylex(struct parser_params *p)
 	break;
     }
 
-    return parse_ident(p, c, cmd_state);
+    return parse_ident(p, c);
 }
 
 static void
