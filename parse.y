@@ -7900,7 +7900,7 @@ parser_peek_variable_name(struct parser_params *p)
 #define IS_BEG() (IS_lex_state(EXPR_BEG_ANY) || IS_lex_state_all(EXPR_ARG|EXPR_LABELED))
 #define IS_SPCARG(c) (IS_ARG() && space_seen && !ISSPACE(c))
 #define IS_LABEL_POSSIBLE() (\
-	(IS_lex_state(EXPR_LABEL|EXPR_ENDFN) && !cmd_state) || \
+	(IS_lex_state(EXPR_LABEL|EXPR_ENDFN)) || \
 	IS_ARG())
 #define IS_LABEL_SUFFIX(n) (peek_n(p, ':',(n)) && !peek_n(p, ':', (n)+1))
 #define IS_AFTER_OPERATOR() IS_lex_state(EXPR_FNAME | EXPR_DOT)
