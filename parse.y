@@ -9987,9 +9987,6 @@ parser_yylex(struct parser_params *p)
 	    int token = heredoc_identifier(p);
 	    if (token) return token < 0 ? 0 : token;
 	}
-	if (IS_lex_state(EXPR_CLASS)) {
-	    p->command_start = TRUE;
-	}
 	if (c == '=') {
 	    if ((c = nextc(p)) == '>') {
 		return tCMP;
@@ -10001,6 +9998,9 @@ parser_yylex(struct parser_params *p)
 	    if ((c = nextc(p)) == '=') {
 		set_yylval_id(idLTLT);
 		return tOP_ASGN;
+	    }
+	    if (IS_lex_state(EXPR_CLASS)) {
+		p->command_start = TRUE;
 	    }
 	    pushback(p, c);
 	    return warn_balanced((enum ruby_method_ids)tLSHFT, "<<", "here document");
