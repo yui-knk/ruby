@@ -1603,7 +1603,7 @@ eom
 
     # Current technical limitation: cannot prepend "private" or something for command endless def
     error = /syntax error, unexpected string literal/
-    error2 = /syntax error, unexpected local variable or method/
+    error2 = /syntax error, unexpected local variable/
     assert_syntax_error('private def foo = puts "Hello"', error)
     assert_syntax_error('private def foo() = puts "Hello"', error)
     assert_syntax_error('private def foo(x) = puts x', error2)

@@ -545,6 +545,7 @@ parser_token2id(enum yytokentype tok)
       TOKEN2ID(keyword__FILE__);
       TOKEN2ID(keyword__ENCODING__);
       TOKEN2ID(tIDENTIFIER);
+      TOKEN2ID(tIDENTIFIER2);
       TOKEN2ID(tFID);
       TOKEN2ID(tGVAR);
       TOKEN2ID(tIVAR);
@@ -1350,7 +1351,7 @@ static int looking_at_eol_p(struct parser_params *p);
 #else
     rb_parser_printf(p, "%"PRIsVALUE, RNODE($$)->nd_rval);
 #endif
-} tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL tOP_ASGN
+} tIDENTIFIER tIDENTIFIER2 tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL tOP_ASGN
 %printer {
 #ifndef RIPPER
     rb_parser_printf(p, "%+"PRIsVALUE, $$->nd_lit);
@@ -1443,6 +1444,7 @@ static int looking_at_eol_p(struct parser_params *p);
         keyword__ENCODING__  "`__ENCODING__'"
 
 %token <id>   tIDENTIFIER    "local variable or method"
+%token <id>   tIDENTIFIER2   "local variable"
 %token <id>   tFID           "method"
 %token <id>   tGVAR          "global variable"
 %token <id>   tIVAR          "instance variable"
@@ -1488,7 +1490,7 @@ static int looking_at_eol_p(struct parser_params *p);
 %type <node> p_args p_args_head p_args_tail p_args_post p_arg
 %type <node> p_value p_primitive p_variable p_var_ref p_expr_ref p_const
 %type <node> p_kwargs p_kwarg p_kw
-%type <id>   keyword_variable user_variable sym operation operation2 operation3
+%type <id>   keyword_variable user_variable identifier sym operation operation2 operation3
 %type <id>   cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg f_bad_arg
 %type <id>   f_kwrest f_label f_arg_asgn call_op call_op2 reswords relop dot_or_colon
 %type <id>   p_rest p_kwrest p_kwnorest p_any_kwrest p_kw_label
@@ -1889,7 +1891,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*% ripper: opassign!(aref_field!($1, escape_Qundef($3)), $5, $7) %*/
 
 		    }
-		| primary_value call_op tIDENTIFIER tOP_ASGN lex_ctxt command_rhs
+		| primary_value call_op identifier tOP_ASGN lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = new_attr_op_assign(p, $1, $2, $3, $4, $6, &@$);
@@ -1911,7 +1913,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
 		    /*% %*/
 		    /*% ripper: opassign!(const_path_field!($1, $3), $4, $6) %*/
 		    }
-		| primary_value tCOLON2 tIDENTIFIER tOP_ASGN lex_ctxt command_rhs
+		| primary_value tCOLON2 identifier tOP_ASGN lex_ctxt command_rhs
 		    {
 		    /*%%%*/
 			$$ = new_attr_op_assign(p, $1, ID2VAL(idCOLON2), $3, $4, $6, &@$);
@@ -2399,7 +2401,7 @@ mlhs_node	: user_variable
 		    /*% %*/
 		    /*% ripper: aref_field!($1, escape_Qundef($3)) %*/
 		    }
-		| primary_value call_op tIDENTIFIER
+		| primary_value call_op identifier
 		    {
 			if ($2 == tANDDOT) {
 			    yyerror1(&@2, "&. inside multiple assignment destination");
@@ -2409,7 +2411,7 @@ mlhs_node	: user_variable
 		    /*% %*/
 		    /*% ripper: field!($1, $2, $3) %*/
 		    }
-		| primary_value tCOLON2 tIDENTIFIER
+		| primary_value tCOLON2 identifier
 		    {
 		    /*%%%*/
 			$$ = attrset(p, $1, idCOLON2, $3, &@$);
@@ -2471,14 +2473,14 @@ lhs		: user_variable
 		    /*% %*/
 		    /*% ripper: aref_field!($1, escape_Qundef($3)) %*/
 		    }
-		| primary_value call_op tIDENTIFIER
+		| primary_value call_op identifier
 		    {
 		    /*%%%*/
 			$$ = attrset(p, $1, $2, $3, &@$);
 		    /*% %*/
 		    /*% ripper: field!($1, $2, $3) %*/
 		    }
-		| primary_value tCOLON2 tIDENTIFIER
+		| primary_value tCOLON2 identifier
 		    {
 		    /*%%%*/
 			$$ = attrset(p, $1, idCOLON2, $3, &@$);
@@ -2516,7 +2518,7 @@ lhs		: user_variable
 		    }
 		;
 
-cname		: tIDENTIFIER
+cname		: identifier
 		    {
 			static const char mesg[] = "class/module name must be CONSTANT";
 		    /*%%%*/
@@ -2550,7 +2552,10 @@ cpath		: tCOLON3 cname
 		    }
 		;
 
-fname		: tIDENTIFIER
+identifier	: tIDENTIFIER
+		| tIDENTIFIER2
+
+fname		: identifier
 		| tCONSTANT
 		| tFID
 		| op
@@ -2655,7 +2660,7 @@ arg		: lhs '=' lex_ctxt arg_rhs
 		    /*% %*/
 		    /*% ripper: opassign!(aref_field!($1, escape_Qundef($3)), $5, $7) %*/
 		    }
-		| primary_value call_op tIDENTIFIER tOP_ASGN lex_ctxt arg_rhs
+		| primary_value call_op identifier tOP_ASGN lex_ctxt arg_rhs
 		    {
 		    /*%%%*/
 			$$ = new_attr_op_assign(p, $1, $2, $3, $4, $6, &@$);
@@ -2669,7 +2674,7 @@ arg		: lhs '=' lex_ctxt arg_rhs
 		    /*% %*/
 		    /*% ripper: opassign!(field!($1, $2, $3), $4, $6) %*/
 		    }
-		| primary_value tCOLON2 tIDENTIFIER tOP_ASGN lex_ctxt arg_rhs
+		| primary_value tCOLON2 identifier tOP_ASGN lex_ctxt arg_rhs
 		    {
 		    /*%%%*/
 			$$ = new_attr_op_assign(p, $1, ID2VAL(idCOLON2), $3, $4, $6, &@$);
@@ -4091,7 +4096,7 @@ bv_decls	: bvar
 		    /*% ripper[brace]: rb_ary_push($1, get_value($3)) %*/
 		;
 
-bvar		: tIDENTIFIER
+bvar		: identifier
 		    {
 			new_bv(p, get_id($1));
 		    /*% ripper: get_value($1) %*/
@@ -4685,7 +4690,7 @@ p_find		: p_rest ',' p_args_post ',' p_rest
 		;
 
 
-p_rest		: tSTAR tIDENTIFIER
+p_rest		: tSTAR identifier
 		    {
 			$$ = $2;
 		    }
@@ -4789,7 +4794,7 @@ p_kw_label	: tLABEL
 		    }
 		;
 
-p_kwrest	: kwrest_mark tIDENTIFIER
+p_kwrest	: kwrest_mark identifier
 		    {
 		        $$ = $2;
 		    }
@@ -4883,7 +4888,7 @@ p_primitive	: literal
 		| lambda
 		;
 
-p_variable	: tIDENTIFIER
+p_variable	: identifier
 		    {
 		    /*%%%*/
 			error_duplicate_pattern_variable(p, $1, &@1);
@@ -4893,7 +4898,7 @@ p_variable	: tIDENTIFIER
 		    }
 		;
 
-p_var_ref	: '^' tIDENTIFIER
+p_var_ref	: '^' identifier
 		    {
 		    /*%%%*/
 			NODE *n = gettable(p, $2, &@$);
@@ -5399,7 +5404,7 @@ nonlocal_var    : tIVAR
 		| tCVAR
 		;
 
-user_variable	: tIDENTIFIER
+user_variable	: identifier
 		| tCONSTANT
 		| nonlocal_var
 		;
@@ -5662,7 +5667,7 @@ f_bad_arg	: tCONSTANT
 		;
 
 f_norm_arg	: f_bad_arg
-		| tIDENTIFIER
+		| identifier
 		    {
 			formal_argument(p, $1);
 			p->max_numparam = ORDINAL_PARAM;
@@ -5816,7 +5821,7 @@ f_no_kwarg	: p_kwnorest
 		    }
 		;
 
-f_kwrest	: kwrest_mark tIDENTIFIER
+f_kwrest	: kwrest_mark identifier
 		    {
 			arg_var(p, shadowing_lvar(p, get_id($2)));
 		    /*%%%*/
@@ -5892,7 +5897,7 @@ restarg_mark	: '*'
 		| tSTAR
 		;
 
-f_rest_arg	: restarg_mark tIDENTIFIER
+f_rest_arg	: restarg_mark identifier
 		    {
 			arg_var(p, shadowing_lvar(p, get_id($2)));
 		    /*%%%*/
@@ -5914,7 +5919,7 @@ blkarg_mark	: '&'
 		| tAMPER
 		;
 
-f_block_arg	: blkarg_mark tIDENTIFIER
+f_block_arg	: blkarg_mark identifier
 		    {
 			arg_var(p, shadowing_lvar(p, get_id($2)));
 		    /*%%%*/
@@ -6072,7 +6077,7 @@ assoc		: arg_value tASSOC arg_value
 		    }
 		;
 
-operation	: tIDENTIFIER
+operation	: identifier
 		| tCONSTANT
 		| tFID
 		;
@@ -6081,7 +6086,7 @@ operation2	: operation
 		| op
 		;
 
-operation3	: tIDENTIFIER
+operation3	: identifier
 		| tFID
 		| op
 		;
@@ -9726,6 +9731,12 @@ parse_ident(struct parser_params *p, int c)
 
     ident = tokenize_ident(p, last_state);
     if (result == tCONSTANT && is_local_id(ident)) result = tIDENTIFIER;
+    if (!IS_lex_state_for(last_state, EXPR_DOT|EXPR_FNAME) &&
+	(result == tIDENTIFIER) && /* not EXPR_FNAME, not attrasgn */
+	lvar_defined(p, ident)) {
+	result = tIDENTIFIER2;
+    }
+
     return result;
 }
 
@@ -10512,9 +10523,6 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t, const int cmd_s
       case tIDENTIFIER:
       case tCONSTANT:
 	{
-	    ID ident = get_id(yylval_id());
-	    const enum lex_state_e last_state = p->lex.state;
-
 	    if (IS_lex_state(EXPR_BEG_ANY | EXPR_ARG_ANY | EXPR_DOT)) {
 		if (cmd_state) {
 		    SET_LEX_STATE(EXPR_CMDARG);
@@ -10529,13 +10537,11 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t, const int cmd_s
 	    else {
 		SET_LEX_STATE(EXPR_END);
 	    }
-
-	    if (!IS_lex_state_for(last_state, EXPR_DOT|EXPR_FNAME) &&
-		(t == tIDENTIFIER) && /* not EXPR_FNAME, not attrasgn */
-		lvar_defined(p, ident)) {
-		SET_LEX_STATE(EXPR_END|EXPR_LABEL);
-	    }
 	}
+	break;
+
+      case tIDENTIFIER2:
+	SET_LEX_STATE(EXPR_END|EXPR_LABEL);
 	break;
 
       case '`':

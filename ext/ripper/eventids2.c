@@ -216,6 +216,7 @@ ripper_token2eventid(enum yytokentype tok)
         [tGEQ]			= O(op),
         [tGVAR] 		= O(gvar),
         [tIDENTIFIER]		= O(ident),
+        [tIDENTIFIER2]		= O(ident),
         [tIMAGINARY]		= O(imaginary),
         [tINTEGER]		= O(int),
         [tIVAR] 		= O(ivar),
