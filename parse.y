@@ -7886,7 +7886,6 @@ parser_peek_variable_name(struct parser_params *p)
 	break;
       case '{':
 	p->lex.pcur = ptr;
-	p->command_start = TRUE;
 	return tSTRING_DBEG;
       default:
 	return 0;
@@ -9876,7 +9875,6 @@ parser_yylex(struct parser_params *p)
 	    }
 	}
       normal_newline:
-	p->command_start = TRUE;
 	return '\n';
 
       case '*':
@@ -9998,9 +9996,6 @@ parser_yylex(struct parser_params *p)
 	    if ((c = nextc(p)) == '=') {
 		set_yylval_id(idLTLT);
 		return tOP_ASGN;
-	    }
-	    if (IS_lex_state(EXPR_CLASS)) {
-		p->command_start = TRUE;
 	    }
 	    pushback(p, c);
 	    return warn_balanced((enum ruby_method_ids)tLSHFT, "<<", "here document");
@@ -10264,7 +10259,6 @@ parser_yylex(struct parser_params *p)
 	return '^';
 
       case ';':
-	p->command_start = TRUE;
 	return ';';
 
       case ',':
@@ -10333,9 +10327,6 @@ parser_yylex(struct parser_params *p)
 	    c = tLBRACE_ARG;  /* block (expr) */
 	else
 	    c = tLBRACE;      /* hash */
-	if (c != tLBRACE) {
-	    p->command_start = TRUE;
-	}
 	++p->lex.paren_nest;  /* after lambda_beginning_p() */
 	COND_PUSH(0);
 	CMDARG_PUSH(0);
@@ -10673,11 +10664,37 @@ rb_update_lex_state(struct parser_params *p, enum yytokentype t, const int cmd_s
     }
 }
 
+static void
+rb_update_command_start(struct parser_params *p, const enum yytokentype t, const enum lex_state_e last_state)
+{
+    switch ((int) t) {
+      case tSTRING_DBEG:
+      case '\n':
+      case ';':
+      case tLAMBEG:
+      case '{':
+      case tLBRACE_ARG:
+	p->command_start = TRUE;
+	break;
+
+      case tLSHFT:
+	if (IS_lex_state_for(last_state, EXPR_CLASS))
+	    p->command_start = TRUE;
+	break;
+
+      default:
+	/* Noop */
+	break;
+    }
+}
+
+
 static enum yytokentype
 yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
 {
     enum yytokentype t;
     const int cmd_state = p->command_start;
+    const enum lex_state_e last_state = p->lex.state;
 
     p->lval = lval;
     lval->val = Qundef;
@@ -10686,6 +10703,7 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
     t = parser_yylex(p);
 
     rb_update_lex_state(p, t, cmd_state);
+    rb_update_command_start(p, t, last_state);
 
     if (has_delayed_token(p))
 	dispatch_delayed_token(p, t);
