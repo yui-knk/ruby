@@ -2554,6 +2554,7 @@ cpath		: tCOLON3 cname
 
 identifier	: tIDENTIFIER
 		| tIDENTIFIER2
+		;
 
 fname		: identifier
 		| tCONSTANT
