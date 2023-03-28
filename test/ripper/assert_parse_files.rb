@@ -12,8 +12,8 @@ class TestRipper::Generic < Test::Unit::TestCase
     begin;
       TEST_RATIO = ENV["TEST_RIPPER_RATIO"]&.tap {|s|break s.to_f} || 0.05 # testing all files needs too long time...
       class Parser < Ripper
-        PARSER_EVENTS.each {|n| eval "def on_#{n}(*args) r = [:#{n}, *args]; r.inspect; Object.new end" }
-        SCANNER_EVENTS.each {|n| eval "def on_#{n}(*args) r = [:#{n}, *args]; r.inspect; Object.new end" }
+        PARSER_EVENTS.each {|n| eval "def on_#{n}(*args) r = [:#{n}, *args]; r.inspect; '#{n}' end" }
+        SCANNER_EVENTS.each {|n| eval "def on_#{n}(*args) r = [:#{n}, *args]; r.inspect; '#{n}' end" }
       end
       dir = ARGV.shift
       scripts = Dir.chdir(dir) {Dir[pattern]}
