@@ -20,7 +20,7 @@ def main
   $VPATH << '$(topdir)' << '$(top_srcdir)'
   $INCFLAGS << ' -I$(topdir) -I$(top_srcdir)'
   create_makefile 'ripper' do |conf|
-    conf << "BISON = #{yacc}"
+    conf << "YACC = #{yacc}"
   end
 end
 
