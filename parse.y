@@ -4078,7 +4078,7 @@ lambda		: tLAMBDA
                     {
                         $<node>$ = numparam_push(p);
                     }
-                  f_larglist
+                  f_larglist(do_LOWEST)
                     {
                         CMDARG_PUSH(0);
                     }
