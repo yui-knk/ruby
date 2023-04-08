@@ -520,9 +520,6 @@ parser_token2id(enum yytokentype tok)
       TOKEN2ID(keyword_retry);
       TOKEN2ID(keyword_in);
       TOKEN2ID(keyword_do);
-      TOKEN2ID(keyword_do_cond);
-      TOKEN2ID(keyword_do_block);
-      TOKEN2ID(keyword_do_LAMBDA);
       TOKEN2ID(keyword_return);
       TOKEN2ID(keyword_yield);
       TOKEN2ID(keyword_super);
@@ -1401,9 +1398,6 @@ static int looking_at_eol_p(struct parser_params *p);
         keyword_retry        "`retry'"
         keyword_in           "`in'"
         keyword_do           "`do'"
-        keyword_do_cond      "`do' for condition"
-        keyword_do_block     "`do' for block"
-        keyword_do_LAMBDA    "`do' for lambda"
         keyword_return       "`return'"
         keyword_yield        "`yield'"
         keyword_super        "`super'"
@@ -1569,12 +1563,22 @@ static int looking_at_eol_p(struct parser_params *p);
 
 %token tLAST_TOKEN
 
+/*
+ * keyword_do:
+ *   do_LOWEST  = 0.
+ *   do_BLOCK   = 1. keyword_do_block  (CMDARG_P)
+ *   do_COND    = 2. keyword_do_cond   (COND_P)
+ *   do_LAMBDA  = 3. keyword_do_LAMBDA (lambda_beginning_p)
+ *   do_HIGHEST = 4.
+ */
+%int-attr keyword_do do_LOWEST do_BLOCK do_COND do_LAMBDA do_HIGHEST
+
 %%
 program		:  {
                         SET_LEX_STATE(EXPR_BEG);
                         local_push(p, ifndef_ripper(1)+0);
                     }
-                  top_compstmt
+                  top_compstmt(do_HIGHEST)
                     {
                     /*%%%*/
                         if ($2 && !compile_for_eval) {
@@ -1632,7 +1636,7 @@ top_stmt	: stmt
                     }
                 ;
 
-begin_block	: '{' top_compstmt '}'
+begin_block	: '{' top_compstmt(do_HIGHEST) '}'
                     {
                     /*%%%*/
                         p->eval_tree_begin = block_append(p, p->eval_tree_begin,
@@ -1798,7 +1802,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
                     /*% %*/
                     /*% ripper: rescue_mod!($1, $3) %*/
                     }
-                | keyword_END '{' compstmt '}'
+                | keyword_END '{' compstmt(do_HIGHEST) '}'
                     {
                         if (p->ctxt.in_def) {
                             rb_warn0("END in method; use at_exit");
@@ -1904,7 +1908,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
                     /*% %*/
                     /*% ripper: opassign!(field!($1, ID2VAL(idCOLON2), $3), $4, $6) %*/
                     }
-                | defn_head f_opt_paren_args '=' endless_command
+                | defn_head f_opt_paren_args(do_HIGHEST) '=' endless_command(do_HIGHEST)
                     {
                         endless_method_name(p, $<node>1, &@1);
                         restore_defun(p, $<node>1->nd_defn);
@@ -1914,7 +1918,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
                     /*% ripper: def!(get_value($1), $2, bodystmt!($4, Qnil, Qnil, Qnil)) %*/
                         local_pop(p);
                     }
-                | defs_head f_opt_paren_args '=' endless_command
+                | defs_head f_opt_paren_args(do_HIGHEST) '=' endless_command(do_HIGHEST)
                     {
                         endless_method_name(p, $<node>1, &@1);
                         restore_defun(p, $<node>1->nd_defn);
@@ -2089,7 +2093,7 @@ expr_value	: expr
                     }
                 ;
 
-expr_value_do	: {COND_PUSH(1);} expr_value do {COND_POP();}
+expr_value_do	: {COND_PUSH(1);} expr_value(do_LOWEST) do(do_COND) {COND_POP();}
                     {
                         $$ = $2;
                     }
@@ -2109,7 +2113,7 @@ block_command	: block_call
                     }
                 ;
 
-cmd_brace_block	: tLBRACE_ARG brace_body '}'
+cmd_brace_block	: tLBRACE_ARG brace_body(do_HIGHEST) '}'
                     {
                         $$ = $2;
                     /*%%%*/
@@ -2217,7 +2221,7 @@ command		: fcall command_args       %prec tLOWEST
                 ;
 
 mlhs		: mlhs_basic
-                | tLPAREN mlhs_inner rparen
+                | tLPAREN mlhs_inner(do_HIGHEST) rparen
                     {
                     /*%%%*/
                         $$ = $2;
@@ -2227,7 +2231,7 @@ mlhs		: mlhs_basic
                 ;
 
 mlhs_inner	: mlhs_basic
-                | tLPAREN mlhs_inner rparen
+                | tLPAREN mlhs_inner(do_HIGHEST) rparen
                     {
                     /*%%%*/
                         $$ = NEW_MASGN(NEW_LIST($2, &@$), 0, &@$);
@@ -2309,7 +2313,7 @@ mlhs_basic	: mlhs_head
                 ;
 
 mlhs_item	: mlhs_node
-                | tLPAREN mlhs_inner rparen
+                | tLPAREN mlhs_inner(do_HIGHEST) rparen
                     {
                     /*%%%*/
                         $$ = $2;
@@ -2833,7 +2837,7 @@ arg		: lhs '=' lex_ctxt arg_rhs
                     /*% %*/
                     /*% ripper: ifop!($1, $3, $6) %*/
                     }
-                | defn_head f_opt_paren_args '=' endless_arg
+                | defn_head f_opt_paren_args(do_HIGHEST) '=' endless_arg(do_HIGHEST)
                     {
                         endless_method_name(p, $<node>1, &@1);
                         restore_defun(p, $<node>1->nd_defn);
@@ -2843,7 +2847,7 @@ arg		: lhs '=' lex_ctxt arg_rhs
                     /*% ripper: def!(get_value($1), $2, bodystmt!($4, Qnil, Qnil, Qnil)) %*/
                         local_pop(p);
                     }
-                | defs_head f_opt_paren_args '=' endless_arg
+                | defs_head f_opt_paren_args(do_HIGHEST) '=' endless_arg(do_HIGHEST)
                     {
                         endless_method_name(p, $<node>1, &@1);
                         restore_defun(p, $<node>1->nd_defn);
@@ -2941,14 +2945,14 @@ arg_rhs 	: arg   %prec tOP_ASGN
                     }
                 ;
 
-paren_args	: '(' opt_call_args rparen
+paren_args	: '(' opt_call_args(do_HIGHEST) rparen
                     {
                     /*%%%*/
                         $$ = $2;
                     /*% %*/
                     /*% ripper: arg_paren!(escape_Qundef($2)) %*/
                     }
-                | '(' args ',' args_forward rparen
+                | '(' args(do_HIGHEST) ',' args_forward(do_HIGHEST) rparen
                     {
                         if (!check_forwarding_args(p)) {
                             $$ = Qnone;
@@ -2960,7 +2964,7 @@ paren_args	: '(' opt_call_args rparen
                         /*% ripper: arg_paren!(args_add!($2, $4)) %*/
                         }
                     }
-                | '(' args_forward rparen
+                | '(' args_forward(do_HIGHEST) rparen
                     {
                         if (!check_forwarding_args(p)) {
                             $$ = Qnone;
@@ -3052,7 +3056,7 @@ command_args	:   {
                         CMDARG_PUSH(1);
                         if (lookahead) CMDARG_PUSH(0);
                     }
-                  call_args
+                  call_args(do_LOWEST)
                     {
                         /* call_args can be followed by tLBRACE_ARG (that does CMDARG_PUSH(0) in the lexer)
                          * but the push must be done after CMDARG_POP() in the parser.
@@ -3204,7 +3208,7 @@ primary		: literal
                     {
                         CMDARG_PUSH(0);
                     }
-                  bodystmt
+                  bodystmt(do_HIGHEST)
                   k_end
                     {
                         CMDARG_POP();
@@ -3222,7 +3226,7 @@ primary		: literal
                     /*% %*/
                     /*% ripper: paren!(0) %*/
                     }
-                | tLPAREN_ARG stmt {SET_LEX_STATE(EXPR_ENDARG);} rparen
+                | tLPAREN_ARG stmt(do_HIGHEST) {SET_LEX_STATE(EXPR_ENDARG);} rparen
                     {
                     /*%%%*/
                         if (nd_type_p($2, NODE_SELF)) $2->nd_state = 0;
@@ -3230,7 +3234,7 @@ primary		: literal
                     /*% %*/
                     /*% ripper: paren!($2) %*/
                     }
-                | tLPAREN compstmt ')'
+                | tLPAREN compstmt(do_HIGHEST) ')'
                     {
                     /*%%%*/
                         if (nd_type_p($2, NODE_SELF)) $2->nd_state = 0;
@@ -3252,14 +3256,14 @@ primary		: literal
                     /*% %*/
                     /*% ripper: top_const_ref!($2) %*/
                     }
-                | tLBRACK aref_args ']'
+                | tLBRACK aref_args(do_HIGHEST) ']'
                     {
                     /*%%%*/
                         $$ = make_list($2, &@$);
                     /*% %*/
                     /*% ripper: array!(escape_Qundef($2)) %*/
                     }
-                | tLBRACE assoc_list '}'
+                | tLBRACE assoc_list(do_HIGHEST) '}'
                     {
                     /*%%%*/
                         $$ = new_hash(p, $2, &@$);
@@ -3274,7 +3278,7 @@ primary		: literal
                     /*% %*/
                     /*% ripper: return0! %*/
                     }
-                | keyword_yield '(' call_args rparen
+                | keyword_yield '(' call_args(do_HIGHEST) rparen
                     {
                     /*%%%*/
                         $$ = new_yield(p, $3, &@$);
@@ -3295,12 +3299,12 @@ primary		: literal
                     /*% %*/
                     /*% ripper: yield0! %*/
                     }
-                | keyword_defined opt_nl '(' {p->ctxt.in_defined = 1;} expr rparen
+                | keyword_defined opt_nl '(' {p->ctxt.in_defined = 1;} expr(do_HIGHEST) rparen
                     {
                         p->ctxt.in_defined = 0;
                         $$ = new_defined(p, $5, &@$);
                     }
-                | keyword_not '(' expr rparen
+                | keyword_not '(' expr(do_HIGHEST) rparen
                     {
                         $$ = call_uni_op(p, method_cond(p, $3, &@3), METHOD_NOT, &@1, &@$);
                     }
@@ -3458,7 +3462,7 @@ primary		: literal
                         p->ctxt.in_class = 1;
                         local_push(p, 0);
                     }
-                  bodystmt
+                  bodystmt(do_HIGHEST)
                   k_end
                     {
                     /*%%%*/
@@ -3479,7 +3483,7 @@ primary		: literal
                         local_push(p, 0);
                     }
                   term
-                  bodystmt
+                  bodystmt(do_HIGHEST)
                   k_end
                     {
                     /*%%%*/
@@ -3503,7 +3507,7 @@ primary		: literal
                         p->ctxt.in_class = 1;
                         local_push(p, 0);
                     }
-                  bodystmt
+                  bodystmt(do_HIGHEST)
                   k_end
                     {
                     /*%%%*/
@@ -3518,13 +3522,13 @@ primary		: literal
                         p->ctxt.shareable_constant_value = $<ctxt>1.shareable_constant_value;
                     }
                 | defn_head
-                  f_arglist
+                  f_arglist(do_HIGHEST)
                     {
                     /*%%%*/
                         push_end_expect_token_locations(p, &@1.beg_pos);
                     /*% %*/
                     }
-                  bodystmt
+                  bodystmt(do_HIGHEST)
                   k_end
                     {
                         restore_defun(p, $<node>1->nd_defn);
@@ -3535,13 +3539,13 @@ primary		: literal
                         local_pop(p);
                     }
                 | defs_head
-                  f_arglist
+                  f_arglist(do_HIGHEST)
                     {
                     /*%%%*/
                         push_end_expect_token_locations(p, &@1.beg_pos);
                     /*% %*/
                     }
-                  bodystmt
+                  bodystmt(do_HIGHEST)
                   k_end
                     {
                         restore_defun(p, $<node>1->nd_defn);
@@ -3701,7 +3705,7 @@ k_do		: keyword_do
                     }
                 ;
 
-k_do_block	: keyword_do_block
+k_do_block	: keyword_do /* keyword_do_block */
                     {
                         token_info_push(p, "do", &@$);
                     /*%%%*/
@@ -3776,7 +3780,7 @@ then		: term
                 ;
 
 do		: term
-                | keyword_do_cond
+                | keyword_do /* keyword_do_cond */
                 ;
 
 if_tail		: opt_else
@@ -3814,7 +3818,7 @@ f_marg		: f_norm_arg
                     /*% %*/
                     /*% ripper: assignable(p, $1) %*/
                     }
-                | tLPAREN f_margs rparen
+                | tLPAREN f_margs(do_HIGHEST) rparen
                     {
                     /*%%%*/
                         $$ = $2;
@@ -4078,7 +4082,7 @@ lambda		: tLAMBDA
                     {
                         CMDARG_PUSH(0);
                     }
-                  lambda_body
+                  lambda_body(do_LAMBDA)
                     {
                         int max_numparam = p->max_numparam;
                         p->lex.lpar_beg = $<num>2;
@@ -4100,7 +4104,7 @@ lambda		: tLAMBDA
                     }
                 ;
 
-f_larglist	: '(' f_args opt_bv_decl ')'
+f_larglist	: '(' f_args(do_HIGHEST) opt_bv_decl(do_HIGHEST) ')'
                     {
                         p->ctxt.in_argdef = 0;
                     /*%%%*/
@@ -4120,18 +4124,18 @@ f_larglist	: '(' f_args opt_bv_decl ')'
                     }
                 ;
 
-lambda_body	: tLAMBEG compstmt '}'
+lambda_body	: tLAMBEG compstmt(do_HIGHEST) '}'
                     {
                         token_info_pop(p, "}", &@3);
                         $$ = $2;
                     }
-                | keyword_do_LAMBDA
+                | keyword_do
                     {
                     /*%%%*/
                         push_end_expect_token_locations(p, &@1.beg_pos);
                     /*% %*/
                     }
-                  bodystmt k_end
+                  bodystmt(do_HIGHEST) k_end
                     {
                         $$ = $3;
                     }
@@ -4147,7 +4151,7 @@ do_block	: k_do_block do_body k_end
                     }
                 ;
 
-block_call	: command do_block
+block_call	: command do_block(do_BLOCK)
                     {
                     /*%%%*/
                         if (nd_type_p($1, NODE_YIELD)) {
@@ -4175,7 +4179,7 @@ block_call	: command do_block
                     /*% %*/
                     /*% ripper: opt_event(:method_add_block!, command_call!($1, $2, $3, $4), $5) %*/
                     }
-                | block_call call_op2 operation2 command_args do_block
+                | block_call call_op2 operation2 command_args do_block(do_BLOCK)
                     {
                     /*%%%*/
                         $$ = new_command_qcall(p, $2, $1, $3, $4, $5, &@3, &@$);
@@ -4259,7 +4263,7 @@ method_call	: fcall paren_args
                     }
                 ;
 
-brace_block	: '{' brace_body '}'
+brace_block	: '{' brace_body(do_HIGHEST) '}'
                     {
                         $$ = $2;
                     /*%%%*/
@@ -4308,7 +4312,7 @@ do_body 	: {$<vars>$ = dyna_push(p);}
                         $<node>$ = numparam_push(p);
                         CMDARG_PUSH(0);
                     }
-                  opt_block_param bodystmt
+                  opt_block_param(do_HIGHEST) bodystmt(do_HIGHEST)
                     {
                         int max_numparam = p->max_numparam;
                         p->max_numparam = $<num>2;
@@ -4543,11 +4547,11 @@ p_expr_basic	: p_value
                         $$ = new_array_pattern_tail(p, Qnone, 0, Qnone, Qnone, &@$);
                         $$ = new_array_pattern(p, $1, Qnone, $$, &@$);
                     }
-                | tLBRACK p_args rbracket
+                | tLBRACK p_args(do_HIGHEST) rbracket
                     {
                         $$ = new_array_pattern(p, Qnone, Qnone, $2, &@$);
                     }
-                | tLBRACK p_find rbracket
+                | tLBRACK p_find(do_HIGHEST) rbracket
                     {
                         $$ = new_find_pattern(p, Qnone, $2, &@$);
                     }
@@ -4562,7 +4566,7 @@ p_expr_basic	: p_value
                         $<ctxt>1 = p->ctxt;
                         p->ctxt.in_kwarg = 0;
                     }
-                  p_kwargs rbrace
+                  p_kwargs(do_HIGHEST) rbrace
                     {
                         pop_pktbl(p, $<tbl>2);
                         p->ctxt.in_kwarg = $<ctxt>1.in_kwarg;
@@ -4573,7 +4577,7 @@ p_expr_basic	: p_value
                         $$ = new_hash_pattern_tail(p, Qnone, 0, &@$);
                         $$ = new_hash_pattern(p, Qnone, $$, &@$);
                     }
-                | tLPAREN {$<tbl>$ = push_pktbl(p);} p_expr rparen
+                | tLPAREN {$<tbl>$ = push_pktbl(p);} p_expr(do_HIGHEST) rparen
                     {
                         pop_pktbl(p, $<tbl>2);
                         $$ = $3;
@@ -4878,7 +4882,7 @@ p_var_ref	: '^' tIDENTIFIER
                     }
                 ;
 
-p_expr_ref	: '^' tLPAREN expr_value rparen
+p_expr_ref	: '^' tLPAREN expr_value(do_HIGHEST) rparen
                     {
                     /*%%%*/
                         $$ = NEW_BEGIN($3, &@$);
@@ -5273,7 +5277,7 @@ string_content	: tSTRING_CONTENT
                         $<num>$ = p->heredoc_indent;
                         p->heredoc_indent = 0;
                     }
-                  compstmt tSTRING_DEND
+                  compstmt(do_HIGHEST) tSTRING_DEND
                     {
                         COND_POP();
                         CMDARG_POP();
@@ -5447,7 +5451,7 @@ f_opt_paren_args: f_paren_args
                     }
                 ;
 
-f_paren_args	: '(' f_args rparen
+f_paren_args	: '(' f_args(do_HIGHEST) rparen
                     {
                     /*%%%*/
                         $$ = $2;
@@ -5652,7 +5656,7 @@ f_arg_item	: f_arg_asgn
                     /*% %*/
                     /*% ripper: get_value($1) %*/
                     }
-                | tLPAREN f_margs rparen
+                | tLPAREN f_margs(do_HIGHEST) rparen
                     {
                     /*%%%*/
                         ID tid = internal_id(p);
@@ -5912,7 +5916,7 @@ singleton	: var_ref
                         value_expr($1);
                         $$ = $1;
                     }
-                | '(' {SET_LEX_STATE(EXPR_BEG);} expr rparen
+                | '(' {SET_LEX_STATE(EXPR_BEG);} expr(do_HIGHEST) rparen
                     {
                     /*%%%*/
                         switch (nd_type($3)) {
@@ -9695,11 +9699,12 @@ parse_ident(struct parser_params *p, int c, int cmd_state)
             if (kw->id[0] == keyword_do) {
                 if (lambda_beginning_p()) {
                     p->lex.lpar_beg = -1; /* make lambda_beginning_p() == FALSE in the body of "-> do ... end" */
-                    return keyword_do_LAMBDA;
+                    // return keyword_do_LAMBDA;
                 }
-                if (COND_P()) return keyword_do_cond;
-                if (CMDARG_P() && !IS_lex_state_for(state, EXPR_CMDARG))
-                    return keyword_do_block;
+                // if (COND_P()) return keyword_do_cond;
+                // if (CMDARG_P() && !IS_lex_state_for(state, EXPR_CMDARG))
+                //     return keyword_do_block;
+
                 return keyword_do;
             }
             if (IS_lex_state_for(state, (EXPR_BEG | EXPR_LABELED | EXPR_CLASS)))
