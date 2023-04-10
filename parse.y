@@ -30,6 +30,8 @@
 
 struct lex_context;
 
+#include "external/parse.h"
+
 #include "internal.h"
 #include "internal/compile.h"
 #include "internal/compilers.h"
@@ -6815,7 +6817,7 @@ yycompile0(VALUE arg)
 }
 
 static rb_ast_t *
-yycompile(VALUE vparser, struct parser_params *p, VALUE fname, int line)
+yycompile(struct parser_params *p, VALUE fname, int line)
 {
     rb_ast_t *ast;
     if (NIL_P(fname)) {
@@ -6833,7 +6835,6 @@ yycompile(VALUE vparser, struct parser_params *p, VALUE fname, int line)
     p->ast = ast = rb_ast_new();
     rb_suppress_tracing(yycompile0, (VALUE)p);
     p->ast = 0;
-    RB_GC_GUARD(vparser); /* prohibit tail call optimization */
 
     while (p->lvtbl) {
         local_pop(p);
@@ -6888,31 +6889,27 @@ static const rb_data_type_t parser_data_type;
 
 #ifndef RIPPER
 static rb_ast_t*
-parser_compile_string(VALUE vparser, VALUE fname, VALUE s, int line)
+parser_compile_string(rb_parser_t *p, VALUE fname, VALUE s, int line)
 {
-    struct parser_params *p;
-
-    TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
-
     p->lex.gets = lex_get_str;
     p->lex.gets_.ptr = 0;
     p->lex.input = rb_str_new_frozen(s);
     p->lex.pbeg = p->lex.pcur = p->lex.pend = 0;
 
-    return yycompile(vparser, p, fname, line);
+    return yycompile(p, fname, line);
 }
 
 rb_ast_t*
-rb_parser_compile_string(VALUE vparser, const char *f, VALUE s, int line)
-{
-    return rb_parser_compile_string_path(vparser, rb_filesystem_str_new_cstr(f), s, line);
-}
-
-rb_ast_t*
-rb_parser_compile_string_path(VALUE vparser, VALUE f, VALUE s, int line)
+rb_ruby_parser_compile_string_path(rb_parser_t *p, VALUE f, VALUE s, int line)
 {
     must_be_ascii_compatible(s);
-    return parser_compile_string(vparser, f, s, line);
+    return parser_compile_string(p, f, s, line);
+}
+
+rb_ast_t*
+rb_ruby_parser_compile_string(rb_parser_t *p, const char *f, VALUE s, int line)
+{
+    return rb_ruby_parser_compile_string_path(p, rb_filesystem_str_new_cstr(f), s, line);
 }
 
 VALUE rb_io_gets_internal(VALUE io);
@@ -6924,17 +6921,13 @@ lex_io_gets(struct parser_params *p, VALUE io)
 }
 
 rb_ast_t*
-rb_parser_compile_file_path(VALUE vparser, VALUE fname, VALUE file, int start)
+rb_ruby_parser_compile_file_path(rb_parser_t *p, VALUE fname, VALUE file, int start)
 {
-    struct parser_params *p;
-
-    TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
-
     p->lex.gets = lex_io_gets;
     p->lex.input = file;
     p->lex.pbeg = p->lex.pcur = p->lex.pend = 0;
 
-    return yycompile(vparser, p, fname, start);
+    return yycompile(p, fname, start);
 }
 
 static VALUE
@@ -6944,18 +6937,14 @@ lex_generic_gets(struct parser_params *p, VALUE input)
 }
 
 rb_ast_t*
-rb_parser_compile_generic(VALUE vparser, VALUE (*lex_gets)(VALUE, int), VALUE fname, VALUE input, int start)
+rb_ruby_parser_compile_generic(rb_parser_t *p, VALUE (*lex_gets)(VALUE, int), VALUE fname, VALUE input, int start)
 {
-    struct parser_params *p;
-
-    TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
-
     p->lex.gets = lex_generic_gets;
     p->lex.gets_.call = lex_gets;
     p->lex.input = input;
     p->lex.pbeg = p->lex.pcur = p->lex.pend = 0;
 
-    return yycompile(vparser, p, fname, start);
+    return yycompile(p, fname, start);
 }
 #endif  /* !RIPPER */
 
@@ -13621,10 +13610,8 @@ parser_reg_compile(struct parser_params* p, VALUE str, int options, VALUE *errms
 
 #ifndef RIPPER
 void
-rb_parser_set_options(VALUE vparser, int print, int loop, int chomp, int split)
+rb_ruby_parser_set_options(struct parser_params *p, int print, int loop, int chomp, int split)
 {
-    struct parser_params *p;
-    TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
     p->do_print = print;
     p->do_loop = loop;
     p->do_chomp = chomp;
@@ -13782,12 +13769,10 @@ parser_memsize(const void *ptr)
     return size;
 }
 
-static const rb_data_type_t parser_data_type = {
 #ifndef RIPPER
-    "parser",
-#else
+// TODO: rename
+static const rb_data_type_t parser_data_type = {
     "ripper",
-#endif
     {
         parser_mark,
         parser_free,
@@ -13795,6 +13780,7 @@ static const rb_data_type_t parser_data_type = {
     },
     0, 0, RUBY_TYPED_FREE_IMMEDIATELY
 };
+#endif
 
 #ifndef RIPPER
 #undef rb_reserved_word
@@ -13805,53 +13791,41 @@ rb_reserved_word(const char *str, unsigned int len)
     return reserved_word(str, len);
 }
 
-VALUE
-rb_parser_new(void)
+rb_parser_t *
+rb_ruby_parser_new(rb_parser_config_t config)
 {
-    struct parser_params *p;
-    VALUE parser = TypedData_Make_Struct(0, struct parser_params,
-                                         &parser_data_type, p);
+    rb_parser_t *p = (rb_parser_t *)config.malloc(sizeof(rb_parser_t));
     parser_initialize(p);
-    return parser;
+    return p;
 }
 
-VALUE
-rb_parser_set_context(VALUE vparser, const struct rb_iseq_struct *base, int main)
+rb_parser_t *
+rb_ruby_parser_set_context(rb_parser_t *p, const struct rb_iseq_struct *base, int main)
 {
-    struct parser_params *p;
-
-    TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
     p->error_buffer = main ? Qfalse : Qnil;
     p->parent_iseq = base;
-    return vparser;
+    return p;
 }
 
 void
-rb_parser_keep_script_lines(VALUE vparser)
+rb_ruby_parser_keep_script_lines(rb_parser_t *p)
 {
-    struct parser_params *p;
-
-    TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
     p->keep_script_lines = 1;
 }
 
 void
-rb_parser_error_tolerant(VALUE vparser)
+rb_ruby_parser_error_tolerant(rb_parser_t *p)
 {
-    struct parser_params *p;
-
-    TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
     p->error_tolerant = 1;
+    // TODO
     p->end_expect_token_locations = rb_ary_new();
 }
 
 void
-rb_parser_keep_tokens(VALUE vparser)
+rb_ruby_parser_keep_tokens(rb_parser_t *p)
 {
-    struct parser_params *p;
-
-    TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
     p->keep_tokens = 1;
+    // TODO
     p->tokens = rb_ary_new();
 }
 
