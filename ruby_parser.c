@@ -52,8 +52,8 @@ rb_parser_new(void)
                                          &ruby_parser_data_type, parser);
 
     config.malloc = ruby_xmalloc;
-    config.calloc = calloc;
-    config.free = xfree;
+    config.calloc = ruby_xcalloc;
+    config.free = ruby_xfree;
 
     parser->parser_params = rb_ruby_parser_new(config);
 
