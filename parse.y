@@ -13769,7 +13769,7 @@ parser_memsize(const void *ptr)
     return size;
 }
 
-#ifndef RIPPER
+#ifdef RIPPER
 // TODO: rename
 static const rb_data_type_t parser_data_type = {
     "ripper",
