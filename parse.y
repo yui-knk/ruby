@@ -13699,7 +13699,7 @@ parser_initialize(struct parser_params *p)
 #define parser_free ripper_parser_free
 #endif
 
-static void
+void
 parser_mark(void *ptr)
 {
     struct parser_params *p = (struct parser_params*)ptr;
@@ -13730,7 +13730,7 @@ parser_mark(void *ptr)
 #endif
 }
 
-static void
+void
 parser_free(void *ptr)
 {
     struct parser_params *p = (struct parser_params*)ptr;
@@ -13754,7 +13754,7 @@ parser_free(void *ptr)
     xfree(ptr);
 }
 
-static size_t
+size_t
 parser_memsize(const void *ptr)
 {
     struct parser_params *p = (struct parser_params*)ptr;
@@ -13794,7 +13794,8 @@ rb_reserved_word(const char *str, unsigned int len)
 rb_parser_t *
 rb_ruby_parser_new(rb_parser_config_t config)
 {
-    rb_parser_t *p = (rb_parser_t *)config.malloc(sizeof(rb_parser_t));
+    /* parser_initialize expects fields to be set to 0 */
+    rb_parser_t *p = (rb_parser_t *)config.calloc(1, sizeof(rb_parser_t));
     parser_initialize(p);
     return p;
 }

@@ -6,89 +6,40 @@
 #include "ruby/ruby.h"
 #include "node.h"
 
-static void
-parser_mark(void *ptr)
-{
-//     struct parser_params *p = (struct parser_params*)ptr;
+struct ruby_parser {
+    rb_parser_t *parser_params;
+};
 
-//     rb_gc_mark(p->lex.input);
-//     rb_gc_mark(p->lex.lastline);
-//     rb_gc_mark(p->lex.nextline);
-//     rb_gc_mark(p->ruby_sourcefile_string);
-//     rb_gc_mark((VALUE)p->lex.strterm);
-//     rb_gc_mark((VALUE)p->ast);
-//     rb_gc_mark(p->case_labels);
-//     rb_gc_mark(p->delayed.token);
-// #ifndef RIPPER
-//     rb_gc_mark(p->debug_lines);
-//     rb_gc_mark(p->compile_option);
-//     rb_gc_mark(p->error_buffer);
-//     rb_gc_mark(p->end_expect_token_locations);
-//     rb_gc_mark(p->tokens);
-// #else
-//     rb_gc_mark(p->value);
-//     rb_gc_mark(p->result);
-//     rb_gc_mark(p->parsing_thread);
-// #endif
-//     rb_gc_mark(p->debug_buffer);
-//     rb_gc_mark(p->debug_output);
-// #ifdef YYMALLOC
-//     rb_gc_mark((VALUE)p->heap);
-// #endif
+
+static void
+parser_mark2(void *ptr)
+{
+    struct ruby_parser *parser = (struct ruby_parser*)ptr;
+    parser_mark(parser->parser_params);
 }
 
 static void
-parser_free(void *ptr)
+parser_free2(void *ptr)
 {
-    // struct parser_params *p = (struct parser_params*)ptr;
-    // struct local_vars *local, *prev;
-
-    // if (p->tokenbuf) {
-    //     ruby_sized_xfree(p->tokenbuf, p->toksiz);
-    // }
-    // for (local = p->lvtbl; local; local = prev) {
-    //     if (local->vars) xfree(local->vars);
-    //     prev = local->prev;
-    //     xfree(local);
-    // }
-    // {
-    //     token_info *ptinfo;
-    //     while ((ptinfo = p->token_info) != 0) {
-    //         p->token_info = ptinfo->next;
-    //         xfree(ptinfo);
-    //     }
-    // }
-    // xfree(ptr);
+    struct ruby_parser *parser = (struct ruby_parser*)ptr;
+    parser_free(parser->parser_params);
 }
 
 static size_t
-parser_memsize(const void *ptr)
+parser_memsize2(const void *ptr)
 {
-    // struct parser_params *p = (struct parser_params*)ptr;
-    // struct local_vars *local;
-    // size_t size = sizeof(*p);
-
-    // size += p->toksiz;
-    // for (local = p->lvtbl; local; local = local->prev) {
-    //     size += sizeof(*local);
-    //     if (local->vars) size += local->vars->capa * sizeof(ID);
-    // }
-    // return size;
-    return 0;
+    struct ruby_parser *parser = (struct ruby_parser*)ptr;
+    return parser_memsize(parser->parser_params);
 }
 
 static const rb_data_type_t ruby_parser_data_type = {
     "parser",
     {
-        parser_mark,
-        parser_free,
-        parser_memsize,
+        parser_mark2,
+        parser_free2,
+        parser_memsize2,
     },
     0, 0, RUBY_TYPED_FREE_IMMEDIATELY
-};
-
-struct ruby_parser {
-    rb_parser_t *parser_params;
 };
 
 VALUE
@@ -101,6 +52,7 @@ rb_parser_new(void)
                                          &ruby_parser_data_type, parser);
 
     config.malloc = ruby_xmalloc;
+    config.calloc = calloc;
     config.free = xfree;
 
     parser->parser_params = rb_ruby_parser_new(config);

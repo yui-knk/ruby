@@ -435,6 +435,10 @@ VALUE rb_parser_set_yydebug(VALUE, VALUE);
 VALUE rb_parser_dump_tree(const NODE *node, int comment);
 void rb_parser_set_options(VALUE, int, int, int, int);
 
+void parser_mark(void *ptr);
+void parser_free(void *ptr);
+size_t parser_memsize(const void *ptr);
+
 rb_ast_t *rb_parser_compile_string(VALUE, const char*, VALUE, int);
 rb_ast_t *rb_parser_compile_string_path(VALUE vparser, VALUE fname, VALUE src, int line);
 rb_ast_t *rb_parser_compile_file_path(VALUE vparser, VALUE fname, VALUE input, int line);
