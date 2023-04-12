@@ -99,6 +99,21 @@ RBIMPL_WARNING_POP()
 #define rb_ary_join          p->config.ary_join
 #define rb_ary_reverse       p->config.ary_reverse
 #define rb_ary_clear         p->config.ary_clear
+
+#define rb_str_catf                       p->config.str_catf
+#define rb_str_cat_cstr                   p->config.str_cat_cstr
+#define rb_str_subseq                     p->config.str_subseq
+#define rb_str_dup                        p->config.str_dup
+#define rb_str_new_frozen                 p->config.str_new_frozen
+#define rb_str_buf_new                    p->config.str_buf_new
+#define rb_str_buf_cat                    p->config.str_buf_cat
+#define rb_str_modify                     p->config.str_modify
+#define rb_str_set_len                    p->config.str_set_len
+#define rb_str_coderange_scan_restartable p->config.str_coderange_scan_restartable
+#define rb_str_cat                        p->config.str_cat
+#define rb_str_resize                     p->config.str_resize
+#define rb_str_new                        p->config.str_new
+#define rb_str_new_cstr                   p->config.str_new_cstr
 #endif
 
 #define NO_LEX_CTXT (struct lex_context){0}
@@ -930,7 +945,13 @@ RUBY_SYMBOL_EXPORT_BEGIN
 VALUE rb_parser_reg_compile(struct parser_params* p, VALUE str, int options);
 int rb_reg_fragment_setenc(struct parser_params*, VALUE, int);
 enum lex_state_e rb_parser_trace_lex_state(struct parser_params *, enum lex_state_e, enum lex_state_e, int);
+
+#ifndef RIPPER
+VALUE rb_parser_lex_state_name(struct parser_params* p, enum lex_state_e state);
+#else
 VALUE rb_parser_lex_state_name(enum lex_state_e state);
+#endif
+
 void rb_parser_show_bitstack(struct parser_params *, stack_type, const char *, int);
 PRINTF_ARGS(void rb_parser_fatal(struct parser_params *p, const char *fmt, ...), 2, 3);
 YYLTYPE *rb_parser_set_location_from_strterm_heredoc(struct parser_params *p, rb_strterm_heredoc_t *here, YYLTYPE *yylloc);
@@ -6442,7 +6463,7 @@ parser_precise_mbclen(struct parser_params *p, const char *ptr)
 }
 
 #ifndef RIPPER
-static void ruby_show_error_line(VALUE errbuf, const YYLTYPE *yylloc, int lineno, VALUE str);
+static void ruby_show_error_line(struct parser_params *p, VALUE errbuf, const YYLTYPE *yylloc, int lineno, VALUE str);
 
 static inline void
 parser_show_error_line(struct parser_params *p, const YYLTYPE *yylloc)
@@ -6458,7 +6479,7 @@ parser_show_error_line(struct parser_params *p, const YYLTYPE *yylloc)
     else {
         return;
     }
-    ruby_show_error_line(p->error_buffer, yylloc, lineno, str);
+    ruby_show_error_line(p, p->error_buffer, yylloc, lineno, str);
 }
 
 static int
@@ -6488,7 +6509,7 @@ parser_yyerror0(struct parser_params *p, const char *msg)
 }
 
 static void
-ruby_show_error_line(VALUE errbuf, const YYLTYPE *yylloc, int lineno, VALUE str)
+ruby_show_error_line(struct parser_params *p, VALUE errbuf, const YYLTYPE *yylloc, int lineno, VALUE str)
 {
     VALUE mesg;
     const int max_line_margin = 30;
@@ -8094,8 +8115,13 @@ heredoc_restore(struct parser_params *p, rb_strterm_heredoc_t *here)
     p->eofp = 0;
 }
 
+#ifndef RIPPER
+static int
+dedent_string(struct parser_params *p, VALUE string, int width)
+#else
 static int
 dedent_string(VALUE string, int width)
+#endif
 {
     char *str;
     long len;
@@ -8143,7 +8169,7 @@ heredoc_dedent(struct parser_params *p, NODE *root)
     while (str_node) {
         VALUE lit = str_node->nd_lit;
         if (str_node->flags & NODE_FL_NEWLINE) {
-            dedent_string(lit, indent);
+            dedent_string(p, lit, indent);
         }
         if (!prev_lit) {
             prev_lit = lit;
@@ -11270,7 +11296,7 @@ static const char rb_parser_lex_state_names[][8] = {
 };
 
 static VALUE
-append_lex_state_name(enum lex_state_e state, VALUE buf)
+append_lex_state_name(struct parser_params *p, enum lex_state_e state, VALUE buf)
 {
     int i, sep = 0;
     unsigned int mask = 1;
@@ -11311,22 +11337,27 @@ rb_parser_trace_lex_state(struct parser_params *p, enum lex_state_e from,
 {
     VALUE mesg;
     mesg = rb_str_new_cstr("lex_state: ");
-    append_lex_state_name(from, mesg);
+    append_lex_state_name(p, from, mesg);
     rb_str_cat_cstr(mesg, " -> ");
-    append_lex_state_name(to, mesg);
+    append_lex_state_name(p, to, mesg);
     rb_str_catf(mesg, " at line %d\n", line);
     flush_debug_buffer(p, p->debug_output, mesg);
     return to;
 }
 
+#ifndef RIPPER
+VALUE
+rb_parser_lex_state_name(struct parser_params *p, enum lex_state_e state)
+#else
 VALUE
 rb_parser_lex_state_name(enum lex_state_e state)
+#endif
 {
-    return rb_fstring(append_lex_state_name(state, rb_str_new(0, 0)));
+    return rb_fstring(append_lex_state_name(p, state, rb_str_new(0, 0)));
 }
 
 static void
-append_bitstack_value(stack_type stack, VALUE mesg)
+append_bitstack_value(struct parser_params *p, stack_type stack, VALUE mesg)
 {
     if (stack == 0) {
         rb_str_cat_cstr(mesg, "0");
@@ -11343,7 +11374,7 @@ rb_parser_show_bitstack(struct parser_params *p, stack_type stack,
                         const char *name, int line)
 {
     VALUE mesg = rb_sprintf("%s: ", name);
-    append_bitstack_value(stack, mesg);
+    append_bitstack_value(p, stack, mesg);
     rb_str_catf(mesg, " at line %d\n", line);
     flush_debug_buffer(p, p->debug_output, mesg);
 }
@@ -11361,13 +11392,13 @@ rb_parser_fatal(struct parser_params *p, const char *fmt, ...)
     RB_GC_GUARD(mesg);
 
     mesg = rb_str_new(0, 0);
-    append_lex_state_name(p->lex.state, mesg);
+    append_lex_state_name(p, p->lex.state, mesg);
     compile_error(p, "lex.state: %"PRIsVALUE, mesg);
     rb_str_resize(mesg, 0);
-    append_bitstack_value(p->cond_stack, mesg);
+    append_bitstack_value(p, p->cond_stack, mesg);
     compile_error(p, "cond_stack: %"PRIsVALUE, mesg);
     rb_str_resize(mesg, 0);
-    append_bitstack_value(p->cmdarg_stack, mesg);
+    append_bitstack_value(p, p->cmdarg_stack, mesg);
     compile_error(p, "cmdarg_stack: %"PRIsVALUE, mesg);
     if (p->debug_output == rb_ractor_stdout())
         p->debug_output = rb_ractor_stderr();

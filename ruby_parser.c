@@ -68,6 +68,21 @@ rb_parser_new(void)
     config.ary_reverse       = rb_ary_reverse;
     config.ary_clear         = rb_ary_clear;
 
+    config.str_catf                       = rb_str_catf;
+    config.str_cat_cstr                   = rb_str_cat_cstr;
+    config.str_subseq                     = rb_str_subseq;
+    config.str_dup                        = rb_str_dup;
+    config.str_new_frozen                 = rb_str_new_frozen;
+    config.str_buf_new                    = rb_str_buf_new;
+    config.str_buf_cat                    = rb_str_buf_cat;
+    config.str_modify                     = rb_str_modify;
+    config.str_set_len                    = rb_str_set_len;
+    config.str_coderange_scan_restartable = rb_str_coderange_scan_restartable;
+    config.str_cat                        = rb_str_cat;
+    config.str_resize                     = rb_str_resize;
+    config.str_new                        = rb_str_new;
+    config.str_new_cstr                   = rb_str_new_cstr;
+
 
     /*
      * Create parser_params ahead of vparser because
