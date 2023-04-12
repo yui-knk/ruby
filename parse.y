@@ -94,6 +94,7 @@ RBIMPL_WARNING_POP()
 #define rb_ary_pop           p->config.ary_pop
 #define rb_ary_last          p->config.ary_last
 #define rb_ary_unshift       p->config.ary_unshift
+#undef rb_ary_new2
 #define rb_ary_new2          p->config.ary_new2
 #define rb_ary_entry         p->config.ary_entry
 #define rb_ary_join          p->config.ary_join
@@ -101,18 +102,22 @@ RBIMPL_WARNING_POP()
 #define rb_ary_clear         p->config.ary_clear
 
 #define rb_str_catf                       p->config.str_catf
+#undef rb_str_cat_cstr
 #define rb_str_cat_cstr                   p->config.str_cat_cstr
 #define rb_str_subseq                     p->config.str_subseq
 #define rb_str_dup                        p->config.str_dup
 #define rb_str_new_frozen                 p->config.str_new_frozen
 #define rb_str_buf_new                    p->config.str_buf_new
+#undef rb_str_buf_cat
 #define rb_str_buf_cat                    p->config.str_buf_cat
 #define rb_str_modify                     p->config.str_modify
 #define rb_str_set_len                    p->config.str_set_len
 #define rb_str_coderange_scan_restartable p->config.str_coderange_scan_restartable
 #define rb_str_cat                        p->config.str_cat
 #define rb_str_resize                     p->config.str_resize
+#undef rb_str_new
 #define rb_str_new                        p->config.str_new
+#undef rb_str_new_cstr
 #define rb_str_new_cstr                   p->config.str_new_cstr
 #endif
 
