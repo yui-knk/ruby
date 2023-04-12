@@ -16,21 +16,21 @@ static void
 parser_mark2(void *ptr)
 {
     struct ruby_parser *parser = (struct ruby_parser*)ptr;
-    parser_mark(parser->parser_params);
+    rb_ruby_parser_mark(parser->parser_params);
 }
 
 static void
 parser_free2(void *ptr)
 {
     struct ruby_parser *parser = (struct ruby_parser*)ptr;
-    parser_free(parser->parser_params);
+    rb_ruby_parser_free(parser->parser_params);
 }
 
 static size_t
 parser_memsize2(const void *ptr)
 {
     struct ruby_parser *parser = (struct ruby_parser*)ptr;
-    return parser_memsize(parser->parser_params);
+    return rb_ruby_parser_memsize(parser->parser_params);
 }
 
 static const rb_data_type_t ruby_parser_data_type = {

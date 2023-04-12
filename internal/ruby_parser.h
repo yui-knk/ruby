@@ -5,6 +5,10 @@
 #include "vm.h"
 #include "node.h"
 
+void rb_ruby_parser_mark(void *ptr);
+void rb_ruby_parser_free(void *ptr);
+size_t rb_ruby_parser_memsize(const void *ptr);
+
 rb_parser_t *rb_ruby_parser_new(rb_parser_config_t config);
 void rb_ruby_parser_set_options(rb_parser_t *p, int print, int loop, int chomp, int split);
 void rb_ruby_parser_set_options(rb_parser_t *p, int print, int loop, int chomp, int split);

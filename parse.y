@@ -13695,12 +13695,12 @@ parser_initialize(struct parser_params *p)
 }
 
 #ifdef RIPPER
-#define parser_mark ripper_parser_mark
-#define parser_free ripper_parser_free
+#define rb_ruby_parser_mark ripper_parser_mark
+#define rb_ruby_parser_free ripper_parser_free
 #endif
 
 void
-parser_mark(void *ptr)
+rb_ruby_parser_mark(void *ptr)
 {
     struct parser_params *p = (struct parser_params*)ptr;
 
@@ -13731,7 +13731,7 @@ parser_mark(void *ptr)
 }
 
 void
-parser_free(void *ptr)
+rb_ruby_parser_free(void *ptr)
 {
     struct parser_params *p = (struct parser_params*)ptr;
     struct local_vars *local, *prev;
@@ -13755,7 +13755,7 @@ parser_free(void *ptr)
 }
 
 size_t
-parser_memsize(const void *ptr)
+rb_ruby_parser_memsize(const void *ptr)
 {
     struct parser_params *p = (struct parser_params*)ptr;
     struct local_vars *local;
@@ -13774,9 +13774,9 @@ parser_memsize(const void *ptr)
 static const rb_data_type_t parser_data_type = {
     "ripper",
     {
-        parser_mark,
-        parser_free,
-        parser_memsize,
+        rb_ruby_parser_mark,
+        rb_ruby_parser_free,
+        rb_ruby_parser_memsize,
     },
     0, 0, RUBY_TYPED_FREE_IMMEDIATELY
 };
