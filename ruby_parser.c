@@ -101,10 +101,13 @@ rb_ast_t*
 rb_parser_compile_file_path(VALUE vparser, VALUE fname, VALUE file, int start)
 {
     struct ruby_parser *parser;
+    rb_ast_t *ast;
 
-    RB_GC_GUARD(vparser);
     TypedData_Get_Struct(vparser, struct ruby_parser, &ruby_parser_data_type, parser);
-    return rb_ruby_parser_compile_file_path(parser->parser_params, fname, file, start);
+    ast = rb_ruby_parser_compile_file_path(parser->parser_params, fname, file, start);
+    RB_GC_GUARD(vparser);
+
+    return ast;
 }
 
 void
@@ -120,28 +123,37 @@ rb_ast_t*
 rb_parser_compile_generic(VALUE vparser, VALUE (*lex_gets)(VALUE, int), VALUE fname, VALUE input, int start)
 {
     struct ruby_parser *parser;
+    rb_ast_t *ast;
 
-    RB_GC_GUARD(vparser);
     TypedData_Get_Struct(vparser, struct ruby_parser, &ruby_parser_data_type, parser);
-    return rb_ruby_parser_compile_generic(parser->parser_params, lex_gets, fname, input, start);
+    ast = rb_ruby_parser_compile_generic(parser->parser_params, lex_gets, fname, input, start);
+    RB_GC_GUARD(vparser);
+
+    return ast;
 }
 
 rb_ast_t*
 rb_parser_compile_string(VALUE vparser, const char *f, VALUE s, int line)
 {
     struct ruby_parser *parser;
+    rb_ast_t *ast;
 
-    RB_GC_GUARD(vparser);
     TypedData_Get_Struct(vparser, struct ruby_parser, &ruby_parser_data_type, parser);
-    return rb_ruby_parser_compile_string(parser->parser_params, f, s, line);
+    ast = rb_ruby_parser_compile_string(parser->parser_params, f, s, line);
+    RB_GC_GUARD(vparser);
+
+    return ast;
 }
 
 rb_ast_t*
 rb_parser_compile_string_path(VALUE vparser, VALUE f, VALUE s, int line)
 {
     struct ruby_parser *parser;
+    rb_ast_t *ast;
 
-    RB_GC_GUARD(vparser);
     TypedData_Get_Struct(vparser, struct ruby_parser, &ruby_parser_data_type, parser);
-    return rb_ruby_parser_compile_string_path(parser->parser_params, f, s, line);
+    ast = rb_ruby_parser_compile_string_path(parser->parser_params, f, s, line);
+    RB_GC_GUARD(vparser);
+
+    return ast;
 }
