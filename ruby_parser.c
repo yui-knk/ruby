@@ -49,15 +49,21 @@ rb_parser_new(void)
 {
     struct ruby_parser *parser;
     rb_parser_config_t config;
-
-    VALUE vparser = TypedData_Make_Struct(0, struct ruby_parser,
-                                         &ruby_parser_data_type, parser);
+    rb_parser_t *parser_params;
 
     config.malloc = ruby_xmalloc;
     config.calloc = ruby_xcalloc;
     config.free = ruby_xfree;
 
-    parser->parser_params = rb_ruby_parser_new(config);
+    /*
+     * Create parser_params ahead of vparser because
+     * rb_ruby_parser_new can run GC so if create vparser
+     * first, parser_mark2 tries to mark not initialized parser_params.
+     */
+    parser_params = rb_ruby_parser_new(config);
+    VALUE vparser = TypedData_Make_Struct(0, struct ruby_parser,
+                                         &ruby_parser_data_type, parser);
+    parser->parser_params = parser_params;
 
     return vparser;
 }
