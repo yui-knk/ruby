@@ -1,6 +1,7 @@
 /* This is a wrapper for parse.y */
 
 #include "external/parse.h"
+#include "internal/parse.h"
 #include "internal/ruby_parser.h"
 
 #include "ruby/ruby.h"
