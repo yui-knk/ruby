@@ -112,7 +112,6 @@ RBIMPL_WARNING_POP()
 #define rb_str_buf_cat                    p->config.str_buf_cat
 #define rb_str_modify                     p->config.str_modify
 #define rb_str_set_len                    p->config.str_set_len
-#define rb_str_coderange_scan_restartable p->config.str_coderange_scan_restartable
 #define rb_str_cat                        p->config.str_cat
 #define rb_str_resize                     p->config.str_resize
 #undef rb_str_new

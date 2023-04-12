@@ -5,8 +5,6 @@
 
 // TODO: Expand
 #include "ruby/internal/value.h"
-// TODO: Remove
-#include "internal/encoding.h"
 
 typedef struct rb_parser_config_struct {
     /* Memory */
@@ -36,7 +34,6 @@ typedef struct rb_parser_config_struct {
     VALUE (*str_buf_cat)(VALUE, const char*, long);;
     void (*str_modify)(VALUE str);
     void (*str_set_len)(VALUE str, long len);
-    long (*str_coderange_scan_restartable)(const char *s, const char *e, rb_encoding *enc, int *cr);
     VALUE (*str_cat)(VALUE str, const char *ptr, long len);
     VALUE (*str_resize)(VALUE str, long len);
     VALUE (*str_new)(const char *ptr, long len);
