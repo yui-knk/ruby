@@ -87,6 +87,20 @@ RBIMPL_WARNING_POP()
 
 #include "parse.h"
 
+#ifndef RIPPER
+#define rb_ary_new           p->config.ary_new
+#define rb_ary_push          p->config.ary_push
+#define rb_ary_new_from_args p->config.ary_new_from_args
+#define rb_ary_pop           p->config.ary_pop
+#define rb_ary_last          p->config.ary_last
+#define rb_ary_unshift       p->config.ary_unshift
+#define rb_ary_new2          p->config.ary_new2
+#define rb_ary_entry         p->config.ary_entry
+#define rb_ary_join          p->config.ary_join
+#define rb_ary_reverse       p->config.ary_reverse
+#define rb_ary_clear         p->config.ary_clear
+#endif
+
 #define NO_LEX_CTXT (struct lex_context){0}
 
 #define AREF(ary, i) RARRAY_AREF(ary, i)
@@ -369,6 +383,8 @@ struct parser_params {
     unsigned int keep_script_lines: 1;
     unsigned int error_tolerant: 1;
     unsigned int keep_tokens: 1;
+
+    rb_parser_config_t config;
 
     NODE *eval_tree_begin;
     NODE *eval_tree;
@@ -6189,7 +6205,7 @@ parser_has_token(struct parser_params *p)
 }
 
 static VALUE
-code_loc_to_ary(const rb_code_location_t *loc)
+code_loc_to_ary(struct parser_params *p, const rb_code_location_t *loc)
 {
     VALUE ary = rb_ary_new_from_args(4,
         INT2NUM(loc->beg_pos.lineno), INT2NUM(loc->beg_pos.column),
@@ -6210,7 +6226,7 @@ parser_append_tokens(struct parser_params *p, VALUE str, enum yytokentype t, int
     rb_ary_push(ary, INT2FIX(token_id));
     rb_ary_push(ary, ID2SYM(parser_token2id(t)));
     rb_ary_push(ary, str);
-    rb_ary_push(ary, code_loc_to_ary(p->yylloc));
+    rb_ary_push(ary, code_loc_to_ary(p, p->yylloc));
     rb_obj_freeze(ary);
     rb_ary_push(p->tokens, ary);
     p->token_id++;
@@ -6718,7 +6734,7 @@ static void parser_prepare(struct parser_params *p);
 static NODE *parser_append_options(struct parser_params *p, NODE *node);
 
 static VALUE
-debug_lines(VALUE fname)
+debug_lines(struct parser_params *p, VALUE fname)
 {
     ID script_lines;
     CONST_ID(script_lines, "SCRIPT_LINES__");
@@ -6748,7 +6764,7 @@ yycompile0(VALUE arg)
     VALUE cov = Qfalse;
 
     if (!compile_for_eval && !NIL_P(p->ruby_sourcefile_string)) {
-        p->debug_lines = debug_lines(p->ruby_sourcefile_string);
+        p->debug_lines = debug_lines(p, p->ruby_sourcefile_string);
         if (p->debug_lines && p->ruby_sourceline > 0) {
             VALUE str = rb_default_rs;
             n = p->ruby_sourceline;
@@ -6884,8 +6900,6 @@ lex_getline(struct parser_params *p)
     p->line_count++;
     return line;
 }
-
-static const rb_data_type_t parser_data_type;
 
 #ifndef RIPPER
 static rb_ast_t*
@@ -13796,6 +13810,7 @@ rb_ruby_parser_new(rb_parser_config_t config)
 {
     /* parser_initialize expects fields to be set to 0 */
     rb_parser_t *p = (rb_parser_t *)config.calloc(1, sizeof(rb_parser_t));
+    p->config = config;
     parser_initialize(p);
     return p;
 }

@@ -1,6 +1,7 @@
 /* This is a wrapper for parse.y */
 
 #include "external/parse.h"
+#include "internal/array.h"
 #include "internal/parse.h"
 #include "internal/ruby_parser.h"
 
@@ -53,7 +54,20 @@ rb_parser_new(void)
 
     config.malloc = ruby_xmalloc;
     config.calloc = ruby_xcalloc;
-    config.free = ruby_xfree;
+    config.free   = ruby_xfree;
+
+    config.ary_new           = rb_ary_new;
+    config.ary_push          = rb_ary_push;
+    config.ary_new_from_args = rb_ary_new_from_args;
+    config.ary_pop           = rb_ary_pop;
+    config.ary_last          = rb_ary_last;
+    config.ary_unshift       = rb_ary_unshift;
+    config.ary_new2          = rb_ary_new2;
+    config.ary_entry         = rb_ary_entry;
+    config.ary_join          = rb_ary_join;
+    config.ary_reverse       = rb_ary_reverse;
+    config.ary_clear         = rb_ary_clear;
+
 
     /*
      * Create parser_params ahead of vparser because
