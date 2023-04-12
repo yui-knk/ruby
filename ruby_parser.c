@@ -5,6 +5,7 @@
 
 #include "ruby/ruby.h"
 #include "node.h"
+#include "internal.h"
 
 struct ruby_parser {
     rb_parser_t *parser_params;
@@ -156,4 +157,32 @@ rb_parser_compile_string_path(VALUE vparser, VALUE f, VALUE s, int line)
     RB_GC_GUARD(vparser);
 
     return ast;
+}
+
+VALUE
+rb_parser_encoding(VALUE vparser)
+{
+    struct ruby_parser *parser;
+
+    TypedData_Get_Struct(vparser, struct ruby_parser, &ruby_parser_data_type, parser);
+    return rb_ruby_parser_encoding(parser->parser_params);
+}
+
+VALUE
+rb_parser_end_seen_p(VALUE vparser)
+{
+    struct ruby_parser *parser;
+
+    TypedData_Get_Struct(vparser, struct ruby_parser, &ruby_parser_data_type, parser);
+    return RBOOL(rb_ruby_parser_end_seen_p(parser->parser_params));
+}
+
+VALUE
+rb_parser_set_yydebug(VALUE vparser, VALUE flag)
+{
+    struct ruby_parser *parser;
+
+    TypedData_Get_Struct(vparser, struct ruby_parser, &ruby_parser_data_type, parser);
+    rb_ruby_parser_set_yydebug(parser->parser_params, RTEST(flag));
+    return flag;
 }

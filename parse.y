@@ -13860,7 +13860,6 @@ ripper_error_p(VALUE vparser)
     TypedData_Get_Struct(vparser, struct parser_params, &parser_data_type, p);
     return RBOOL(p->error_p);
 }
-#endif
 
 /*
  *  call-seq:
@@ -13869,7 +13868,7 @@ ripper_error_p(VALUE vparser)
  *  Return true if parsed source ended by +\_\_END\_\_+.
  */
 VALUE
-rb_parser_end_seen_p(VALUE vparser)
+ripper_parser_end_seen_p(VALUE vparser)
 {
     struct parser_params *p;
 
@@ -13884,7 +13883,7 @@ rb_parser_end_seen_p(VALUE vparser)
  *  Return encoding of the source.
  */
 VALUE
-rb_parser_encoding(VALUE vparser)
+ripper_parser_encoding(VALUE vparser)
 {
     struct parser_params *p;
 
@@ -13892,7 +13891,6 @@ rb_parser_encoding(VALUE vparser)
     return rb_enc_from_encoding(p->enc);
 }
 
-#ifdef RIPPER
 /*
  *  call-seq:
  *    ripper.yydebug   -> true or false
@@ -13900,14 +13898,13 @@ rb_parser_encoding(VALUE vparser)
  *  Get yydebug.
  */
 VALUE
-rb_parser_get_yydebug(VALUE self)
+ripper_parser_get_yydebug(VALUE self)
 {
     struct parser_params *p;
 
     TypedData_Get_Struct(self, struct parser_params, &parser_data_type, p);
     return RBOOL(p->debug);
 }
-#endif
 
 /*
  *  call-seq:
@@ -13916,7 +13913,7 @@ rb_parser_get_yydebug(VALUE self)
  *  Set yydebug.
  */
 VALUE
-rb_parser_set_yydebug(VALUE self, VALUE flag)
+ripper_parser_set_yydebug(VALUE self, VALUE flag)
 {
     struct parser_params *p;
 
@@ -13932,7 +13929,7 @@ rb_parser_set_yydebug(VALUE self, VALUE flag)
  *  Get debug output.
  */
 VALUE
-rb_parser_get_debug_output(VALUE self)
+ripper_parser_get_debug_output(VALUE self)
 {
     struct parser_params *p;
 
@@ -13947,13 +13944,34 @@ rb_parser_get_debug_output(VALUE self)
  *  Set debug output.
  */
 VALUE
-rb_parser_set_debug_output(VALUE self, VALUE output)
+ripper_parser_set_debug_output(VALUE self, VALUE output)
 {
     struct parser_params *p;
 
     TypedData_Get_Struct(self, struct parser_params, &parser_data_type, p);
     return p->debug_output = output;
 }
+#else
+
+VALUE
+rb_ruby_parser_encoding(rb_parser_t *p)
+{
+    return rb_enc_from_encoding(p->enc);
+}
+
+int
+rb_ruby_parser_end_seen_p(rb_parser_t *p)
+{
+    return p->ruby__end__seen;
+}
+
+int
+rb_ruby_parser_set_yydebug(rb_parser_t *p, int flag)
+{
+    p->debug = flag;
+    return flag;
+}
+#endif
 
 #ifndef RIPPER
 #ifdef YYMALLOC
