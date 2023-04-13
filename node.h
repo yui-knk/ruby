@@ -429,6 +429,8 @@ void rb_ast_delete_node(rb_ast_t*, NODE *n);
 rb_ast_id_table_t *rb_ast_new_local_table(rb_ast_t*, int);
 rb_ast_id_table_t *rb_ast_resize_latest_local_table(rb_ast_t*, int);
 
+VALUE rb_parser_dump_tree(const NODE *node, int comment);
+
 void rb_node_init(NODE *n, enum node_type type, VALUE a0, VALUE a1, VALUE a2);
 const char *ruby_node_name(int node);
 
