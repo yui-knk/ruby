@@ -8114,13 +8114,8 @@ heredoc_restore(struct parser_params *p, rb_strterm_heredoc_t *here)
     p->eofp = 0;
 }
 
-#ifndef RIPPER
 static int
 dedent_string(struct parser_params *p, VALUE string, int width)
-#else
-static int
-dedent_string(VALUE string, int width)
-#endif
 {
     char *str;
     long len;
@@ -8227,10 +8222,16 @@ static VALUE
 parser_dedent_string(VALUE self, VALUE input, VALUE width)
 {
     int wid, col;
+    rb_parser_config_t config;
+    struct parser_params p;
+
+    // TODO: It might be better to malloc `struct parser_params'
+    rb_parser_config_initialize(&config);
+    p.config = config;
 
     StringValue(input);
     wid = NUM2UINT(width);
-    col = dedent_string(input, wid);
+    col = dedent_string(&p, input, wid);
     return INT2NUM(col);
 }
 #endif
