@@ -42,7 +42,6 @@ struct lex_context;
 #include "internal/compile.h"
 #include "internal/compilers.h"
 #include "internal/encoding.h"
-#include "internal/error.h"
 #include "internal/imemo.h"
 #include "internal/re.h"
 #include "internal/symbol.h"
@@ -60,6 +59,7 @@ struct lex_context;
 
 #ifdef RIPPER
 #include "internal/complex.h"
+#include "internal/error.h"
 #include "internal/numeric.h"
 #include "internal/hash.h"
 #include "internal/io.h"
@@ -125,6 +125,8 @@ RBIMPL_WARNING_POP()
 #define rb_str_new                        p->config.str_new
 #undef rb_str_new_cstr
 #define rb_str_new_cstr                   p->config.str_new_cstr
+#define rb_fstring                        p->config.fstring
+#define is_ascii_string                   p->config.is_ascii_string
 
 #define rb_hash_clear     p->config.hash_clear
 #define rb_hash_new       p->config.hash_new
@@ -144,6 +146,10 @@ RBIMPL_WARNING_POP()
 
 #define rb_stderr_tty_p    p->config.stderr_tty_p
 #define rb_write_error_str p->config.write_error_str
+
+#define rb_builtin_class_name p->config.builtin_class_name
+#define rb_syntax_error_append p->config.syntax_error_append
+
 
 #endif
 
@@ -457,7 +463,7 @@ struct parser_params {
 #define STR_NEW(ptr,len) rb_enc_str_new((ptr),(len),p->enc)
 #define STR_NEW0() rb_enc_str_new(0,0,p->enc)
 #define STR_NEW2(ptr) rb_enc_str_new((ptr),strlen(ptr),p->enc)
-#define STR_NEW3(ptr,len,e,func) parser_str_new((ptr),(len),(e),(func),p->enc)
+#define STR_NEW3(ptr,len,e,func) parser_str_new(p, (ptr),(len),(e),(func),p->enc)
 #define TOK_INTERN() intern_cstr(tok(p), toklen(p), p->enc)
 
 static st_table *
@@ -7031,7 +7037,7 @@ enum string_type {
 };
 
 static VALUE
-parser_str_new(const char *ptr, long len, rb_encoding *enc, int func, rb_encoding *enc0)
+parser_str_new(struct parser_params *p, const char *ptr, long len, rb_encoding *enc, int func, rb_encoding *enc0)
 {
     VALUE str;
 

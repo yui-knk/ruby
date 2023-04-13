@@ -39,6 +39,8 @@ typedef struct rb_parser_config_struct {
     VALUE (*str_resize)(VALUE str, long len);
     VALUE (*str_new)(const char *ptr, long len);
     VALUE (*str_new_cstr)(const char *ptr);
+    VALUE (*fstring)(VALUE);
+    int (*is_ascii_string)(VALUE str);
 
     /* Hash */
     VALUE (*hash_clear)(VALUE hash);
@@ -64,6 +66,10 @@ typedef struct rb_parser_config_struct {
     int (*stderr_tty_p)(void);
     void (*write_error_str)(VALUE mesg);
 
+    /* Error */
+    const char *(*builtin_class_name)(VALUE x);
+    // VALUE rb_syntax_error_append(VALUE, VALUE, int, int, rb_encoding*, const char*, va_list);
+    VALUE (*syntax_error_append)(VALUE, VALUE, int, int, const void*, const char*, va_list);
 
 } rb_parser_config_t;
 

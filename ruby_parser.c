@@ -1,13 +1,16 @@
 /* This is a wrapper for parse.y */
 
+#include "internal.h"
 #include "internal/array.h"
 #include "internal/bignum.h"
 #include "internal/complex.h"
+#include "internal/error.h"
 #include "internal/hash.h"
 #include "internal/io.h"
 #include "internal/parse.h"
 #include "internal/rational.h"
 #include "internal/ruby_parser.h"
+#include "internal/string.h"
 
 #include "ruby/ruby.h"
 #include "node.h"
@@ -55,6 +58,12 @@ bignum_negate(VALUE b)
     BIGNUM_NEGATE(b);
 }
 
+static int
+is_ascii_string2(VALUE str)
+{
+    return is_ascii_string(str);
+}
+
 static void
 rational_set_num(VALUE r, VALUE n)
 {
@@ -91,6 +100,13 @@ rcomplex_get_imag(VALUE obj)
     return RCOMPLEX(obj)->imag;
 }
 
+static VALUE
+syntax_error_append(VALUE exc, VALUE file, int line, int column,
+                       const void *enc, const char *fmt, va_list args)
+{
+    return rb_syntax_error_append(exc, file, line, column, (rb_encoding *)enc, fmt, args);
+}
+
 void
 rb_parser_config_initialize(rb_parser_config_t *config)
 {
@@ -123,6 +139,8 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->str_resize     = rb_str_resize;
     config->str_new        = rb_str_new;
     config->str_new_cstr   = rb_str_new_cstr;
+    config->fstring        = rb_fstring;
+    config->is_ascii_string = is_ascii_string2;
 
     config->hash_clear     = rb_hash_clear;
     config->hash_new       = rb_hash_new;
@@ -142,6 +160,9 @@ rb_parser_config_initialize(rb_parser_config_t *config)
 
     config->stderr_tty_p    = rb_stderr_tty_p;
     config->write_error_str = rb_write_error_str;
+
+    config->builtin_class_name = rb_builtin_class_name;
+    config->syntax_error_append = syntax_error_append;
 }
 
 VALUE
