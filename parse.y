@@ -46,7 +46,6 @@ struct lex_context;
 #include "internal/error.h"
 #include "internal/imemo.h"
 #include "internal/io.h"
-#include "internal/rational.h"
 #include "internal/re.h"
 #include "internal/symbol.h"
 #include "internal/thread.h"
@@ -64,6 +63,7 @@ struct lex_context;
 #ifdef RIPPER
 #include "internal/numeric.h"
 #include "internal/hash.h"
+#include "internal/rational.h"
 #endif
 
 enum shareability {
@@ -131,6 +131,12 @@ RBIMPL_WARNING_POP()
 #define rb_hash_aset      p->config.hash_aset
 #define rb_hash_lookup    p->config.hash_lookup
 #define rb_ident_hash_new p->config.ident_hash_new
+
+#define bignum_negate p->config.bignum_negate
+
+#define rational_set_num p->config.rational_set_num
+#define rational_get_num p->config.rational_get_num
+
 #endif
 
 #define NO_LEX_CTXT (struct lex_context){0}
@@ -12561,11 +12567,11 @@ negate_lit(struct parser_params *p, VALUE lit)
     }
     switch (BUILTIN_TYPE(lit)) {
       case T_BIGNUM:
-        BIGNUM_NEGATE(lit);
+        bignum_negate(lit);
         lit = rb_big_norm(lit);
         break;
       case T_RATIONAL:
-        RATIONAL_SET_NUM(lit, negate_lit(p, RRATIONAL(lit)->num));
+        rational_set_num(lit, negate_lit(p, rational_get_num(lit)));
         break;
       case T_COMPLEX:
         RCOMPLEX_SET_REAL(lit, negate_lit(p, RCOMPLEX(lit)->real));

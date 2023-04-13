@@ -47,6 +47,13 @@ typedef struct rb_parser_config_struct {
     VALUE (*hash_lookup)(VALUE hash, VALUE key);
     VALUE (*ident_hash_new)(void);
 
+    /* Bignum */
+    void (*bignum_negate)(VALUE b);
+
+    /* Rational */
+    void (*rational_set_num)(VALUE r, VALUE n);
+    VALUE (*rational_get_num)(VALUE obj);
+
 
 } rb_parser_config_t;
 

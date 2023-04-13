@@ -1,8 +1,10 @@
 /* This is a wrapper for parse.y */
 
 #include "internal/array.h"
+#include "internal/bignum.h"
 #include "internal/hash.h"
 #include "internal/parse.h"
+#include "internal/rational.h"
 #include "internal/ruby_parser.h"
 
 #include "ruby/ruby.h"
@@ -45,6 +47,24 @@ static const rb_data_type_t ruby_parser_data_type = {
     0, 0, RUBY_TYPED_FREE_IMMEDIATELY
 };
 
+static void
+bignum_negate(VALUE b)
+{
+    BIGNUM_NEGATE(b);
+}
+
+static void
+rational_set_num(VALUE r, VALUE n)
+{
+    RATIONAL_SET_NUM(r, n);
+}
+
+static VALUE
+rational_get_num(VALUE obj)
+{
+    return RRATIONAL(obj)->num;
+}
+
 void
 rb_parser_config_initialize(rb_parser_config_t *config)
 {
@@ -83,6 +103,11 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->hash_aset      = rb_hash_aset;
     config->hash_lookup    = rb_hash_lookup;
     config->ident_hash_new = rb_ident_hash_new;
+
+    config->bignum_negate = bignum_negate;
+
+    config->rational_set_num = rational_set_num;
+    config->rational_get_num = rational_get_num;
 
 }
 
