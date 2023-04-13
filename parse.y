@@ -47,7 +47,6 @@ struct lex_context;
 #include "internal/hash.h"
 #include "internal/imemo.h"
 #include "internal/io.h"
-#include "internal/numeric.h"
 #include "internal/rational.h"
 #include "internal/re.h"
 #include "internal/symbol.h"
@@ -62,6 +61,10 @@ struct lex_context;
 #include "ruby/util.h"
 #include "ruby/ractor.h"
 #include "symbol.h"
+
+#ifdef RIPPER
+#include "internal/numeric.h"
+#endif
 
 enum shareability {
     shareable_none,
