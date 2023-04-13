@@ -85,7 +85,7 @@ rcomplex_set_real(VALUE cmp, VALUE r)
 static void
 rcomplex_set_imag(VALUE cmp, VALUE i)
 {
-    RCOMPLEX_SET_REAL(cmp, i);
+    RCOMPLEX_SET_IMAG(cmp, i);
 }
 
 static VALUE
