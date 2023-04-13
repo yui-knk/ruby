@@ -45,6 +45,7 @@ struct lex_context;
 #include "internal/parse.h"
 #include "internal/rational.h"
 #include "internal/re.h"
+#include "internal/ruby_parser.h"
 #include "internal/symbol.h"
 #include "internal/thread.h"
 #include "internal/variable.h"
@@ -379,6 +380,8 @@ struct parser_params {
 
     struct lex_context ctxt;
 
+    rb_parser_config_t config;
+
     unsigned int command_start:1;
     unsigned int eofp: 1;
     unsigned int ruby__end__seen: 1;
@@ -402,8 +405,6 @@ struct parser_params {
     unsigned int keep_script_lines: 1;
     unsigned int error_tolerant: 1;
     unsigned int keep_tokens: 1;
-
-    rb_parser_config_t config;
 
     NODE *eval_tree_begin;
     NODE *eval_tree;
@@ -949,13 +950,7 @@ RUBY_SYMBOL_EXPORT_BEGIN
 VALUE rb_parser_reg_compile(struct parser_params* p, VALUE str, int options);
 int rb_reg_fragment_setenc(struct parser_params*, VALUE, int);
 enum lex_state_e rb_parser_trace_lex_state(struct parser_params *, enum lex_state_e, enum lex_state_e, int);
-
-#ifndef RIPPER
-VALUE rb_parser_lex_state_name(struct parser_params* p, enum lex_state_e state);
-#else
-VALUE rb_parser_lex_state_name(enum lex_state_e state);
-#endif
-
+VALUE rb_parser_lex_state_name(struct parser_params *p, enum lex_state_e state);
 void rb_parser_show_bitstack(struct parser_params *, stack_type, const char *, int);
 PRINTF_ARGS(void rb_parser_fatal(struct parser_params *p, const char *fmt, ...), 2, 3);
 YYLTYPE *rb_parser_set_location_from_strterm_heredoc(struct parser_params *p, rb_strterm_heredoc_t *here, YYLTYPE *yylloc);
@@ -11349,13 +11344,8 @@ rb_parser_trace_lex_state(struct parser_params *p, enum lex_state_e from,
     return to;
 }
 
-#ifndef RIPPER
 VALUE
 rb_parser_lex_state_name(struct parser_params *p, enum lex_state_e state)
-#else
-VALUE
-rb_parser_lex_state_name(enum lex_state_e state)
-#endif
 {
     return rb_fstring(append_lex_state_name(p, state, rb_str_new(0, 0)));
 }
@@ -14603,7 +14593,13 @@ ripper_value(VALUE self, VALUE obj)
 static VALUE
 ripper_lex_state_name(VALUE self, VALUE state)
 {
-    return rb_parser_lex_state_name(NUM2INT(state));
+    rb_parser_config_t config;
+    struct parser_params p;
+
+    // TODO: It might be better to malloc `struct parser_params'
+    rb_parser_config_initialize(&config);
+    p.config = config;
+    return rb_parser_lex_state_name(&p, NUM2INT(state));
 }
 
 void

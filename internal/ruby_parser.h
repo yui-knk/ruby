@@ -5,6 +5,10 @@
 #include "node.h"
 #include "external/parse.h"
 
+RUBY_SYMBOL_EXPORT_BEGIN
+void rb_parser_config_initialize(rb_parser_config_t *config);
+RUBY_SYMBOL_EXPORT_END
+
 VALUE rb_parser_new(void);
 VALUE rb_parser_end_seen_p(VALUE);
 VALUE rb_parser_encoding(VALUE);

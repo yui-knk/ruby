@@ -44,7 +44,7 @@ static const rb_data_type_t ruby_parser_data_type = {
     0, 0, RUBY_TYPED_FREE_IMMEDIATELY
 };
 
-static void
+void
 rb_parser_config_initialize(rb_parser_config_t *config)
 {
     config->malloc = ruby_xmalloc;
