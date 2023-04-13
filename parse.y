@@ -14405,9 +14405,9 @@ ripper_initialize(int argc, VALUE *argv, VALUE self)
         StringValueCStr(fname);
         fname = rb_str_new_frozen(fname);
     }
-    parser_initialize(p);
     rb_parser_config_initialize(&config);
     p->config = config;
+    parser_initialize(p);
 
     p->ruby_sourcefile_string = fname;
     p->ruby_sourcefile = RSTRING_PTR(fname);
