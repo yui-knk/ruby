@@ -1,6 +1,5 @@
 /* This is a wrapper for parse.y */
 
-#include "external/parse.h"
 #include "internal/array.h"
 #include "internal/parse.h"
 #include "internal/ruby_parser.h"
@@ -45,6 +44,40 @@ static const rb_data_type_t ruby_parser_data_type = {
     0, 0, RUBY_TYPED_FREE_IMMEDIATELY
 };
 
+static void
+rb_parser_config_initialize(rb_parser_config_t *config)
+{
+    config->malloc = ruby_xmalloc;
+    config->calloc = ruby_xcalloc;
+    config->free   = ruby_xfree;
+
+    config->ary_new           = rb_ary_new;
+    config->ary_push          = rb_ary_push;
+    config->ary_new_from_args = rb_ary_new_from_args;
+    config->ary_pop           = rb_ary_pop;
+    config->ary_last          = rb_ary_last;
+    config->ary_unshift       = rb_ary_unshift;
+    config->ary_new2          = rb_ary_new2;
+    config->ary_entry         = rb_ary_entry;
+    config->ary_join          = rb_ary_join;
+    config->ary_reverse       = rb_ary_reverse;
+    config->ary_clear         = rb_ary_clear;
+
+    config->str_catf       = rb_str_catf;
+    config->str_cat_cstr   = rb_str_cat_cstr;
+    config->str_subseq     = rb_str_subseq;
+    config->str_dup        = rb_str_dup;
+    config->str_new_frozen = rb_str_new_frozen;
+    config->str_buf_new    = rb_str_buf_new;
+    config->str_buf_cat    = rb_str_buf_cat;
+    config->str_modify     = rb_str_modify;
+    config->str_set_len    = rb_str_set_len;
+    config->str_cat        = rb_str_cat;
+    config->str_resize     = rb_str_resize;
+    config->str_new        = rb_str_new;
+    config->str_new_cstr   = rb_str_new_cstr;
+}
+
 VALUE
 rb_parser_new(void)
 {
@@ -52,37 +85,7 @@ rb_parser_new(void)
     rb_parser_config_t config;
     rb_parser_t *parser_params;
 
-    config.malloc = ruby_xmalloc;
-    config.calloc = ruby_xcalloc;
-    config.free   = ruby_xfree;
-
-    config.ary_new           = rb_ary_new;
-    config.ary_push          = rb_ary_push;
-    config.ary_new_from_args = rb_ary_new_from_args;
-    config.ary_pop           = rb_ary_pop;
-    config.ary_last          = rb_ary_last;
-    config.ary_unshift       = rb_ary_unshift;
-    config.ary_new2          = rb_ary_new2;
-    config.ary_entry         = rb_ary_entry;
-    config.ary_join          = rb_ary_join;
-    config.ary_reverse       = rb_ary_reverse;
-    config.ary_clear         = rb_ary_clear;
-
-    config.str_catf                       = rb_str_catf;
-    config.str_cat_cstr                   = rb_str_cat_cstr;
-    config.str_subseq                     = rb_str_subseq;
-    config.str_dup                        = rb_str_dup;
-    config.str_new_frozen                 = rb_str_new_frozen;
-    config.str_buf_new                    = rb_str_buf_new;
-    config.str_buf_cat                    = rb_str_buf_cat;
-    config.str_modify                     = rb_str_modify;
-    config.str_set_len                    = rb_str_set_len;
-    config.str_cat                        = rb_str_cat;
-    config.str_resize                     = rb_str_resize;
-    config.str_new                        = rb_str_new;
-    config.str_new_cstr                   = rb_str_new_cstr;
-
-
+    rb_parser_config_initialize(&config);
     /*
      * Create parser_params ahead of vparser because
      * rb_ruby_parser_new can run GC so if create vparser

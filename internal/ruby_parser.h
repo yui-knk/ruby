@@ -3,6 +3,7 @@
 
 #include "vm.h"
 #include "node.h"
+#include "external/parse.h"
 
 VALUE rb_parser_new(void);
 VALUE rb_parser_end_seen_p(VALUE);
