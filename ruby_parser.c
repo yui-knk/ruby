@@ -1,6 +1,7 @@
 /* This is a wrapper for parse.y */
 
 #include "internal/array.h"
+#include "internal/hash.h"
 #include "internal/parse.h"
 #include "internal/ruby_parser.h"
 
@@ -77,10 +78,11 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->str_new        = rb_str_new;
     config->str_new_cstr   = rb_str_new_cstr;
 
-    config->hash_clear  = rb_hash_clear;
-    config->hash_new    = rb_hash_new;
-    config->hash_aset   = rb_hash_aset;
-    config->hash_lookup = rb_hash_lookup;
+    config->hash_clear     = rb_hash_clear;
+    config->hash_new       = rb_hash_new;
+    config->hash_aset      = rb_hash_aset;
+    config->hash_lookup    = rb_hash_lookup;
+    config->ident_hash_new = rb_ident_hash_new;
 
 }
 

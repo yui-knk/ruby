@@ -44,7 +44,6 @@ struct lex_context;
 #include "internal/complex.h"
 #include "internal/encoding.h"
 #include "internal/error.h"
-#include "internal/hash.h"
 #include "internal/imemo.h"
 #include "internal/io.h"
 #include "internal/rational.h"
@@ -64,6 +63,7 @@ struct lex_context;
 
 #ifdef RIPPER
 #include "internal/numeric.h"
+#include "internal/hash.h"
 #endif
 
 enum shareability {
@@ -126,10 +126,11 @@ RBIMPL_WARNING_POP()
 #undef rb_str_new_cstr
 #define rb_str_new_cstr                   p->config.str_new_cstr
 
-#define rb_hash_clear  p->config.hash_clear
-#define rb_hash_new    p->config.hash_new
-#define rb_hash_aset   p->config.hash_aset
-#define rb_hash_lookup p->config.hash_lookup
+#define rb_hash_clear     p->config.hash_clear
+#define rb_hash_new       p->config.hash_new
+#define rb_hash_aset      p->config.hash_aset
+#define rb_hash_lookup    p->config.hash_lookup
+#define rb_ident_hash_new p->config.ident_hash_new
 #endif
 
 #define NO_LEX_CTXT (struct lex_context){0}

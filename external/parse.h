@@ -45,6 +45,8 @@ typedef struct rb_parser_config_struct {
     VALUE (*hash_new)(void);
     VALUE (*hash_aset)(VALUE hash, VALUE key, VALUE val);
     VALUE (*hash_lookup)(VALUE hash, VALUE key);
+    VALUE (*ident_hash_new)(void);
+
 
 } rb_parser_config_t;
 
