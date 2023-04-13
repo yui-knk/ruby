@@ -22,7 +22,6 @@
 #define YYLTYPE rb_code_location_t
 #define YYLTYPE_IS_DECLARED 1
 
-#include "ruby/internal/config.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -31,6 +30,9 @@
 struct lex_context;
 
 #include "external/parse.h"
+#include "node.h"
+
+#include "ruby/internal/config.h"
 
 #include "internal.h"
 #include "internal/compile.h"
@@ -49,12 +51,10 @@ struct lex_context;
 #include "internal/symbol.h"
 #include "internal/thread.h"
 #include "internal/variable.h"
-#include "node.h"
 #include "probes.h"
 #include "regenc.h"
 #include "ruby/encoding.h"
 #include "ruby/regex.h"
-#include "ruby/ruby.h"
 #include "ruby/st.h"
 #include "ruby/util.h"
 #include "ruby/ractor.h"

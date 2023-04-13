@@ -12,6 +12,7 @@
 **********************************************************************/
 
 #include "internal/compilers.h"
+#include "ruby/ruby.h"
 
 #if defined(__cplusplus)
 extern "C" {
