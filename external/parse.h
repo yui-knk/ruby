@@ -25,6 +25,7 @@ typedef struct rb_parser_config_struct {
     VALUE (*ary_reverse)(VALUE ary);
     VALUE (*ary_clear)(VALUE ary);
 
+    /* String */
     VALUE (*str_catf)(VALUE str, const char *format, ...);
     VALUE (*str_cat_cstr)(VALUE str, const char *ptr);
     VALUE (*str_subseq)(VALUE str, long beg, long len);
@@ -38,6 +39,12 @@ typedef struct rb_parser_config_struct {
     VALUE (*str_resize)(VALUE str, long len);
     VALUE (*str_new)(const char *ptr, long len);
     VALUE (*str_new_cstr)(const char *ptr);
+
+    /* Hash */
+    VALUE (*hash_clear)(VALUE hash);
+    VALUE (*hash_new)(void);
+    VALUE (*hash_aset)(VALUE hash, VALUE key, VALUE val);
+    VALUE (*hash_lookup)(VALUE hash, VALUE key);
 
 } rb_parser_config_t;
 

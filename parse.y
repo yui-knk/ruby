@@ -119,6 +119,11 @@ RBIMPL_WARNING_POP()
 #define rb_str_new                        p->config.str_new
 #undef rb_str_new_cstr
 #define rb_str_new_cstr                   p->config.str_new_cstr
+
+#define rb_hash_clear  p->config.hash_clear
+#define rb_hash_new    p->config.hash_new
+#define rb_hash_aset   p->config.hash_aset
+#define rb_hash_lookup p->config.hash_lookup
 #endif
 
 #define NO_LEX_CTXT (struct lex_context){0}
