@@ -45,7 +45,6 @@ struct lex_context;
 #include "internal/imemo.h"
 #include "internal/re.h"
 #include "internal/symbol.h"
-#include "internal/thread.h"
 #include "internal/variable.h"
 #include "probes.h"
 #include "regenc.h"
@@ -64,6 +63,8 @@ struct lex_context;
 #include "internal/hash.h"
 #include "internal/io.h"
 #include "internal/rational.h"
+#include "internal/thread.h"
+
 #endif
 
 enum shareability {
@@ -95,6 +96,9 @@ RBIMPL_WARNING_POP()
 #include "parse.h"
 
 #ifndef RIPPER
+
+#define compile_callback     p->config.compile_callback
+
 #define rb_ary_new           p->config.ary_new
 #define rb_ary_push          p->config.ary_push
 #define rb_ary_new_from_args p->config.ary_new_from_args
@@ -6901,7 +6905,7 @@ yycompile(struct parser_params *p, VALUE fname, int line)
     p->lvtbl = NULL;
 
     p->ast = ast = rb_ast_new();
-    rb_suppress_tracing(yycompile0, (VALUE)p);
+    compile_callback(yycompile0, (VALUE)p);
     p->ast = 0;
 
     while (p->lvtbl) {

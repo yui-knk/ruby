@@ -12,6 +12,9 @@ typedef struct rb_parser_config_struct {
     void *(*calloc)(size_t number, size_t size);
     void (*free)(void *ptr);
 
+    // VALUE rb_suppress_tracing(VALUE (*func)(VALUE), VALUE arg);
+    VALUE (*compile_callback)(VALUE (*func)(VALUE), VALUE arg);
+
     /* Array */
     VALUE (*ary_new)(void);
     VALUE (*ary_push)(VALUE ary, VALUE elem);

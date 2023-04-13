@@ -11,6 +11,7 @@
 #include "internal/rational.h"
 #include "internal/ruby_parser.h"
 #include "internal/string.h"
+#include "internal/thread.h"
 
 #include "ruby/ruby.h"
 #include "node.h"
@@ -113,6 +114,8 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->malloc = ruby_xmalloc;
     config->calloc = ruby_xcalloc;
     config->free   = ruby_xfree;
+
+    config->compile_callback  = rb_suppress_tracing;
 
     config->ary_new           = rb_ary_new;
     config->ary_push          = rb_ary_push;
