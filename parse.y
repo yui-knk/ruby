@@ -43,7 +43,6 @@ struct lex_context;
 #include "internal/compilers.h"
 #include "internal/encoding.h"
 #include "internal/imemo.h"
-#include "internal/re.h"
 #include "internal/symbol.h"
 #include "internal/variable.h"
 #include "probes.h"
@@ -63,6 +62,7 @@ struct lex_context;
 #include "internal/hash.h"
 #include "internal/io.h"
 #include "internal/rational.h"
+#include "internal/re.h"
 #include "internal/thread.h"
 
 #endif
@@ -154,6 +154,8 @@ RBIMPL_WARNING_POP()
 #define rb_builtin_class_name p->config.builtin_class_name
 #define rb_syntax_error_append p->config.syntax_error_append
 
+#define rb_reg_compile          p->config.reg_compile
+#define rb_reg_check_preprocess p->config.reg_check_preprocess
 
 #endif
 

@@ -9,6 +9,7 @@
 #include "internal/io.h"
 #include "internal/parse.h"
 #include "internal/rational.h"
+#include "internal/re.h"
 #include "internal/ruby_parser.h"
 #include "internal/string.h"
 #include "internal/thread.h"
@@ -166,6 +167,9 @@ rb_parser_config_initialize(rb_parser_config_t *config)
 
     config->builtin_class_name = rb_builtin_class_name;
     config->syntax_error_append = syntax_error_append;
+
+    config->reg_compile = rb_reg_compile;
+    config->reg_check_preprocess = rb_reg_check_preprocess;
 }
 
 VALUE

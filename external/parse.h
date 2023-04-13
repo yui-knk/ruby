@@ -74,6 +74,10 @@ typedef struct rb_parser_config_struct {
     // VALUE rb_syntax_error_append(VALUE, VALUE, int, int, rb_encoding*, const char*, va_list);
     VALUE (*syntax_error_append)(VALUE, VALUE, int, int, const void*, const char*, va_list);
 
+    /* Re */
+    VALUE (*reg_compile)(VALUE str, int options, const char *sourcefile, int sourceline);
+    VALUE (*reg_check_preprocess)(VALUE str);
+
 } rb_parser_config_t;
 
 typedef struct parser_params rb_parser_t;
