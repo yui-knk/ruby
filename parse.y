@@ -14380,6 +14380,7 @@ ripper_initialize(int argc, VALUE *argv, VALUE self)
 {
     struct parser_params *p;
     VALUE src, fname, lineno;
+    rb_parser_config_t config;
 
     TypedData_Get_Struct(self, struct parser_params, &parser_data_type, p);
     rb_scan_args(argc, argv, "12", &src, &fname, &lineno);
@@ -14404,6 +14405,8 @@ ripper_initialize(int argc, VALUE *argv, VALUE self)
         fname = rb_str_new_frozen(fname);
     }
     parser_initialize(p);
+    rb_parser_config_initialize(&config);
+    p->config = config;
 
     p->ruby_sourcefile_string = fname;
     p->ruby_sourcefile = RSTRING_PTR(fname);
