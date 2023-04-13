@@ -44,7 +44,6 @@ struct lex_context;
 #include "internal/encoding.h"
 #include "internal/error.h"
 #include "internal/imemo.h"
-#include "internal/io.h"
 #include "internal/re.h"
 #include "internal/symbol.h"
 #include "internal/thread.h"
@@ -63,6 +62,7 @@ struct lex_context;
 #include "internal/complex.h"
 #include "internal/numeric.h"
 #include "internal/hash.h"
+#include "internal/io.h"
 #include "internal/rational.h"
 #endif
 
@@ -141,6 +141,9 @@ RBIMPL_WARNING_POP()
 #define rcomplex_set_imag p->config.rcomplex_set_imag
 #define rcomplex_get_real p->config.rcomplex_get_real
 #define rcomplex_get_imag p->config.rcomplex_get_imag
+
+#define rb_stderr_tty_p    p->config.stderr_tty_p
+#define rb_write_error_str p->config.write_error_str
 
 #endif
 

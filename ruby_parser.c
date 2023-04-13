@@ -4,6 +4,7 @@
 #include "internal/bignum.h"
 #include "internal/complex.h"
 #include "internal/hash.h"
+#include "internal/io.h"
 #include "internal/parse.h"
 #include "internal/rational.h"
 #include "internal/ruby_parser.h"
@@ -138,6 +139,9 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->rcomplex_set_imag = rcomplex_set_imag;
     config->rcomplex_get_real = rcomplex_get_real;
     config->rcomplex_get_imag = rcomplex_get_imag;
+
+    config->stderr_tty_p    = rb_stderr_tty_p;
+    config->write_error_str = rb_write_error_str;
 }
 
 VALUE

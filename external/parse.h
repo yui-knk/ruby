@@ -60,6 +60,10 @@ typedef struct rb_parser_config_struct {
     VALUE (*rcomplex_get_real)(VALUE obj);
     VALUE (*rcomplex_get_imag)(VALUE obj);
 
+    /* IO */
+    int (*stderr_tty_p)(void);
+    void (*write_error_str)(VALUE mesg);
+
 
 } rb_parser_config_t;
 
