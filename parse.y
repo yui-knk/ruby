@@ -41,7 +41,6 @@ struct lex_context;
 #include "internal.h"
 #include "internal/compile.h"
 #include "internal/compilers.h"
-#include "internal/complex.h"
 #include "internal/encoding.h"
 #include "internal/error.h"
 #include "internal/imemo.h"
@@ -61,6 +60,7 @@ struct lex_context;
 #include "symbol.h"
 
 #ifdef RIPPER
+#include "internal/complex.h"
 #include "internal/numeric.h"
 #include "internal/hash.h"
 #include "internal/rational.h"
@@ -136,6 +136,11 @@ RBIMPL_WARNING_POP()
 
 #define rational_set_num p->config.rational_set_num
 #define rational_get_num p->config.rational_get_num
+
+#define rcomplex_set_real p->config.rcomplex_set_real
+#define rcomplex_set_imag p->config.rcomplex_set_imag
+#define rcomplex_get_real p->config.rcomplex_get_real
+#define rcomplex_get_imag p->config.rcomplex_get_imag
 
 #endif
 
@@ -12574,8 +12579,8 @@ negate_lit(struct parser_params *p, VALUE lit)
         rational_set_num(lit, negate_lit(p, rational_get_num(lit)));
         break;
       case T_COMPLEX:
-        RCOMPLEX_SET_REAL(lit, negate_lit(p, RCOMPLEX(lit)->real));
-        RCOMPLEX_SET_IMAG(lit, negate_lit(p, RCOMPLEX(lit)->imag));
+        rcomplex_set_real(lit, negate_lit(p, rcomplex_get_real(lit)));
+        rcomplex_set_imag(lit, negate_lit(p, rcomplex_get_imag(lit)));
         break;
       case T_FLOAT:
         lit = DBL2NUM(-RFLOAT_VALUE(lit));

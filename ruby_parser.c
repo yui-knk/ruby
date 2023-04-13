@@ -2,6 +2,7 @@
 
 #include "internal/array.h"
 #include "internal/bignum.h"
+#include "internal/complex.h"
 #include "internal/hash.h"
 #include "internal/parse.h"
 #include "internal/rational.h"
@@ -65,6 +66,30 @@ rational_get_num(VALUE obj)
     return RRATIONAL(obj)->num;
 }
 
+static void
+rcomplex_set_real(VALUE cmp, VALUE r)
+{
+    RCOMPLEX_SET_REAL(cmp, r);
+}
+
+static void
+rcomplex_set_imag(VALUE cmp, VALUE i)
+{
+    RCOMPLEX_SET_REAL(cmp, i);
+}
+
+static VALUE
+rcomplex_get_real(VALUE obj)
+{
+    return RCOMPLEX(obj)->real;
+}
+
+static VALUE
+rcomplex_get_imag(VALUE obj)
+{
+    return RCOMPLEX(obj)->imag;
+}
+
 void
 rb_parser_config_initialize(rb_parser_config_t *config)
 {
@@ -109,6 +134,10 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->rational_set_num = rational_set_num;
     config->rational_get_num = rational_get_num;
 
+    config->rcomplex_set_real = rcomplex_set_real;
+    config->rcomplex_set_imag = rcomplex_set_imag;
+    config->rcomplex_get_real = rcomplex_get_real;
+    config->rcomplex_get_imag = rcomplex_get_imag;
 }
 
 VALUE
