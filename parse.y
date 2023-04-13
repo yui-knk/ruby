@@ -29,9 +29,13 @@
 
 struct lex_context;
 
+/* Dependency */
 #include "external/parse.h"
 #include "node.h"
+#include "internal/parse.h"
+#include "internal/ruby_parser.h"
 
+/* Should be removed */
 #include "ruby/internal/config.h"
 
 #include "internal.h"
@@ -44,10 +48,8 @@ struct lex_context;
 #include "internal/imemo.h"
 #include "internal/io.h"
 #include "internal/numeric.h"
-#include "internal/parse.h"
 #include "internal/rational.h"
 #include "internal/re.h"
-#include "internal/ruby_parser.h"
 #include "internal/symbol.h"
 #include "internal/thread.h"
 #include "internal/variable.h"
@@ -55,6 +57,7 @@ struct lex_context;
 #include "regenc.h"
 #include "ruby/encoding.h"
 #include "ruby/regex.h"
+#include "ruby/ruby.h"
 #include "ruby/st.h"
 #include "ruby/util.h"
 #include "ruby/ractor.h"

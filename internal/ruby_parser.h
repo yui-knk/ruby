@@ -1,6 +1,7 @@
 #ifndef INTERNAL_RUBY_PARSE_H
 #define INTERNAL_RUBY_PARSE_H
 
+#include "internal.h"
 #include "vm.h"
 #include "node.h"
 #include "external/parse.h"
