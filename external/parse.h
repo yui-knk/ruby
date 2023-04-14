@@ -3,8 +3,9 @@
 
 #include <sys/types.h>
 
+typedef uintptr_t VALUE;
+typedef uintptr_t ID;
 // TODO: Expand
-#include "ruby/internal/value.h"
 #include "ruby/st.h"
 
 typedef struct rb_parser_config_struct {

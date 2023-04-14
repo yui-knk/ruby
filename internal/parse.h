@@ -8,8 +8,8 @@
  *             file COPYING are met.  Consult the file for details.
  * @brief      Internal header for the parser.
  */
-#include "ruby/ruby.h"          /* for VALUE */
 #include "external/parse.h"
+// TODO: Extract to external
 #include "node.h"
 struct rb_iseq_struct;          /* in vm_core.h */
 
