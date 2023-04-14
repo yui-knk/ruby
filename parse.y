@@ -159,7 +159,7 @@ RBIMPL_WARNING_POP()
 
 #define rb_ractor_make_shareable p->config.ractor_make_shareable
 
-#define ruby_vm_keep_script_lines p->config.vm_keep_script_lines
+#define ruby_vm_keep_script_lines p->config.vm_keep_script_lines()
 #define rb_local_defined          p->config.local_defined
 #define rb_dvar_defined           p->config.dvar_defined
 
