@@ -77,6 +77,10 @@ typedef struct rb_parser_config_struct {
     VALUE (*debug_output_stdout)(void);
     VALUE (*debug_output_stderr)(void);
 
+    /* Encoding */
+    // rb_encoding *enc
+    int (*is_usascii_enc)(void *enc);
+
     /* Ractor */
     VALUE (*ractor_make_shareable)(VALUE obj);
 

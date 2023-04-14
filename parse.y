@@ -39,11 +39,9 @@ struct lex_context;
 #include "ruby/internal/config.h"
 
 #include "internal.h"
-#include "internal/encoding.h"
 #include "internal/imemo.h"
 #include "internal/variable.h"
 #include "probes.h"
-#include "ruby/encoding.h"
 #include "ruby/st.h"
 #include "ruby/util.h"
 #include "symbol.h"
@@ -52,6 +50,7 @@ struct lex_context;
 #include "internal/compile.h"
 #include "internal/compilers.h"
 #include "internal/complex.h"
+#include "internal/encoding.h"
 #include "internal/error.h"
 #include "internal/numeric.h"
 #include "internal/hash.h"
@@ -61,6 +60,7 @@ struct lex_context;
 #include "internal/symbol.h"
 #include "internal/thread.h"
 
+#include "ruby/encoding.h"
 #include "ruby/ractor.h"
 #include "ruby/regex.h"
 #include "ruby/ruby.h"
@@ -156,6 +156,8 @@ RBIMPL_WARNING_POP()
 #define rb_write_error_str p->config.write_error_str
 #define rb_ractor_stdout   p->config.debug_output_stdout
 #define rb_ractor_stderr   p->config.debug_output_stderr
+
+#define rb_is_usascii_enc p->config.is_usascii_enc
 
 #define rb_ractor_make_shareable p->config.ractor_make_shareable
 
@@ -7066,7 +7068,7 @@ parser_str_new(struct parser_params *p, const char *ptr, long len, rb_encoding *
     if (!(func & STR_FUNC_REGEXP) && rb_enc_asciicompat(enc)) {
         if (is_ascii_string(str)) {
         }
-        else if (rb_is_usascii_enc(enc0) && enc != rb_utf8_encoding()) {
+        else if (rb_is_usascii_enc((void *)enc0) && enc != rb_utf8_encoding()) {
             rb_enc_associate(str, rb_ascii8bit_encoding());
         }
     }
@@ -8439,7 +8441,7 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
                     int cr = ENC_CODERANGE_UNKNOWN;
                     rb_str_coderange_scan_restartable(p->lex.ptok, p->lex.pcur, enc, &cr);
                     if (cr != ENC_CODERANGE_7BIT &&
-                        rb_is_usascii_enc(p->enc) &&
+                        rb_is_usascii_enc((void *)p->enc) &&
                         enc != rb_utf8_encoding()) {
                         enc = rb_ascii8bit_encoding();
                     }
@@ -13542,7 +13544,7 @@ rb_reg_fragment_setenc(struct parser_params* p, VALUE str, int options)
         }
         rb_enc_associate(str, rb_ascii8bit_encoding());
     }
-    else if (rb_is_usascii_enc(p->enc)) {
+    else if (rb_is_usascii_enc((void *)p->enc)) {
         if (!is_ascii_string(str)) {
             /* raise in re.c */
             rb_enc_associate(str, rb_usascii_encoding());

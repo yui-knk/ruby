@@ -5,6 +5,7 @@
 #include "internal/bignum.h"
 #include "internal/compile.h"
 #include "internal/complex.h"
+#include "internal/encoding.h"
 #include "internal/error.h"
 #include "internal/hash.h"
 #include "internal/io.h"
@@ -157,6 +158,12 @@ literal_hash(VALUE a)
     return rb_iseq_cdhash_hash(a);
 }
 
+static int
+is_usascii_enc(void *enc)
+{
+    return rb_is_usascii_enc((rb_encoding *)enc);
+}
+
 void
 rb_parser_config_initialize(rb_parser_config_t *config)
 {
@@ -217,6 +224,8 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->write_error_str = rb_write_error_str;
     config->debug_output_stdout = rb_ractor_stdout;
     config->debug_output_stderr = rb_ractor_stderr;
+
+    config->is_usascii_enc = is_usascii_enc;
 
     config->ractor_make_shareable = rb_ractor_make_shareable;
 
