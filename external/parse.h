@@ -2,6 +2,7 @@
 #define EXTERNAL_PARSE_H
 
 #include <sys/types.h>
+#include <inttypes.h>
 
 typedef uintptr_t VALUE;
 typedef uintptr_t ID;
