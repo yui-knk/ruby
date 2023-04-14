@@ -41,7 +41,6 @@ struct lex_context;
 #include "internal.h"
 #include "internal/encoding.h"
 #include "internal/imemo.h"
-#include "internal/symbol.h"
 #include "internal/variable.h"
 #include "probes.h"
 #include "ruby/encoding.h"
@@ -60,6 +59,7 @@ struct lex_context;
 #include "internal/io.h"
 #include "internal/rational.h"
 #include "internal/re.h"
+#include "internal/symbol.h"
 #include "internal/thread.h"
 #include "ruby/regex.h"
 #include "ruby/ractor.h"
@@ -111,6 +111,9 @@ RBIMPL_WARNING_POP()
 #define rb_ary_join          p->config.ary_join
 #define rb_ary_reverse       p->config.ary_reverse
 #define rb_ary_clear         p->config.ary_clear
+
+#define rb_sym_intern_ascii_cstr p->config.sym_intern_ascii_cstr
+#define rb_make_temporary_id     p->config.make_temporary_id
 
 #define rb_str_catf                       p->config.str_catf
 #undef rb_str_cat_cstr

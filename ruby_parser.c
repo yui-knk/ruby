@@ -13,6 +13,7 @@
 #include "internal/re.h"
 #include "internal/ruby_parser.h"
 #include "internal/string.h"
+#include "internal/symbol.h"
 #include "internal/thread.h"
 
 #include "ruby/ruby.h"
@@ -176,6 +177,9 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->ary_join          = rb_ary_join;
     config->ary_reverse       = rb_ary_reverse;
     config->ary_clear         = rb_ary_clear;
+
+    config->sym_intern_ascii_cstr = rb_sym_intern_ascii_cstr;
+    config->make_temporary_id     = rb_make_temporary_id;
 
     config->str_catf       = rb_str_catf;
     config->str_cat_cstr   = rb_str_cat_cstr;

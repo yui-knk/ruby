@@ -29,6 +29,10 @@ typedef struct rb_parser_config_struct {
     VALUE (*ary_reverse)(VALUE ary);
     VALUE (*ary_clear)(VALUE ary);
 
+    /* Symbol */
+    VALUE (*sym_intern_ascii_cstr)(const char *ptr);
+    ID (*make_temporary_id)(size_t n);
+
     /* String */
     VALUE (*str_catf)(VALUE str, const char *format, ...);
     VALUE (*str_cat_cstr)(VALUE str, const char *ptr);
