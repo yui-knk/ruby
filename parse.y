@@ -39,7 +39,6 @@ struct lex_context;
 #include "ruby/internal/config.h"
 
 #include "internal.h"
-#include "internal/compile.h"
 #include "internal/encoding.h"
 #include "internal/imemo.h"
 #include "internal/symbol.h"
@@ -52,6 +51,7 @@ struct lex_context;
 #include "symbol.h"
 
 #ifdef RIPPER
+#include "internal/compile.h"
 #include "internal/compilers.h"
 #include "internal/complex.h"
 #include "internal/error.h"
@@ -154,6 +154,13 @@ RBIMPL_WARNING_POP()
 #define rb_ractor_stderr   p->config.debug_output_stderr
 
 #define rb_ractor_make_shareable p->config.ractor_make_shareable
+
+#define ruby_vm_keep_script_lines p->config.vm_keep_script_lines
+#define rb_local_defined          p->config.local_defined
+#define rb_dvar_defined           p->config.dvar_defined
+
+#define literal_cmp  p->config.literal_cmp
+#define literal_hash p->config.literal_hash
 
 #define rb_builtin_class_name p->config.builtin_class_name
 #define rb_syntax_error_append p->config.syntax_error_append
@@ -12898,40 +12905,14 @@ append_literal_keys(st_data_t k, st_data_t v, st_data_t h)
     return ST_CONTINUE;
 }
 
-static bool
-hash_literal_key_p(VALUE k)
-{
-    switch (OBJ_BUILTIN_TYPE(k)) {
-      case T_NODE:
-        return false;
-      default:
-        return true;
-    }
-}
-
-static int
-literal_cmp(VALUE val, VALUE lit)
-{
-    if (val == lit) return 0;
-    if (!hash_literal_key_p(val) || !hash_literal_key_p(lit)) return -1;
-    return rb_iseq_cdhash_cmp(val, lit);
-}
-
-static st_index_t
-literal_hash(VALUE a)
-{
-    if (!hash_literal_key_p(a)) return (st_index_t)a;
-    return rb_iseq_cdhash_hash(a);
-}
-
-static const struct st_hash_type literal_type = {
-    literal_cmp,
-    literal_hash,
-};
-
 static NODE *
 remove_duplicate_keys(struct parser_params *p, NODE *hash)
 {
+    struct st_hash_type literal_type = {
+        literal_cmp,
+        literal_hash,
+    };
+
     st_table *literal_keys = st_init_table_with_size(&literal_type, hash->nd_alen / 2);
     NODE *result = 0;
     NODE *last_expr = 0;

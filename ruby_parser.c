@@ -3,6 +3,7 @@
 #include "internal.h"
 #include "internal/array.h"
 #include "internal/bignum.h"
+#include "internal/compile.h"
 #include "internal/complex.h"
 #include "internal/error.h"
 #include "internal/hash.h"
@@ -18,6 +19,7 @@
 #include "node.h"
 #include "internal.h"
 #include "ruby/ractor.h"
+#include "vm_core.h"
 
 struct ruby_parser {
     rb_parser_t *parser_params;
@@ -110,6 +112,50 @@ syntax_error_append(VALUE exc, VALUE file, int line, int column,
     return rb_syntax_error_append(exc, file, line, column, (rb_encoding *)enc, fmt, args);
 }
 
+static int
+vm_keep_script_lines(void)
+{
+    return ruby_vm_keep_script_lines;
+}
+
+static int
+local_defined(ID id, const void *p)
+{
+    return rb_local_defined(id, (const rb_iseq_t *)p);
+}
+
+static int
+dvar_defined(ID id, const void *p)
+{
+    return rb_dvar_defined(id, (const rb_iseq_t *)p);
+}
+
+static bool
+hash_literal_key_p(VALUE k)
+{
+    switch (OBJ_BUILTIN_TYPE(k)) {
+      case T_NODE:
+        return false;
+      default:
+        return true;
+    }
+}
+
+static int
+literal_cmp(VALUE val, VALUE lit)
+{
+    if (val == lit) return 0;
+    if (!hash_literal_key_p(val) || !hash_literal_key_p(lit)) return -1;
+    return rb_iseq_cdhash_cmp(val, lit);
+}
+
+static st_index_t
+literal_hash(VALUE a)
+{
+    if (!hash_literal_key_p(a)) return (st_index_t)a;
+    return rb_iseq_cdhash_hash(a);
+}
+
 void
 rb_parser_config_initialize(rb_parser_config_t *config)
 {
@@ -169,6 +215,13 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->debug_output_stderr = rb_ractor_stderr;
 
     config->ractor_make_shareable = rb_ractor_make_shareable;
+
+    config->vm_keep_script_lines = vm_keep_script_lines;
+    config->local_defined        = local_defined;
+    config->dvar_defined         = dvar_defined;
+
+    config->literal_cmp  = literal_cmp;
+    config->literal_hash = literal_hash;
 
     config->builtin_class_name = rb_builtin_class_name;
     config->syntax_error_append = syntax_error_append;

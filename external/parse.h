@@ -5,6 +5,7 @@
 
 // TODO: Expand
 #include "ruby/internal/value.h"
+#include "ruby/st.h"
 
 typedef struct rb_parser_config_struct {
     /* Memory */
@@ -74,6 +75,17 @@ typedef struct rb_parser_config_struct {
 
     /* Ractor */
     VALUE (*ractor_make_shareable)(VALUE obj);
+
+    /* Compile */
+    int (*vm_keep_script_lines)(void);
+    // int rb_local_defined(ID id, const rb_iseq_t *iseq);
+    int (*local_defined)(ID, const void*);
+    // int rb_dvar_defined(ID id, const rb_iseq_t *iseq);
+    int (*dvar_defined)(ID, const void*);
+
+    /* Compile (parse.y) */
+    int (*literal_cmp)(VALUE val, VALUE lit);
+    st_index_t (*literal_hash)(VALUE a);
 
     /* Error */
     const char *(*builtin_class_name)(VALUE x);
