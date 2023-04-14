@@ -4,8 +4,13 @@
 #include <sys/types.h>
 #include <inttypes.h>
 
+#ifndef VALUE
 typedef uintptr_t VALUE;
+#endif
+#ifndef ID
 typedef uintptr_t ID;
+#endif
+
 // TODO: Expand
 #include "ruby/st.h"
 
