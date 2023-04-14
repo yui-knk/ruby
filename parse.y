@@ -44,7 +44,6 @@ struct lex_context;
 #include "internal/variable.h"
 #include "probes.h"
 #include "ruby/encoding.h"
-#include "ruby/ruby.h"
 #include "ruby/st.h"
 #include "ruby/util.h"
 #include "symbol.h"
@@ -61,8 +60,10 @@ struct lex_context;
 #include "internal/re.h"
 #include "internal/symbol.h"
 #include "internal/thread.h"
-#include "ruby/regex.h"
+
 #include "ruby/ractor.h"
+#include "ruby/regex.h"
+#include "ruby/ruby.h"
 #include "regenc.h"
 
 #endif
