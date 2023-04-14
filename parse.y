@@ -49,7 +49,6 @@ struct lex_context;
 #include "ruby/ruby.h"
 #include "ruby/st.h"
 #include "ruby/util.h"
-#include "ruby/ractor.h"
 #include "symbol.h"
 
 #ifdef RIPPER
@@ -63,6 +62,7 @@ struct lex_context;
 #include "internal/re.h"
 #include "internal/thread.h"
 #include "ruby/regex.h"
+#include "ruby/ractor.h"
 #include "regenc.h"
 
 #endif
@@ -150,6 +150,10 @@ RBIMPL_WARNING_POP()
 
 #define rb_stderr_tty_p    p->config.stderr_tty_p
 #define rb_write_error_str p->config.write_error_str
+#define rb_ractor_stdout   p->config.debug_output_stdout
+#define rb_ractor_stderr   p->config.debug_output_stderr
+
+#define rb_ractor_make_shareable p->config.ractor_make_shareable
 
 #define rb_builtin_class_name p->config.builtin_class_name
 #define rb_syntax_error_append p->config.syntax_error_append

@@ -17,6 +17,7 @@
 #include "ruby/ruby.h"
 #include "node.h"
 #include "internal.h"
+#include "ruby/ractor.h"
 
 struct ruby_parser {
     rb_parser_t *parser_params;
@@ -164,6 +165,10 @@ rb_parser_config_initialize(rb_parser_config_t *config)
 
     config->stderr_tty_p    = rb_stderr_tty_p;
     config->write_error_str = rb_write_error_str;
+    config->debug_output_stdout = rb_ractor_stdout;
+    config->debug_output_stderr = rb_ractor_stderr;
+
+    config->ractor_make_shareable = rb_ractor_make_shareable;
 
     config->builtin_class_name = rb_builtin_class_name;
     config->syntax_error_append = syntax_error_append;

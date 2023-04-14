@@ -68,6 +68,12 @@ typedef struct rb_parser_config_struct {
     /* IO */
     int (*stderr_tty_p)(void);
     void (*write_error_str)(VALUE mesg);
+    /* IO (Ractor) */
+    VALUE (*debug_output_stdout)(void);
+    VALUE (*debug_output_stderr)(void);
+
+    /* Ractor */
+    VALUE (*ractor_make_shareable)(VALUE obj);
 
     /* Error */
     const char *(*builtin_class_name)(VALUE x);
