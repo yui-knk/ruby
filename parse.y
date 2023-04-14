@@ -40,13 +40,11 @@ struct lex_context;
 
 #include "internal.h"
 #include "internal/compile.h"
-#include "internal/compilers.h"
 #include "internal/encoding.h"
 #include "internal/imemo.h"
 #include "internal/symbol.h"
 #include "internal/variable.h"
 #include "probes.h"
-#include "regenc.h"
 #include "ruby/encoding.h"
 #include "ruby/regex.h"
 #include "ruby/ruby.h"
@@ -56,6 +54,7 @@ struct lex_context;
 #include "symbol.h"
 
 #ifdef RIPPER
+#include "internal/compilers.h"
 #include "internal/complex.h"
 #include "internal/error.h"
 #include "internal/numeric.h"
@@ -64,6 +63,7 @@ struct lex_context;
 #include "internal/rational.h"
 #include "internal/re.h"
 #include "internal/thread.h"
+#include "regenc.h"
 
 #endif
 
