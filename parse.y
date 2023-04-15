@@ -34,7 +34,6 @@ struct lex_context;
 #include "external/node.h"
 #include "external/parse.h"
 #include "internal/parse.h"
-#include "internal/ruby_parser.h"
 #include "node.h"
 #include "id.h"
 
@@ -42,7 +41,7 @@ struct lex_context;
 #include "probes.h"
 
 /* Should be removed */
-#include "ruby/internal/config.h"
+// #include "ruby/internal/config.h"
 
 #include "internal.h"
 #include "internal/imemo.h"
@@ -60,6 +59,7 @@ struct lex_context;
 #include "internal/io.h"
 #include "internal/rational.h"
 #include "internal/re.h"
+#include "internal/ruby_parser.h"
 #include "internal/symbol.h"
 #include "internal/thread.h"
 
