@@ -343,6 +343,10 @@ Doxyfile: $(srcdir)/template/Doxyfile.tmpl $(PREP) $(tooldir)/generic_erb.rb $(R
 	$(Q) $(MINIRUBY) $(tooldir)/generic_erb.rb -o $@ $(srcdir)/template/Doxyfile.tmpl \
 	--srcdir="$(srcdir)" --miniruby="$(MINIRUBY)"
 
+libparser-so:
+	$(ECHO) linking shared-library $@
+	$(Q) $(LDSHARED) $(DLDFLAGS) node.o parse.o st.o $(OUTFLAG)$@
+
 program: $(SHOWFLAGS) $(PROGRAM)
 wprogram: $(SHOWFLAGS) $(WPROGRAM)
 mini: PHONY miniruby$(EXEEXT)
