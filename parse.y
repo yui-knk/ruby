@@ -44,7 +44,6 @@ struct lex_context;
 #include "probes.h"
 #include "ruby/st.h"
 #include "ruby/util.h"
-#include "symbol.h"
 
 #ifdef RIPPER
 #include "internal/compile.h"
@@ -66,6 +65,7 @@ struct lex_context;
 #include "ruby/regex.h"
 #include "ruby/ruby.h"
 #include "regenc.h"
+#include "symbol.h"
 
 #endif
 
@@ -99,7 +99,10 @@ RBIMPL_WARNING_POP()
 
 #ifndef RIPPER
 
-#define compile_callback     p->config.compile_callback
+#define rb_encoding void
+
+#define compile_callback         p->config.compile_callback
+#define reg_named_capture_assign p->config.reg_named_capture_assign
 
 #define rb_ary_new           p->config.ary_new
 #define rb_ary_push          p->config.ary_push
@@ -116,6 +119,13 @@ RBIMPL_WARNING_POP()
 
 #define rb_sym_intern_ascii_cstr p->config.sym_intern_ascii_cstr
 #define rb_make_temporary_id     p->config.make_temporary_id
+#define is_local_id              p->config.is_local_id
+#define is_attrset_id            p->config.is_attrset_id
+#define is_global_name_punct     p->config.is_global_name_punct
+#define id_type                  p->config.id_type
+#define rb_intern3               p->config.intern3
+#define is_notop_id              p->config.is_notop_id
+#define rb_enc_symname_type      p->config.enc_symname_type
 
 #define rb_str_catf                       p->config.str_catf
 #undef rb_str_cat_cstr
@@ -136,6 +146,8 @@ RBIMPL_WARNING_POP()
 #define rb_str_new_cstr                   p->config.str_new_cstr
 #define rb_fstring                        p->config.fstring
 #define is_ascii_string                   p->config.is_ascii_string
+#define rb_enc_str_new                    p->config.enc_str_new
+#define rb_enc_str_buf_cat                p->config.enc_str_buf_cat
 
 #define rb_hash_clear     p->config.hash_clear
 #define rb_hash_new       p->config.hash_new
@@ -158,7 +170,33 @@ RBIMPL_WARNING_POP()
 #define rb_ractor_stdout   p->config.debug_output_stdout
 #define rb_ractor_stderr   p->config.debug_output_stderr
 
-#define rb_is_usascii_enc p->config.is_usascii_enc
+#define rb_is_usascii_enc       p->config.is_usascii_enc
+#define rb_enc_isalnum          p->config.enc_isalnum
+#define rb_enc_precise_mbclen   p->config.enc_precise_mbclen
+#define MBCLEN_CHARFOUND_P      p->config.mbclen_charfound_p
+#define rb_enc_name             p->config.enc_name
+#define rb_enc_prev_char        p->config.enc_prev_char
+#define rb_enc_get              p->config.enc_get
+#define rb_enc_asciicompat      p->config.enc_asciicompat
+#define rb_utf8_encoding        p->config.utf8_encoding
+#define rb_enc_associate        p->config.enc_associate
+#define rb_ascii8bit_encoding   p->config.ascii8bit_encoding
+#define rb_enc_codelen          p->config.enc_codelen
+#define rb_enc_mbcput           p->config.enc_mbcput
+#define rb_char_to_option_kcode p->config.char_to_option_kcode
+#define rb_ascii8bit_encindex   p->config.ascii8bit_encindex
+#define rb_enc_find_index       p->config.enc_find_index
+#define rb_enc_from_index       p->config.enc_from_index
+#define rb_enc_associate_index  p->config.enc_associate_index
+#define rb_enc_isspace          p->config.enc_isspace
+#define ENC_CODERANGE_7BIT      p->config.enc_coderange_7bit
+#define ENC_CODERANGE_UNKNOWN   p->config.enc_coderange_unknown
+#define rb_enc_compatible       p->config.enc_compatible
+#define rb_enc_from_encoding    p->config.enc_from_encoding
+#define ENCODING_GET            p->config.encoding_get
+#define ENCODING_SET            p->config.encoding_set
+#define ENCODING_IS_ASCII8BIT   p->config.encoding_is_ascii8bit
+#define rb_usascii_encoding     p->config.usascii_encoding
 
 #define rb_ractor_make_shareable p->config.ractor_make_shareable
 
@@ -332,18 +370,6 @@ enum {
     NUMPARAM_MAX = 9,
 };
 
-#define NUMPARAM_ID_P(id) numparam_id_p(id)
-#define NUMPARAM_ID_TO_IDX(id) (unsigned int)(((id) >> ID_SCOPE_SHIFT) - (tNUMPARAM_1 - 1))
-#define NUMPARAM_IDX_TO_ID(idx) TOKEN2LOCALID((tNUMPARAM_1 - 1 + (idx)))
-static int
-numparam_id_p(ID id)
-{
-    if (!is_local_id(id) || id < (tNUMPARAM_1 << ID_SCOPE_SHIFT)) return 0;
-    unsigned int idx = NUMPARAM_ID_TO_IDX(id);
-    return idx > 0 && idx <= NUMPARAM_MAX;
-}
-static void numparam_name(struct parser_params *p, ID id);
-
 #define DVARS_INHERIT ((void*)1)
 #define DVARS_TOPSCOPE NULL
 #define DVARS_TERMINAL_P(tbl) ((tbl) == DVARS_INHERIT || (tbl) == DVARS_TOPSCOPE)
@@ -481,6 +507,19 @@ struct parser_params {
     VALUE parsing_thread;
 #endif
 };
+
+#define NUMPARAM_ID_P(id) numparam_id_p(p, id)
+#define NUMPARAM_ID_TO_IDX(id) (unsigned int)(((id) >> ID_SCOPE_SHIFT) - (tNUMPARAM_1 - 1))
+#define NUMPARAM_IDX_TO_ID(idx) TOKEN2LOCALID((tNUMPARAM_1 - 1 + (idx)))
+static int
+numparam_id_p(struct parser_params *p, ID id)
+{
+    if (!is_local_id(id) || id < (tNUMPARAM_1 << ID_SCOPE_SHIFT)) return 0;
+    unsigned int idx = NUMPARAM_ID_TO_IDX(id);
+    return idx > 0 && idx <= NUMPARAM_MAX;
+}
+static void numparam_name(struct parser_params *p, ID id);
+
 
 #define intern_cstr(n,l,en) rb_intern3(n,l,en)
 
@@ -924,7 +963,6 @@ static rb_ast_id_table_t *local_tbl(struct parser_params*);
 static VALUE reg_compile(struct parser_params*, VALUE, int);
 static void reg_fragment_setenc(struct parser_params*, VALUE, int);
 static int reg_fragment_check(struct parser_params*, VALUE, int);
-static NODE *reg_named_capture_assign(struct parser_params* p, VALUE regexp, const YYLTYPE *loc);
 
 static int literal_concat0(struct parser_params *p, VALUE head, VALUE tail);
 static NODE *heredoc_dedent(struct parser_params*,NODE*);
@@ -6407,7 +6445,7 @@ ripper_dispatch_delayed_token(struct parser_params *p, enum yytokentype t)
 #endif /* RIPPER */
 
 static inline int
-is_identchar(const char *ptr, const char *MAYBE_UNUSED(ptr_end), rb_encoding *enc)
+is_identchar(struct parser_params *p, const char *ptr, const char *MAYBE_UNUSED(ptr_end), rb_encoding *enc)
 {
     return rb_enc_isalnum((unsigned char)*ptr, enc) || *ptr == '_' || !ISASCII(*ptr);
 }
@@ -6415,7 +6453,7 @@ is_identchar(const char *ptr, const char *MAYBE_UNUSED(ptr_end), rb_encoding *en
 static inline int
 parser_is_identchar(struct parser_params *p)
 {
-    return !(p)->eofp && is_identchar(p->lex.pcur-1, p->lex.pend, p->enc);
+    return !(p)->eofp && is_identchar(p, p->lex.pcur-1, p->lex.pend, p->enc);
 }
 
 static inline int
@@ -6937,7 +6975,7 @@ yycompile(struct parser_params *p, VALUE fname, int line)
 #endif /* !RIPPER */
 
 static rb_encoding *
-must_be_ascii_compatible(VALUE s)
+must_be_ascii_compatible(struct parser_params *p, VALUE s)
 {
     rb_encoding *enc = rb_enc_get(s);
     if (!rb_enc_asciicompat(enc)) {
@@ -6971,7 +7009,7 @@ lex_getline(struct parser_params *p)
 {
     VALUE line = (*p->lex.gets)(p, p->lex.input);
     if (NIL_P(line)) return line;
-    must_be_ascii_compatible(line);
+    must_be_ascii_compatible(p, line);
     if (RB_OBJ_FROZEN(line)) line = rb_str_dup(line); // needed for RubyVM::AST.of because script_lines in iseq is deep-frozen
     p->line_count++;
     return line;
@@ -6992,7 +7030,7 @@ parser_compile_string(rb_parser_t *p, VALUE fname, VALUE s, int line)
 rb_ast_t*
 rb_ruby_parser_compile_string_path(rb_parser_t *p, VALUE f, VALUE s, int line)
 {
-    must_be_ascii_compatible(s);
+    must_be_ascii_compatible(p, s);
     return parser_compile_string(p, f, s, line);
 }
 
@@ -9351,14 +9389,14 @@ parse_qmark(struct parser_params *p, int space_seen)
         if (tokadd_mbchar(p, c) == -1) return 0;
     }
     else if ((rb_enc_isalnum(c, p->enc) || c == '_') &&
-             p->lex.pcur < p->lex.pend && is_identchar(p->lex.pcur, p->lex.pend, p->enc)) {
+             p->lex.pcur < p->lex.pend && is_identchar(p, p->lex.pcur, p->lex.pend, p->enc)) {
         if (space_seen) {
             const char *start = p->lex.pcur - 1, *ptr = start;
             do {
                 int n = parser_precise_mbclen(p, ptr);
                 if (n < 0) return -1;
                 ptr += n;
-            } while (ptr < p->lex.pend && is_identchar(ptr, p->lex.pend, p->enc));
+            } while (ptr < p->lex.pend && is_identchar(p, ptr, p->lex.pend, p->enc));
             rb_warn2("`?' just followed by `%.*s' is interpreted as" \
                      " a conditional operator, put a space after `?'",
                      WARN_I((int)(ptr - start)), WARN_S_L(start, (ptr - start)));
@@ -10206,7 +10244,7 @@ parser_yylex(struct parser_params *p)
             if ((c != ':') ||
                 (c = peekc_n(p, 1)) == -1 ||
                 !(c == '\'' || c == '"' ||
-                  is_identchar((p->lex.pcur+1), p->lex.pend, p->enc))) {
+                  is_identchar(p, (p->lex.pcur+1), p->lex.pend, p->enc))) {
                 rb_warning0("`&' interpreted as argument prefix");
             }
             c = tAMPER;
@@ -11612,7 +11650,7 @@ assignable(struct parser_params *p, VALUE lhs)
 #endif
 
 static int
-is_private_local_id(ID name)
+is_private_local_id(struct parser_params *p, ID name)
 {
     VALUE s;
     if (name == idUScore) return 1;
@@ -11627,7 +11665,7 @@ shadowing_lvar_0(struct parser_params *p, ID name)
 {
     if (dyna_in_block(p)) {
         if (dvar_curr(p, name)) {
-            if (is_private_local_id(name)) return 1;
+            if (is_private_local_id(p, name)) return 1;
             yyerror0("duplicated argument name");
         }
         else if (dvar_defined(p, name) || local_id(p, name)) {
@@ -11640,7 +11678,7 @@ shadowing_lvar_0(struct parser_params *p, ID name)
     }
     else {
         if (local_id(p, name)) {
-            if (is_private_local_id(name)) return 1;
+            if (is_private_local_id(p, name)) return 1;
             yyerror0("duplicated argument name");
         }
     }
@@ -12969,7 +13007,7 @@ new_hash(struct parser_params *p, NODE *hash, const YYLTYPE *loc)
 static void
 error_duplicate_pattern_variable(struct parser_params *p, ID id, const YYLTYPE *loc)
 {
-    if (is_private_local_id(id)) {
+    if (is_private_local_id(p, id)) {
         return;
     }
     if (st_is_member(p->pvtbl, id)) {
@@ -13176,7 +13214,7 @@ warn_unused_var(struct parser_params *p, struct local_vars *local)
     ID *u = local->used->tbl;
     for (int i = 0; i < cnt; ++i) {
         if (!v[i] || (u[i] & LVAR_USED)) continue;
-        if (is_private_local_id(v[i])) continue;
+        if (is_private_local_id(p, v[i])) continue;
         rb_warn1L((int)u[i], "assigned but unused variable - %"PRIsWARN, rb_id2str(v[i]));
     }
 #endif
@@ -13581,22 +13619,10 @@ reg_fragment_check(struct parser_params* p, VALUE str, int options)
     return 1;
 }
 
-typedef struct {
-    struct parser_params* parser;
-    rb_encoding *enc;
-    NODE *succ_block;
-    const YYLTYPE *loc;
-} reg_named_capture_assign_t;
-
-static int
-reg_named_capture_assign_iter(const OnigUChar *name, const OnigUChar *name_end,
-          int back_num, int *back_refs, OnigRegex regex, void *arg0)
+int
+rb_reg_named_capture_assign_iter_impl(struct parser_params *p, const char *s, long len,
+          rb_encoding *enc, NODE *succ_block, const rb_code_location_t *loc)
 {
-    reg_named_capture_assign_t *arg = (reg_named_capture_assign_t*)arg0;
-    struct parser_params* p = arg->parser;
-    rb_encoding *enc = arg->enc;
-    long len = name_end - name;
-    const char *s = (const char *)name;
     ID var;
     NODE *node, *succ;
 
@@ -13608,27 +13634,12 @@ reg_named_capture_assign_iter(const OnigUChar *name, const OnigUChar *name_end,
     if (len < MAX_WORD_LENGTH && rb_reserved_word(s, (int)len)) {
         if (!lvar_defined(p, var)) return ST_CONTINUE;
     }
-    node = node_assign(p, assignable(p, var, 0, arg->loc), NEW_LIT(ID2SYM(var), arg->loc), NO_LEX_CTXT, arg->loc);
-    succ = arg->succ_block;
-    if (!succ) succ = NEW_BEGIN(0, arg->loc);
+    node = node_assign(p, assignable(p, var, 0, loc), NEW_LIT(ID2SYM(var), loc), NO_LEX_CTXT, loc);
+    succ = succ_block;
+    if (!succ) succ = NEW_BEGIN(0, loc);
     succ = block_append(p, succ, node);
-    arg->succ_block = succ;
+    succ_block = succ;
     return ST_CONTINUE;
-}
-
-static NODE *
-reg_named_capture_assign(struct parser_params* p, VALUE regexp, const YYLTYPE *loc)
-{
-    reg_named_capture_assign_t arg;
-
-    arg.parser = p;
-    arg.enc = rb_enc_get(regexp);
-    arg.succ_block = 0;
-    arg.loc = loc;
-    onig_foreach_name(RREGEXP_PTR(regexp), reg_named_capture_assign_iter, &arg);
-
-    if (!arg.succ_block) return 0;
-    return arg.succ_block->nd_next;
 }
 
 static VALUE

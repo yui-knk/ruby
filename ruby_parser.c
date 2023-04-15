@@ -22,6 +22,7 @@
 #include "internal.h"
 #include "ruby/ractor.h"
 #include "vm_core.h"
+#include "symbol.h"
 
 struct ruby_parser {
     rb_parser_t *parser_params;
@@ -109,7 +110,7 @@ rcomplex_get_imag(VALUE obj)
 
 static VALUE
 syntax_error_append(VALUE exc, VALUE file, int line, int column,
-                       const void *enc, const char *fmt, va_list args)
+                       void *enc, const char *fmt, va_list args)
 {
     return rb_syntax_error_append(exc, file, line, column, (rb_encoding *)enc, fmt, args);
 }
@@ -164,6 +165,205 @@ is_usascii_enc(void *enc)
     return rb_is_usascii_enc((rb_encoding *)enc);
 }
 
+static int
+is_local_id2(ID id)
+{
+    return is_local_id(id);
+}
+
+static int
+is_attrset_id2(ID id)
+{
+    return is_attrset_id(id);
+}
+
+static int
+is_notop_id2(ID id)
+{
+    return is_notop_id(id);
+}
+
+static VALUE
+enc_str_new(const char *ptr, long len, void *enc)
+{
+    return rb_enc_str_new(ptr, len, (rb_encoding *)enc);
+}
+
+static int
+enc_isalnum(OnigCodePoint c, void *enc)
+{
+    return rb_enc_isalnum(c, (rb_encoding *)enc);
+}
+
+static int
+enc_precise_mbclen(const char *p, const char *e, void *enc)
+{
+    return rb_enc_precise_mbclen(p, e, (rb_encoding *)enc);
+}
+
+static int
+mbclen_charfound_p(int len)
+{
+    return MBCLEN_CHARFOUND_P(len);
+}
+
+static const char *
+enc_name(void *enc)
+{
+    return rb_enc_name((rb_encoding *)enc);
+}
+
+static char *
+enc_prev_char(const char *s, const char *p, const char *e, void *enc)
+{
+    return rb_enc_prev_char(s, p, e, (rb_encoding *)enc);
+}
+
+static void *
+enc_get(VALUE obj)
+{
+    return (void *)rb_enc_get(obj);
+}
+
+static int
+enc_asciicompat(void *enc)
+{
+    return rb_enc_asciicompat((rb_encoding *)enc);
+}
+
+static void *
+utf8_encoding(void)
+{
+    return (void *)rb_utf8_encoding();
+}
+
+static VALUE
+enc_associate(VALUE obj, void *enc)
+{
+    return rb_enc_associate(obj, (rb_encoding *)enc);
+}
+
+static void *
+ascii8bit_encoding(void)
+{
+    return (void *)rb_ascii8bit_encoding;
+}
+
+static int
+enc_codelen(int c, void *enc)
+{
+    return rb_enc_codelen(c, (rb_encoding *)enc);
+}
+
+static VALUE
+enc_str_buf_cat(VALUE str, const char *ptr, long len, void *enc)
+{
+    return rb_enc_str_buf_cat(str, ptr, len, (rb_encoding *)enc);
+}
+
+static int
+enc_mbcput(unsigned int c, void *buf, void *enc)
+{
+    return rb_enc_mbcput(c, buf, (rb_encoding *)enc);
+}
+
+static void *
+enc_from_index(int idx)
+{
+    return (void *)rb_enc_from_index(idx);
+}
+
+static int
+enc_isspace(OnigCodePoint c, void *enc)
+{
+    return rb_enc_isspace(c, (rb_encoding *)enc);
+}
+
+static ID
+intern3(const char *name, long len, void *enc)
+{
+    return rb_intern3(name, len, (rb_encoding *)enc);
+}
+
+static void *
+enc_compatible(VALUE str1, VALUE str2)
+{
+    return (void *)rb_enc_compatible(str1, str2);
+}
+
+static VALUE
+enc_from_encoding(void *enc)
+{
+    return rb_enc_from_encoding((rb_encoding *)enc);
+}
+
+static int
+encoding_get(VALUE obj)
+{
+    return ENCODING_GET(obj);
+}
+
+static void
+encoding_set(VALUE obj, int encindex)
+{
+    ENCODING_SET(obj, encindex);
+}
+
+static int
+encoding_is_ascii8bit(VALUE obj)
+{
+    return ENCODING_IS_ASCII8BIT(obj);
+}
+
+static void *
+usascii_encoding(void)
+{
+    return (void *)rb_usascii_encoding();
+}
+
+static int
+enc_symname_type(const char *name, long len, void *enc, unsigned int allowed_attrset)
+{
+    return rb_enc_symname_type(name, len, (rb_encoding *)enc, allowed_attrset);
+}
+
+typedef struct {
+    struct parser_params* parser;
+    rb_encoding *enc;
+    NODE *succ_block;
+    const rb_code_location_t *loc;
+} reg_named_capture_assign_t;
+
+static int
+reg_named_capture_assign_iter(const OnigUChar *name, const OnigUChar *name_end,
+          int back_num, int *back_refs, OnigRegex regex, void *arg0)
+{
+    reg_named_capture_assign_t *arg = (reg_named_capture_assign_t*)arg0;
+    struct parser_params* p = arg->parser;
+    rb_encoding *enc = arg->enc;
+    NODE *succ_block = arg->succ_block;
+    const rb_code_location_t *loc = arg->loc;
+    long len = name_end - name;
+    const char *s = (const char *)name;
+
+    return rb_reg_named_capture_assign_iter_impl(p, s, len, (void *)enc, succ_block, loc);
+}
+
+static NODE *
+reg_named_capture_assign(struct parser_params* p, VALUE regexp, const rb_code_location_t *loc)
+{
+    reg_named_capture_assign_t arg;
+
+    arg.parser = p;
+    arg.enc = rb_enc_get(regexp);
+    arg.succ_block = 0;
+    arg.loc = loc;
+    onig_foreach_name(RREGEXP_PTR(regexp), reg_named_capture_assign_iter, &arg);
+
+    if (!arg.succ_block) return 0;
+    return arg.succ_block->nd_next;
+}
+
 void
 rb_parser_config_initialize(rb_parser_config_t *config)
 {
@@ -171,7 +371,8 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->calloc = ruby_xcalloc;
     config->free   = ruby_xfree;
 
-    config->compile_callback  = rb_suppress_tracing;
+    config->compile_callback         = rb_suppress_tracing;
+    config->reg_named_capture_assign = reg_named_capture_assign;
 
     config->ary_new           = rb_ary_new;
     config->ary_push          = rb_ary_push;
@@ -187,22 +388,31 @@ rb_parser_config_initialize(rb_parser_config_t *config)
 
     config->sym_intern_ascii_cstr = rb_sym_intern_ascii_cstr;
     config->make_temporary_id     = rb_make_temporary_id;
+    config->is_local_id           = is_local_id2;
+    config->is_attrset_id         = is_attrset_id2;
+    config->is_global_name_punct  = is_global_name_punct;
+    config->id_type               = id_type;
+    config->intern3               = intern3;
+    config->is_notop_id           = is_notop_id2;
+    config->enc_symname_type      = enc_symname_type;
 
-    config->str_catf       = rb_str_catf;
-    config->str_cat_cstr   = rb_str_cat_cstr;
-    config->str_subseq     = rb_str_subseq;
-    config->str_dup        = rb_str_dup;
-    config->str_new_frozen = rb_str_new_frozen;
-    config->str_buf_new    = rb_str_buf_new;
-    config->str_buf_cat    = rb_str_buf_cat;
-    config->str_modify     = rb_str_modify;
-    config->str_set_len    = rb_str_set_len;
-    config->str_cat        = rb_str_cat;
-    config->str_resize     = rb_str_resize;
-    config->str_new        = rb_str_new;
-    config->str_new_cstr   = rb_str_new_cstr;
-    config->fstring        = rb_fstring;
+    config->str_catf        = rb_str_catf;
+    config->str_cat_cstr    = rb_str_cat_cstr;
+    config->str_subseq      = rb_str_subseq;
+    config->str_dup         = rb_str_dup;
+    config->str_new_frozen  = rb_str_new_frozen;
+    config->str_buf_new     = rb_str_buf_new;
+    config->str_buf_cat     = rb_str_buf_cat;
+    config->str_modify      = rb_str_modify;
+    config->str_set_len     = rb_str_set_len;
+    config->str_cat         = rb_str_cat;
+    config->str_resize      = rb_str_resize;
+    config->str_new         = rb_str_new;
+    config->str_new_cstr    = rb_str_new_cstr;
+    config->fstring         = rb_fstring;
     config->is_ascii_string = is_ascii_string2;
+    config->enc_str_new     = enc_str_new;
+    config->enc_str_buf_cat = enc_str_buf_cat;
 
     config->hash_clear     = rb_hash_clear;
     config->hash_new       = rb_hash_new;
@@ -225,7 +435,33 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->debug_output_stdout = rb_ractor_stdout;
     config->debug_output_stderr = rb_ractor_stderr;
 
-    config->is_usascii_enc = is_usascii_enc;
+    config->is_usascii_enc        = is_usascii_enc;
+    config->enc_isalnum           = enc_isalnum;
+    config->enc_precise_mbclen    = enc_precise_mbclen;
+    config->mbclen_charfound_p    = mbclen_charfound_p;
+    config->enc_name              = enc_name;
+    config->enc_prev_char         = enc_prev_char;
+    config->enc_get               = enc_get;
+    config->enc_asciicompat       = enc_asciicompat;
+    config->utf8_encoding         = utf8_encoding;
+    config->enc_associate         = enc_associate;
+    config->ascii8bit_encoding    = ascii8bit_encoding;
+    config->enc_codelen           = enc_codelen;
+    config->enc_mbcput            = enc_mbcput;
+    config->char_to_option_kcode  = rb_char_to_option_kcode;
+    config->ascii8bit_encindex    = rb_ascii8bit_encindex;
+    config->enc_find_index        = rb_enc_find_index;
+    config->enc_from_index        = enc_from_index;
+    config->enc_associate_index   = rb_enc_associate_index;
+    config->enc_isspace           = enc_isspace;
+    config->enc_coderange_7bit    = ENC_CODERANGE_7BIT;
+    config->enc_coderange_unknown = ENC_CODERANGE_UNKNOWN;
+    config->enc_compatible        = enc_compatible;
+    config->enc_from_encoding     = enc_from_encoding;
+    config->encoding_get          = encoding_get;
+    config->encoding_set          = encoding_set;
+    config->encoding_is_ascii8bit = encoding_is_ascii8bit;
+    config->usascii_encoding      = usascii_encoding;
 
     config->ractor_make_shareable = rb_ractor_make_shareable;
 

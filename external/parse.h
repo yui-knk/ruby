@@ -3,8 +3,14 @@
 
 #include <sys/types.h>
 #include "external/value.h"
+#include "external/node.h"
 // TODO: Expand
 #include "ruby/st.h"
+
+#define rb_encoding void
+#define OnigCodePoint unsigned int
+
+typedef struct parser_params rb_parser_t;
 
 typedef struct rb_parser_config_struct {
     /* Memory */
@@ -14,6 +20,7 @@ typedef struct rb_parser_config_struct {
 
     // VALUE rb_suppress_tracing(VALUE (*func)(VALUE), VALUE arg);
     VALUE (*compile_callback)(VALUE (*func)(VALUE), VALUE arg);
+    NODE *(*reg_named_capture_assign)(struct parser_params* p, VALUE regexp, const rb_code_location_t *loc);
 
     /* Array */
     VALUE (*ary_new)(void);
@@ -31,6 +38,13 @@ typedef struct rb_parser_config_struct {
     /* Symbol */
     VALUE (*sym_intern_ascii_cstr)(const char *ptr);
     ID (*make_temporary_id)(size_t n);
+    int (*is_local_id)(ID);
+    int (*is_attrset_id)(ID);
+    int (*is_global_name_punct)(const int c);
+    int (*id_type)(ID id);
+    ID (*intern3)(const char *name, long len, rb_encoding *enc);
+    int (*is_notop_id)(ID);
+    int (*enc_symname_type)(const char *name, long len, rb_encoding *enc, unsigned int allowed_attrset);
 
     /* String */
     VALUE (*str_catf)(VALUE str, const char *format, ...);
@@ -48,6 +62,8 @@ typedef struct rb_parser_config_struct {
     VALUE (*str_new_cstr)(const char *ptr);
     VALUE (*fstring)(VALUE);
     int (*is_ascii_string)(VALUE str);
+    VALUE (*enc_str_new)(const char *ptr, long len, rb_encoding *enc);
+    VALUE (*enc_str_buf_cat)(VALUE str, const char *ptr, long len, rb_encoding *enc);
 
     /* Hash */
     VALUE (*hash_clear)(VALUE hash);
@@ -77,8 +93,33 @@ typedef struct rb_parser_config_struct {
     VALUE (*debug_output_stderr)(void);
 
     /* Encoding */
-    // rb_encoding *enc
-    int (*is_usascii_enc)(void *enc);
+    int (*is_usascii_enc)(rb_encoding *enc);
+    int (*enc_isalnum)(OnigCodePoint c, rb_encoding *enc);
+    int (*enc_precise_mbclen)(const char *p, const char *e, rb_encoding *enc);
+    int (*mbclen_charfound_p)(int len);
+    const char *(*enc_name)(rb_encoding *enc);
+    char *(*enc_prev_char)(const char *s, const char *p, const char *e, rb_encoding *enc);
+    rb_encoding* (*enc_get)(VALUE obj);
+    int (*enc_asciicompat)(rb_encoding *enc);
+    rb_encoding *(*utf8_encoding)(void);
+    VALUE (*enc_associate)(VALUE obj, rb_encoding *enc);
+    rb_encoding *(*ascii8bit_encoding)(void);
+    int (*enc_codelen)(int c, rb_encoding *enc);
+    int (*enc_mbcput)(unsigned int c, void *buf, rb_encoding *enc);
+    int (*char_to_option_kcode)(int c, int *option, int *kcode);
+    int (*ascii8bit_encindex)(void);
+    int (*enc_find_index)(const char *name);
+    rb_encoding *(*enc_from_index)(int idx);
+    VALUE (*enc_associate_index)(VALUE obj, int encindex);
+    int (*enc_isspace)(OnigCodePoint c, rb_encoding *enc);
+    int enc_coderange_7bit;
+    int enc_coderange_unknown;
+    rb_encoding *(*enc_compatible)(VALUE str1, VALUE str2);
+    VALUE (*enc_from_encoding)(rb_encoding *enc);
+    int (*encoding_get)(VALUE obj);
+    void (*encoding_set)(VALUE obj, int encindex);
+    int (*encoding_is_ascii8bit)(VALUE obj);
+    rb_encoding *(*usascii_encoding)(void);
 
     /* Ractor */
     VALUE (*ractor_make_shareable)(VALUE obj);
@@ -96,8 +137,7 @@ typedef struct rb_parser_config_struct {
 
     /* Error */
     const char *(*builtin_class_name)(VALUE x);
-    // VALUE rb_syntax_error_append(VALUE, VALUE, int, int, rb_encoding*, const char*, va_list);
-    VALUE (*syntax_error_append)(VALUE, VALUE, int, int, const void*, const char*, va_list);
+    VALUE (*syntax_error_append)(VALUE, VALUE, int, int, rb_encoding*, const char*, va_list);
 
     /* Re */
     VALUE (*reg_compile)(VALUE str, int options, const char *sourcefile, int sourceline);
@@ -105,6 +145,7 @@ typedef struct rb_parser_config_struct {
 
 } rb_parser_config_t;
 
-typedef struct parser_params rb_parser_t;
+#undef rb_encoding
+#undef OnigCodePoint
 
 #endif /* EXTERNAL_PARSE_H */
