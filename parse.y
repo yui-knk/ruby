@@ -30,8 +30,8 @@
 struct lex_context;
 
 /* Dependency */
+#include "external/node.h"
 #include "external/parse.h"
-#include "node.h"
 #include "internal/parse.h"
 #include "internal/ruby_parser.h"
 
@@ -41,6 +41,7 @@ struct lex_context;
 #include "internal.h"
 #include "internal/imemo.h"
 #include "internal/variable.h"
+#include "node.h"
 #include "probes.h"
 #include "ruby/st.h"
 #include "ruby/util.h"

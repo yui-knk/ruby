@@ -2,15 +2,7 @@
 #define EXTERNAL_PARSE_H
 
 #include <sys/types.h>
-#include <inttypes.h>
-
-#ifndef VALUE
-typedef uintptr_t VALUE;
-#endif
-#ifndef ID
-typedef uintptr_t ID;
-#endif
-
+#include "external/value.h"
 // TODO: Expand
 #include "ruby/st.h"
 
