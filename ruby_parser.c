@@ -246,7 +246,7 @@ enc_associate(VALUE obj, void *enc)
 static void *
 ascii8bit_encoding(void)
 {
-    return (void *)rb_ascii8bit_encoding;
+    return (void *)rb_ascii8bit_encoding();
 }
 
 static int
