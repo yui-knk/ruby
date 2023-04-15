@@ -41,14 +41,14 @@ struct lex_context;
 #include "probes.h"
 
 /* Should be removed */
-// #include "ruby/internal/config.h"
-
 #include "internal.h"
 #include "internal/imemo.h"
 #include "internal/variable.h"
 #include "ruby/st.h"
 
 #ifdef RIPPER
+#include "ruby/internal/config.h"
+
 #include "internal/compile.h"
 #include "internal/compilers.h"
 #include "internal/complex.h"
