@@ -1269,6 +1269,17 @@ nodetype_markable_p(enum node_type type)
     }
 }
 
+const char *
+ruby_node_name(int node)
+{
+    switch (node) {
+#include "node_name.inc"
+      default:
+        rb_bug("unknown node: %d", node);
+        return 0;
+    }
+}
+
 NODE *
 rb_ast_newnode(rb_ast_t *ast, enum node_type type)
 {
