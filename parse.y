@@ -121,6 +121,7 @@ RBIMPL_WARNING_POP()
 #define rb_ary_reverse       p->config.ary_reverse
 #define rb_ary_clear         p->config.ary_clear
 
+#undef rb_sym_intern_ascii_cstr
 #define rb_sym_intern_ascii_cstr p->config.sym_intern_ascii_cstr
 #define rb_make_temporary_id     p->config.make_temporary_id
 #define is_local_id              p->config.is_local_id
