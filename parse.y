@@ -48,7 +48,6 @@ struct lex_context;
 #include "internal/imemo.h"
 #include "internal/variable.h"
 #include "ruby/st.h"
-#include "ruby/util.h"
 
 #ifdef RIPPER
 #include "internal/compile.h"
@@ -68,6 +67,7 @@ struct lex_context;
 #include "ruby/ractor.h"
 #include "ruby/regex.h"
 #include "ruby/ruby.h"
+#include "ruby/util.h"
 #include "regenc.h"
 #include "symbol.h"
 
@@ -217,6 +217,10 @@ RBIMPL_WARNING_POP()
 
 #define rb_reg_compile          p->config.reg_compile
 #define rb_reg_check_preprocess p->config.reg_check_preprocess
+
+#define ruby_scan_hex    p->config.scan_hex
+#define ruby_scan_oct    p->config.scan_oct
+#define ruby_scan_digits p->config.scan_digits
 
 #endif
 
@@ -7296,7 +7300,7 @@ tok_hex(struct parser_params *p, size_t *numlen)
 {
     int c;
 
-    c = scan_hex(p->lex.pcur, 2, numlen);
+    c = (int)ruby_scan_hex(p->lex.pcur, 2, numlen);
     if (!*numlen) {
         yyerror0("invalid hex escape");
         token_flush(p);
@@ -7343,7 +7347,7 @@ tokadd_codepoint(struct parser_params *p, rb_encoding **encp,
                  int regexp_literal, int wide)
 {
     size_t numlen;
-    int codepoint = scan_hex(p->lex.pcur, wide ? p->lex.pend - p->lex.pcur : 4, &numlen);
+    int codepoint = (int)ruby_scan_hex(p->lex.pcur, wide ? p->lex.pend - p->lex.pcur : 4, &numlen);
     p->lex.pcur += numlen;
     if (p->lex.strterm == NULL ||
         (p->lex.strterm->flags & STRTERM_HEREDOC) ||
@@ -7485,7 +7489,7 @@ read_escape(struct parser_params *p, int flags, rb_encoding **encp)
       case '0': case '1': case '2': case '3': /* octal constant */
       case '4': case '5': case '6': case '7':
         pushback(p, c);
-        c = scan_oct(p->lex.pcur, 3, &numlen);
+        c = (int)ruby_scan_oct(p->lex.pcur, 3, &numlen);
         p->lex.pcur += numlen;
         return c;
 

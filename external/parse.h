@@ -143,6 +143,11 @@ typedef struct rb_parser_config_struct {
     VALUE (*reg_compile)(VALUE str, int options, const char *sourcefile, int sourceline);
     VALUE (*reg_check_preprocess)(VALUE str);
 
+    /* Util */
+    unsigned long (*scan_hex)(const char *start, size_t len, size_t *retlen);
+    unsigned long (*scan_oct)(const char *start, size_t len, size_t *retlen);
+    unsigned long (*scan_digits)(const char *str, ssize_t len, int base, size_t *retlen, int *overflow);
+
 } rb_parser_config_t;
 
 #undef rb_encoding

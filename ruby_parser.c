@@ -17,10 +17,11 @@
 #include "internal/symbol.h"
 #include "internal/thread.h"
 
+#include "ruby/ractor.h"
 #include "ruby/ruby.h"
+#include "ruby/util.h"
 #include "node.h"
 #include "internal.h"
-#include "ruby/ractor.h"
 #include "vm_core.h"
 #include "symbol.h"
 
@@ -476,6 +477,10 @@ rb_parser_config_initialize(rb_parser_config_t *config)
 
     config->reg_compile = rb_reg_compile;
     config->reg_check_preprocess = rb_reg_check_preprocess;
+
+    config->scan_hex    = ruby_scan_hex;
+    config->scan_oct    = ruby_scan_oct;
+    config->scan_digits = ruby_scan_digits;
 }
 
 VALUE
