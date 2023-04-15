@@ -8480,7 +8480,7 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
                     int cr = ENC_CODERANGE_UNKNOWN;
                     rb_str_coderange_scan_restartable(p->lex.ptok, p->lex.pcur, enc, &cr);
                     if (cr != ENC_CODERANGE_7BIT &&
-                        rb_is_usascii_enc((void *)p->enc) &&
+                        rb_is_usascii_enc(p->enc) &&
                         enc != rb_utf8_encoding()) {
                         enc = rb_ascii8bit_encoding();
                     }
@@ -13583,7 +13583,7 @@ rb_reg_fragment_setenc(struct parser_params* p, VALUE str, int options)
         }
         rb_enc_associate(str, rb_ascii8bit_encoding());
     }
-    else if (rb_is_usascii_enc((void *)p->enc)) {
+    else if (rb_is_usascii_enc(p->enc)) {
         if (!is_ascii_string(str)) {
             /* raise in re.c */
             rb_enc_associate(str, rb_usascii_encoding());
