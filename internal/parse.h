@@ -35,7 +35,7 @@ VALUE rb_ruby_parser_encoding(rb_parser_t *p);
 int rb_ruby_parser_end_seen_p(rb_parser_t *p);
 int rb_ruby_parser_set_yydebug(rb_parser_t *p, int flag);
 
-int rb_reg_named_capture_assign_iter_impl(struct parser_params *p, const char *s, long len, void *enc, NODE *succ_block, const rb_code_location_t *loc);
+int rb_reg_named_capture_assign_iter_impl(struct parser_params *p, const char *s, long len, void *enc, NODE **succ_block, const rb_code_location_t *loc);
 
 
 #undef rb_encoding

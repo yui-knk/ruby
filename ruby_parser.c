@@ -328,7 +328,7 @@ enc_symname_type(const char *name, long len, void *enc, unsigned int allowed_att
 }
 
 typedef struct {
-    struct parser_params* parser;
+    struct parser_params *parser;
     rb_encoding *enc;
     NODE *succ_block;
     const rb_code_location_t *loc;
@@ -341,12 +341,11 @@ reg_named_capture_assign_iter(const OnigUChar *name, const OnigUChar *name_end,
     reg_named_capture_assign_t *arg = (reg_named_capture_assign_t*)arg0;
     struct parser_params* p = arg->parser;
     rb_encoding *enc = arg->enc;
-    NODE *succ_block = arg->succ_block;
     const rb_code_location_t *loc = arg->loc;
     long len = name_end - name;
     const char *s = (const char *)name;
 
-    return rb_reg_named_capture_assign_iter_impl(p, s, len, (void *)enc, succ_block, loc);
+    return rb_reg_named_capture_assign_iter_impl(p, s, len, (void *)enc, &arg->succ_block, loc);
 }
 
 static NODE *

@@ -13621,7 +13621,7 @@ reg_fragment_check(struct parser_params* p, VALUE str, int options)
 
 int
 rb_reg_named_capture_assign_iter_impl(struct parser_params *p, const char *s, long len,
-          rb_encoding *enc, NODE *succ_block, const rb_code_location_t *loc)
+          rb_encoding *enc, NODE **succ_block, const rb_code_location_t *loc)
 {
     ID var;
     NODE *node, *succ;
@@ -13635,10 +13635,10 @@ rb_reg_named_capture_assign_iter_impl(struct parser_params *p, const char *s, lo
         if (!lvar_defined(p, var)) return ST_CONTINUE;
     }
     node = node_assign(p, assignable(p, var, 0, loc), NEW_LIT(ID2SYM(var), loc), NO_LEX_CTXT, loc);
-    succ = succ_block;
+    succ = *succ_block;
     if (!succ) succ = NEW_BEGIN(0, loc);
     succ = block_append(p, succ, node);
-    succ_block = succ;
+    *succ_block = succ;
     return ST_CONTINUE;
 }
 
