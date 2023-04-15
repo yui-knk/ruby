@@ -1,13 +1,10 @@
 #ifndef EXTERNAL_VALUE_H
 #define EXTERNAL_VALUE_H
 
-#include <inttypes.h>
+// TODO:
+#include "ruby/internal/value.h"
 
-#ifndef VALUE
-typedef uintptr_t VALUE;
-#endif
-#ifndef ID
-typedef uintptr_t ID;
-#endif
+// typedef uintptr_t VALUE;
+// typedef uintptr_t ID;
 
 #endif /* EXTERNAL_VALUE_H */
