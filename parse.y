@@ -41,7 +41,6 @@ struct lex_context;
 #include "internal.h"
 #include "internal/imemo.h"
 #include "internal/variable.h"
-#include "node.h"
 #include "probes.h"
 #include "ruby/st.h"
 #include "ruby/util.h"
@@ -60,6 +59,7 @@ struct lex_context;
 #include "internal/re.h"
 #include "internal/symbol.h"
 #include "internal/thread.h"
+#include "node.h"
 
 #include "ruby/encoding.h"
 #include "ruby/ractor.h"
