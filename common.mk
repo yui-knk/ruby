@@ -1130,9 +1130,9 @@ id.c: $(tooldir)/generic_erb.rb $(srcdir)/template/id.c.tmpl $(srcdir)/defs/id.d
 	$(Q) $(BASERUBY) $(tooldir)/generic_erb.rb --output=$@ \
 		$(srcdir)/template/id.c.tmpl
 
-node_name.inc: $(tooldir)/node_name.rb $(srcdir)/node.h
+node_name.inc: $(tooldir)/node_name.rb $(srcdir)/external/node.h
 	$(ECHO) generating $@
-	$(Q) $(BASERUBY) -n $(tooldir)/node_name.rb < $(srcdir)/node.h > $@
+	$(Q) $(BASERUBY) -n $(tooldir)/node_name.rb < $(srcdir)/external/node.h > $@
 
 encdb.h: $(RBCONFIG) $(tooldir)/generic_erb.rb $(srcdir)/template/encdb.h.tmpl
 	$(ECHO) generating $@
