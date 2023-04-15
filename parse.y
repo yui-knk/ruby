@@ -26,6 +26,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
+#include <string.h>
 
 struct lex_context;
 
@@ -34,12 +35,17 @@ struct lex_context;
 #include "external/parse.h"
 #include "internal/parse.h"
 #include "internal/ruby_parser.h"
+#include "node.h"
+#include "id.h"
+
+#include "internal/compilers.h"
 #include "probes.h"
 
 /* Should be removed */
 #include "ruby/internal/config.h"
 
 #include "internal.h"
+#include "internal/imemo.h"
 #include "internal/variable.h"
 #include "ruby/st.h"
 #include "ruby/util.h"
@@ -52,13 +58,11 @@ struct lex_context;
 #include "internal/error.h"
 #include "internal/numeric.h"
 #include "internal/hash.h"
-#include "internal/imemo.h"
 #include "internal/io.h"
 #include "internal/rational.h"
 #include "internal/re.h"
 #include "internal/symbol.h"
 #include "internal/thread.h"
-#include "node.h"
 
 #include "ruby/encoding.h"
 #include "ruby/ractor.h"
