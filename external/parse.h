@@ -86,6 +86,8 @@ typedef struct rb_parser_config_struct {
 
     /* Bignum */
     void (*bignum_negate)(VALUE b);
+    VALUE (*big_norm)(VALUE x);
+    VALUE (*int2big)(intptr_t n);
 
     /* Float */
     VALUE (*float_new)(double d);
@@ -167,6 +169,7 @@ typedef struct rb_parser_config_struct {
     /* Eval */
     VALUE (*errinfo)(void);
     void (*exc_raise)(VALUE mesg);
+    void (*set_errinfo)(VALUE err);
 
     /* Re */
     VALUE (*reg_compile)(VALUE str, int options, const char *sourcefile, int sourceline);

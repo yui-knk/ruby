@@ -433,6 +433,8 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->ident_hash_new = rb_ident_hash_new;
 
     config->bignum_negate = bignum_negate;
+    config->big_norm      = rb_big_norm;
+    config->int2big       = rb_int2big;
 
     config->float_new   = rb_float_new;
     config->float_value = rb_float_value;
@@ -499,6 +501,7 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->raise = rb_raise;
 
     config->errinfo = rb_errinfo;
+    config->set_errinfo = rb_set_errinfo;
     config->exc_raise = rb_exc_raise;
 
     config->reg_compile = rb_reg_compile;
