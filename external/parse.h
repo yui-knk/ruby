@@ -45,6 +45,7 @@ typedef struct rb_parser_config_struct {
     ID (*intern3)(const char *name, long len, rb_encoding *enc);
     int (*is_notop_id)(ID);
     int (*enc_symname_type)(const char *name, long len, rb_encoding *enc, unsigned int allowed_attrset);
+    VALUE (*str_intern)(VALUE str);
 
     /* String */
     VALUE (*str_catf)(VALUE str, const char *format, ...);
@@ -64,6 +65,10 @@ typedef struct rb_parser_config_struct {
     int (*is_ascii_string)(VALUE str);
     VALUE (*enc_str_new)(const char *ptr, long len, rb_encoding *enc);
     VALUE (*enc_str_buf_cat)(VALUE str, const char *ptr, long len, rb_encoding *enc);
+    VALUE (*str_buf_append)(VALUE str, VALUE str2);
+    VALUE (*str_vcatf)(VALUE str, const char *fmt, va_list ap);
+    char *(*string_value_cstr)(volatile VALUE *ptr);
+    VALUE (*rb_sprintf)(const char *format, ...);
 
     /* Hash */
     VALUE (*hash_clear)(VALUE hash);

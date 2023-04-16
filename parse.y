@@ -136,6 +136,7 @@ RBIMPL_WARNING_POP()
 #define rb_intern3               p->config.intern3
 #define is_notop_id              p->config.is_notop_id
 #define rb_enc_symname_type      p->config.enc_symname_type
+#define rb_str_intern            p->config.str_intern
 
 #define rb_str_catf                       p->config.str_catf
 #undef rb_str_cat_cstr
@@ -158,6 +159,10 @@ RBIMPL_WARNING_POP()
 #define is_ascii_string                   p->config.is_ascii_string
 #define rb_enc_str_new                    p->config.enc_str_new
 #define rb_enc_str_buf_cat                p->config.enc_str_buf_cat
+#define rb_str_buf_append                 p->config.str_buf_append
+#define rb_str_vcatf                      p->config.str_vcatf
+#define rb_string_value_cstr              p->config.string_value_cstr
+#define rb_sprintf                        p->config.rb_sprintf
 
 #define rb_hash_clear     p->config.hash_clear
 #define rb_hash_new       p->config.hash_new

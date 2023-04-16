@@ -395,6 +395,7 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->intern3               = intern3;
     config->is_notop_id           = is_notop_id2;
     config->enc_symname_type      = enc_symname_type;
+    config->str_intern            = rb_str_intern;
 
     config->str_catf        = rb_str_catf;
     config->str_cat_cstr    = rb_str_cat_cstr;
@@ -413,6 +414,10 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->is_ascii_string = is_ascii_string2;
     config->enc_str_new     = enc_str_new;
     config->enc_str_buf_cat = enc_str_buf_cat;
+    config->str_buf_append  = rb_str_buf_append;
+    config->str_vcatf       = rb_str_vcatf;
+    config->string_value_cstr = rb_string_value_cstr;
+    config->rb_sprintf      = rb_sprintf;
 
     config->hash_clear     = rb_hash_clear;
     config->hash_new       = rb_hash_new;
