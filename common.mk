@@ -113,6 +113,7 @@ COMMONOBJS    = array.$(OBJEXT) \
 		rjit.$(OBJEXT) \
 		rjit_c.$(OBJEXT) \
 		node.$(OBJEXT) \
+		node2.$(OBJEXT) \
 		numeric.$(OBJEXT) \
 		object.$(OBJEXT) \
 		pack.$(OBJEXT) \
@@ -345,7 +346,7 @@ Doxyfile: $(srcdir)/template/Doxyfile.tmpl $(PREP) $(tooldir)/generic_erb.rb $(R
 
 libparser-so:
 	$(ECHO) linking shared-library $@
-	$(Q) $(LDSHARED) $(DLDFLAGS) node.o parse.o st.o $(OUTFLAG)$@
+	$(Q) $(LDSHARED) $(DLDFLAGS) node2.o parse.o st.o $(OUTFLAG)$@
 
 program: $(SHOWFLAGS) $(PROGRAM)
 wprogram: $(SHOWFLAGS) $(WPROGRAM)
