@@ -167,7 +167,7 @@ RBIMPL_WARNING_POP()
 
 #define bignum_negate p->config.bignum_negate
 
-#define rrb_ational_new  p->config.rational_new
+#define rb_rational_new  p->config.rational_new
 #define rb_rational_raw  p->config.rational_raw
 #define rational_set_num p->config.rational_set_num
 #define rational_get_num p->config.rational_get_num
