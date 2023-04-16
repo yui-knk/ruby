@@ -40,12 +40,14 @@ struct lex_context;
 #include "internal/compilers.h"
 #include "probes.h"
 
-/* Should be removed */
-#include "internal.h"
-#include "internal/imemo.h"
-#include "internal/variable.h"
 
-#ifdef RIPPER
+#ifndef RIPPER
+#define LIKELY(x) RB_LIKELY(x)
+#define UNLIKELY(x) RB_UNLIKELY(x)
+#define numberof(array) ((int)(sizeof(array) / sizeof((array)[0])))
+/* Should be removed */
+#include "internal/imemo.h"
+#else
 #include "ruby/internal/config.h"
 
 #include "internal.h"
@@ -250,6 +252,9 @@ RBIMPL_WARNING_POP()
 #define rb_set_errinfo p->config.set_errinfo
 #define rb_exc_raise p->config.exc_raise
 
+#define ruby_sized_xfree p->config.sized_xfree
+#define SIZED_REALLOC_N(v, T, m, n) ((v) = (T *)p->config.sized_realloc_n((void *)(v), (m), sizeof(T), (n))) 
+
 #define rb_reg_compile          p->config.reg_compile
 #define rb_reg_check_preprocess p->config.reg_check_preprocess
 
@@ -261,6 +266,9 @@ RBIMPL_WARNING_POP()
 #define ruby_scan_hex    p->config.scan_hex
 #define ruby_scan_oct    p->config.scan_oct
 #define ruby_scan_digits p->config.scan_digits
+
+#define RBOOL p->config.rbool
+#define UNDEF_P p->config.undef_p
 
 #endif
 

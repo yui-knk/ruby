@@ -168,8 +168,12 @@ typedef struct rb_parser_config_struct {
 
     /* Eval */
     VALUE (*errinfo)(void);
-    void (*exc_raise)(VALUE mesg);
     void (*set_errinfo)(VALUE err);
+    void (*exc_raise)(VALUE mesg);
+
+    /* GC */
+    void (*sized_xfree)(void *x, size_t size);
+    void *(*sized_realloc_n)(void *ptr, size_t new_count, size_t element_size, size_t old_count);
 
     /* Re */
     VALUE (*reg_compile)(VALUE str, int options, const char *sourcefile, int sourceline);
@@ -185,6 +189,10 @@ typedef struct rb_parser_config_struct {
     unsigned long (*scan_hex)(const char *start, size_t len, size_t *retlen);
     unsigned long (*scan_oct)(const char *start, size_t len, size_t *retlen);
     unsigned long (*scan_digits)(const char *str, ssize_t len, int base, size_t *retlen, int *overflow);
+
+    /* Misc */
+    VALUE (*rbool)(VALUE);
+    int (*undef_p)(VALUE);
 
 } rb_parser_config_t;
 

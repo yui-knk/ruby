@@ -7,6 +7,7 @@
 #include "internal/complex.h"
 #include "internal/encoding.h"
 #include "internal/error.h"
+#include "internal/gc.h"
 #include "internal/hash.h"
 #include "internal/io.h"
 #include "internal/parse.h"
@@ -364,6 +365,18 @@ reg_named_capture_assign(struct parser_params* p, VALUE regexp, const rb_code_lo
     return arg.succ_block->nd_next;
 }
 
+static VALUE
+rbool(VALUE v)
+{
+    return RBOOL(v);
+}
+
+static int
+undef_p(VALUE v)
+{
+    return RB_UNDEF_P(v);
+}
+
 void
 rb_parser_config_initialize(rb_parser_config_t *config)
 {
@@ -504,6 +517,9 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->set_errinfo = rb_set_errinfo;
     config->exc_raise = rb_exc_raise;
 
+    config->sized_xfree = ruby_sized_xfree;
+    config->sized_realloc_n = ruby_sized_realloc_n;
+
     config->reg_compile = rb_reg_compile;
     config->reg_check_preprocess = rb_reg_check_preprocess;
 
@@ -515,6 +531,9 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->scan_hex    = ruby_scan_hex;
     config->scan_oct    = ruby_scan_oct;
     config->scan_digits = ruby_scan_digits;
+
+    config->rbool = rbool;
+    config->undef_p = undef_p;
 }
 
 VALUE
