@@ -80,10 +80,12 @@ typedef struct rb_parser_config_struct {
     VALUE (*rational_get_num)(VALUE obj);
 
     /* Complex */
+    VALUE (*complex_raw)(VALUE x, VALUE y);
     void (*rcomplex_set_real)(VALUE cmp, VALUE r);
     void (*rcomplex_set_imag)(VALUE cmp, VALUE i);
     VALUE (*rcomplex_get_real)(VALUE obj);
     VALUE (*rcomplex_get_imag)(VALUE obj);
+
 
     /* IO */
     int (*stderr_tty_p)(void);

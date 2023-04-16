@@ -425,6 +425,7 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->rational_set_num = rational_set_num;
     config->rational_get_num = rational_get_num;
 
+    config->complex_raw       = rb_complex_raw;
     config->rcomplex_set_real = rcomplex_set_real;
     config->rcomplex_set_imag = rcomplex_set_imag;
     config->rcomplex_get_real = rcomplex_get_real;

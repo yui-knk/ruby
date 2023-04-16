@@ -170,6 +170,7 @@ RBIMPL_WARNING_POP()
 #define rational_set_num p->config.rational_set_num
 #define rational_get_num p->config.rational_get_num
 
+#define rb_complex_raw    p->config.complex_raw
 #define rcomplex_set_real p->config.rcomplex_set_real
 #define rcomplex_set_imag p->config.rcomplex_set_imag
 #define rcomplex_get_real p->config.rcomplex_get_real
