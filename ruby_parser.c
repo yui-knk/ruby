@@ -392,10 +392,17 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->is_attrset_id         = is_attrset_id2;
     config->is_global_name_punct  = is_global_name_punct;
     config->id_type               = id_type;
+    config->intern                = rb_intern;
+    config->intern2               = rb_intern2;
     config->intern3               = intern3;
+    config->intern_str            = rb_intern_str;
     config->is_notop_id           = is_notop_id2;
     config->enc_symname_type      = enc_symname_type;
     config->str_intern            = rb_str_intern;
+    config->id2name               = rb_id2name;
+    config->id2str                = rb_id2str;
+    config->id2sym                = rb_id2sym;
+    config->sym2id                = rb_sym2id;
 
     config->str_catf        = rb_str_catf;
     config->str_cat_cstr    = rb_str_cat_cstr;

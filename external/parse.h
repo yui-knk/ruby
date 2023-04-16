@@ -42,10 +42,17 @@ typedef struct rb_parser_config_struct {
     int (*is_attrset_id)(ID);
     int (*is_global_name_punct)(const int c);
     int (*id_type)(ID id);
+    ID (*intern)(const char *name);
+    ID (*intern2)(const char *name, long len);
     ID (*intern3)(const char *name, long len, rb_encoding *enc);
+    ID (*intern_str)(VALUE str);
     int (*is_notop_id)(ID);
     int (*enc_symname_type)(const char *name, long len, rb_encoding *enc, unsigned int allowed_attrset);
     VALUE (*str_intern)(VALUE str);
+    const char *(*id2name)(ID id);
+    VALUE (*id2str)(ID id);
+    VALUE (*id2sym)(ID x);
+    ID (*sym2id)(VALUE sym);
 
     /* String */
     VALUE (*str_catf)(VALUE str, const char *format, ...);

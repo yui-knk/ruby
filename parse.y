@@ -133,10 +133,18 @@ RBIMPL_WARNING_POP()
 #define is_attrset_id            p->config.is_attrset_id
 #define is_global_name_punct     p->config.is_global_name_punct
 #define id_type                  p->config.id_type
+#undef rb_intern
+#define rb_intern                p->config.intern
+#define rb_intern2               p->config.intern2
 #define rb_intern3               p->config.intern3
+#define rb_intern_str            p->config.intern_str
 #define is_notop_id              p->config.is_notop_id
 #define rb_enc_symname_type      p->config.enc_symname_type
 #define rb_str_intern            p->config.str_intern
+#define rb_id2name               p->config.id2name
+#define rb_id2str                p->config.id2str
+#define rb_id2sym                p->config.id2sym
+#define rb_sym2id                p->config.sym2id
 
 #define rb_str_catf                       p->config.str_catf
 #undef rb_str_cat_cstr
