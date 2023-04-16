@@ -226,6 +226,11 @@ RBIMPL_WARNING_POP()
 #define rb_reg_compile          p->config.reg_compile
 #define rb_reg_check_preprocess p->config.reg_check_preprocess
 
+#define rb_compile_warn    p->config.compile_warn
+#define rb_compile_warning p->config.compile_warning
+#define rb_bug             p->config.bug
+#define rb_fatal           p->config.fatal
+
 #define ruby_scan_hex    p->config.scan_hex
 #define ruby_scan_oct    p->config.scan_oct
 #define ruby_scan_digits p->config.scan_digits
@@ -613,7 +618,7 @@ peek_end_expect_token_locations(struct parser_params *p)
 }
 
 static ID
-parser_token2id(enum yytokentype tok)
+parser_token2id(struct parser_params *p, enum yytokentype tok)
 {
     switch ((int) tok) {
 #define TOKEN2ID(tok) case tok: return rb_intern(#tok);
@@ -6355,7 +6360,7 @@ parser_append_tokens(struct parser_params *p, VALUE str, enum yytokentype t, int
     ary = rb_ary_new2(4);
     token_id = p->token_id;
     rb_ary_push(ary, INT2FIX(token_id));
-    rb_ary_push(ary, ID2SYM(parser_token2id(t)));
+    rb_ary_push(ary, ID2SYM(parser_token2id(p, t)));
     rb_ary_push(ary, str);
     rb_ary_push(ary, code_loc_to_ary(p, p->yylloc));
     rb_obj_freeze(ary);

@@ -481,6 +481,11 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->reg_compile = rb_reg_compile;
     config->reg_check_preprocess = rb_reg_check_preprocess;
 
+    config->compile_warn    = rb_compile_warn;
+    config->compile_warning = rb_compile_warning;
+    config->bug             = rb_bug;
+    config->fatal           = rb_fatal;
+
     config->scan_hex    = ruby_scan_hex;
     config->scan_oct    = ruby_scan_oct;
     config->scan_digits = ruby_scan_digits;

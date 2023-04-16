@@ -146,6 +146,12 @@ typedef struct rb_parser_config_struct {
     VALUE (*reg_compile)(VALUE str, int options, const char *sourcefile, int sourceline);
     VALUE (*reg_check_preprocess)(VALUE str);
 
+    /* Error */
+    void (*compile_warn)(const char *file, int line, const char *fmt, ...);
+    void (*compile_warning)(const char *file, int line, const char *fmt, ...);
+    void (*bug)(const char *fmt, ...);
+    void (*fatal)(const char *fmt, ...);
+
     /* Util */
     unsigned long (*scan_hex)(const char *start, size_t len, size_t *retlen);
     unsigned long (*scan_oct)(const char *start, size_t len, size_t *retlen);
