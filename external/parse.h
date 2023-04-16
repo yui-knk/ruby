@@ -87,6 +87,15 @@ typedef struct rb_parser_config_struct {
     /* Bignum */
     void (*bignum_negate)(VALUE b);
 
+    /* Float */
+    VALUE (*float_new)(double d);
+    double (*float_value)(VALUE v);
+
+    /* Numeric */
+    long (*fix2int)(VALUE val);
+    long (*num2int)(VALUE val);
+    VALUE (*int_positive_pow)(long x, unsigned long y);
+
     /* Rational */
     VALUE (*rational_new)(VALUE x, VALUE y);
     VALUE (*rational_raw)(VALUE x, VALUE y);
@@ -150,9 +159,14 @@ typedef struct rb_parser_config_struct {
     int (*literal_cmp)(VALUE val, VALUE lit);
     st_index_t (*literal_hash)(VALUE a);
 
-    /* Error */
+    /* Error (Exception) */
     const char *(*builtin_class_name)(VALUE x);
     VALUE (*syntax_error_append)(VALUE, VALUE, int, int, rb_encoding*, const char*, va_list);
+    void (*raise)(VALUE exc, const char *fmt, ...);
+
+    /* Eval */
+    VALUE (*errinfo)(void);
+    void (*exc_raise)(VALUE mesg);
 
     /* Re */
     VALUE (*reg_compile)(VALUE str, int options, const char *sourcefile, int sourceline);

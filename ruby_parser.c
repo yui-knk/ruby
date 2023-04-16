@@ -434,6 +434,13 @@ rb_parser_config_initialize(rb_parser_config_t *config)
 
     config->bignum_negate = bignum_negate;
 
+    config->float_new   = rb_float_new;
+    config->float_value = rb_float_value;
+
+    config->fix2int          = rb_fix2int;
+    config->num2int          = rb_num2int;
+    config->int_positive_pow = rb_int_positive_pow;
+
     config->rational_new     = rb_rational_new;
     config->rational_raw     = rb_rational_raw;
     config->rational_set_num = rational_set_num;
@@ -489,6 +496,10 @@ rb_parser_config_initialize(rb_parser_config_t *config)
 
     config->builtin_class_name = rb_builtin_class_name;
     config->syntax_error_append = syntax_error_append;
+    config->raise = rb_raise;
+
+    config->errinfo = rb_errinfo;
+    config->exc_raise = rb_exc_raise;
 
     config->reg_compile = rb_reg_compile;
     config->reg_check_preprocess = rb_reg_check_preprocess;

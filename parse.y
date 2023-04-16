@@ -180,6 +180,13 @@ RBIMPL_WARNING_POP()
 
 #define bignum_negate p->config.bignum_negate
 
+#define rb_float_new   p->config.float_new
+#define rb_float_value p->config.float_value
+
+#define rb_fix2int          p->config.fix2int
+#define rb_num2int          p->config.num2int
+#define rb_int_positive_pow p->config.int_positive_pow
+
 #define rb_rational_new  p->config.rational_new
 #define rb_rational_raw  p->config.rational_raw
 #define rational_set_num p->config.rational_set_num
@@ -235,6 +242,9 @@ RBIMPL_WARNING_POP()
 
 #define rb_builtin_class_name p->config.builtin_class_name
 #define rb_syntax_error_append p->config.syntax_error_append
+#define rb_raise p->config.raise
+#define rb_errinfo p->config.errinfo
+#define rb_exc_raise p->config.exc_raise
 
 #define rb_reg_compile          p->config.reg_compile
 #define rb_reg_check_preprocess p->config.reg_check_preprocess
