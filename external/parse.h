@@ -76,6 +76,8 @@ typedef struct rb_parser_config_struct {
     void (*bignum_negate)(VALUE b);
 
     /* Rational */
+    VALUE (*rational_new)(VALUE x, VALUE y);
+    VALUE (*rational_raw)(VALUE x, VALUE y);
     void (*rational_set_num)(VALUE r, VALUE n);
     VALUE (*rational_get_num)(VALUE obj);
 
@@ -85,7 +87,6 @@ typedef struct rb_parser_config_struct {
     void (*rcomplex_set_imag)(VALUE cmp, VALUE i);
     VALUE (*rcomplex_get_real)(VALUE obj);
     VALUE (*rcomplex_get_imag)(VALUE obj);
-
 
     /* IO */
     int (*stderr_tty_p)(void);

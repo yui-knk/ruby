@@ -422,6 +422,8 @@ rb_parser_config_initialize(rb_parser_config_t *config)
 
     config->bignum_negate = bignum_negate;
 
+    config->rational_new     = rb_rational_new;
+    config->rational_raw     = rb_rational_raw;
     config->rational_set_num = rational_set_num;
     config->rational_get_num = rational_get_num;
 
