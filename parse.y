@@ -52,6 +52,13 @@ struct lex_context;
 #define RSTRING_GETMEM(str, ptrvar, lenvar) \
     ((ptrvar) = RSTRING_PTR(str),           \
      (lenvar) = RSTRING_LEN(str))
+#if defined(USE_FLONUM)
+# /* Take that. */
+#elif SIZEOF_VALUE >= SIZEOF_DOUBLE
+# define USE_FLONUM 1
+#else
+# define USE_FLONUM 0
+#endif
 #else
 #include "ruby/internal/config.h"
 
@@ -360,6 +367,7 @@ struct rb_imemo_tmpbuf_struct {
 #define UNDEF_P p->config.undef_p
 #define RTEST p->config.rtest
 #define NIL_P p->config.nil_p
+#define FLONUM_P p->config.flonum_p
 #define Qnil  p->config.qnil
 #define Qtrue p->config.qtrue
 #define Qfalse p->config.qfalse

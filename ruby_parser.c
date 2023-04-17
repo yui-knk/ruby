@@ -389,6 +389,12 @@ nil_p(VALUE obj)
     return (int)NIL_P(obj);
 }
 
+static int
+flonum_p(VALUE obj)
+{
+    return (int)RB_FLONUM_P(obj);
+}
+
 static VALUE
 int2fix(long i)
 {
@@ -739,6 +745,7 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->obj_write = obj_write;
     config->obj_written = obj_written;
     config->gc_register_mark_object = rb_gc_register_mark_object;
+    config->gc_guard = gc_guard;
     config->gc_mark = rb_gc_mark;
 
     config->reg_compile = rb_reg_compile;
@@ -771,6 +778,7 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->undef_p = undef_p;
     config->rtest = rtest;
     config->nil_p = nil_p;
+    config->flonum_p = flonum_p;
     config->qnil  = Qnil;
     config->qtrue = Qtrue;
     config->qfalse = Qfalse;

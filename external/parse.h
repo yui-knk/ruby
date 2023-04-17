@@ -269,6 +269,7 @@ typedef struct rb_parser_config_struct {
     int (*undef_p)(VALUE);
     int (*rtest)(VALUE obj);
     int (*nil_p)(VALUE obj);
+    int (*flonum_p)(VALUE obj);
     VALUE qnil;
     VALUE qtrue;
     VALUE qfalse;
