@@ -7416,6 +7416,14 @@ escaped_control_code(int c)
 #define WARN_SPACE_CHAR(c, prefix) \
     rb_warn1("invalid character syntax; use "prefix"\\%c", WARN_I(c2))
 
+#ifdef RIPPER
+static int
+strterm_is_heredoc(VALUE strterm)
+{
+    return ((rb_strterm_t *)strterm)->flags & STRTERM_HEREDOC;
+}
+#endif
+
 static int
 tokadd_codepoint(struct parser_params *p, rb_encoding **encp,
                  int regexp_literal, int wide)
@@ -7972,6 +7980,19 @@ tokadd_string(struct parser_params *p,
     if (*enc) *encp = *enc;
     return c;
 }
+
+#ifdef RIPPER
+static VALUE
+new_strterm(VALUE v1, VALUE v2, VALUE v3, VALUE v0, int heredoc)
+{
+    rb_strterm_t *imemo = (rb_strterm_t *)rb_imemo_new(imemo_parser_strterm, v1, v2, v3, v0);
+    if (heredoc) {
+        imemo->flags |= STRTERM_HEREDOC;
+    }
+
+    return (VALUE)imemo;
+}
+#endif
 
 /* imemo_parser_strterm for literal */
 #define NEW_STRTERM(func, term, paren) \
