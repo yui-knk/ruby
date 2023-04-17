@@ -377,15 +377,212 @@ undef_p(VALUE v)
     return RB_UNDEF_P(v);
 }
 
+static int
+rtest(VALUE obj)
+{
+    return (int)RB_TEST(obj);
+}
+
+static int
+nil_p(VALUE obj)
+{
+    return (int)NIL_P(obj);
+}
+
+static VALUE
+int2fix(long i)
+{
+    return INT2FIX(i);
+}
+
+static void *
+alloca_n(size_t x, size_t y)
+{
+    return alloca(rbimpl_size_mul_or_raise(x, y));
+}
+
+static int
+script_lines_defined(void)
+{
+    ID script_lines;
+    CONST_ID(script_lines, "SCRIPT_LINES__");
+
+    return rb_const_defined_at(rb_cObject, script_lines);
+}
+
+static VALUE
+script_lines_get(void)
+{
+    ID script_lines;
+    CONST_ID(script_lines, "SCRIPT_LINES__");
+
+    return rb_const_get_at(rb_cObject, script_lines);
+}
+
+static VALUE
+syntax_error_new(void)
+{
+    return rb_class_new_instance(0, 0, rb_eSyntaxError);
+}
+
+static int
+obj_frozen(VALUE obj)
+{
+    return (int)RB_OBJ_FROZEN(obj);
+}
+
+static VALUE
+obj_write(VALUE old, VALUE *slot, VALUE young)
+{
+    return RB_OBJ_WRITE(old, slot, young);
+}
+
+static VALUE
+obj_written(VALUE old, VALUE slot, VALUE young)
+{
+    return RB_OBJ_WRITTEN(old, slot, young);
+}
+
+static VALUE
+default_rs(void)
+{
+    return rb_default_rs;
+}
+
+static VALUE
+rational_raw1(VALUE x)
+{
+    return rb_rational_raw1(x);
+}
+
+static void *
+memmove2(void *dest, const void *src, size_t t, size_t n)
+{
+    return memmove(dest, src, rbimpl_size_mul_or_raise(t, n));
+}
+
+static void *
+nonempty_memcpy(void *dest, const void *src, size_t t, size_t n)
+{
+    return ruby_nonempty_memcpy(dest, src, rbimpl_size_mul_or_raise(t, n));
+}
+
+static VALUE
+ruby_verbose2(void)
+{
+    return ruby_verbose;
+}
+
+static int
+type_p(VALUE obj, int t)
+{
+    return (int)RB_TYPE_P(obj, t);
+}
+
+static int
+fixnum_p(VALUE obj)
+{
+    return (int)RB_FIXNUM_P(obj);
+}
+
+static int
+symbol_p(VALUE obj)
+{
+    return (int)RB_SYMBOL_P(obj);
+}
+
+static void *
+zalloc(size_t elemsiz)
+{
+    return ruby_xcalloc(1, elemsiz);
+}
+
+static VALUE
+new_strterm(VALUE v1, VALUE v2, VALUE v3, VALUE v0, int heredoc)
+{
+    rb_strterm_t *imemo = (rb_strterm_t *)rb_imemo_new(imemo_parser_strterm, v1, v2, v3, v0);
+    if (heredoc) {
+        imemo->flags |= STRTERM_HEREDOC;
+    }
+
+    return (VALUE)imemo;
+}
+
+static int
+strterm_is_heredoc(VALUE strterm)
+{
+    return ((rb_strterm_t *)strterm)->flags & STRTERM_HEREDOC;
+}
+
+static void
+gc_guard(VALUE obj)
+{
+    RB_GC_GUARD(obj);
+}
+
+void
+rb_strterm_mark(VALUE obj)
+{
+    rb_strterm_t *strterm = (rb_strterm_t*)obj;
+    if (RBASIC(obj)->flags & STRTERM_HEREDOC) {
+        rb_strterm_heredoc_t *heredoc = &strterm->u.heredoc;
+        rb_gc_mark(heredoc->lastline);
+    }
+}
+
+static rb_imemo_tmpbuf_t *
+tmpbuf_parser_heap(void *buf, rb_imemo_tmpbuf_t *old_heap, size_t cnt)
+{
+    return rb_imemo_tmpbuf_parser_heap(buf, old_heap, cnt);
+}
+
+static int
+special_const_p(VALUE obj)
+{
+    return (int)RB_SPECIAL_CONST_P(obj);
+}
+
+static int
+builtin_type(VALUE obj)
+{
+    return (int)RB_BUILTIN_TYPE(obj);
+}
+
 void
 rb_parser_config_initialize(rb_parser_config_t *config)
 {
-    config->malloc = ruby_xmalloc;
-    config->calloc = ruby_xcalloc;
-    config->free   = ruby_xfree;
+    config->malloc   = ruby_xmalloc;
+    config->calloc   = ruby_xcalloc;
+    config->free     = ruby_xfree;
+    config->alloc_n  = ruby_xmalloc2;
+    config->alloc    = ruby_xmalloc;
+    config->alloca_n = alloca_n;
+    config->realloc_n = ruby_xrealloc2;
+    config->zalloc = zalloc;
+    config->rb_memmove = memmove2;
+    config->nonempty_memcpy = nonempty_memcpy;
+
+    config->new_strterm = new_strterm;
+    config->strterm_is_heredoc = strterm_is_heredoc;
+    config->tmpbuf_auto_free_pointer = rb_imemo_tmpbuf_auto_free_pointer;
+    config->tmpbuf_set_ptr = rb_imemo_tmpbuf_set_ptr;
+    config->tmpbuf_parser_heap = tmpbuf_parser_heap;
 
     config->compile_callback         = rb_suppress_tracing;
     config->reg_named_capture_assign = reg_named_capture_assign;
+    config->script_lines_defined     = script_lines_defined;
+    config->script_lines_get         = script_lines_get;
+
+    config->obj_freeze = rb_obj_freeze;
+    config->obj_hide = rb_obj_hide;
+    config->obj_frozen = obj_frozen;
+    config->type_p = type_p;
+    config->obj_freeze_raw = OBJ_FREEZE_RAW;
+
+    config->fixnum_p = fixnum_p;
+    config->symbol_p = symbol_p;
+
+    config->attr_get = rb_attr_get;
 
     config->ary_new           = rb_ary_new;
     config->ary_push          = rb_ary_push;
@@ -398,6 +595,8 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->ary_join          = rb_ary_join;
     config->ary_reverse       = rb_ary_reverse;
     config->ary_clear         = rb_ary_clear;
+    config->array_len         = rb_array_len;
+    config->array_aref        = RARRAY_AREF;
 
     config->sym_intern_ascii_cstr = rb_sym_intern_ascii_cstr;
     config->make_temporary_id     = rb_make_temporary_id;
@@ -405,6 +604,7 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->is_attrset_id         = is_attrset_id2;
     config->is_global_name_punct  = is_global_name_punct;
     config->id_type               = id_type;
+    config->id_attrset            = rb_id_attrset;
     config->intern                = rb_intern;
     config->intern2               = rb_intern2;
     config->intern3               = intern3;
@@ -438,6 +638,11 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->str_vcatf       = rb_str_vcatf;
     config->string_value_cstr = rb_string_value_cstr;
     config->rb_sprintf      = rb_sprintf;
+    config->rstring_ptr     = RSTRING_PTR;
+    config->rstring_end     = RSTRING_END;
+    config->rstring_len     = RSTRING_LEN;
+    config->filesystem_str_new_cstr = rb_filesystem_str_new_cstr;
+    config->obj_as_string = rb_obj_as_string;
 
     config->hash_clear     = rb_hash_clear;
     config->hash_new       = rb_hash_new;
@@ -445,19 +650,25 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->hash_lookup    = rb_hash_lookup;
     config->ident_hash_new = rb_ident_hash_new;
 
+    config->int2fix = int2fix;
+
     config->bignum_negate = bignum_negate;
     config->big_norm      = rb_big_norm;
     config->int2big       = rb_int2big;
+    config->cstr_to_inum  = rb_cstr_to_inum;
 
     config->float_new   = rb_float_new;
     config->float_value = rb_float_value;
 
     config->fix2int          = rb_fix2int;
-    config->num2int          = rb_num2int;
+    config->num2int          = rb_num2int_inline;
     config->int_positive_pow = rb_int_positive_pow;
+    config->int2num          = rb_int2num_inline;
+    config->fix2long         = rb_fix2long;
 
     config->rational_new     = rb_rational_new;
     config->rational_raw     = rb_rational_raw;
+    config->rational_raw1    = rational_raw1;
     config->rational_set_num = rational_set_num;
     config->rational_get_num = rational_get_num;
 
@@ -469,6 +680,10 @@ rb_parser_config_initialize(rb_parser_config_t *config)
 
     config->stderr_tty_p    = rb_stderr_tty_p;
     config->write_error_str = rb_write_error_str;
+    config->default_rs = default_rs;
+    config->io_write = rb_io_write;
+    config->io_flush = rb_io_flush;
+    config->io_puts = rb_io_puts;
     config->debug_output_stdout = rb_ractor_stdout;
     config->debug_output_stderr = rb_ractor_stderr;
 
@@ -512,28 +727,58 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->builtin_class_name = rb_builtin_class_name;
     config->syntax_error_append = syntax_error_append;
     config->raise = rb_raise;
+    config->syntax_error_new = syntax_error_new;
 
     config->errinfo = rb_errinfo;
     config->set_errinfo = rb_set_errinfo;
     config->exc_raise = rb_exc_raise;
+    config->make_exception = rb_make_exception;
 
     config->sized_xfree = ruby_sized_xfree;
     config->sized_realloc_n = ruby_sized_realloc_n;
+    config->obj_write = obj_write;
+    config->obj_written = obj_written;
+    config->gc_register_mark_object = rb_gc_register_mark_object;
+    config->gc_mark = rb_gc_mark;
 
     config->reg_compile = rb_reg_compile;
     config->reg_check_preprocess = rb_reg_check_preprocess;
+    config->memcicmp = rb_memcicmp;
 
     config->compile_warn    = rb_compile_warn;
     config->compile_warning = rb_compile_warning;
     config->bug             = rb_bug;
     config->fatal           = rb_fatal;
+    config->verbose         = ruby_verbose2;
+
+    config->make_backtrace = rb_make_backtrace;
 
     config->scan_hex    = ruby_scan_hex;
     config->scan_oct    = ruby_scan_oct;
     config->scan_digits = ruby_scan_digits;
 
+    config->isspace = rb_isspace;
+    config->isascii = rb_isascii;
+    config->iscntrl = rb_iscntrl;
+    config->isalpha = rb_isalpha;
+    config->isdigit = rb_isdigit;
+    config->isalnum = rb_isalnum;
+    config->isxdigit = rb_isxdigit;
+    config->strcasecmp = st_locale_insensitive_strcasecmp;
+    config->strncasecmp = st_locale_insensitive_strncasecmp;
+
     config->rbool = rbool;
     config->undef_p = undef_p;
+    config->rtest = rtest;
+    config->nil_p = nil_p;
+    config->qnil  = Qnil;
+    config->qtrue = Qtrue;
+    config->qfalse = Qfalse;
+    config->qundef = Qundef;
+    config->eArgError = rb_eArgError;
+    config->long2int = rb_long2int;
+    config->special_const_p = special_const_p;
+    config->builtin_type = builtin_type;
 }
 
 VALUE

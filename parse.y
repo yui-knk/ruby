@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 
 struct lex_context;
 
@@ -38,6 +39,7 @@ struct lex_context;
 #include "id.h"
 
 #include "internal/compilers.h"
+#include "ruby/backward/2/inttypes.h"
 #include "probes.h"
 
 
@@ -45,8 +47,11 @@ struct lex_context;
 #define LIKELY(x) RB_LIKELY(x)
 #define UNLIKELY(x) RB_UNLIKELY(x)
 #define numberof(array) ((int)(sizeof(array) / sizeof((array)[0])))
-/* Should be removed */
-#include "internal/imemo.h"
+#define rb_strlen_lit(str) (sizeof(str "") - 1)
+#define FIXNUM_MAX (LONG_MAX / 2)
+#define RSTRING_GETMEM(str, ptrvar, lenvar) \
+    ((ptrvar) = RSTRING_PTR(str),           \
+     (lenvar) = RSTRING_LEN(str))
 #else
 #include "ruby/internal/config.h"
 
@@ -112,8 +117,50 @@ RBIMPL_WARNING_POP()
 
 #define rb_encoding void
 
+#define T_FLOAT    0x04
+#define T_REGEXP   0x06
+#define T_HASH     0x08
+#define T_BIGNUM   0x0a
+#define T_COMPLEX  0x0e
+#define T_RATIONAL 0x0f
+
+struct rb_imemo_tmpbuf_struct {
+    VALUE flags;
+    VALUE reserved;
+    VALUE *ptr; /* malloc'ed buffer */
+    struct rb_imemo_tmpbuf_struct *next; /* next imemo */
+    size_t cnt; /* buffer size in VALUE */
+};
+
+#define ALLOC_N(type,n)  ((type *)p->config.alloc_n((n), sizeof(type)))
+#define ALLOC(type)      ((type *)p->config.alloc(sizeof(type)))
+#define ALLOCA_N(type,n) ((type *)p->config.alloca_n(sizeof(type), (n)))
+#define REALLOC_N(var,type,n) ((var) = (type *)p->config.realloc_n((void *)var, n, sizeof(type)))
+#define ZALLOC(type) ((type *)p->config.zalloc(sizeof(type)))
+#define MEMMOVE(p1,p2,type,n) (p->config.rb_memmove((p1), (p2), sizeof(type), (n)))
+#define MEMCPY(p1,p2,type,n) (p->config.nonempty_memcpy((p1), (p2), sizeof(type), (n)))
+
+#define new_strterm p->config.new_strterm
+#define strterm_is_heredoc p->config.strterm_is_heredoc
+#define rb_imemo_tmpbuf_auto_free_pointer p->config.tmpbuf_auto_free_pointer
+#define rb_imemo_tmpbuf_set_ptr p->config.tmpbuf_set_ptr
+#define rb_imemo_tmpbuf_parser_heap p->config.tmpbuf_parser_heap
+
 #define compile_callback         p->config.compile_callback
 #define reg_named_capture_assign p->config.reg_named_capture_assign
+#define script_lines_defined     p->config.script_lines_defined
+#define script_lines_get         p->config.script_lines_get
+
+#define rb_obj_freeze p->config.obj_freeze
+#define rb_obj_hide p->config.obj_hide
+#define RB_OBJ_FROZEN p->config.obj_frozen
+#define RB_TYPE_P p->config.type_p
+#define OBJ_FREEZE_RAW p->config.obj_freeze_raw
+
+#define FIXNUM_P p->config.fixnum_p
+#define SYMBOL_P p->config.symbol_p
+
+#define rb_attr_get p->config.attr_get
 
 #define rb_ary_new           p->config.ary_new
 #define rb_ary_push          p->config.ary_push
@@ -127,6 +174,8 @@ RBIMPL_WARNING_POP()
 #define rb_ary_join          p->config.ary_join
 #define rb_ary_reverse       p->config.ary_reverse
 #define rb_ary_clear         p->config.ary_clear
+#define RARRAY_LEN           p->config.array_len
+#define RARRAY_AREF          p->config.array_aref
 
 #undef rb_sym_intern_ascii_cstr
 #define rb_sym_intern_ascii_cstr p->config.sym_intern_ascii_cstr
@@ -135,6 +184,7 @@ RBIMPL_WARNING_POP()
 #define is_attrset_id            p->config.is_attrset_id
 #define is_global_name_punct     p->config.is_global_name_punct
 #define id_type                  p->config.id_type
+#define rb_id_attrset            p->config.id_attrset
 #undef rb_intern
 #define rb_intern                p->config.intern
 #define rb_intern2               p->config.intern2
@@ -146,7 +196,8 @@ RBIMPL_WARNING_POP()
 #define rb_id2name               p->config.id2name
 #define rb_id2str                p->config.id2str
 #define rb_id2sym                p->config.id2sym
-#define rb_sym2id                p->config.sym2id
+#define ID2SYM                   p->config.id2sym
+#define SYM2ID                   p->config.sym2id
 
 #define rb_str_catf                       p->config.str_catf
 #undef rb_str_cat_cstr
@@ -171,8 +222,13 @@ RBIMPL_WARNING_POP()
 #define rb_enc_str_buf_cat                p->config.enc_str_buf_cat
 #define rb_str_buf_append                 p->config.str_buf_append
 #define rb_str_vcatf                      p->config.str_vcatf
-#define rb_string_value_cstr              p->config.string_value_cstr
+#define StringValueCStr(v)                p->config.string_value_cstr(&(v))
 #define rb_sprintf                        p->config.rb_sprintf
+#define RSTRING_PTR                       p->config.rstring_ptr
+#define RSTRING_END                       p->config.rstring_end
+#define RSTRING_LEN                       p->config.rstring_len
+#define rb_filesystem_str_new_cstr        p->config.filesystem_str_new_cstr
+#define rb_obj_as_string                  p->config.obj_as_string
 
 #define rb_hash_clear     p->config.hash_clear
 #define rb_hash_new       p->config.hash_new
@@ -180,19 +236,27 @@ RBIMPL_WARNING_POP()
 #define rb_hash_lookup    p->config.hash_lookup
 #define rb_ident_hash_new p->config.ident_hash_new
 
+#define INT2FIX  p->config.int2fix
+#define LONG2FIX p->config.int2fix
+
 #define bignum_negate p->config.bignum_negate
 #define rb_big_norm   p->config.big_norm
 #define rb_int2big    p->config.int2big
+#define rb_cstr_to_inum p->config.cstr_to_inum
 
 #define rb_float_new   p->config.float_new
-#define rb_float_value p->config.float_value
+#define RFLOAT_VALUE   p->config.float_value
+#define DBL2NUM p->config.float_new
 
 #define rb_fix2int          p->config.fix2int
-#define rb_num2int          p->config.num2int
+#define NUM2INT             p->config.num2int
 #define rb_int_positive_pow p->config.int_positive_pow
+#define INT2NUM             p->config.int2num
+#define FIX2LONG            p->config.fix2long
 
 #define rb_rational_new  p->config.rational_new
 #define rb_rational_raw  p->config.rational_raw
+#define rb_rational_raw1 p->config.rational_raw1
 #define rational_set_num p->config.rational_set_num
 #define rational_get_num p->config.rational_get_num
 
@@ -204,6 +268,10 @@ RBIMPL_WARNING_POP()
 
 #define rb_stderr_tty_p    p->config.stderr_tty_p
 #define rb_write_error_str p->config.write_error_str
+#define rb_default_rs      p->config.default_rs()
+#define rb_io_write        p->config.io_write
+#define rb_io_flush        p->config.io_flush
+#define rb_io_puts         p->config.io_puts
 #define rb_ractor_stdout   p->config.debug_output_stdout
 #define rb_ractor_stderr   p->config.debug_output_stderr
 
@@ -247,28 +315,59 @@ RBIMPL_WARNING_POP()
 #define rb_builtin_class_name p->config.builtin_class_name
 #define rb_syntax_error_append p->config.syntax_error_append
 #define rb_raise p->config.raise
+#define syntax_error_new p->config.syntax_error_new
 
 #define rb_errinfo p->config.errinfo
 #define rb_set_errinfo p->config.set_errinfo
 #define rb_exc_raise p->config.exc_raise
+#define rb_make_exception p->config.make_exception
 
 #define ruby_sized_xfree p->config.sized_xfree
 #define SIZED_REALLOC_N(v, T, m, n) ((v) = (T *)p->config.sized_realloc_n((void *)(v), (m), sizeof(T), (n))) 
+#define RB_OBJ_WRITE(old, slot, young) p->config.obj_write((VALUE)(old), (VALUE *)(slot), (VALUE)(young))
+#define RB_OBJ_WRITTEN(old, oldv, young) p->config.obj_written((VALUE)(old), (VALUE)(oldv), (VALUE)(young))
+#define rb_gc_register_mark_object p->config.gc_register_mark_object
+#define RB_GC_GUARD p->config.gc_guard
+#define rb_gc_mark p->config.gc_mark
 
 #define rb_reg_compile          p->config.reg_compile
 #define rb_reg_check_preprocess p->config.reg_check_preprocess
+#define rb_memcicmp p->config.memcicmp
 
 #define rb_compile_warn    p->config.compile_warn
 #define rb_compile_warning p->config.compile_warning
 #define rb_bug             p->config.bug
 #define rb_fatal           p->config.fatal
+#define ruby_verbose       p->config.verbose()
+
+#define rb_make_backtrace p->config.make_backtrace
 
 #define ruby_scan_hex    p->config.scan_hex
 #define ruby_scan_oct    p->config.scan_oct
 #define ruby_scan_digits p->config.scan_digits
 
+#define ISSPACE p->config.isspace
+#define ISASCII p->config.isascii
+#define ISCNTRL p->config.iscntrl
+#define ISALPHA p->config.isalpha
+#define ISDIGIT p->config.isdigit
+#define ISALNUM p->config.isalnum
+#define ISXDIGIT p->config.isxdigit
+#define STRCASECMP p->config.strcasecmp
+#define STRNCASECMP p->config.strncasecmp
+
 #define RBOOL p->config.rbool
 #define UNDEF_P p->config.undef_p
+#define RTEST p->config.rtest
+#define NIL_P p->config.nil_p
+#define Qnil  p->config.qnil
+#define Qtrue p->config.qtrue
+#define Qfalse p->config.qfalse
+#define Qundef p->config.qundef
+#define rb_eArgError p->config.eArgError
+#define rb_long2int p->config.long2int
+#define SPECIAL_CONST_P p->config.special_const_p
+#define BUILTIN_TYPE p->config.builtin_type
 
 #endif
 
@@ -438,8 +537,6 @@ typedef struct token_info {
     int nonspc;
     struct token_info *next;
 } token_info;
-
-typedef struct rb_strterm_struct rb_strterm_t;
 
 /*
     Structure of Lexer Buffer:
@@ -1094,9 +1191,6 @@ static VALUE parser_reg_compile(struct parser_params*, VALUE, int, VALUE *);
 static VALUE backref_error(struct parser_params*, NODE *, VALUE);
 #endif /* !RIPPER */
 
-/* forward declaration */
-typedef struct rb_strterm_heredoc_struct rb_strterm_heredoc_t;
-
 RUBY_SYMBOL_EXPORT_BEGIN
 VALUE rb_parser_reg_compile(struct parser_params* p, VALUE str, int options);
 int rb_reg_fragment_setenc(struct parser_params*, VALUE, int);
@@ -1167,72 +1261,6 @@ static void numparam_pop(struct parser_params *p, NODE *prev_inner);
 #define RE_OPTION_ENCODING_NONE(o) ((o)&RE_OPTION_ARG_ENCODING_NONE)
 #define RE_OPTION_MASK  0xff
 #define RE_OPTION_ARG_ENCODING_NONE 32
-
-/* structs for managing terminator of string literal and heredocment */
-typedef struct rb_strterm_literal_struct {
-    union {
-        VALUE dummy;
-        long nest;
-    } u0;
-    union {
-        VALUE dummy;
-        long func;	    /* STR_FUNC_* (e.g., STR_FUNC_ESCAPE and STR_FUNC_EXPAND) */
-    } u1;
-    union {
-        VALUE dummy;
-        long paren;	    /* '(' of `%q(...)` */
-    } u2;
-    union {
-        VALUE dummy;
-        long term;	    /* ')' of `%q(...)` */
-    } u3;
-} rb_strterm_literal_t;
-
-#define HERETERM_LENGTH_BITS ((SIZEOF_VALUE - 1) * CHAR_BIT - 1)
-
-struct rb_strterm_heredoc_struct {
-    VALUE lastline;	/* the string of line that contains `<<"END"` */
-    long offset;	/* the column of END in `<<"END"` */
-    int sourceline;	/* lineno of the line that contains `<<"END"` */
-    unsigned length	/* the length of END in `<<"END"` */
-#if HERETERM_LENGTH_BITS < SIZEOF_INT * CHAR_BIT
-    : HERETERM_LENGTH_BITS
-# define HERETERM_LENGTH_MAX ((1U << HERETERM_LENGTH_BITS) - 1)
-#else
-# define HERETERM_LENGTH_MAX UINT_MAX
-#endif
-    ;
-#if HERETERM_LENGTH_BITS < SIZEOF_INT * CHAR_BIT
-    unsigned quote: 1;
-    unsigned func: 8;
-#else
-    uint8_t quote;
-    uint8_t func;
-#endif
-};
-STATIC_ASSERT(rb_strterm_heredoc_t, sizeof(rb_strterm_heredoc_t) <= 4 * SIZEOF_VALUE);
-
-#define STRTERM_HEREDOC IMEMO_FL_USER0
-
-struct rb_strterm_struct {
-    VALUE flags;
-    union {
-        rb_strterm_literal_t literal;
-        rb_strterm_heredoc_t heredoc;
-    } u;
-};
-
-#ifndef RIPPER
-void
-rb_strterm_mark(VALUE obj)
-{
-    rb_strterm_t *strterm = (rb_strterm_t*)obj;
-    if (RBASIC(obj)->flags & STRTERM_HEREDOC) {
-        rb_strterm_heredoc_t *heredoc = &strterm->u.heredoc;
-        rb_gc_mark(heredoc->lastline);
-    }
-}
-#endif
 
 #define yytnamerr(yyres, yystr) (YYSIZE_T)rb_yytnamerr(p, yyres, yystr)
 size_t rb_yytnamerr(struct parser_params *p, char *yyres, const char *yystr);
@@ -6907,10 +6935,8 @@ static NODE *parser_append_options(struct parser_params *p, NODE *node);
 static VALUE
 debug_lines(struct parser_params *p, VALUE fname)
 {
-    ID script_lines;
-    CONST_ID(script_lines, "SCRIPT_LINES__");
-    if (rb_const_defined_at(rb_cObject, script_lines)) {
-        VALUE hash = rb_const_get_at(rb_cObject, script_lines);
+    if (script_lines_defined()) {
+        VALUE hash = script_lines_get();
         if (RB_TYPE_P(hash, T_HASH)) {
             VALUE lines = rb_ary_new();
             rb_hash_aset(hash, fname, lines);
@@ -6972,7 +6998,7 @@ yycompile0(VALUE arg)
     if (n || p->error_p) {
         VALUE mesg = p->error_buffer;
         if (!mesg) {
-            mesg = rb_class_new_instance(0, 0, rb_eSyntaxError);
+            mesg = syntax_error_new();
         }
         if (!p->error_tolerant) {
             rb_set_errinfo(mesg);
@@ -7398,7 +7424,7 @@ tokadd_codepoint(struct parser_params *p, rb_encoding **encp,
     int codepoint = (int)ruby_scan_hex(p->lex.pcur, wide ? p->lex.pend - p->lex.pcur : 4, &numlen);
     p->lex.pcur += numlen;
     if (p->lex.strterm == NULL ||
-        (p->lex.strterm->flags & STRTERM_HEREDOC) ||
+        (strterm_is_heredoc((VALUE)p->lex.strterm)) ||
         (p->lex.strterm->u.literal.u1.func != str_regexp)) {
         if (wide ? (numlen == 0 || numlen > 6) : (numlen < 4))  {
             literal_flush(p, p->lex.pcur);
@@ -7947,15 +7973,9 @@ tokadd_string(struct parser_params *p,
     return c;
 }
 
-static inline rb_strterm_t *
-new_strterm(VALUE v1, VALUE v2, VALUE v3, VALUE v0)
-{
-    return (rb_strterm_t*)rb_imemo_new(imemo_parser_strterm, v1, v2, v3, v0);
-}
-
 /* imemo_parser_strterm for literal */
 #define NEW_STRTERM(func, term, paren) \
-    new_strterm((VALUE)(func), (VALUE)(paren), (VALUE)(term), 0)
+    (rb_strterm_t *)new_strterm((VALUE)(func), (VALUE)(paren), (VALUE)(term), 0, 0)
 
 #ifdef RIPPER
 static void
@@ -8232,8 +8252,7 @@ heredoc_identifier(struct parser_params *p)
     dispatch_scan_event(p, tHEREDOC_BEG);
     lex_goto_eol(p);
 
-    p->lex.strterm = new_strterm(0, 0, 0, p->lex.lastline);
-    p->lex.strterm->flags |= STRTERM_HEREDOC;
+    p->lex.strterm = (rb_strterm_t *)new_strterm(0, 0, 0, p->lex.lastline, 1);
     rb_strterm_heredoc_t *here = &p->lex.strterm->u.heredoc;
     here->offset = offset;
     here->sourceline = p->ruby_sourceline;
@@ -9957,7 +9976,7 @@ parser_yylex(struct parser_params *p)
     int token_seen = p->token_seen;
 
     if (p->lex.strterm) {
-        if (p->lex.strterm->flags & STRTERM_HEREDOC) {
+        if (strterm_is_heredoc((VALUE)p->lex.strterm)) {
             token_flush(p);
             return here_document(p, &p->lex.strterm->u.heredoc);
         }
@@ -10876,7 +10895,7 @@ literal_concat0(struct parser_params *p, VALUE head, VALUE tail)
 }
 
 static VALUE
-string_literal_head(enum node_type htype, NODE *head)
+string_literal_head(struct parser_params *p, enum node_type htype, NODE *head)
 {
     if (htype != NODE_DSTR) return Qfalse;
     if (head->nd_next) {
@@ -10915,7 +10934,7 @@ literal_concat(struct parser_params *p, NODE *head, NODE *tail, const YYLTYPE *l
     }
     switch (nd_type(tail)) {
       case NODE_STR:
-        if ((lit = string_literal_head(htype, head)) != Qfalse) {
+        if ((lit = string_literal_head(p, htype, head)) != Qfalse) {
             htype = NODE_STR;
         }
         else {
@@ -10955,7 +10974,7 @@ literal_concat(struct parser_params *p, NODE *head, NODE *tail, const YYLTYPE *l
             }
             rb_discard_node(p, tail);
         }
-        else if ((lit = string_literal_head(htype, head)) != Qfalse) {
+        else if ((lit = string_literal_head(p, htype, head)) != Qfalse) {
             if (!literal_concat0(p, lit, tail->nd_lit))
                 goto error;
             tail->nd_lit = Qnil;
@@ -11977,7 +11996,7 @@ ensure_shareable_node(struct parser_params *p, NODE **dest, NODE *value, const Y
 static int is_static_content(NODE *node);
 
 static VALUE
-shareable_literal_value(NODE *node)
+shareable_literal_value(struct parser_params *p, NODE *node)
 {
     if (!node) return Qnil;
     enum node_type type = nd_type(node);
@@ -12050,7 +12069,7 @@ shareable_literal_constant(struct parser_params *p, enum shareability shareable,
                 }
             }
             if (RTEST(lit)) {
-                VALUE e = shareable_literal_value(elt);
+                VALUE e = shareable_literal_value(p, elt);
                 if (!UNDEF_P(e)) {
                     rb_ary_push(lit, e);
                 }
@@ -12089,8 +12108,8 @@ shareable_literal_constant(struct parser_params *p, enum shareability shareable,
                 }
             }
             if (RTEST(lit)) {
-                VALUE k = shareable_literal_value(key);
-                VALUE v = shareable_literal_value(val);
+                VALUE k = shareable_literal_value(p, key);
+                VALUE v = shareable_literal_value(p, val);
                 if (!UNDEF_P(k) && !UNDEF_P(v)) {
                     rb_hash_aset(lit, k, v);
                 }
@@ -14114,6 +14133,13 @@ rb_ruby_parser_set_yydebug(rb_parser_t *p, int flag)
 
 #ifndef RIPPER
 #ifdef YYMALLOC
+// RUBY_SYMBOL_EXPORT_BEGIN
+// size_t
+// rb_sizeof_yystype(void)
+// {
+//     return sizeof(YYSTYPE);
+// }
+// RUBY_SYMBOL_EXPORT_END
 #define HEAPCNT(n, size) ((n) * (size) / sizeof(YYSTYPE))
 /* Keep the order; NEWHEAP then xmalloc and ADD2HEAP to get rid of
  * potential memory leak */
