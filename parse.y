@@ -346,13 +346,13 @@ struct rb_imemo_tmpbuf_struct {
 #define ruby_scan_oct    p->config.scan_oct
 #define ruby_scan_digits p->config.scan_digits
 
-#define ISSPACE p->config.isspace
-#define ISASCII p->config.isascii
-#define ISCNTRL p->config.iscntrl
-#define ISALPHA p->config.isalpha
-#define ISDIGIT p->config.isdigit
-#define ISALNUM p->config.isalnum
-#define ISXDIGIT p->config.isxdigit
+#define ISSPACE(c)  ((p->config.isspace)(c))
+#define ISASCII(c)  ((p->config.isascii)(c))
+#define ISCNTRL(c)  ((p->config.iscntrl)(c))
+#define ISALPHA(c)  ((p->config.isalpha)(c))
+#define ISDIGIT(c)  ((p->config.isdigit)(c))
+#define ISALNUM(c)  ((p->config.isalnum)(c))
+#define ISXDIGIT(c) ((p->config.isxdigit)(c))
 #define STRCASECMP p->config.strcasecmp
 #define STRNCASECMP p->config.strncasecmp
 
