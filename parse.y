@@ -14578,7 +14578,7 @@ ripper_parse0(VALUE parser_v)
 
     TypedData_Get_Struct(parser_v, struct parser_params, &parser_data_type, p);
     parser_prepare(p);
-    p->ast = rb_ast_new();
+    p->ast = rb_ast_new(&p->config);
     ripper_yyparse((void*)p);
     rb_ast_dispose(p->ast);
     p->ast = 0;
