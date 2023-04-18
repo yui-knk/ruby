@@ -24,6 +24,7 @@ typedef struct rb_parser_config_struct {
     void *(*zalloc)(size_t elemsiz);
     void *(*rb_memmove)(void *dest, const void *src, size_t t, size_t n);
     void *(*nonempty_memcpy)(void *dest, const void *src, size_t t, size_t n);
+    void *(*xmalloc_mul_add)(size_t x, size_t y, size_t z);
 
     /* imemo */
     // TODO: Should it return `rb_strterm_t *'?

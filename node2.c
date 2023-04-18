@@ -1,10 +1,8 @@
 #include "external/node.h"
-#include "internal.h"
-#include "internal/hash.h"
-#include "internal/variable.h"
-#include "ruby/ruby.h"
+#include "external/parse.h"
+#include "internal/parse.h"
 #include "vm_core.h"
-#include "node.h"
+#include "node2.h"
 
 #define NODE_BUF_DEFAULT_LEN 16
 
@@ -52,6 +50,7 @@ struct node_buffer_struct {
     // - location info
     // Array, whose entry is array
     VALUE tokens;
+    rb_parser_config_t *config;
 };
 
 static void
@@ -65,7 +64,7 @@ init_node_buffer_list(node_buffer_list_t * nb, node_buffer_elem_t *head)
 }
 
 static node_buffer_t *
-rb_node_buffer_new(void)
+rb_node_buffer_new(rb_parser_config_t *config)
 {
     const size_t bucket_size = offsetof(node_buffer_elem_t, buf) + NODE_BUF_DEFAULT_LEN * sizeof(NODE);
     const size_t alloc_size = sizeof(node_buffer_t) + (bucket_size * 2);
@@ -73,12 +72,13 @@ rb_node_buffer_new(void)
         integer_overflow,
         offsetof(node_buffer_elem_t, buf) + NODE_BUF_DEFAULT_LEN * sizeof(NODE)
         > sizeof(node_buffer_t) + 2 * sizeof(node_buffer_elem_t));
-    node_buffer_t *nb = ruby_xmalloc(alloc_size);
+    node_buffer_t *nb = config->malloc(alloc_size);
     init_node_buffer_list(&nb->unmarkable, (node_buffer_elem_t*)&nb[1]);
     init_node_buffer_list(&nb->markable, (node_buffer_elem_t*)((size_t)nb->unmarkable.head + bucket_size));
     nb->local_tables = 0;
     nb->mark_hash = Qnil;
     nb->tokens = Qnil;
+    nb->config = config;
     return nb;
 }
 
@@ -116,8 +116,12 @@ rb_node_buffer_free(node_buffer_t *nb)
     xfree(nb);
 }
 
+#define ruby_xmalloc ast->node_buffer->config->malloc
+#define rb_ident_hash_new ast->node_buffer->config->ident_hash_new
+#define rb_xmalloc_mul_add ast->node_buffer->config->xmalloc_mul_add
+
 static NODE *
-ast_newnode_in_bucket(node_buffer_list_t *nb)
+ast_newnode_in_bucket(rb_ast_t *ast, node_buffer_list_t *nb)
 {
     if (nb->idx >= nb->len) {
         long n = nb->len * 2;
@@ -171,7 +175,7 @@ rb_ast_newnode(rb_ast_t *ast, enum node_type type)
     node_buffer_t *nb = ast->node_buffer;
     node_buffer_list_t *bucket =
         (nodetype_markable_p(type) ? &nb->markable : &nb->unmarkable);
-    return ast_newnode_in_bucket(bucket);
+    return ast_newnode_in_bucket(ast, bucket);
 }
 
 void
@@ -217,9 +221,9 @@ rb_ast_delete_node(rb_ast_t *ast, NODE *n)
 }
 
 rb_ast_t *
-rb_ast_new(void)
+rb_ast_new(rb_parser_config_t *config)
 {
-    node_buffer_t *nb = rb_node_buffer_new();
+    node_buffer_t *nb = rb_node_buffer_new(config);
     rb_ast_t *ast = (rb_ast_t *)rb_imemo_new(imemo_ast, 0, 0, 0, (VALUE)nb);
     return ast;
 }

@@ -560,6 +560,7 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->zalloc = zalloc;
     config->rb_memmove = memmove2;
     config->nonempty_memcpy = nonempty_memcpy;
+    config->xmalloc_mul_add = rb_xmalloc_mul_add;
 
     config->new_strterm = new_strterm;
     config->strterm_is_heredoc = strterm_is_heredoc;

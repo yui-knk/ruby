@@ -249,7 +249,6 @@ VALUE rb_node_case_when_optimizable_literal(const NODE *const node);
 
 RUBY_SYMBOL_EXPORT_BEGIN
 
-rb_ast_t *rb_ast_new(void);
 void rb_ast_mark(rb_ast_t*);
 void rb_ast_update_references(rb_ast_t*);
 void rb_ast_dispose(rb_ast_t*);

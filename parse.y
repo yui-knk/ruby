@@ -36,6 +36,7 @@ struct lex_context;
 #include "external/parse.h"
 #include "internal/parse.h"
 #include "node.h"
+#include "node2.h"
 #include "id.h"
 
 #include "internal/compilers.h"
@@ -7054,7 +7055,7 @@ yycompile(struct parser_params *p, VALUE fname, int line)
 
     p->lvtbl = NULL;
 
-    p->ast = ast = rb_ast_new();
+    p->ast = ast = rb_ast_new(&p->config);
     compile_callback(yycompile0, (VALUE)p);
     p->ast = 0;
 
