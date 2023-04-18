@@ -20,7 +20,6 @@ typedef struct rb_parser_config_struct {
     void (*free)(void *ptr);
     void *(*alloc_n)(size_t nelems, size_t elemsiz);
     void *(*alloc)(size_t elemsiz);
-    void *(*alloca_n)(size_t x, size_t y);
     void *(*realloc_n)(void *ptr, size_t newelems, size_t newsiz);
     void *(*zalloc)(size_t elemsiz);
     void *(*rb_memmove)(void *dest, const void *src, size_t t, size_t n);

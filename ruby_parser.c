@@ -401,12 +401,6 @@ int2fix(long i)
     return INT2FIX(i);
 }
 
-static void *
-alloca_n(size_t x, size_t y)
-{
-    return alloca(rbimpl_size_mul_or_raise(x, y));
-}
-
 static int
 script_lines_defined(void)
 {
@@ -562,7 +556,6 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->free     = ruby_xfree;
     config->alloc_n  = ruby_xmalloc2;
     config->alloc    = ruby_xmalloc;
-    config->alloca_n = alloca_n;
     config->realloc_n = ruby_xrealloc2;
     config->zalloc = zalloc;
     config->rb_memmove = memmove2;

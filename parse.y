@@ -141,7 +141,8 @@ struct rb_imemo_tmpbuf_struct {
 
 #define ALLOC_N(type,n)  ((type *)p->config.alloc_n((n), sizeof(type)))
 #define ALLOC(type)      ((type *)p->config.alloc(sizeof(type)))
-#define ALLOCA_N(type,n) ((type *)p->config.alloca_n(sizeof(type), (n)))
+// alloca(rbimpl_size_mul_or_raise(x, y));
+#define ALLOCA_N(type,n) ((type *)alloca(sizeof(type) * (n)))
 #define REALLOC_N(var,type,n) ((var) = (type *)p->config.realloc_n((void *)var, n, sizeof(type)))
 #define ZALLOC(type) ((type *)p->config.zalloc(sizeof(type)))
 #define MEMMOVE(p1,p2,type,n) (p->config.rb_memmove((p1), (p2), sizeof(type), (n)))
