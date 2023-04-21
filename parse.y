@@ -281,6 +281,8 @@ struct rb_imemo_tmpbuf_struct {
 #define rb_io_write        p->config.io_write
 #define rb_io_flush        p->config.io_flush
 #define rb_io_puts         p->config.io_puts
+#define rb_io_gets_internal p->config.io_gets_internal
+
 #define rb_ractor_stdout   p->config.debug_output_stdout
 #define rb_ractor_stderr   p->config.debug_output_stderr
 
@@ -375,6 +377,7 @@ struct rb_imemo_tmpbuf_struct {
 #define Qfalse p->config.qfalse
 #define Qundef p->config.qundef
 #define rb_eArgError p->config.eArgError
+#define rb_mRubyVMFrozenCore p->config.mRubyVMFrozenCore
 #define rb_long2int p->config.long2int
 #define SPECIAL_CONST_P p->config.special_const_p
 #define BUILTIN_TYPE p->config.builtin_type
@@ -7133,8 +7136,6 @@ rb_ruby_parser_compile_string(rb_parser_t *p, const char *f, VALUE s, int line)
     return rb_ruby_parser_compile_string_path(p, rb_filesystem_str_new_cstr(f), s, line);
 }
 
-VALUE rb_io_gets_internal(VALUE io);
-
 static VALUE
 lex_io_gets(struct parser_params *p, VALUE io)
 {
@@ -11997,8 +11998,6 @@ const_decl_path(struct parser_params *p, NODE **dest)
     }
     return n;
 }
-
-extern VALUE rb_mRubyVMFrozenCore;
 
 static NODE *
 make_shareable_node(struct parser_params *p, NODE *value, bool copy, const YYLTYPE *loc)

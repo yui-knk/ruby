@@ -548,6 +548,9 @@ builtin_type(VALUE obj)
     return (int)RB_BUILTIN_TYPE(obj);
 }
 
+VALUE rb_io_gets_internal(VALUE io);
+extern VALUE rb_mRubyVMFrozenCore;
+
 void
 rb_parser_config_initialize(rb_parser_config_t *config)
 {
@@ -684,6 +687,8 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->io_write = rb_io_write;
     config->io_flush = rb_io_flush;
     config->io_puts = rb_io_puts;
+    config->io_gets_internal= rb_io_gets_internal;
+
     config->debug_output_stdout = rb_ractor_stdout;
     config->debug_output_stderr = rb_ractor_stderr;
 
@@ -778,6 +783,7 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->qfalse = Qfalse;
     config->qundef = Qundef;
     config->eArgError = rb_eArgError;
+    config->mRubyVMFrozenCore = rb_mRubyVMFrozenCore;
     config->long2int = rb_long2int;
     config->special_const_p = special_const_p;
     config->builtin_type = builtin_type;

@@ -164,6 +164,7 @@ typedef struct rb_parser_config_struct {
     VALUE (*io_write)(VALUE io, VALUE str);
     VALUE (*io_flush)(VALUE io);
     VALUE (*io_puts)(int argc, const VALUE *argv, VALUE out);
+    VALUE (*io_gets_internal)(VALUE io);
 
     /* IO (Ractor) */
     VALUE (*debug_output_stdout)(void);
@@ -275,6 +276,7 @@ typedef struct rb_parser_config_struct {
     VALUE qfalse;
     VALUE qundef;
     VALUE eArgError;
+    VALUE mRubyVMFrozenCore;
     int (*long2int)(long);
     int (*special_const_p)(VALUE);
     int (*builtin_type)(VALUE);
