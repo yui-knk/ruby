@@ -75,7 +75,10 @@ void rb_ruby_parser_mark(void *ptr);
 void rb_ruby_parser_free(void *ptr);
 size_t rb_ruby_parser_memsize(const void *ptr);
 
-rb_parser_t *rb_ruby_parser_new(rb_parser_config_t config);
+rb_parser_config_t *rb_ruby_parser_config_new(void *(*malloc)(size_t size));
+void rb_ruby_parser_config_free(rb_parser_config_t *config);
+
+rb_parser_t *rb_ruby_parser_new(rb_parser_config_t *config);
 void rb_ruby_parser_set_options(rb_parser_t *p, int print, int loop, int chomp, int split);
 void rb_ruby_parser_set_options(rb_parser_t *p, int print, int loop, int chomp, int split);
 rb_parser_t *rb_ruby_parser_set_context(rb_parser_t *p, const struct rb_iseq_struct *base, int main);

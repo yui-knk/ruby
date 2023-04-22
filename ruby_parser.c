@@ -561,6 +561,8 @@ extern VALUE rb_mRubyVMFrozenCore;
 void
 rb_parser_config_initialize(rb_parser_config_t *config)
 {
+    config->counter = 0;
+
     config->malloc   = ruby_xmalloc;
     config->calloc   = ruby_xcalloc;
     config->free     = ruby_xfree;
@@ -803,10 +805,12 @@ VALUE
 rb_parser_new(void)
 {
     struct ruby_parser *parser;
-    rb_parser_config_t config;
+    rb_parser_config_t *config;
     rb_parser_t *parser_params;
 
-    rb_parser_config_initialize(&config);
+    config = rb_ruby_parser_config_new(ruby_xmalloc);
+    rb_parser_config_initialize(config);
+
     /*
      * Create parser_params ahead of vparser because
      * rb_ruby_parser_new can run GC so if create vparser

@@ -206,6 +206,7 @@ rb_ast_t *
 rb_ast_new(rb_parser_config_t *config)
 {
     node_buffer_t *nb = rb_node_buffer_new(config);
+    config->counter++;
     return config->ast_new((VALUE)nb);
 }
 
@@ -324,8 +325,14 @@ void
 rb_ast_free(rb_ast_t *ast)
 {
     if (ast->node_buffer) {
+        rb_parser_config_t *config = ast->node_buffer->config;
+
         rb_node_buffer_free(ast->node_buffer);
         ast->node_buffer = 0;
+        config->counter--;
+        if (config->counter <= 0) {
+            rb_ruby_parser_config_free(config);
+        }
     }
 }
 
