@@ -13988,7 +13988,7 @@ rb_ruby_parser_config_new(void *(*malloc)(size_t size))
 void
 rb_ruby_parser_config_free(rb_parser_config_t *config)
 {
-    config->free(config);
+    // config->free(config);
 }
 
 #ifndef RIPPER
