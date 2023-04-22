@@ -336,14 +336,11 @@ rb_ast_mark(rb_ast_t *ast)
     if (ast->node_buffer) {
         rb_gc_mark(ast->node_buffer->mark_hash);
         rb_gc_mark(ast->node_buffer->tokens);
-    }
-    if (ast->body.compile_option) rb_gc_mark(ast->body.compile_option);
-    if (ast->node_buffer) {
+        if (ast->body.compile_option) rb_gc_mark(ast->body.compile_option);
         node_buffer_t *nb = ast->node_buffer;
-
         iterate_node_values(ast, &nb->markable, mark_ast_value, NULL);
+        if (ast->body.script_lines) rb_gc_mark(ast->body.script_lines);
     }
-    if (ast->body.script_lines) rb_gc_mark(ast->body.script_lines);
 }
 
 void
@@ -384,7 +381,7 @@ rb_ast_memsize(const rb_ast_t *ast)
 void
 rb_ast_dispose(rb_ast_t *ast)
 {
-    // rb_ast_free(ast);
+    rb_ast_free(ast);
 }
 
 void
