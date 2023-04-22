@@ -27,32 +27,6 @@ rb_node_init(NODE *n, enum node_type type, VALUE a0, VALUE a1, VALUE a2)
     n->node_id = -1;
 }
 
-typedef struct node_buffer_elem_struct {
-    struct node_buffer_elem_struct *next;
-    long len;
-    NODE buf[FLEX_ARY_LEN];
-} node_buffer_elem_t;
-
-typedef struct {
-    long idx, len;
-    node_buffer_elem_t *head;
-    node_buffer_elem_t *last;
-} node_buffer_list_t;
-
-struct node_buffer_struct {
-    node_buffer_list_t unmarkable;
-    node_buffer_list_t markable;
-    struct rb_ast_local_table_link *local_tables;
-    VALUE mark_hash;
-    // - id (sequence number)
-    // - token_type
-    // - text of token
-    // - location info
-    // Array, whose entry is array
-    VALUE tokens;
-    rb_parser_config_t *config;
-};
-
 #define ruby_xmalloc ast->node_buffer->config->malloc
 #define rb_ident_hash_new ast->node_buffer->config->ident_hash_new
 #define rb_xmalloc_mul_add ast->node_buffer->config->xmalloc_mul_add

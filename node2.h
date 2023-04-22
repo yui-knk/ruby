@@ -5,6 +5,32 @@
 
 typedef void (*bug_report_func)(const char *fmt, ...);
 
+typedef struct node_buffer_elem_struct {
+    struct node_buffer_elem_struct *next;
+    long len;
+    NODE buf[FLEX_ARY_LEN];
+} node_buffer_elem_t;
+
+typedef struct {
+    long idx, len;
+    node_buffer_elem_t *head;
+    node_buffer_elem_t *last;
+} node_buffer_list_t;
+
+struct node_buffer_struct {
+    node_buffer_list_t unmarkable;
+    node_buffer_list_t markable;
+    struct rb_ast_local_table_link *local_tables;
+    VALUE mark_hash;
+    // - id (sequence number)
+    // - token_type
+    // - text of token
+    // - location info
+    // Array, whose entry is array
+    VALUE tokens;
+    rb_parser_config_t *config;
+};
+
 RUBY_SYMBOL_EXPORT_BEGIN
 
 rb_ast_t *rb_ast_new(rb_parser_config_t *config);
@@ -73,7 +99,7 @@ static inline VALUE
 rb_node_set_type(rb_ast_t *ast, NODE *n, enum node_type t)
 {
 #if RUBY_DEBUG
-    rb_ast_node_type_change(n, t);
+    rb_ast_node_type_change(n, t, ast->node_buffer->config->bug);
 #endif
     return nd_init_type(n, t);
 }
