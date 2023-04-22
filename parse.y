@@ -93,6 +93,10 @@ struct lex_context;
 
 #endif
 
+#undef nd_set_type
+#define nd_set_type(n,t) \
+    rb_node_set_type(p->ast,n, t)
+
 enum shareability {
     shareable_none,
     shareable_literal,

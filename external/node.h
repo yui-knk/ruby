@@ -248,8 +248,8 @@ typedef struct RNode {
 #define NODE_TYPEMASK  (((VALUE)0x7f)<<NODE_TYPESHIFT)
 
 #define nd_type(n) ((int) (((n)->flags & NODE_TYPEMASK)>>NODE_TYPESHIFT))
-#define nd_set_type(n,t) \
-    rb_node_set_type(n, t)
+#define nd_set_type(ast,n,t) \
+    rb_node_set_type(ast,n, t)
 #define nd_init_type(n,t) \
     (n)->flags=(((n)->flags&~NODE_TYPEMASK)|((((unsigned long)(t))<<NODE_TYPESHIFT)&NODE_TYPEMASK))
 

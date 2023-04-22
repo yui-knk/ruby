@@ -190,18 +190,8 @@ void *rb_parser_realloc(struct parser_params *, void *, size_t);
 void *rb_parser_calloc(struct parser_params *, size_t, size_t);
 void rb_parser_free(struct parser_params *, void *);
 PRINTF_ARGS(void rb_parser_printf(struct parser_params *parser, const char *fmt, ...), 2, 3);
-void rb_ast_node_type_change(NODE *n, enum node_type type);
 
 RUBY_SYMBOL_EXPORT_END
-
-static inline VALUE
-rb_node_set_type(NODE *n, enum node_type t)
-{
-#if RUBY_DEBUG
-    rb_ast_node_type_change(n, t);
-#endif
-    return nd_init_type(n, t);
-}
 
 static inline bool
 nd_type_p(const NODE *n, enum node_type t)
