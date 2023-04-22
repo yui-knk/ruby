@@ -384,7 +384,7 @@ rb_ast_memsize(const rb_ast_t *ast)
 void
 rb_ast_dispose(rb_ast_t *ast)
 {
-    rb_ast_free(ast);
+    // rb_ast_free(ast);
 }
 
 void
