@@ -548,6 +548,13 @@ builtin_type(VALUE obj)
     return (int)RB_BUILTIN_TYPE(obj);
 }
 
+static rb_ast_t *
+ast_new(VALUE nb)
+{
+    rb_ast_t *ast = (rb_ast_t *)rb_imemo_new(imemo_ast, 0, 0, 0, nb);
+    return ast;
+}
+
 VALUE rb_io_gets_internal(VALUE io);
 extern VALUE rb_mRubyVMFrozenCore;
 
@@ -570,6 +577,7 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->tmpbuf_auto_free_pointer = rb_imemo_tmpbuf_auto_free_pointer;
     config->tmpbuf_set_ptr = rb_imemo_tmpbuf_set_ptr;
     config->tmpbuf_parser_heap = tmpbuf_parser_heap;
+    config->ast_new = ast_new;
 
     config->compile_callback         = rb_suppress_tracing;
     config->reg_named_capture_assign = reg_named_capture_assign;
@@ -746,6 +754,8 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->gc_register_mark_object = rb_gc_register_mark_object;
     config->gc_guard = gc_guard;
     config->gc_mark = rb_gc_mark;
+    config->gc_mark_movable = rb_gc_mark_movable;
+    config->gc_location = rb_gc_location;
 
     config->reg_compile = rb_reg_compile;
     config->reg_check_preprocess = rb_reg_check_preprocess;

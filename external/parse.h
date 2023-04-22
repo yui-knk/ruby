@@ -33,6 +33,7 @@ typedef struct rb_parser_config_struct {
     VALUE (*tmpbuf_auto_free_pointer)(void);
     void *(*tmpbuf_set_ptr)(VALUE v, void *ptr);
     rb_imemo_tmpbuf_t *(*tmpbuf_parser_heap)(void *buf, rb_imemo_tmpbuf_t *old_heap, size_t cnt);
+    rb_ast_t *(*ast_new)(VALUE nb);
 
     // VALUE rb_suppress_tracing(VALUE (*func)(VALUE), VALUE arg);
     VALUE (*compile_callback)(VALUE (*func)(VALUE), VALUE arg);
@@ -233,6 +234,8 @@ typedef struct rb_parser_config_struct {
     void (*gc_register_mark_object)(VALUE object);
     void (*gc_guard)(VALUE);
     void (*gc_mark)(VALUE);
+    void (*gc_mark_movable)(VALUE ptr);
+    VALUE (*gc_location)(VALUE value);
 
     /* Re */
     VALUE (*reg_compile)(VALUE str, int options, const char *sourcefile, int sourceline);

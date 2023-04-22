@@ -112,6 +112,77 @@ enum node_type {
     NODE_LAST
 };
 
+
+#define nd_head  u1.node
+#define nd_alen  u2.argc
+#define nd_next  u3.node
+
+#define nd_cond  u1.node
+#define nd_body  u2.node
+#define nd_else  u3.node
+
+#define nd_resq  u2.node
+#define nd_ensr  u3.node
+
+#define nd_1st   u1.node
+#define nd_2nd   u2.node
+
+#define nd_stts  u1.node
+
+#define nd_entry u3.id
+#define nd_vid   u1.id
+
+#define nd_var   u1.node
+#define nd_iter  u3.node
+
+#define nd_value u2.node
+#define nd_aid   u3.id
+
+#define nd_lit   u1.value
+
+#define nd_recv  u1.node
+#define nd_mid   u2.id
+#define nd_args  u3.node
+#define nd_ainfo u3.args
+
+#define nd_defn  u3.node
+
+#define nd_cpath u1.node
+#define nd_super u3.node
+
+#define nd_beg   u1.node
+#define nd_end   u2.node
+#define nd_state u3.state
+
+#define nd_nth   u2.argc
+
+#define nd_alias  u1.id
+#define nd_orig   u2.id
+#define nd_undef  u2.node
+
+#define nd_brace u2.argc
+
+#define nd_pconst     u1.node
+#define nd_pkwargs    u2.node
+#define nd_pkwrestarg u3.node
+
+#define nd_apinfo u3.apinfo
+
+#define nd_fpinfo u3.fpinfo
+
+// for NODE_SCOPE
+#define nd_tbl   u1.tbl
+
+// for NODE_ARGS_AUX
+#define nd_pid   u1.id
+#define nd_plen  u2.argc
+#define nd_cflag u2.id
+
+// for ripper
+#define nd_cval  u3.value
+#define nd_rval  u2.value
+#define nd_tag   u1.id
+
 #ifndef FLEX_ARY_LEN
 /* From internal/compilers.h */
 /* A macro for defining a flexible array, like: VALUE ary[FLEX_ARY_LEN]; */
@@ -165,6 +236,22 @@ typedef struct RNode {
     rb_code_location_t nd_loc;
     int node_id;
 } NODE;
+
+/* FL     : 0..4: T_TYPES, 5: KEEP_WB, 6: PROMOTED, 7: FINALIZE, 8: UNUSED, 9: UNUSED, 10: EXIVAR, 11: FREEZE */
+/* NODE_FL: 0..4: T_TYPES, 5: KEEP_WB, 6: PROMOTED, 7: NODE_FL_NEWLINE,
+ *          8..14: nd_type,
+ *          15..: nd_line
+ */
+#define NODE_FL_NEWLINE              (((VALUE)1)<<7)
+
+#define NODE_TYPESHIFT 8
+#define NODE_TYPEMASK  (((VALUE)0x7f)<<NODE_TYPESHIFT)
+
+#define nd_type(n) ((int) (((n)->flags & NODE_TYPEMASK)>>NODE_TYPESHIFT))
+#define nd_set_type(n,t) \
+    rb_node_set_type(n, t)
+#define nd_init_type(n,t) \
+    (n)->flags=(((n)->flags&~NODE_TYPEMASK)|((((unsigned long)(t))<<NODE_TYPESHIFT)&NODE_TYPEMASK))
 
 struct rb_args_info {
     NODE *pre_init;

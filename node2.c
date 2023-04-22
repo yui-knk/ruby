@@ -1,10 +1,10 @@
 #include "external/node.h"
 #include "external/parse.h"
 #include "internal/parse.h"
-#include "vm_core.h"
 #include "node2.h"
 
 #define NODE_BUF_DEFAULT_LEN 16
+#define T_NODE 0x1b
 
 /* Setup NODE structure.
  * NODE is not an object managed by GC, but it imitates an object
@@ -53,6 +53,19 @@ struct node_buffer_struct {
     rb_parser_config_t *config;
 };
 
+#define ruby_xmalloc ast->node_buffer->config->malloc
+#define rb_ident_hash_new ast->node_buffer->config->ident_hash_new
+#define rb_xmalloc_mul_add ast->node_buffer->config->xmalloc_mul_add
+#define rb_gc_mark ast->node_buffer->config->gc_mark
+#define rb_gc_location ast->node_buffer->config->gc_location
+#define rb_gc_mark_movable ast->node_buffer->config->gc_mark_movable
+#define Qnil ast->node_buffer->config->qnil
+#define Qtrue ast->node_buffer->config->qtrue
+#define NIL_P ast->node_buffer->config->nil_p
+#define rb_bug ast->node_buffer->config->bug
+#define rb_hash_aset ast->node_buffer->config->hash_aset
+#define RB_OBJ_WRITE(old, slot, young) ast->node_buffer->config->obj_write((VALUE)(old), (VALUE *)(slot), (VALUE)(young))
+
 static void
 init_node_buffer_list(node_buffer_list_t * nb, node_buffer_elem_t *head)
 {
@@ -76,8 +89,8 @@ rb_node_buffer_new(rb_parser_config_t *config)
     init_node_buffer_list(&nb->unmarkable, (node_buffer_elem_t*)&nb[1]);
     init_node_buffer_list(&nb->markable, (node_buffer_elem_t*)((size_t)nb->unmarkable.head + bucket_size));
     nb->local_tables = 0;
-    nb->mark_hash = Qnil;
-    nb->tokens = Qnil;
+    nb->mark_hash = config->qnil;
+    nb->tokens = config->qnil;
     nb->config = config;
     return nb;
 }
@@ -115,10 +128,6 @@ rb_node_buffer_free(node_buffer_t *nb)
     }
     xfree(nb);
 }
-
-#define ruby_xmalloc ast->node_buffer->config->malloc
-#define rb_ident_hash_new ast->node_buffer->config->ident_hash_new
-#define rb_xmalloc_mul_add ast->node_buffer->config->xmalloc_mul_add
 
 static NODE *
 ast_newnode_in_bucket(rb_ast_t *ast, node_buffer_list_t *nb)
@@ -159,7 +168,7 @@ nodetype_markable_p(enum node_type type)
 }
 
 const char *
-ruby_node_name(int node)
+ruby_node_name(rb_ast_t *ast, int node)
 {
     switch (node) {
 #include "node_name.inc"
@@ -179,12 +188,12 @@ rb_ast_newnode(rb_ast_t *ast, enum node_type type)
 }
 
 void
-rb_ast_node_type_change(NODE *n, enum node_type type)
+rb_ast_node_type_change(rb_ast_t *ast, NODE *n, enum node_type type)
 {
     enum node_type old_type = nd_type(n);
     if (nodetype_markable_p(old_type) != nodetype_markable_p(type)) {
         rb_bug("node type changed: %s -> %s",
-               ruby_node_name(old_type), ruby_node_name(type));
+               ruby_node_name(ast, old_type), ruby_node_name(ast, type));
     }
 }
 
@@ -224,38 +233,37 @@ rb_ast_t *
 rb_ast_new(rb_parser_config_t *config)
 {
     node_buffer_t *nb = rb_node_buffer_new(config);
-    rb_ast_t *ast = (rb_ast_t *)rb_imemo_new(imemo_ast, 0, 0, 0, (VALUE)nb);
-    return ast;
+    return config->ast_new((VALUE)nb);
 }
 
-typedef void node_itr_t(void *ctx, NODE * node);
+typedef void node_itr_t(rb_ast_t *ast, void *ctx, NODE * node);
 
 static void
-iterate_buffer_elements(node_buffer_elem_t *nbe, long len, node_itr_t *func, void *ctx)
+iterate_buffer_elements(rb_ast_t *ast, node_buffer_elem_t *nbe, long len, node_itr_t *func, void *ctx)
 {
     long cursor;
     for (cursor = 0; cursor < len; cursor++) {
-        func(ctx, &nbe->buf[cursor]);
+        func(ast, ctx, &nbe->buf[cursor]);
     }
 }
 
 static void
-iterate_node_values(node_buffer_list_t *nb, node_itr_t * func, void *ctx)
+iterate_node_values(rb_ast_t *ast, node_buffer_list_t *nb, node_itr_t * func, void *ctx)
 {
     node_buffer_elem_t *nbe = nb->head;
 
     /* iterate over the head first because it's not full */
-    iterate_buffer_elements(nbe, nb->idx, func, ctx);
+    iterate_buffer_elements(ast, nbe, nb->idx, func, ctx);
 
     nbe = nbe->next;
     while (nbe) {
-        iterate_buffer_elements(nbe, nbe->len, func, ctx);
+        iterate_buffer_elements(ast, nbe, nbe->len, func, ctx);
         nbe = nbe->next;
     }
 }
 
 static void
-mark_ast_value(void *ctx, NODE * node)
+mark_ast_value(rb_ast_t *ast, void *ctx, NODE * node)
 {
     switch (nd_type(node)) {
       case NODE_ARGS:
@@ -279,12 +287,12 @@ mark_ast_value(void *ctx, NODE * node)
         rb_gc_mark_movable(node->nd_rval);
         break;
       default:
-        rb_bug("unreachable node %s", ruby_node_name(nd_type(node)));
+        rb_bug("unreachable node %s", ruby_node_name(ast, nd_type(node)));
     }
 }
 
 static void
-update_ast_value(void *ctx, NODE * node)
+update_ast_value(rb_ast_t *ast, void *ctx, NODE * node)
 {
     switch (nd_type(node)) {
       case NODE_ARGS:
@@ -318,7 +326,7 @@ rb_ast_update_references(rb_ast_t *ast)
     if (ast->node_buffer) {
         node_buffer_t *nb = ast->node_buffer;
 
-        iterate_node_values(&nb->markable, update_ast_value, NULL);
+        iterate_node_values(ast, &nb->markable, update_ast_value, NULL);
     }
 }
 
@@ -333,7 +341,7 @@ rb_ast_mark(rb_ast_t *ast)
     if (ast->node_buffer) {
         node_buffer_t *nb = ast->node_buffer;
 
-        iterate_node_values(&nb->markable, mark_ast_value, NULL);
+        iterate_node_values(ast, &nb->markable, mark_ast_value, NULL);
     }
     if (ast->body.script_lines) rb_gc_mark(ast->body.script_lines);
 }
