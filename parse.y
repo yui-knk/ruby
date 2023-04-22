@@ -13944,11 +13944,11 @@ rb_ruby_parser_free(void *ptr)
             xfree(ptinfo);
         }
     }
+    xfree(ptr);
     config->counter--;
     if (config->counter <= 0) {
         rb_ruby_parser_config_free(config);
     }
-    xfree(ptr);
 }
 
 size_t
@@ -13988,7 +13988,7 @@ rb_ruby_parser_config_new(void *(*malloc)(size_t size))
 void
 rb_ruby_parser_config_free(rb_parser_config_t *config)
 {
-    // config->free(config);
+    config->free(config);
 }
 
 #ifndef RIPPER
