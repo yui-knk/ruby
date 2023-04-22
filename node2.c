@@ -62,7 +62,6 @@ struct node_buffer_struct {
 #define Qnil ast->node_buffer->config->qnil
 #define Qtrue ast->node_buffer->config->qtrue
 #define NIL_P ast->node_buffer->config->nil_p
-#define rb_bug ast->node_buffer->config->bug
 #define rb_hash_aset ast->node_buffer->config->hash_aset
 #define RB_OBJ_WRITE(old, slot, young) ast->node_buffer->config->obj_write((VALUE)(old), (VALUE *)(slot), (VALUE)(young))
 
@@ -168,7 +167,7 @@ nodetype_markable_p(enum node_type type)
 }
 
 const char *
-ruby_node_name(rb_ast_t *ast, int node)
+ruby_node_name(int node, bug_report_func rb_bug)
 {
     switch (node) {
 #include "node_name.inc"
@@ -188,12 +187,12 @@ rb_ast_newnode(rb_ast_t *ast, enum node_type type)
 }
 
 void
-rb_ast_node_type_change(rb_ast_t *ast, NODE *n, enum node_type type)
+rb_ast_node_type_change(NODE *n, enum node_type type, bug_report_func rb_bug)
 {
     enum node_type old_type = nd_type(n);
     if (nodetype_markable_p(old_type) != nodetype_markable_p(type)) {
         rb_bug("node type changed: %s -> %s",
-               ruby_node_name(ast, old_type), ruby_node_name(ast, type));
+               ruby_node_name(old_type, rb_bug), ruby_node_name(type, rb_bug));
     }
 }
 
@@ -265,6 +264,8 @@ iterate_node_values(rb_ast_t *ast, node_buffer_list_t *nb, node_itr_t * func, vo
 static void
 mark_ast_value(rb_ast_t *ast, void *ctx, NODE * node)
 {
+    bug_report_func rb_bug = ast->node_buffer->config->bug;
+
     switch (nd_type(node)) {
       case NODE_ARGS:
         {
@@ -287,13 +288,15 @@ mark_ast_value(rb_ast_t *ast, void *ctx, NODE * node)
         rb_gc_mark_movable(node->nd_rval);
         break;
       default:
-        rb_bug("unreachable node %s", ruby_node_name(ast, nd_type(node)));
+        rb_bug("unreachable node %s", ruby_node_name(nd_type(node), rb_bug));
     }
 }
 
 static void
 update_ast_value(rb_ast_t *ast, void *ctx, NODE * node)
 {
+    bug_report_func rb_bug = ast->node_buffer->config->bug;
+
     switch (nd_type(node)) {
       case NODE_ARGS:
         {

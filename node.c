@@ -27,7 +27,7 @@
 #define A_LIT(lit) AR(rb_dump_literal(lit))
 #define A_NODE_HEADER(node, term) \
     rb_str_catf(buf, "@ %s (id: %d, line: %d, location: (%d,%d)-(%d,%d))%s"term, \
-                ruby_node_name(nd_type(node)), nd_node_id(node), nd_line(node), \
+                ruby_node_name(nd_type(node), rb_bug), nd_node_id(node), nd_line(node), \
                 nd_first_lineno(node), nd_first_column(node), \
                 nd_last_lineno(node), nd_last_column(node), \
                 (node->flags & NODE_FL_NEWLINE ? "*" : ""))
@@ -1105,7 +1105,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         break;
     }
 
-    rb_bug("dump_node: unknown node: %s", ruby_node_name(nd_type(node)));
+    rb_bug("dump_node: unknown node: %s", ruby_node_name(nd_type(node), rb_bug));
 }
 
 VALUE

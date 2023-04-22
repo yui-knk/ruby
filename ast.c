@@ -4,7 +4,7 @@
 #include "internal/symbol.h"
 #include "internal/warnings.h"
 #include "iseq.h"
-#include "node.h"
+#include "node2.h"
 #include "ruby.h"
 #include "ruby/encoding.h"
 #include "ruby/util.h"
@@ -277,9 +277,9 @@ rb_ast_node_alloc(VALUE klass)
 }
 
 static const char*
-node_type_to_str(const NODE *node)
+node_type_to_str(rb_ast_t *ast, const NODE *node)
 {
-    return (ruby_node_name(nd_type(node)) + rb_strlen_lit("NODE_"));
+    return (ruby_node_name(nd_type(node), rb_bug) + rb_strlen_lit("NODE_"));
 }
 
 static VALUE
@@ -288,7 +288,7 @@ ast_node_type(rb_execution_context_t *ec, VALUE self)
     struct ASTNodeData *data;
     TypedData_Get_Struct(self, struct ASTNodeData, &rb_node_type, data);
 
-    return rb_sym_intern_ascii_cstr(node_type_to_str(data->node));
+    return rb_sym_intern_ascii_cstr(node_type_to_str(data->ast, data->node));
 }
 
 static VALUE
@@ -675,7 +675,7 @@ node_children(rb_ast_t *ast, const NODE *node)
         break;
     }
 
-    rb_bug("node_children: unknown node: %s", ruby_node_name(type));
+    rb_bug("node_children: unknown node: %s", ruby_node_name(type, rb_bug));
 }
 
 static VALUE
@@ -745,7 +745,7 @@ ast_node_inspect(rb_execution_context_t *ec, VALUE self)
 
     rb_str_append(str, cname);
     rb_str_catf(str, ":%s@%d:%d-%d:%d>",
-                node_type_to_str(data->node),
+                node_type_to_str(data->ast, data->node),
                 nd_first_lineno(data->node), nd_first_column(data->node),
                 nd_last_lineno(data->node), nd_last_column(data->node));
 

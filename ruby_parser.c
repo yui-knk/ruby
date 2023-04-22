@@ -21,7 +21,7 @@
 #include "ruby/ractor.h"
 #include "ruby/ruby.h"
 #include "ruby/util.h"
-#include "node.h"
+#include "node2.h"
 #include "internal.h"
 #include "vm_core.h"
 #include "symbol.h"

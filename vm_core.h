@@ -97,7 +97,7 @@ extern int ruby_assert_critical_section_entered;
 #include "internal/serial.h"
 #include "internal/vm.h"
 #include "method.h"
-#include "node.h"
+#include "node2.h"
 #include "ruby/ruby.h"
 #include "ruby/st.h"
 #include "ruby_atomic.h"
