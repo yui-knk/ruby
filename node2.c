@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include "external/node.h"
 #include "external/parse.h"
 #include "internal/parse.h"
@@ -28,8 +29,10 @@ rb_node_init(NODE *n, enum node_type type, VALUE a0, VALUE a1, VALUE a2)
 }
 
 #define ruby_xmalloc ast->node_buffer->config->malloc
+#define xfree ast->node_buffer->config->free
 #define rb_ident_hash_new ast->node_buffer->config->ident_hash_new
 #define rb_xmalloc_mul_add ast->node_buffer->config->xmalloc_mul_add
+#define ruby_xrealloc(var,size) (ast->node_buffer->config->realloc_n((void *)var, 1, size))
 #define rb_gc_mark ast->node_buffer->config->gc_mark
 #define rb_gc_location ast->node_buffer->config->gc_location
 #define rb_gc_mark_movable ast->node_buffer->config->gc_mark_movable
@@ -69,7 +72,7 @@ rb_node_buffer_new(rb_parser_config_t *config)
 }
 
 static void
-node_buffer_list_free(node_buffer_list_t * nb)
+node_buffer_list_free(rb_ast_t *ast, node_buffer_list_t * nb)
 {
     node_buffer_elem_t *nbe = nb->head;
 
@@ -89,10 +92,10 @@ struct rb_ast_local_table_link {
 };
 
 static void
-rb_node_buffer_free(node_buffer_t *nb)
+rb_node_buffer_free(rb_ast_t *ast, node_buffer_t *nb)
 {
-    node_buffer_list_free(&nb->unmarkable);
-    node_buffer_list_free(&nb->markable);
+    node_buffer_list_free(ast, &nb->unmarkable);
+    node_buffer_list_free(ast, &nb->markable);
     struct rb_ast_local_table_link *local_table = nb->local_tables;
     while (local_table) {
         struct rb_ast_local_table_link *next_table = local_table->next;
@@ -327,7 +330,7 @@ rb_ast_free(rb_ast_t *ast)
     if (ast->node_buffer) {
         rb_parser_config_t *config = ast->node_buffer->config;
 
-        rb_node_buffer_free(ast->node_buffer);
+        rb_node_buffer_free(ast, ast->node_buffer);
         ast->node_buffer = 0;
         config->counter--;
         if (config->counter <= 0) {

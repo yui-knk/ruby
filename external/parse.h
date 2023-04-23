@@ -1,11 +1,10 @@
 #ifndef EXTERNAL_PARSE_H
 #define EXTERNAL_PARSE_H
 
+#include <stdarg.h>
 #include <sys/types.h>
 #include "external/value.h"
 #include "external/node.h"
-// TODO: Expand
-#include "ruby/st.h"
 
 #define rb_encoding void
 #define OnigCodePoint unsigned int
@@ -264,6 +263,7 @@ typedef struct rb_parser_config_struct {
     unsigned long (*scan_hex)(const char *start, size_t len, size_t *retlen);
     unsigned long (*scan_oct)(const char *start, size_t len, size_t *retlen);
     unsigned long (*scan_digits)(const char *str, ssize_t len, int base, size_t *retlen, int *overflow);
+    double (*strtod)(const char *s00, char **se);
 
     /* ctype */
     int (*isspace)(int c);

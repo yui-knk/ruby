@@ -8,6 +8,7 @@
  *             file COPYING are met.  Consult the file for details.
  * @brief      Internal header for the parser.
  */
+#include <limits.h>
 #include "external/parse.h"
 #include "external/node.h"
 #include "internal/static_assert.h"

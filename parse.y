@@ -23,11 +23,14 @@
 #define YYLTYPE_IS_DECLARED 1
 
 
+#include <alloca.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
 
 struct lex_context;
 
@@ -47,6 +50,13 @@ struct lex_context;
 #ifndef RIPPER
 #define LIKELY(x) RB_LIKELY(x)
 #define UNLIKELY(x) RB_UNLIKELY(x)
+#ifndef TRUE
+# define TRUE    1
+#endif
+
+#ifndef FALSE
+# define FALSE   0
+#endif
 #define numberof(array) ((int)(sizeof(array) / sizeof((array)[0])))
 #define rb_strlen_lit(str) (sizeof(str "") - 1)
 #define FIXNUM_MAX (LONG_MAX / 2)
@@ -60,7 +70,9 @@ struct lex_context;
 #else
 # define USE_FLONUM 0
 #endif
-#else
+
+#else /* !RIPPER */
+
 #include "ruby/internal/config.h"
 
 #include "internal.h"
@@ -91,7 +103,7 @@ struct lex_context;
 #include "ruby/ractor.h"
 #include "symbol.h"
 
-#endif
+#endif /* !RIPPER */
 
 #undef nd_set_type
 #define nd_set_type(n,t) \
@@ -361,6 +373,7 @@ struct rb_imemo_tmpbuf_struct {
 #define ruby_scan_hex    p->config->scan_hex
 #define ruby_scan_oct    p->config->scan_oct
 #define ruby_scan_digits p->config->scan_digits
+#define strtod           p->config->strtod
 
 #define ISSPACE(c)  ((p->config->isspace)(c))
 #define ISASCII(c)  ((p->config->isascii)(c))

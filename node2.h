@@ -1,7 +1,9 @@
 #ifndef RUBY_NODE2_H
 #define RUBY_NODE2_H 1
 
+#include <stdbool.h>
 #include "external/parse.h"
+#include "ruby/backward/2/attributes.h"
 
 typedef void (*bug_report_func)(const char *fmt, ...);
 
