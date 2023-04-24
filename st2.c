@@ -102,6 +102,7 @@
 
 #include "st2.h"
 #include "bits2.h"
+#include "internal/sanitizers.h"
 
 #define NOT_RUBY 1
 #undef RUBY
