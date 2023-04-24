@@ -154,6 +154,36 @@
 #define st_insert rb_st2_insert
 #define st_lookup rb_st2_lookup
 
+#define st_table_size rb_st2_table_size
+#define st_clear rb_st2_clear
+#define st_init_strtable rb_st2_init_strtable
+#define st_init_table rb_st2_init_table
+#define st_init_strcasetable rb_st2_init_strcasetable
+#define st_init_strtable_with_size rb_st2_init_strtable_with_size
+#define st_init_numtable_with_size rb_st2_init_numtable_with_size
+#define st_init_strcasetable_with_size rb_st2_init_strcasetable_with_size
+#define st_memsize rb_st2_memsize
+#define st_get_key rb_st2_get_key
+#define st_add_direct rb_st2_add_direct
+#define st_insert2 rb_st2_insert2
+#define st_copy rb_st2_copy
+#define st_delete_safe rb_st2_delete_safe
+#define st_shift rb_st2_shift
+#define st_cleanup_safe rb_st2_cleanup_safe
+#define st_update rb_st2_update
+#define st_foreach_with_replace rb_st2_foreach_with_replace
+#define st_foreach_check rb_st2_foreach_check
+#define st_keys rb_st2_keys
+#define st_keys_check rb_st2_keys_check
+#define st_values rb_st2_values
+#define st_values_check rb_st2_values_check
+#define st_hash rb_st2_hash
+#define st_hash_uint32 rb_st2_hash_uint32
+#define st_hash_uint rb_st2_hash_uint
+#define st_hash_end rb_st2_hash_end
+#define st_locale_insensitive_strcasecmp rb_st2_locale_insensitive_strcasecmp
+#define st_locale_insensitive_strncasecmp rb_st2_locale_insensitive_strncasecmp
+
 /* The type of hashes.  */
 typedef st_index_t st_hash_t;
 
