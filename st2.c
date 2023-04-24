@@ -106,6 +106,8 @@
 #define NOT_RUBY 1
 #undef RUBY
 
+#define MEMCPY(tab,p1,p2,type,n) (tab->functions->nonempty_memcpy((p1), (p2), sizeof(type), (n)))
+
 #include <stdio.h>
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
@@ -122,6 +124,35 @@
 #define EXPECT(expr, val) (expr)
 #define ATTRIBUTE_UNUSED
 #endif
+
+
+#define st_index_t st2_index_t
+#define st_hash_t st2_hash_t
+#define st_data_t st2_data_t
+#define st_hash_type st2_hash_type
+#define st_table st2_table
+#define st_table_entry st2_table_entry
+#define st_update_callback_func st2_update_callback_func
+#define st_foreach_check_callback_func st2_foreach_check_callback_func
+#define st_foreach_callback_func st2_foreach_callback_func
+#define st_retval st2_retval
+
+#define ST_CONTINUE ST2_CONTINUE
+#define ST_STOP ST2_STOP
+#define ST_DELETE ST2_DELETE
+#define ST_CHECK ST2_CHECK
+#define ST_REPLACE ST2_REPLACE
+
+#define st_numcmp rb_st2_numcmp
+#define st_numhash rb_st2_numhash
+#define st_free_table rb_st2_free_table
+#define rb_st_hash_start rb_st2_hash_start
+#define st_delete rb_st2_delete
+#define st_foreach rb_st2_foreach
+#define st_init_numtable rb_st2_init_numtable
+#define st_init_table_with_size rb_st2_init_table_with_size
+#define st_insert rb_st2_insert
+#define st_lookup rb_st2_lookup
 
 /* The type of hashes.  */
 typedef st_index_t st_hash_t;
@@ -157,17 +188,6 @@ static const struct st_hash_type type_strcasehash = {
    extremely small.  */
 #define ST_INIT_VAL 0xafafafafafafafaf
 #define ST_INIT_VAL_BYTE 0xafa
-
-#ifdef RUBY
-#undef malloc
-#undef realloc
-#undef calloc
-#undef free
-#define malloc ruby_xmalloc
-#define calloc ruby_xcalloc
-#define realloc ruby_xrealloc
-#define free ruby_xfree
-#endif
 
 #define EQUAL(tab,x,y) ((x) == (y) || (*(tab)->type->compare)((x),(y)) == 0)
 #define PTR_EQUAL(tab, ptr, hash_val, key_) \
@@ -509,7 +529,7 @@ stat_col(void)
    entries.  The real number of entries which the table can hold is
    the nearest power of two for SIZE.  */
 st_table *
-st_init_table_with_size(const struct st_hash_type *type, st_index_t size)
+st_init_table_with_size(const struct st_hash_type *type, st_functions_t *functions, st_index_t size)
 {
     st_table *tab;
     int n;
@@ -533,6 +553,7 @@ st_init_table_with_size(const struct st_hash_type *type, st_index_t size)
         return NULL;
 #endif
     tab = (st_table *) malloc(sizeof (st_table));
+    tab->functions = functions;
 #ifndef RUBY
     if (tab == NULL)
         return NULL;
@@ -574,55 +595,55 @@ st_table_size(const struct st_table *tbl)
 /* Create and return table with TYPE which can hold a minimal number
    of entries (see comments for get_power2).  */
 st_table *
-st_init_table(const struct st_hash_type *type)
+st_init_table(const struct st_hash_type *type, st_functions_t *functions)
 {
-    return st_init_table_with_size(type, 0);
+    return st_init_table_with_size(type, functions, 0);
 }
 
 /* Create and return table which can hold a minimal number of
    numbers.  */
 st_table *
-st_init_numtable(void)
+st_init_numtable(st_functions_t *functions)
 {
-    return st_init_table(&type_numhash);
+    return st_init_table(&type_numhash, functions);
 }
 
 /* Create and return table which can hold SIZE numbers.  */
 st_table *
-st_init_numtable_with_size(st_index_t size)
+st_init_numtable_with_size(st_functions_t *functions, st_index_t size)
 {
-    return st_init_table_with_size(&type_numhash, size);
+    return st_init_table_with_size(&type_numhash, functions, size);
 }
 
 /* Create and return table which can hold a minimal number of
    strings.  */
 st_table *
-st_init_strtable(void)
+st_init_strtable(st_functions_t *functions)
 {
-    return st_init_table(&type_strhash);
+    return st_init_table(&type_strhash, functions);
 }
 
 /* Create and return table which can hold SIZE strings.  */
 st_table *
-st_init_strtable_with_size(st_index_t size)
+st_init_strtable_with_size(st_functions_t *functions, st_index_t size)
 {
-    return st_init_table_with_size(&type_strhash, size);
+    return st_init_table_with_size(&type_strhash, functions, size);
 }
 
 /* Create and return table which can hold a minimal number of strings
    whose character case is ignored.  */
 st_table *
-st_init_strcasetable(void)
+st_init_strcasetable(st_functions_t *functions)
 {
-    return st_init_table(&type_strcasehash);
+    return st_init_table(&type_strcasehash, functions);
 }
 
 /* Create and return table which can hold SIZE strings whose character
    case is ignored.  */
 st_table *
-st_init_strcasetable_with_size(st_index_t size)
+st_init_strcasetable_with_size(st_functions_t *functions, st_index_t size)
 {
-    return st_init_table_with_size(&type_strcasehash, size);
+    return st_init_table_with_size(&type_strcasehash, functions, size);
 }
 
 /* Make table TAB empty.  */
@@ -727,7 +748,7 @@ rebuild_table(st_table *tab)
         /* This allocation could trigger GC and compaction. If tab is the
          * gen_iv_tbl, then tab could have changed in size due to objects being
          * freed and/or moved. Do not store attributes of tab before this line. */
-        new_tab = st_init_table_with_size(tab->type,
+        new_tab = st_init_table_with_size(tab->type, tab->functions,
                                           2 * tab->num_entries - 1);
         new_entries = new_tab->entries;
     }
@@ -1215,6 +1236,7 @@ st_copy(st_table *old_tab)
     st_table *new_tab;
 
     new_tab = (st_table *) malloc(sizeof(st_table));
+    new_tab->functions = old_tab->functions;
 #ifndef RUBY
     if (new_tab == NULL)
         return NULL;
@@ -1239,10 +1261,10 @@ st_copy(st_table *old_tab)
         return NULL;
     }
 #endif
-    MEMCPY(new_tab->entries, old_tab->entries, st_table_entry,
+    MEMCPY(new_tab, new_tab->entries, old_tab->entries, st_table_entry,
            get_allocated_entries(old_tab));
     if (old_tab->bins != NULL)
-        MEMCPY(new_tab->bins, old_tab->bins, char, bins_size(old_tab));
+        MEMCPY(new_tab, new_tab->bins, old_tab->bins, char, bins_size(old_tab));
     return new_tab;
 }
 
@@ -2053,9 +2075,9 @@ st_expand_table(st_table *tab, st_index_t siz)
     if (siz <= get_allocated_entries(tab))
         return; /* enough room already */
 
-    tmp = st_init_table_with_size(tab->type, siz);
+    tmp = st_init_table_with_size(tab->type, tab->functions, siz);
     n = get_allocated_entries(tab);
-    MEMCPY(tmp->entries, tab->entries, st_table_entry, n);
+    MEMCPY(tab, tmp->entries, tab->entries, st_table_entry, n);
     free(tab->entries);
     if (tab->bins != NULL)
         free(tab->bins);

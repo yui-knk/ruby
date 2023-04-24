@@ -391,3 +391,12 @@ rb_ast_set_tokens(rb_ast_t *ast, VALUE tokens)
 {
     RB_OBJ_WRITE(ast, &ast->node_buffer->tokens, tokens);
 }
+
+VALUE
+rb_node_set_type(rb_ast_t *ast, NODE *n, enum node_type t)
+{
+#if RUBY_DEBUG
+    rb_ast_node_type_change(n, t, ast->node_buffer->config->bug);
+#endif
+    return nd_init_type(n, t);
+}

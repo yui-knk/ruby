@@ -2,10 +2,10 @@
 #define INTERNAL_RUBY_PARSE_H
 
 #include "external/node.h"
-#include "external/parse.h"
-
 #include "internal.h"
 #include "vm.h"
+
+typedef struct rb_parser_config_struct rb_parser_config_t;
 
 RUBY_SYMBOL_EXPORT_BEGIN
 void rb_parser_config_initialize(rb_parser_config_t *config);

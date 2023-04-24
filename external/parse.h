@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include "external/value.h"
 #include "external/node.h"
-//#include "ruby/st2.h"
+#include "st2.h"
 
 #define rb_encoding void
 #define OnigCodePoint unsigned int
@@ -21,6 +21,9 @@ typedef struct rb_parser_config_struct {
 	 *   We can remove this, once decuple parser and ast from Ruby GC.
 	 */
 	int counter;
+
+	/* For st2 */
+	st_functions_t st_functions;
 
     /* Memory */
     void *(*malloc)(size_t size);
@@ -220,7 +223,7 @@ typedef struct rb_parser_config_struct {
 
     /* Compile (parse.y) */
     int (*literal_cmp)(VALUE val, VALUE lit);
-    st_index_t (*literal_hash)(VALUE a);
+    st2_index_t (*literal_hash)(VALUE a);
 
     /* Error (Exception) */
     const char *(*builtin_class_name)(VALUE x);

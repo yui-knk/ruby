@@ -71,6 +71,23 @@ struct lex_context;
 # define USE_FLONUM 0
 #endif
 
+/* st2 */
+#define st_table st2_table
+#define st_data_t st2_data_t
+#define st_hash_type st2_hash_type
+#define ST_CONTINUE ST2_CONTINUE
+#define ST_STOP ST2_STOP
+#define ST_DELETE ST2_DELETE
+#define ST_CHECK ST2_CHECK
+#define ST_REPLACE ST2_REPLACE
+#define st_init_numtable rb_st2_init_numtable
+#define st_free_table rb_st2_free_table
+#define st_init_table_with_size rb_st2_init_table_with_size
+#define st_insert rb_st2_insert
+#define st_foreach rb_st2_foreach
+#define st_delete rb_st2_delete
+#define st_is_member st2_is_member
+
 #else /* !RIPPER */
 
 #include "ruby/internal/config.h"
@@ -718,7 +735,11 @@ static st_table *
 push_pvtbl(struct parser_params *p)
 {
     st_table *tbl = p->pvtbl;
+#ifndef RIPPER
+    p->pvtbl = st_init_numtable(&p->config->st_functions);
+#else
     p->pvtbl = st_init_numtable();
+#endif
     return tbl;
 }
 
@@ -13082,7 +13103,7 @@ remove_duplicate_keys(struct parser_params *p, NODE *hash)
         literal_hash,
     };
 
-    st_table *literal_keys = st_init_table_with_size(&literal_type, hash->nd_alen / 2);
+    st_table *literal_keys = st_init_table_with_size(&literal_type, &p->config->st_functions, hash->nd_alen / 2);
     NODE *result = 0;
     NODE *last_expr = 0;
     rb_code_location_t loc = hash->nd_loc;
@@ -13146,7 +13167,11 @@ static void
 error_duplicate_pattern_key(struct parser_params *p, VALUE key, const YYLTYPE *loc)
 {
     if (!p->pktbl) {
+#ifndef RIPPER
+        p->pktbl = st_init_numtable(&p->config->st_functions);
+#else
         p->pktbl = st_init_numtable();
+#endif
     }
     else if (st_is_member(p->pktbl, key)) {
         yyerror1(loc, "duplicated key name");

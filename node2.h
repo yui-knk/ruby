@@ -2,10 +2,11 @@
 #define RUBY_NODE2_H 1
 
 #include <stdbool.h>
-#include "external/parse.h"
+#include "external/node.h"
 #include "ruby/backward/2/attributes.h"
 
 typedef void (*bug_report_func)(const char *fmt, ...);
+typedef struct rb_parser_config_struct rb_parser_config_t;
 
 typedef struct node_buffer_elem_struct {
     struct node_buffer_elem_struct *next;
@@ -63,6 +64,7 @@ void *rb_parser_realloc(struct parser_params *, void *, size_t);
 void *rb_parser_calloc(struct parser_params *, size_t, size_t);
 void rb_parser_free(struct parser_params *, void *);
 PRINTF_ARGS(void rb_parser_printf(struct parser_params *parser, const char *fmt, ...), 2, 3);
+VALUE rb_node_set_type(rb_ast_t *ast, NODE *n, enum node_type t);
 
 RUBY_SYMBOL_EXPORT_END
 
@@ -96,15 +98,6 @@ RUBY_SYMBOL_EXPORT_END
 #define nd_set_last_loc(n, v) (nd_last_loc(n) = (v))
 #define nd_node_id(n) ((n)->node_id)
 #define nd_set_node_id(n,id) ((n)->node_id = (id))
-
-static inline VALUE
-rb_node_set_type(rb_ast_t *ast, NODE *n, enum node_type t)
-{
-#if RUBY_DEBUG
-    rb_ast_node_type_change(n, t, ast->node_buffer->config->bug);
-#endif
-    return nd_init_type(n, t);
-}
 
 static inline bool
 nd_type_p(const NODE *n, enum node_type t)
