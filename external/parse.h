@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include "external/value.h"
 #include "external/node.h"
+//#include "ruby/st2.h"
 
 #define rb_encoding void
 #define OnigCodePoint unsigned int

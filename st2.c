@@ -100,15 +100,11 @@
 
 */
 
-#ifdef NOT_RUBY
-#include "regint.h"
-#include "st.h"
-#else
-#include "internal.h"
-#include "internal/bits.h"
-#include "internal/hash.h"
-#include "internal/sanitizers.h"
-#endif
+#include "st2.h"
+#include "bits2.h"
+
+#define NOT_RUBY 1
+#undef RUBY
 
 #include <stdio.h>
 #ifdef HAVE_STDLIB_H
@@ -2183,93 +2179,3 @@ st_rehash(st_table *tab)
             rebuilt_p = st_rehash_indexed(tab);
     } while (rebuilt_p);
 }
-
-#ifdef RUBY
-static st_data_t
-st_stringify(VALUE key)
-{
-    return (rb_obj_class(key) == rb_cString && !RB_OBJ_FROZEN(key)) ?
-        rb_hash_key_str(key) : key;
-}
-
-static void
-st_insert_single(st_table *tab, VALUE hash, VALUE key, VALUE val)
-{
-    st_data_t k = st_stringify(key);
-    st_table_entry e;
-    e.hash = do_hash(k, tab);
-    e.key = k;
-    e.record = val;
-
-    tab->entries[tab->entries_bound++] = e;
-    tab->num_entries++;
-    RB_OBJ_WRITTEN(hash, Qundef, k);
-    RB_OBJ_WRITTEN(hash, Qundef, val);
-}
-
-static void
-st_insert_linear(st_table *tab, long argc, const VALUE *argv, VALUE hash)
-{
-    long i;
-
-    for (i = 0; i < argc; /* */) {
-        st_data_t k = st_stringify(argv[i++]);
-        st_data_t v = argv[i++];
-        st_insert(tab, k, v);
-        RB_OBJ_WRITTEN(hash, Qundef, k);
-        RB_OBJ_WRITTEN(hash, Qundef, v);
-    }
-}
-
-static void
-st_insert_generic(st_table *tab, long argc, const VALUE *argv, VALUE hash)
-{
-    long i;
-
-    /* push elems */
-    for (i = 0; i < argc; /* */) {
-        VALUE key = argv[i++];
-        VALUE val = argv[i++];
-        st_insert_single(tab, hash, key, val);
-    }
-
-    /* reindex */
-    st_rehash(tab);
-}
-
-/* Mimics ruby's { foo => bar } syntax. This function is subpart
-   of rb_hash_bulk_insert. */
-void
-rb_hash_bulk_insert_into_st_table(long argc, const VALUE *argv, VALUE hash)
-{
-    st_index_t n, size = argc / 2;
-    st_table *tab = RHASH_ST_TABLE(hash);
-
-    tab = RHASH_TBL_RAW(hash);
-    n = tab->entries_bound + size;
-    st_expand_table(tab, n);
-    if (UNLIKELY(tab->num_entries))
-        st_insert_generic(tab, argc, argv, hash);
-    else if (argc <= 2)
-        st_insert_single(tab, hash, argv[0], argv[1]);
-    else if (tab->bin_power <= MAX_POWER2_FOR_TABLES_WITHOUT_BINS)
-        st_insert_linear(tab, argc, argv, hash);
-    else
-        st_insert_generic(tab, argc, argv, hash);
-}
-
-// to iterate iv_index_tbl
-st_data_t
-rb_st_nth_key(st_table *tab, st_index_t index)
-{
-    if (LIKELY(tab->entries_start == 0 &&
-               tab->num_entries == tab->entries_bound &&
-               index < tab->num_entries)) {
-        return tab->entries[index].key;
-    }
-    else {
-        rb_bug("unreachable");
-    }
-}
-
-#endif

@@ -4,8 +4,8 @@
    The hash table data structures were redesigned and the package was
    rewritten by Vladimir Makarov <vmakarov@redhat.com>.  */
 
-#ifndef RUBY_ST_H
-#define RUBY_ST_H 1
+#ifndef RUBY_ST2_H
+#define RUBY_ST2_H 1
 
 #if defined(__cplusplus)
 extern "C" {
@@ -14,6 +14,7 @@ extern "C" {
 #endif
 #endif
 
+// #include "external/value.h"
 #include "ruby/defines.h"
 
 RUBY_SYMBOL_EXPORT_BEGIN
@@ -185,8 +186,6 @@ CONSTFUNC(st_index_t rb_st_hash_end(st_index_t h));
 CONSTFUNC(st_index_t rb_st_hash_start(st_index_t h));
 #define st_hash_start(h) ((st_index_t)(h))
 
-void rb_hash_bulk_insert_into_st_table(long, const VALUE *, VALUE);
-
 RUBY_SYMBOL_EXPORT_END
 
 #if defined(__cplusplus)
@@ -196,4 +195,4 @@ RUBY_SYMBOL_EXPORT_END
 }  /* extern "C" { */
 #endif
 
-#endif /* RUBY_ST_H */
+#endif /* RUBY_ST2_H */
