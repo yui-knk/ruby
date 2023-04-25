@@ -417,6 +417,8 @@ struct rb_imemo_tmpbuf_struct {
 #define SPECIAL_CONST_P p->config->special_const_p
 #define BUILTIN_TYPE p->config->builtin_type
 
+#define rb_node_case_when_optimizable_literal p->config->node_case_when_optimizable_literal
+
 #endif
 
 #define NO_LEX_CTXT (struct lex_context){0}

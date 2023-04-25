@@ -131,8 +131,6 @@ code_loc_gen(const rb_code_location_t *loc1, const rb_code_location_t *loc2)
 #define NEW_ATTRASGN(r,m,a,loc) NEW_NODE(NODE_ATTRASGN,r,m,a,loc)
 #define NEW_ERROR(loc) NEW_NODE(NODE_ERROR,0,0,0,loc)
 
-VALUE rb_node_case_when_optimizable_literal(const NODE *const node);
-
 #if defined(__cplusplus)
 #if 0
 { /* satisfy cc-mode */

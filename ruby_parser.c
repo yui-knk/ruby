@@ -557,6 +557,7 @@ ast_new(VALUE nb)
 
 VALUE rb_io_gets_internal(VALUE io);
 extern VALUE rb_mRubyVMFrozenCore;
+VALUE rb_node_case_when_optimizable_literal(const NODE *const node);
 
 void
 rb_parser_config_initialize(rb_parser_config_t *config)
@@ -802,6 +803,8 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->long2int = rb_long2int;
     config->special_const_p = special_const_p;
     config->builtin_type = builtin_type;
+
+    config->node_case_when_optimizable_literal = rb_node_case_when_optimizable_literal;
 }
 
 VALUE

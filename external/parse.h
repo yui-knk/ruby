@@ -296,6 +296,8 @@ typedef struct rb_parser_config_struct {
     int (*special_const_p)(VALUE);
     int (*builtin_type)(VALUE);
 
+    VALUE (*node_case_when_optimizable_literal)(const NODE *const node);
+
 } rb_parser_config_t;
 
 #undef rb_encoding
