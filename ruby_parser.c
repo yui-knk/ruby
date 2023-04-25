@@ -568,6 +568,7 @@ rb_parser_config_initialize(rb_parser_config_t *config)
 
     config->malloc   = ruby_xmalloc;
     config->calloc   = ruby_xcalloc;
+    config->realloc  = ruby_xrealloc;
     config->free     = ruby_xfree;
     config->alloc_n  = ruby_xmalloc2;
     config->alloc    = ruby_xmalloc;

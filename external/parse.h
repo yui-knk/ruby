@@ -28,6 +28,7 @@ typedef struct rb_parser_config_struct {
     /* Memory */
     void *(*malloc)(size_t size);
     void *(*calloc)(size_t number, size_t size);
+    void *(*realloc)(void *ptr, size_t newsiz);
     void (*free)(void *ptr);
     void *(*alloc_n)(size_t nelems, size_t elemsiz);
     void *(*alloc)(size_t elemsiz);

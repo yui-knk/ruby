@@ -173,6 +173,9 @@ struct rb_imemo_tmpbuf_struct {
     size_t cnt; /* buffer size in VALUE */
 };
 
+#define xmalloc p->config->malloc
+#define xcalloc p->config->calloc
+#define xrealloc p->config->realloc
 #define ALLOC_N(type,n)  ((type *)p->config->alloc_n((n), sizeof(type)))
 #define ALLOC(type)      ((type *)p->config->alloc(sizeof(type)))
 #define xfree p->config->free

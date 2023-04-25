@@ -68,6 +68,8 @@
 # endif
 #endif
 
+#define UNREACHABLE_RETURN(_) return (_)
+
 #include "external/value.h"         /* for VALUE */
 #include "internal/static_assert.h" /* for STATIC_ASSERT */
 

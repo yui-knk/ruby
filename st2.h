@@ -14,7 +14,9 @@ extern "C" {
 #endif
 #endif
 
-#include "ruby/defines.h"
+#include <stddef.h>
+#include <stdint.h>
+#include "ruby/config.h"
 
 RUBY_SYMBOL_EXPORT_BEGIN
 
