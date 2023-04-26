@@ -345,7 +345,7 @@ Doxyfile: $(srcdir)/template/Doxyfile.tmpl $(PREP) $(tooldir)/generic_erb.rb $(R
 	$(Q) $(MINIRUBY) $(tooldir)/generic_erb.rb -o $@ $(srcdir)/template/Doxyfile.tmpl \
 	--srcdir="$(srcdir)" --miniruby="$(MINIRUBY)"
 
-libparser-so:
+libparser.3.3.dylib.3.3.0:
 	$(ECHO) linking shared-library $@
 	$(Q) $(LDSHARED) $(DLDFLAGS) node2.o parse.o st2.o $(OUTFLAG)$@
 
