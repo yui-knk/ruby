@@ -301,12 +301,14 @@ typedef struct rb_parser_config_struct {
 
 } rb_parser_config_t;
 
+RUBY_SYMBOL_EXPORT_BEGIN
 rb_parser_config_t *rb_ruby_parser_config_new(void *(*malloc)(size_t size));
 void rb_ruby_parser_free(void *ptr);
 void rb_ruby_parser_config_free(rb_parser_config_t *config);
 
 rb_parser_t *rb_ruby_parser_new(rb_parser_config_t *config);
 rb_ast_t* rb_ruby_parser_compile_string(rb_parser_t *p, const char *f, VALUE s, int line);
+RUBY_SYMBOL_EXPORT_END
 
 #undef rb_encoding
 #undef OnigCodePoint
