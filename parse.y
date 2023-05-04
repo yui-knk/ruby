@@ -158,6 +158,8 @@ RBIMPL_WARNING_POP()
 
 #define rb_encoding void
 
+#include "parse_default.c"
+
 #define T_FLOAT    0x04
 #define T_REGEXP   0x06
 #define T_HASH     0x08
