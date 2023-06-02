@@ -13707,11 +13707,6 @@ parser_initialize(struct parser_params *p)
     p->enc = rb_utf8_encoding();
 }
 
-#ifdef RIPPER
-#define parser_mark ripper_parser_mark
-#define parser_free ripper_parser_free
-#endif
-
 static void
 parser_mark(void *ptr)
 {
