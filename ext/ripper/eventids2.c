@@ -1,4 +1,5 @@
 #include "ruby/ruby.h"
+#include "rubyparser.h"
 #define YYSTYPE_IS_DECLARED
 #include "parse.h"
 #include "eventids2.h"

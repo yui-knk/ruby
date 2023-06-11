@@ -1759,9 +1759,22 @@ st_values_check(st_table *tab, st_data_t *values, st_index_t size,
 #define C1 BIG_CONSTANT(0x87c37b91,0x114253d5);
 #define C2 BIG_CONSTANT(0x4cf5ad43,0x2745937f);
 #endif
+
+#if defined(NO_SANITIZE) && RBIMPL_COMPILER_IS(GCC)
+/* GCC warns about unknown sanitizer, which is annoying. */
+# include "internal/warnings.h"
+# undef NO_SANITIZE
+# define NO_SANITIZE(x, y) \
+    COMPILER_WARNING_PUSH; \
+    COMPILER_WARNING_IGNORED(-Wattributes); \
+    __attribute__((__no_sanitize__(x))) y; \
+    COMPILER_WARNING_POP
+#endif
+
 #ifndef NO_SANITIZE
 # define NO_SANITIZE(x, y) y
 #endif
+
 NO_SANITIZE("unsigned-integer-overflow", static inline st_index_t murmur_step(st_index_t h, st_index_t k));
 NO_SANITIZE("unsigned-integer-overflow", static inline st_index_t murmur_finish(st_index_t h));
 NO_SANITIZE("unsigned-integer-overflow", extern st_index_t st_hash(const void *ptr, size_t len, st_index_t h));
