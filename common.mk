@@ -9582,8 +9582,6 @@ memory_view.$(OBJEXT): {$(VPATH)}oniguruma.h
 memory_view.$(OBJEXT): {$(VPATH)}ruby_assert.h
 memory_view.$(OBJEXT): {$(VPATH)}ruby_atomic.h
 memory_view.$(OBJEXT): {$(VPATH)}rubyparser.h
-memory_view.$(OBJEXT): {$(VPATH)}ruby_assert.h
-memory_view.$(OBJEXT): {$(VPATH)}ruby_atomic.h
 memory_view.$(OBJEXT): {$(VPATH)}shape.h
 memory_view.$(OBJEXT): {$(VPATH)}st.h
 memory_view.$(OBJEXT): {$(VPATH)}subst.h
@@ -11083,6 +11081,7 @@ parse.$(OBJEXT): {$(VPATH)}vm_core.h
 parse.$(OBJEXT): {$(VPATH)}vm_opts.h
 parser_st.$(OBJEXT): $(top_srcdir)/internal/compilers.h
 parser_st.$(OBJEXT): $(top_srcdir)/internal/static_assert.h
+parser_st.$(OBJEXT): $(top_srcdir)/internal/warnings.h
 parser_st.$(OBJEXT): {$(VPATH)}assert.h
 parser_st.$(OBJEXT): {$(VPATH)}backward/2/assume.h
 parser_st.$(OBJEXT): {$(VPATH)}backward/2/attributes.h
