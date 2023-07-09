@@ -1579,6 +1579,17 @@ eom
     end
     assert_equal("class ok", k.rescued("ok"))
     assert_equal("instance ok", k.new.rescued("ok"))
+    k2 = Class.new do
+      class_eval('def id(x) = x')
+      class_eval('def and1(x) = "ng" and x')
+      class_eval('def and2(x) = id("ng") and id(x)')
+      class_eval('def or1(x) = x or raise("ng")')
+      class_eval('def or2(x) = id(x) or raise("ng")')
+    end
+    assert_equal("ok", k2.new.and1("ok"))
+    assert_equal("ok", k2.new.and2("ok"))
+    assert_equal("ok", k2.new.or1("ok"))
+    assert_equal("ok", k2.new.or2("ok"))
 
     error = /setter method cannot be defined in an endless method definition/
     assert_syntax_error('def foo=() = 42', error)
