@@ -1588,7 +1588,7 @@ static int looking_at_eol_p(struct parser_params *p);
 %type <node> string_contents xstring_contents regexp_contents string_content
 %type <node> words symbols symbol_list qwords qsymbols word_list qword_list qsym_list word
 %type <node> literal numeric simple_numeric ssym dsym symbol cpath def_name defn_head defs_head
-%type <node> top_compstmt top_stmts top_stmt begin_block endless_stmt endless_arg endless_command
+%type <node> top_compstmt top_stmts top_stmt begin_block endless_stmt endless_command_def endless_arg endless_command
 %type <node> bodystmt compstmt stmts stmt_or_begin stmt expr arg primary command command_call method_call
 %type <node> expr_value expr_value_do arg_value primary_value fcall rel_expr
 %type <node> if_tail opt_else case_body case_args cases opt_rescue exc_list exc_var opt_ensure
@@ -2043,7 +2043,18 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
                     /*% %*/
                     /*% ripper: opassign!(field!($1, ID2VAL(idCOLON2), $3), $4, $6) %*/
                     }
-                | defn_head f_opt_paren_args '=' endless_command
+                | endless_command_def
+                | backref tOP_ASGN lex_ctxt command_rhs
+                    {
+                    /*%%%*/
+                        rb_backref_error(p, $1);
+                        $$ = NEW_BEGIN(0, &@$);
+                    /*% %*/
+                    /*% ripper[error]: backref_error(p, RNODE($1), assign!(var_field(p, $1), $4)) %*/
+                    }
+                ;
+
+endless_command_def : defn_head f_opt_paren_args '=' endless_command
                     {
                         endless_method_name(p, $<node>1, &@1);
                         restore_defun(p, $<node>1->nd_defn);
@@ -2064,14 +2075,6 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
                     %*/
                     /*% ripper: defs!(AREF($1, 0), AREF($1, 1), AREF($1, 2), $2, bodystmt!($4, Qnil, Qnil, Qnil)) %*/
                         local_pop(p);
-                    }
-                | backref tOP_ASGN lex_ctxt command_rhs
-                    {
-                    /*%%%*/
-                        rb_backref_error(p, $1);
-                        $$ = NEW_BEGIN(0, &@$);
-                    /*% %*/
-                    /*% ripper[error]: backref_error(p, RNODE($1), assign!(var_field(p, $1), $4)) %*/
                     }
                 ;
 
@@ -3184,6 +3187,14 @@ call_args	: command
                     }
                 | block_arg
                     /*% ripper[brace]: args_add_block!(args_new!, $1) %*/
+                | endless_command_def
+                    {
+                    /*%%%*/
+                        value_expr($1);
+                        $$ = NEW_LIST($1, &@$);
+                    /*% %*/
+                    /*% ripper: args_add!(args_new!, $1) %*/
+                    }
                 ;
 
 command_args	:   {
