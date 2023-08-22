@@ -44,7 +44,7 @@
 
 #define NODE_BUF_DEFAULT_LEN 16
 
-typedef void node_itr_t(rb_ast_t *ast, void *ctx, NODE * node);
+typedef void node_itr_t(rb_ast_t *ast, void *ctx, NODE_BASIC * node);
 static void iterate_node_values(rb_ast_t *ast, node_buffer_list_t *nb, node_itr_t * func, void *ctx);
 
 /* Setup NODE structure.
@@ -54,18 +54,18 @@ static void iterate_node_values(rb_ast_t *ast, node_buffer_list_t *nb, node_itr_
  * objects.
  */
 void
-rb_node_init(NODE *n, enum node_type type, VALUE a0, VALUE a1, VALUE a2)
+rb_node_init(NODE_BASIC *n, enum node_type type, VALUE a0, VALUE a1, VALUE a2)
 {
-    n->flags = T_NODE;
-    nd_init_type(n, type);
-    n->u1.value = a0;
-    n->u2.value = a1;
-    n->u3.value = a2;
-    n->nd_loc.beg_pos.lineno = 0;
-    n->nd_loc.beg_pos.column = 0;
-    n->nd_loc.end_pos.lineno = 0;
-    n->nd_loc.end_pos.column = 0;
-    n->node_id = -1;
+    RNODE(n)->flags = T_NODE;
+    nd_init_type(RNODE(n), type);
+    n->u1 = a0;
+    n->u2 = a1;
+    n->u3 = a2;
+    RNODE(n)->nd_loc.beg_pos.lineno = 0;
+    RNODE(n)->nd_loc.beg_pos.column = 0;
+    RNODE(n)->nd_loc.end_pos.lineno = 0;
+    RNODE(n)->nd_loc.end_pos.column = 0;
+    RNODE(n)->node_id = -1;
 }
 
 const char *
@@ -109,11 +109,11 @@ init_node_buffer_list(node_buffer_list_t * nb, node_buffer_elem_t *head)
 static node_buffer_t *
 rb_node_buffer_new(rb_parser_config_t *config)
 {
-    const size_t bucket_size = offsetof(node_buffer_elem_t, buf) + NODE_BUF_DEFAULT_LEN * sizeof(NODE);
+    const size_t bucket_size = offsetof(node_buffer_elem_t, buf) + NODE_BUF_DEFAULT_LEN * sizeof(NODE_BASIC);
     const size_t alloc_size = sizeof(node_buffer_t) + (bucket_size * 2);
     STATIC_ASSERT(
         integer_overflow,
-        offsetof(node_buffer_elem_t, buf) + NODE_BUF_DEFAULT_LEN * sizeof(NODE)
+        offsetof(node_buffer_elem_t, buf) + NODE_BUF_DEFAULT_LEN * sizeof(NODE_BASIC)
         > sizeof(node_buffer_t) + 2 * sizeof(node_buffer_elem_t));
     node_buffer_t *nb = config->malloc(alloc_size);
     init_node_buffer_list(&nb->unmarkable, (node_buffer_elem_t*)&nb[1]);
@@ -128,11 +128,11 @@ rb_node_buffer_new(rb_parser_config_t *config)
 static node_buffer_t *
 rb_node_buffer_new(void)
 {
-    const size_t bucket_size = offsetof(node_buffer_elem_t, buf) + NODE_BUF_DEFAULT_LEN * sizeof(NODE);
+    const size_t bucket_size = offsetof(node_buffer_elem_t, buf) + NODE_BUF_DEFAULT_LEN * sizeof(NODE_BASIC);
     const size_t alloc_size = sizeof(node_buffer_t) + (bucket_size * 2);
     STATIC_ASSERT(
         integer_overflow,
-        offsetof(node_buffer_elem_t, buf) + NODE_BUF_DEFAULT_LEN * sizeof(NODE)
+        offsetof(node_buffer_elem_t, buf) + NODE_BUF_DEFAULT_LEN * sizeof(NODE_BASIC)
         > sizeof(node_buffer_t) + 2 * sizeof(node_buffer_elem_t));
     node_buffer_t *nb = ruby_xmalloc(alloc_size);
     init_node_buffer_list(&nb->unmarkable, (node_buffer_elem_t*)&nb[1]);
@@ -165,17 +165,17 @@ struct rb_ast_local_table_link {
 };
 
 static void
-free_ast_value(rb_ast_t *ast, void *ctx, NODE * node)
+free_ast_value(rb_ast_t *ast, void *ctx, NODE_BASIC * node)
 {
     switch (nd_type(node)) {
       case NODE_ARGS:
-        xfree(node->nd_ainfo);
+        xfree(RNODE_ARGS(node)->nd_ainfo);
         break;
       case NODE_ARYPTN:
-        xfree(node->nd_apinfo);
+        xfree(RNODE_ARYPTN(node)->nd_apinfo);
         break;
       case NODE_FNDPTN:
-        xfree(node->nd_fpinfo);
+        xfree(RNODE_FNDPTN(node)->nd_fpinfo);
         break;
     }
 }
@@ -195,13 +195,13 @@ rb_node_buffer_free(rb_ast_t *ast, node_buffer_t *nb)
     xfree(nb);
 }
 
-static NODE *
+static NODE_BASIC *
 ast_newnode_in_bucket(rb_ast_t *ast, node_buffer_list_t *nb)
 {
     if (nb->idx >= nb->len) {
         long n = nb->len * 2;
         node_buffer_elem_t *nbe;
-        nbe = rb_xmalloc_mul_add(n, sizeof(NODE), offsetof(node_buffer_elem_t, buf));
+        nbe = rb_xmalloc_mul_add(n, sizeof(NODE_BASIC), offsetof(node_buffer_elem_t, buf));
         nbe->len = n;
         nb->idx = 0;
         nb->len = n;
@@ -230,7 +230,7 @@ nodetype_markable_p(enum node_type type)
     }
 }
 
-NODE *
+NODE_BASIC *
 rb_ast_newnode(rb_ast_t *ast, enum node_type type)
 {
     node_buffer_t *nb = ast->node_buffer;
@@ -326,7 +326,7 @@ iterate_node_values(rb_ast_t *ast, node_buffer_list_t *nb, node_itr_t * func, vo
 }
 
 static void
-mark_ast_value(rb_ast_t *ast, void *ctx, NODE * node)
+mark_ast_value(rb_ast_t *ast, void *ctx, NODE_BASIC * node)
 {
 #ifdef UNIVERSAL_PARSER
     bug_report_func rb_bug = ast->node_buffer->config->bug;
@@ -341,7 +341,7 @@ mark_ast_value(rb_ast_t *ast, void *ctx, NODE * node)
       case NODE_DXSTR:
       case NODE_DREGX:
       case NODE_DSYM:
-        rb_gc_mark_movable(node->nd_lit);
+        rb_gc_mark_movable(RNODE_LIT(node)->nd_lit);
         break;
       default:
         rb_bug("unreachable node %s", ruby_node_name(nd_type(node)));
@@ -349,7 +349,7 @@ mark_ast_value(rb_ast_t *ast, void *ctx, NODE * node)
 }
 
 static void
-update_ast_value(rb_ast_t *ast, void *ctx, NODE * node)
+update_ast_value(rb_ast_t *ast, void *ctx, NODE_BASIC * node)
 {
 #ifdef UNIVERSAL_PARSER
     bug_report_func rb_bug = ast->node_buffer->config->bug;
@@ -364,7 +364,7 @@ update_ast_value(rb_ast_t *ast, void *ctx, NODE * node)
       case NODE_DXSTR:
       case NODE_DREGX:
       case NODE_DSYM:
-        node->nd_lit = rb_gc_location(node->nd_lit);
+        RNODE_LIT(node)->nd_lit = rb_gc_location(RNODE_LIT(node)->nd_lit);
         break;
       default:
         rb_bug("unreachable");
@@ -419,7 +419,7 @@ buffer_list_size(node_buffer_list_t *nb)
     node_buffer_elem_t *nbe = nb->head;
     while (nbe != nb->last) {
         nbe = nbe->next;
-        size += offsetof(node_buffer_elem_t, buf) + nb->len * sizeof(NODE);
+        size += offsetof(node_buffer_elem_t, buf) + nb->len * sizeof(NODE_BASIC);
     }
     return size;
 }
@@ -431,7 +431,7 @@ rb_ast_memsize(const rb_ast_t *ast)
     node_buffer_t *nb = ast->node_buffer;
 
     if (nb) {
-        size += sizeof(node_buffer_t) + offsetof(node_buffer_elem_t, buf) + NODE_BUF_DEFAULT_LEN * sizeof(NODE);
+        size += sizeof(node_buffer_t) + offsetof(node_buffer_elem_t, buf) + NODE_BUF_DEFAULT_LEN * sizeof(NODE_BASIC);
         size += buffer_list_size(&nb->unmarkable);
         size += buffer_list_size(&nb->markable);
     }
