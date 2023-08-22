@@ -22,9 +22,6 @@ code_loc_gen(const rb_code_location_t *loc1, const rb_code_location_t *loc2)
     return loc;
 }
 
-#define RNODE(obj)  ((struct RNode *)(obj))
-
-
 #define NEW_NODE(t,a0,a1,a2,loc) rb_node_newnode((t),(VALUE)(a0),(VALUE)(a1),(VALUE)(a2),loc)
 #define NEW_NODE_WITH_LOCALS(t,a1,a2,loc) node_newnode_with_locals(p, (t),(VALUE)(a1),(VALUE)(a2),loc)
 

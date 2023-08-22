@@ -1384,7 +1384,7 @@ rb_binding_add_dynavars(VALUE bindval, rb_binding_t *bind, int dyncount, const I
     rb_execution_context_t *ec = GET_EC();
     const rb_iseq_t *base_iseq, *iseq;
     rb_ast_body_t ast;
-    NODE tmp_node;
+    NODE_BASIC tmp_node;
 
     if (dyncount < 0) return 0;
 
@@ -1397,7 +1397,7 @@ rb_binding_add_dynavars(VALUE bindval, rb_binding_t *bind, int dyncount, const I
     MEMCPY(dyns->ids, dynvars, ID, dyncount);
 
     rb_node_init(&tmp_node, NODE_SCOPE, (VALUE)dyns, 0, 0);
-    ast.root = &tmp_node;
+    ast.root = RNODE(&tmp_node);
     ast.frozen_string_literal = -1;
     ast.coverage_enabled = -1;
     ast.script_lines = INT2FIX(-1);
@@ -1409,7 +1409,7 @@ rb_binding_add_dynavars(VALUE bindval, rb_binding_t *bind, int dyncount, const I
         VALUE tempstr = rb_fstring_lit("<temp>");
         iseq = rb_iseq_new_top(&ast, tempstr, tempstr, tempstr, NULL);
     }
-    tmp_node.nd_tbl = 0; /* reset table */
+    RNODE_SCOPE(&tmp_node)->nd_tbl = 0; /* reset table */
     ALLOCV_END(idtmp);
 
     vm_set_eval_stack(ec, iseq, 0, base_block);
