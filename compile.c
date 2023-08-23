@@ -9988,9 +9988,6 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
         }
         break;
       }
-      case NODE_KW_ARG:
-        CHECK(compile_kw_arg(iseq, ret, node, popped));
-        break;
       case NODE_DSYM:{
         compile_dstr(iseq, ret, node);
         if (!popped) {
