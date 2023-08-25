@@ -1718,4 +1718,10 @@ END
       end
     end
   end
+
+  def test_single_pattern_with_in_operator_after_case_is_interpreted_as_p_case_body
+    assert_block do
+      case {a: 0} in a:; a == 0 end
+    end
+  end
 end
