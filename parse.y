@@ -1584,6 +1584,7 @@ static int looking_at_eol_p(struct parser_params *p);
 %type <node> top_compstmt top_stmts top_stmt begin_block endless_arg endless_command
 %type <node> bodystmt compstmt stmts stmt_or_begin stmt expr arg primary command command_call method_call
 %type <node> expr_value expr_value_do arg_value primary_value fcall rel_expr
+%type <node> expr0 expr_value0
 %type <node> if_tail opt_else case_body case_args cases opt_rescue exc_list exc_var opt_ensure
 %type <node> args call_args opt_call_args
 %type <node> paren_args opt_paren_args args_tail opt_args_tail block_args_tail opt_block_args_tail
@@ -2099,6 +2100,26 @@ command_rhs	: command_call   %prec tOP_ASGN
                 | command_asgn
                 ;
 
+expr0           : command_call
+                | expr0 keyword_and expr0
+                    {
+                        $$ = logop(p, idAND, $1, $3, &@2, &@$);
+                    }
+                | expr0 keyword_or expr0
+                    {
+                        $$ = logop(p, idOR, $1, $3, &@2, &@$);
+                    }
+                | keyword_not opt_nl expr0
+                    {
+                        $$ = call_uni_op(p, method_cond(p, $3, &@3), METHOD_NOT, &@1, &@$);
+                    }
+                | '!' command_call
+                    {
+                        $$ = call_uni_op(p, method_cond(p, $2, &@2), '!', &@1, &@$);
+                    }
+                | arg
+                ;
+
 expr		: command_call
                 | expr keyword_and expr
                     {
@@ -2210,6 +2231,13 @@ defs_head	: k_def singleton dot_or_colon
                         add_mark_object(p, ary);
                         $<node>$->nd_rval = ary;
                     %*/
+                    }
+                ;
+
+expr_value0     : expr0
+                    {
+                        value_expr($1);
+                        $$ = $1;
                     }
                 ;
 
@@ -3500,7 +3528,7 @@ primary		: literal
                     /*% %*/
                     /*% ripper: until!($2, $3) %*/
                     }
-                | k_case expr_value opt_terms
+                | k_case expr_value0 opt_terms
                     {
                         $<val>$ = p->case_labels;
                         p->case_labels = Qnil;
@@ -3531,7 +3559,7 @@ primary		: literal
                     /*% %*/
                     /*% ripper: case!(Qnil, $4) %*/
                     }
-                | k_case expr_value opt_terms
+                | k_case expr_value0 opt_terms
                   p_case_body
                   k_end
                     {
