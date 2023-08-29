@@ -1273,6 +1273,83 @@ END
     assert_equal(StandardError, NoMatchingPatternError.superclass)
   end
 
+  def test_pattern_matching_for_call
+    # method_call
+    ## Without block
+    assert_block do
+      [].append => a
+      a == []
+    end
+
+    assert_block do
+      [].append in a
+      a == []
+    end
+
+    ## With block
+    assert_block do
+      [].append do
+      end => a
+      a == []
+    end
+
+    assert_block do
+      [].append do
+      end in a
+      a == []
+    end
+
+    ## Without block
+    assert_block do
+      [].append(1) => a
+      a == [1]
+    end
+
+    assert_block do
+      [].append(1) in a
+      a == [1]
+    end
+
+    ## With block
+    assert_block do
+      [].append(1) do
+      end => a
+      a == [1]
+    end
+
+    assert_block do
+      [].append(1) do
+      end in a
+      a == [1]
+    end
+
+    # command_call
+    ## Without block
+    # This is interpreted as #append method call with hash argument
+    # assert_block do
+    #   [].append 1 => a
+    #   a == [1]
+    # end
+
+    assert_block do
+      [].append 1 in a
+      a == [1]
+    end
+
+    ## With block
+    assert_block do
+      [].append 1 do
+      end => a
+      a == [1]
+    end
+
+    assert_block do
+      [].append 1 do
+      end in a
+      a == [1]
+    end
+  end
+
   def test_invalid_syntax
     assert_syntax_error(%q{
       case 0

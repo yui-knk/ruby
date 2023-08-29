@@ -2106,7 +2106,7 @@ command_rhs	: command_call   %prec tOP_ASGN
                 | command_asgn
                 ;
 
-expr		: command_call
+expr		: command_call %prec tLBRACE_ARG
                 | expr keyword_and expr
                     {
                         $$ = logop(p, idAND, $1, $3, &@2, &@$);
@@ -2145,7 +2145,51 @@ expr		: command_call
                     /*% %*/
                     /*% ripper: case!($1, in!($5, Qnil, Qnil)) %*/
                     }
+                | block_call tASSOC
+                    {
+                        value_expr($1);
+                        SET_LEX_STATE(EXPR_BEG|EXPR_LABEL);
+                        p->command_start = FALSE;
+                        $<ctxt>2 = p->ctxt;
+                        p->ctxt.in_kwarg = 1;
+                        $<tbl>$ = push_pvtbl(p);
+                    }
+                    {
+                        $<tbl>$ = push_pktbl(p);
+                    }
+                  p_top_expr_body
+                    {
+                        pop_pktbl(p, $<tbl>4);
+                        pop_pvtbl(p, $<tbl>3);
+                        p->ctxt.in_kwarg = $<ctxt>2.in_kwarg;
+                    /*%%%*/
+                        $$ = NEW_CASE3($1, NEW_IN($5, 0, 0, &@5), &@$);
+                    /*% %*/
+                    /*% ripper: case!($1, in!($5, Qnil, Qnil)) %*/
+                    }
                 | arg keyword_in
+                    {
+                        value_expr($1);
+                        SET_LEX_STATE(EXPR_BEG|EXPR_LABEL);
+                        p->command_start = FALSE;
+                        $<ctxt>2 = p->ctxt;
+                        p->ctxt.in_kwarg = 1;
+                        $<tbl>$ = push_pvtbl(p);
+                    }
+                    {
+                        $<tbl>$ = push_pktbl(p);
+                    }
+                  p_top_expr_body
+                    {
+                        pop_pktbl(p, $<tbl>4);
+                        pop_pvtbl(p, $<tbl>3);
+                        p->ctxt.in_kwarg = $<ctxt>2.in_kwarg;
+                    /*%%%*/
+                        $$ = NEW_CASE3($1, NEW_IN($5, NEW_TRUE(&@5), NEW_FALSE(&@5), &@5), &@$);
+                    /*% %*/
+                    /*% ripper: case!($1, in!($5, Qnil, Qnil)) %*/
+                    }
+                | command_call keyword_in
                     {
                         value_expr($1);
                         SET_LEX_STATE(EXPR_BEG|EXPR_LABEL);
