@@ -3457,6 +3457,8 @@ primary		: literal
                     /*% %*/
                     /*% ripper: method_add_block!($1, $2) %*/
                     }
+                // | primary_value tCOLON2 tCONSTANT '{' brace_body '}'
+                | primary_value tCOLON2 tCONSTANT brace_block
                 | lambda
                 | k_if expr_value then
                   compstmt
