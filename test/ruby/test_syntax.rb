@@ -1990,6 +1990,13 @@ eom
     RUBY
   end
 
+  def test_unary_command
+    assert_valid_syntax('+foo a, b')
+    assert_valid_syntax('-foo a, b')
+    assert_valid_syntax('+foo a, b do end')
+    assert_valid_syntax('-foo a, b do end')
+  end
+
   private
 
   def not_label(x) @result = x; @not_label ||= nil end

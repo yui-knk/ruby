@@ -2250,6 +2250,14 @@ expr_value_do	: {COND_PUSH(1);} expr_value do {COND_POP();}
 
 command_call	: command
                 | block_command
+                | tUPLUS command_call
+                    {
+                        $$ = call_uni_op(p, $2, idUPlus, &@1, &@$);
+                    }
+                | tUMINUS command_call
+                    {
+                        $$ = call_uni_op(p, $2, idUMinus, &@1, &@$);
+                    }
                 ;
 
 block_command	: block_call
