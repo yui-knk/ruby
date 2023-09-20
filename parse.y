@@ -12722,12 +12722,8 @@ new_args_tail(struct parser_params *p, NODE *kw_args, ID kw_rest_arg, ID block, 
 {
     int saved_line = p->ruby_sourceline;
     NODE *node;
-    VALUE tmpbuf = rb_imemo_tmpbuf_auto_free_pointer();
     struct rb_args_info *args = ZALLOC(struct rb_args_info);
-    rb_imemo_tmpbuf_set_ptr(tmpbuf, args);
-    args->imemo = tmpbuf;
     node = NEW_NODE(NODE_ARGS, 0, 0, args, &NULL_LOC);
-    RB_OBJ_WRITTEN(p->ast, Qnil, tmpbuf);
     if (p->error_p) return node;
 
     args->block_arg      = block;
@@ -12819,11 +12815,8 @@ new_array_pattern_tail(struct parser_params *p, NODE *pre_args, int has_rest, NO
 {
     int saved_line = p->ruby_sourceline;
     NODE *node;
-    VALUE tmpbuf = rb_imemo_tmpbuf_auto_free_pointer();
     struct rb_ary_pattern_info *apinfo = ZALLOC(struct rb_ary_pattern_info);
-    rb_imemo_tmpbuf_set_ptr(tmpbuf, apinfo);
-    node = NEW_NODE(NODE_ARYPTN, 0, tmpbuf, apinfo, loc);
-    RB_OBJ_WRITTEN(p->ast, Qnil, tmpbuf);
+    node = NEW_NODE(NODE_ARYPTN, 0, 0, apinfo, loc);
 
     apinfo->pre_args = pre_args;
 
@@ -12853,11 +12846,8 @@ new_find_pattern_tail(struct parser_params *p, NODE *pre_rest_arg, NODE *args, N
 {
     int saved_line = p->ruby_sourceline;
     NODE *node;
-    VALUE tmpbuf = rb_imemo_tmpbuf_auto_free_pointer();
     struct rb_fnd_pattern_info *fpinfo = ZALLOC(struct rb_fnd_pattern_info);
-    rb_imemo_tmpbuf_set_ptr(tmpbuf, fpinfo);
-    node = NEW_NODE(NODE_FNDPTN, 0, tmpbuf, fpinfo, loc);
-    RB_OBJ_WRITTEN(p->ast, Qnil, tmpbuf);
+    node = NEW_NODE(NODE_FNDPTN, 0, 0, fpinfo, loc);
 
     fpinfo->pre_rest_arg = pre_rest_arg ? pre_rest_arg : NODE_SPECIAL_NO_NAME_REST;
     fpinfo->args = args;
