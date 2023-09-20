@@ -48,6 +48,15 @@ class TestSyntax < Test::Unit::TestCase
     f&.close!
   end
 
+  def test_no_leak
+    assert_no_memory_leak([], "", "#{<<~'end;'}", rss: true)
+      1_000_000.times do
+        def foo(a, b, opt1=1, opt2=2, *rest, y, z, kw: 1, **kwrest, &blk)
+        end
+      end
+    end;
+  end
+
   def test_script_lines
     require 'tempfile'
     f = Tempfile.new("bug4361_")
