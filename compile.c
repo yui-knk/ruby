@@ -8272,8 +8272,8 @@ compile_builtin_mandatory_only_method(rb_iseq_t *iseq, const NODE *node, const N
     struct rb_args_info args = {
         .pre_args_num = ISEQ_BODY(iseq)->param.lead_num,
     };
-    NODE_BASIC args_node;
-    rb_node_init(&args_node, NODE_ARGS, 0, 0, (VALUE)&args);
+    rb_node_args_t args_node;
+    rb_node_init(RNODE_BASIC(&args_node), NODE_ARGS, 0, 0, (VALUE)&args);
 
     // local table without non-mandatory parameters
     const int skip_local_size = ISEQ_BODY(iseq)->param.size - ISEQ_BODY(iseq)->param.lead_num;
@@ -8294,8 +8294,8 @@ compile_builtin_mandatory_only_method(rb_iseq_t *iseq, const NODE *node, const N
         tbl->ids[i] = ISEQ_BODY(iseq)->local_table[i + skip_local_size];
     }
 
-    NODE_BASIC scope_node;
-    rb_node_init(&scope_node, NODE_SCOPE, (VALUE)tbl, (VALUE)mandatory_node(iseq, node), (VALUE)&args_node);
+    rb_node_scope_t scope_node;
+    rb_node_init(RNODE_BASIC(&scope_node), NODE_SCOPE, (VALUE)tbl, (VALUE)mandatory_node(iseq, node), (VALUE)&args_node);
 
     rb_ast_body_t ast = {
         .root = RNODE(&scope_node),
