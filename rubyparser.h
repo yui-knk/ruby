@@ -176,363 +176,363 @@ typedef struct RNode_BASIC {
     VALUE u3;
 } NODE_BASIC;
 
-struct RNode_SCOPE {
+typedef struct RNode_SCOPE {
     NODE node;
 
     rb_ast_id_table_t *nd_tbl;
     struct RNode *nd_body;
     struct RNode *nd_args;
-};
+} rb_node_scope_t;
 
-struct RNode_BLOCK {
+typedef struct RNode_BLOCK {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_end;
     struct RNode *nd_next;
-};
+} rb_node_block_t;
 
-struct RNode_IF {
+typedef struct RNode_IF {
     NODE node;
 
     struct RNode *nd_cond;
     struct RNode *nd_body;
     struct RNode *nd_else;
-};
+} rb_node_if_t;
 
-struct RNode_UNLESS {
+typedef struct RNode_UNLESS {
     NODE node;
 
     struct RNode *nd_cond;
     struct RNode *nd_body;
     struct RNode *nd_else;
-};
+} rb_node_unless_t;
 
-struct RNode_CASE {
+typedef struct RNode_CASE {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_body;
     VALUE not_used;
-};
+} rb_node_case_t;
 
-struct RNode_CASE2 {
+typedef struct RNode_CASE2 {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_body;
     VALUE not_used;
-};
+} rb_node_case2_t;
 
-struct RNode_CASE3 {
+typedef struct RNode_CASE3 {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_body;
     VALUE not_used;
-};
+} rb_node_case3_t;
 
-struct RNode_WHEN {
+typedef struct RNode_WHEN {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_body;
     struct RNode *nd_next;
-};
+} rb_node_when_t;
 
-struct RNode_IN {
+typedef struct RNode_IN {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_body;
     struct RNode *nd_next;
-};
+} rb_node_in_t;
 
 /* RNode_WHILE and RNode_UNTIL should be same structure */
-struct RNode_WHILE {
+typedef struct RNode_WHILE {
     NODE node;
 
     struct RNode *nd_cond;
     struct RNode *nd_body;
     long nd_state;
-};
+} rb_node_while_t;
 
-struct RNode_UNTIL {
+typedef struct RNode_UNTIL {
     NODE node;
 
     struct RNode *nd_cond;
     struct RNode *nd_body;
     long nd_state;
-};
+} rb_node_until_t;
 
 /* RNode_ITER and RNode_FOR should be same structure */
-struct RNode_ITER {
+typedef struct RNode_ITER {
     NODE node;
 
     VALUE not_used;
     struct RNode *nd_body;
     struct RNode *nd_iter;
-};
+} rb_node_iter_t;
 
-struct RNode_FOR {
+typedef struct RNode_FOR {
     NODE node;
 
     VALUE not_used;
     struct RNode *nd_body;
     struct RNode *nd_iter;
-};
+} rb_node_for_t;
 
-struct RNode_FOR_MASGN {
+typedef struct RNode_FOR_MASGN {
     NODE node;
 
     struct RNode *nd_var;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_for_masgn_t;
 
 /* RNode_BREAK, RNode_NEXT and RNode_RETURN should be same structure */
-struct RNode_BREAK {
+typedef struct RNode_BREAK {
     NODE node;
 
     struct RNode *nd_stts;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_break_t;
 
-struct RNode_NEXT {
+typedef struct RNode_NEXT {
     NODE node;
 
     struct RNode *nd_stts;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_next_t;
 
-struct RNode_REDO {
+typedef struct RNode_REDO {
     NODE node;
 
     VALUE not_used;
     VALUE not_used2;
     VALUE not_used3;
-};
+} rb_node_redo_t;
 
-struct RNode_RETRY {
+typedef struct RNode_RETRY {
     NODE node;
 
     VALUE not_used;
     VALUE not_used2;
     VALUE not_used3;
-};
+} rb_node_retry_t;
 
-struct RNode_BEGIN {
+typedef struct RNode_BEGIN {
     NODE node;
 
     VALUE not_used;
     struct RNode *nd_body;
     VALUE not_used2;
-};
+} rb_node_begin_t;
 
-struct RNode_RESCUE {
+typedef struct RNode_RESCUE {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_resq;
     struct RNode *nd_else;
-};
+} rb_node_rescue_t;
 
-struct RNode_RESBODY {
+typedef struct RNode_RESBODY {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_body;
     struct RNode *nd_args;
-};
+} rb_node_resbody_t;
 
-struct RNode_ENSURE {
+typedef struct RNode_ENSURE {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_resq; /* Maybe not used other than reduce_nodes */
     struct RNode *nd_ensr;
-};
+} rb_node_ensure_t;
 
 /* RNode_AND and RNode_OR should be same structure */
-struct RNode_AND {
+typedef struct RNode_AND {
     NODE node;
 
     struct RNode *nd_1st;
     struct RNode *nd_2nd;
     VALUE not_used;
-};
+} rb_node_and_t;
 
-struct RNode_OR {
+typedef struct RNode_OR {
     NODE node;
 
     struct RNode *nd_1st;
     struct RNode *nd_2nd;
     VALUE not_used;
-};
+} rb_node_or_t;
 
-struct RNode_MASGN {
+typedef struct RNode_MASGN {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_value;
     struct RNode *nd_args;
-};
+} rb_node_masgn_t;
 
 /* RNode_LASGN, RNode_DASGN, RNode_IASGN, RNode_CVASGN and RNode_GASGN should be same structure */
-struct RNode_LASGN {
+typedef struct RNode_LASGN {
     NODE node;
 
     ID nd_vid;
     struct RNode *nd_value;
     VALUE not_used;
-};
+} rb_node_lasgn_t;
 
-struct RNode_DASGN {
+typedef struct RNode_DASGN {
     NODE node;
 
     ID nd_vid;
     struct RNode *nd_value;
     VALUE not_used;
-};
+} rb_node_dasgn_t;
 
-struct RNode_GASGN {
+typedef struct RNode_GASGN {
     NODE node;
 
     ID nd_vid;
     struct RNode *nd_value;
     VALUE not_used;
-};
+} rb_node_gasgn_t;
 
-struct RNode_IASGN {
+typedef struct RNode_IASGN {
     NODE node;
 
     ID nd_vid;
     struct RNode *nd_value;
     VALUE not_used;
-};
+} rb_node_iasgn_t;
 
-struct RNode_CDECL {
+typedef struct RNode_CDECL {
     NODE node;
 
     ID nd_vid;
     struct RNode *nd_value;
     struct RNode *nd_else;
-};
+} rb_node_cdecl_t;
 
-struct RNode_CVASGN {
+typedef struct RNode_CVASGN {
     NODE node;
 
     ID nd_vid;
     struct RNode *nd_value;
     VALUE not_used;
-};
+} rb_node_cvasgn_t;
 
-struct RNode_OP_ASGN1 {
+typedef struct RNode_OP_ASGN1 {
     NODE node;
 
     struct RNode *nd_recv;
     ID nd_mid;
     struct RNode_ARGSCAT *nd_args;
-};
+} rb_node_op_asgn1_t;
 
-struct RNode_OP_ASGN2 {
+typedef struct RNode_OP_ASGN2 {
     NODE node;
 
     struct RNode *nd_recv;
     struct RNode *nd_value;
     struct RNode_OP_ASGN22 *nd_next;
-};
+} rb_node_op_asgn2_t;
 
-struct RNode_OP_ASGN22 {
+typedef struct RNode_OP_ASGN22 {
     NODE node;
 
     ID nd_vid;
     ID nd_mid;
     bool nd_aid;
-};
+} rb_node_op_asgn22_t;
 
-struct RNode_OP_ASGN_AND {
+typedef struct RNode_OP_ASGN_AND {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_value;
     VALUE not_used;
-};
+} rb_node_op_asgn_and_t;
 
-struct RNode_OP_ASGN_OR {
+typedef struct RNode_OP_ASGN_OR {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_value;
     VALUE not_used;
-};
+} rb_node_op_asgn_or_t;
 
-struct RNode_OP_CDECL {
+typedef struct RNode_OP_CDECL {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_value;
     ID nd_aid;
-};
+} rb_node_op_cdecl_t;
 
 /* RNode_CALL, RNode_OPCALL and RNode_QCALL should be same structure */
-struct RNode_CALL {
+typedef struct RNode_CALL {
     NODE node;
 
     struct RNode *nd_recv;
     ID nd_mid;
     struct RNode *nd_args;
-};
+} rb_node_call_t;
 
-struct RNode_OPCALL {
+typedef struct RNode_OPCALL {
     NODE node;
 
     struct RNode *nd_recv;
     ID nd_mid;
     struct RNode *nd_args;
-};
+} rb_node_opcall_t;
 
-struct RNode_FCALL {
+typedef struct RNode_FCALL {
     NODE node;
 
     VALUE not_used;
     ID nd_mid;
     struct RNode *nd_args;
-};
+} rb_node_fcall_t;
 
-struct RNode_VCALL {
+typedef struct RNode_VCALL {
     NODE node;
 
     VALUE not_used;
     ID nd_mid;
     VALUE not_used2;
-};
+} rb_node_vcall_t;
 
-struct RNode_QCALL {
+typedef struct RNode_QCALL {
     NODE node;
 
     struct RNode *nd_recv;
     ID nd_mid;
     struct RNode *nd_args;
-};
+} rb_node_qcall_t;
 
-struct RNode_SUPER {
+typedef struct RNode_SUPER {
     NODE node;
 
     VALUE not_used;
     VALUE not_used2;
     struct RNode *nd_args;
-};
+} rb_node_super_t;
 
-struct RNode_ZSUPER {
+typedef struct RNode_ZSUPER {
     NODE node;
 
     VALUE not_used;
     VALUE not_used2;
     VALUE not_used3;
-};
+} rb_node_zsuper_t;
 
 /*
 
@@ -546,539 +546,539 @@ struct RNode_ZSUPER {
 
   RNode_LIST and RNode_VALUES should be same structure
 */
-struct RNode_LIST {
+typedef struct RNode_LIST {
     NODE node;
 
     struct RNode *nd_head; /* element */
     long nd_alen;
     struct RNode *nd_next; /*  */
-};
+} rb_node_list_t;
 
-struct RNode_LIST2 {
+typedef struct RNode_LIST2 {
     NODE node;
 
     VALUE not_used;
     struct RNode *nd_end;
     VALUE not_used2;
-};
+} rb_node_list2_t;
 
-struct RNode_ZLIST {
+typedef struct RNode_ZLIST {
     NODE node;
 
     VALUE not_used;
     VALUE not_used2;
     VALUE not_used3;
-};
+} rb_node_zlist_t;
 
-struct RNode_VALUES {
+typedef struct RNode_VALUES {
     NODE node;
 
     struct RNode *nd_head;
     long nd_alen;
     struct RNode *nd_next;
-};
+} rb_node_values_t;
 
-struct RNode_HASH {
+typedef struct RNode_HASH {
     NODE node;
 
     struct RNode *nd_head;
     long nd_brace;
     VALUE not_used;
-};
+} rb_node_hash_t;
 
-struct RNode_RETURN {
+typedef struct RNode_RETURN {
     NODE node;
 
     struct RNode *nd_stts;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_return_t;
 
-struct RNode_YIELD {
+typedef struct RNode_YIELD {
     NODE node;
 
     struct RNode *nd_head;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_yield_t;
 
 /* RNode_LVAR and RNode_DVAR should be same structure */
-struct RNode_LVAR {
+typedef struct RNode_LVAR {
     NODE node;
 
     ID nd_vid;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_lvar_t;
 
-struct RNode_DVAR {
+typedef struct RNode_DVAR {
     NODE node;
 
     ID nd_vid;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_dvar_t;
 
 /* RNode_GVAR, RNode_IVAR, RNode_CONST and RNode_CVAR should be same structure */
-struct RNode_GVAR {
+typedef struct RNode_GVAR {
     NODE node;
 
     ID nd_vid;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_gvar_t;
 
-struct RNode_IVAR {
+typedef struct RNode_IVAR {
     NODE node;
 
     ID nd_vid;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_ivar_t;
 
-struct RNode_CONST {
+typedef struct RNode_CONST {
     NODE node;
 
     ID nd_vid;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_const_t;
 
-struct RNode_CVAR {
+typedef struct RNode_CVAR {
     NODE node;
 
     ID nd_vid;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_cvar_t;
 
-struct RNode_NTH_REF {
+typedef struct RNode_NTH_REF {
     NODE node;
 
     VALUE not_used;
     long nd_nth;
     VALUE not_used2;
-};
+} rb_node_nth_ref_t;
 
-struct RNode_BACK_REF {
+typedef struct RNode_BACK_REF {
     NODE node;
 
     VALUE not_used;
     long nd_nth;
     VALUE not_used2;
-};
+} rb_node_back_ref_t;
 
 /* RNode_MATCH, RNode_LIT, RNode_STR and RNode_XSTR should be same structure */
-struct RNode_MATCH {
+typedef struct RNode_MATCH {
     NODE node;
 
     VALUE nd_lit;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_match_t;
 
-struct RNode_MATCH2 {
+typedef struct RNode_MATCH2 {
     NODE node;
 
     struct RNode *nd_recv;
     struct RNode *nd_value;
     struct RNode *nd_args;
-};
+} rb_node_match2_t;
 
-struct RNode_MATCH3 {
+typedef struct RNode_MATCH3 {
     NODE node;
 
     struct RNode *nd_recv;
     struct RNode *nd_value;
     VALUE not_used;
-};
+} rb_node_match3_t;
 
-struct RNode_LIT {
+typedef struct RNode_LIT {
     NODE node;
 
     VALUE nd_lit;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_lit_t;
 
-struct RNode_STR {
+typedef struct RNode_STR {
     NODE node;
 
     VALUE nd_lit;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_str_t;
 
 /* RNode_DSTR, RNode_DXSTR and RNode_DSYM should be same structure */
-struct RNode_DSTR {
+typedef struct RNode_DSTR {
     NODE node;
 
     VALUE nd_lit;
     long nd_alen;
     struct RNode_LIST *nd_next;
-};
+} rb_node_dstr_t;
 
 /* See also RNode_LIST2 */
-struct RNode_DSTR2 {
+typedef struct RNode_DSTR2 {
     NODE node;
 
     VALUE not_used;
     struct RNode *nd_end;
     VALUE not_used2;
-};
+} rb_node_dstr2_t;
 
-struct RNode_XSTR {
+typedef struct RNode_XSTR {
     NODE node;
 
     VALUE nd_lit;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_xstr_t;
 
-struct RNode_DXSTR {
+typedef struct RNode_DXSTR {
     NODE node;
 
     VALUE nd_lit;
     VALUE not_used;
     struct RNode_LIST *nd_next;
-};
+} rb_node_dxstr_t;
 
-struct RNode_EVSTR {
+typedef struct RNode_EVSTR {
     NODE node;
 
     VALUE not_used;
     struct RNode *nd_body;
     VALUE not_used2;
-};
+} rb_node_evstr_t;
 
-struct RNode_DREGX {
+typedef struct RNode_DREGX {
     NODE node;
 
     VALUE nd_lit;
     ID nd_cflag;
     struct RNode_LIST *nd_next;
-};
+} rb_node_dregx_t;
 
-struct RNode_ONCE {
+typedef struct RNode_ONCE {
     NODE node;
 
     VALUE not_used;
     struct RNode *nd_body;
     VALUE not_used2;
-};
+} rb_node_once_t;
 
-struct RNode_ARGS {
+typedef struct RNode_ARGS {
     NODE node;
 
     VALUE not_used;
     VALUE not_used2;
     struct rb_args_info *nd_ainfo;
-};
+} rb_node_args_t;
 
-struct RNode_ARGS_AUX {
+typedef struct RNode_ARGS_AUX {
     NODE node;
 
     ID nd_pid;
     long nd_plen;
     struct RNode *nd_next;
-};
+} rb_node_args_aux_t;
 
-struct RNode_OPT_ARG {
+typedef struct RNode_OPT_ARG {
     NODE node;
 
     VALUE not_used;
     struct RNode *nd_body;
     struct RNode *nd_next;
-};
+} rb_node_opt_arg_t;
 
-struct RNode_KW_ARG {
+typedef struct RNode_KW_ARG {
     NODE node;
 
     VALUE not_used;
     struct RNode *nd_body;
     struct RNode *nd_next;
-};
+} rb_node_kw_arg_t;
 
-struct RNode_POSTARG {
+typedef struct RNode_POSTARG {
     NODE node;
 
     struct RNode *nd_1st;
     struct RNode *nd_2nd;
     VALUE not_used;
-};
+} rb_node_postarg_t;
 
-struct RNode_ARGSCAT {
+typedef struct RNode_ARGSCAT {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_body;
     VALUE not_used;
-};
+} rb_node_argscat_t;
 
-struct RNode_ARGSPUSH {
+typedef struct RNode_ARGSPUSH {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_body;
     VALUE not_used;
-};
+} rb_node_argspush_t;
 
-struct RNode_SPLAT {
+typedef struct RNode_SPLAT {
     NODE node;
 
     struct RNode *nd_head;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_splat_t;
 
-struct RNode_BLOCK_PASS {
+typedef struct RNode_BLOCK_PASS {
     NODE node;
 
     struct RNode *nd_head;
     struct RNode *nd_body;
     VALUE not_used;
-};
+} rb_node_block_pass_t;
 
-struct RNode_DEFN {
+typedef struct RNode_DEFN {
     NODE node;
 
     VALUE not_used;
     ID nd_mid;
     struct RNode *nd_defn;
-};
+} rb_node_defn_t;
 
-struct RNode_DEFS {
+typedef struct RNode_DEFS {
     NODE node;
 
     struct RNode *nd_recv;
     ID nd_mid;
     struct RNode *nd_defn;
-};
+} rb_node_defs_t;
 
-struct RNode_DEF_TEMP {
+typedef struct RNode_DEF_TEMP {
     NODE node;
 
     ID nd_vid;
     ID nd_mid;
     struct RNode_DEF_TEMP2 *nd_next;
-};
+} rb_node_def_temp_t;
 
-struct RNode_DEF_TEMP2 {
+typedef struct RNode_DEF_TEMP2 {
     NODE node;
 
     struct RNode *nd_head;
     long nd_nth;
     VALUE nd_cval;
-};
+} rb_node_def_temp2_t;
 
-struct RNode_ALIAS {
+typedef struct RNode_ALIAS {
     NODE node;
 
     struct RNode *nd_1st;
     struct RNode *nd_2nd;
     VALUE not_used;
-};
+} rb_node_alias_t;
 
-struct RNode_VALIAS {
+typedef struct RNode_VALIAS {
     NODE node;
 
     ID nd_alias;
     ID nd_orig;
     VALUE not_used;
-};
+} rb_node_valias_t;
 
-struct RNode_UNDEF {
+typedef struct RNode_UNDEF {
     NODE node;
 
     VALUE not_used;
     struct RNode *nd_undef;
     VALUE not_used2;
-};
+} rb_node_undef_t;
 
-struct RNode_CLASS {
+typedef struct RNode_CLASS {
     NODE node;
 
     struct RNode *nd_cpath;
     struct RNode *nd_body;
     struct RNode *nd_super;
-};
+} rb_node_class_t;
 
-struct RNode_MODULE {
+typedef struct RNode_MODULE {
     NODE node;
 
     struct RNode *nd_cpath;
     struct RNode *nd_body;
     VALUE not_used;
-};
+} rb_node_module_t;
 
-struct RNode_SCLASS {
+typedef struct RNode_SCLASS {
     NODE node;
 
     struct RNode *nd_recv;
     struct RNode *nd_body;
     VALUE not_used;
-};
+} rb_node_sclass_t;
 
-struct RNode_COLON2 {
+typedef struct RNode_COLON2 {
     NODE node;
 
     struct RNode *nd_head;
     ID nd_mid;
     VALUE not_used;
-};
+} rb_node_colon2_t;
 
-struct RNode_COLON3 {
+typedef struct RNode_COLON3 {
     NODE node;
 
     VALUE not_used;
     ID nd_mid;
     VALUE not_used2;
-};
+} rb_node_colon3_t;
 
 /* RNode_DOT2, RNode_DOT3, RNode_FLIP2 and RNode_FLIP3 should be same structure */
-struct RNode_DOT2 {
+typedef struct RNode_DOT2 {
     NODE node;
 
     struct RNode *nd_beg;
     struct RNode *nd_end;
     VALUE not_used;
-};
+} rb_node_dot2_t;
 
-struct RNode_DOT3 {
+typedef struct RNode_DOT3 {
     NODE node;
 
     struct RNode *nd_beg;
     struct RNode *nd_end;
     VALUE not_used;
-};
+} rb_node_dot3_t;
 
-struct RNode_FLIP2 {
+typedef struct RNode_FLIP2 {
     NODE node;
 
     struct RNode *nd_beg;
     struct RNode *nd_end;
     VALUE not_used;
-};
+} rb_node_flip2_t;
 
-struct RNode_FLIP3 {
+typedef struct RNode_FLIP3 {
     NODE node;
 
     struct RNode *nd_beg;
     struct RNode *nd_end;
     VALUE not_used;
-};
+} rb_node_flip3_t;
 
-struct RNode_SELF {
+typedef struct RNode_SELF {
     NODE node;
 
     VALUE not_used;
     VALUE not_used2;
     long nd_state; /* Default 1. See NEW_SELF. */
-};
+} rb_node_self_t;
 
-struct RNode_NIL {
+typedef struct RNode_NIL {
     NODE node;
 
     VALUE not_used;
     VALUE not_used2;
     VALUE not_used3;
-};
+} rb_node_nil_t;
 
-struct RNode_TRUE {
+typedef struct RNode_TRUE {
     NODE node;
 
     VALUE not_used;
     VALUE not_used2;
     VALUE not_used3;
-};
+} rb_node_true_t;
 
-struct RNode_FALSE {
+typedef struct RNode_FALSE {
     NODE node;
 
     VALUE not_used;
     VALUE not_used2;
     VALUE not_used3;
-};
+} rb_node_false_t;
 
-struct RNode_ERRINFO {
+typedef struct RNode_ERRINFO {
     NODE node;
 
     VALUE not_used;
     VALUE not_used2;
     VALUE not_used3;
-};
+} rb_node_errinfo_t;
 
-struct RNode_DEFINED {
+typedef struct RNode_DEFINED {
     NODE node;
 
     struct RNode *nd_head;
     VALUE not_used;
     VALUE not_used2;
-};
+} rb_node_defined_t;
 
-struct RNode_POSTEXE {
+typedef struct RNode_POSTEXE {
     NODE node;
 
     VALUE not_used;
     struct RNode *nd_body;
     VALUE not_used2;
-};
+} rb_node_postexe_t;
 
-struct RNode_DSYM {
+typedef struct RNode_DSYM {
     NODE node;
 
     VALUE nd_lit;
     VALUE not_used;
     struct RNode_LIST *nd_next;
-};
+} rb_node_dsym_t;
 
-struct RNode_ATTRASGN {
+typedef struct RNode_ATTRASGN {
     NODE node;
 
     struct RNode *nd_recv;
     ID nd_mid;
     struct RNode *nd_args;
-};
+} rb_node_attrasgn_t;
 
-struct RNode_LAMBDA {
+typedef struct RNode_LAMBDA {
     NODE node;
 
     VALUE not_used;
     struct RNode *nd_body;
     VALUE not_used2;
-};
+} rb_node_lambda_t;
 
-struct RNode_ARYPTN {
+typedef struct RNode_ARYPTN {
     NODE node;
 
     struct RNode *nd_pconst;
     VALUE nd_rval; /* tmpbuf */
     struct rb_ary_pattern_info *nd_apinfo;
-};
+} rb_node_aryptn_t;
 
-struct RNode_HSHPTN {
+typedef struct RNode_HSHPTN {
     NODE node;
 
     struct RNode *nd_pconst;
     struct RNode *nd_pkwargs;
     struct RNode *nd_pkwrestarg;
-};
+} rb_node_hshptn_t;
 
-struct RNode_FNDPTN {
+typedef struct RNode_FNDPTN {
     NODE node;
 
     struct RNode *nd_pconst;
     VALUE nd_rval; /* tmpbuf */
     struct rb_fnd_pattern_info *nd_fpinfo;
-};
+} rb_node_fndptn_t;
 
-struct RNode_ERROR {
+typedef struct RNode_ERROR {
     NODE node;
 
     VALUE not_used;
     VALUE not_used2;
     VALUE not_used3;
-};
+} rb_node_error_t;
 
 #define RNODE(obj)  ((struct RNode *)(obj))
 

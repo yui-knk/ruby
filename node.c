@@ -196,7 +196,7 @@ rb_node_buffer_free(rb_ast_t *ast, node_buffer_t *nb)
 }
 
 static NODE_BASIC *
-ast_newnode_in_bucket(rb_ast_t *ast, node_buffer_list_t *nb)
+ast_newnode_in_bucket(rb_ast_t *ast, node_buffer_list_t *nb, size_t size)
 {
     if (nb->idx >= nb->len) {
         long n = nb->len * 2;
@@ -231,12 +231,12 @@ nodetype_markable_p(enum node_type type)
 }
 
 NODE_BASIC *
-rb_ast_newnode(rb_ast_t *ast, enum node_type type)
+rb_ast_newnode(rb_ast_t *ast, enum node_type type, size_t size)
 {
     node_buffer_t *nb = ast->node_buffer;
     node_buffer_list_t *bucket =
         (nodetype_markable_p(type) ? &nb->markable : &nb->unmarkable);
-    return ast_newnode_in_bucket(ast, bucket);
+    return ast_newnode_in_bucket(ast, bucket, size);
 }
 
 #if RUBY_DEBUG

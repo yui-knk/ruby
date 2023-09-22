@@ -844,7 +844,8 @@ static void token_info_drop(struct parser_params *p, const char *token, rb_code_
 
 #define CALL_Q_P(q) ((q) == TOKEN2VAL(tANDDOT))
 #define NODE_CALL_Q(q) (CALL_Q_P(q) ? NODE_QCALL : NODE_CALL)
-#define NEW_QCALL(q,r,m,a,loc) NEW_NODE(NODE_CALL_Q(q),r,m,a,loc)
+STATIC_ASSERT(sizeof_rb_node_qcall_t, sizeof(rb_node_qcall_t) == sizeof(rb_node_call_t));
+#define NEW_QCALL(q,r,m,a,loc) NEW_NODE(NODE_CALL_Q(q),rb_node_qcall_t,r,m,a,loc)
 
 #define lambda_beginning_p() (p->lex.lpar_beg == p->lex.paren_nest)
 
@@ -870,16 +871,16 @@ add_mark_object(struct parser_params *p, VALUE obj)
     return obj;
 }
 #else
-static NODE* node_newnode_with_locals(struct parser_params *, enum node_type, VALUE, VALUE, const rb_code_location_t*);
+static NODE* node_newnode_with_locals(struct parser_params *, enum node_type, size_t size, VALUE, VALUE, const rb_code_location_t*);
 #endif
 
-static NODE* node_newnode(struct parser_params *, enum node_type, VALUE, VALUE, VALUE, const rb_code_location_t*);
-#define rb_node_newnode(type, a1, a2, a3, loc) node_newnode(p, (type), (a1), (a2), (a3), (loc))
+static NODE* node_newnode(struct parser_params *, enum node_type, size_t size, VALUE, VALUE, VALUE, const rb_code_location_t*);
+#define rb_node_newnode(type, s, a1, a2, a3, loc) node_newnode(p, (type), sizeof(s), (a1), (a2), (a3), (loc))
 
 /* Make a new internal node, which should not be appeared in the
  * result AST and does not have node_id and location. */
-static NODE* node_new_internal(struct parser_params *p, enum node_type type, VALUE a0, VALUE a1, VALUE a2);
-#define NODE_NEW_INTERNAL(t,a0,a1,a2) node_new_internal(p, (t),(VALUE)(a0),(VALUE)(a1),(VALUE)(a2))
+static NODE* node_new_internal(struct parser_params *p, enum node_type type, size_t size, VALUE a0, VALUE a1, VALUE a2);
+#define NODE_NEW_INTERNAL(t,s,a0,a1,a2) node_new_internal(p, (t),sizeof(s),(VALUE)(a0),(VALUE)(a1),(VALUE)(a2))
 
 static NODE *nd_set_loc(NODE *nd, const YYLTYPE *loc);
 
@@ -1963,7 +1964,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
                     /*%%%*/
                         {
                             NODE *scope = NEW_NODE(
-                                NODE_SCOPE, 0 /* tbl */, $3 /* body */, 0 /* args */, &@$);
+                                NODE_SCOPE, rb_node_scope_t, 0 /* tbl */, $3 /* body */, 0 /* args */, &@$);
                             $$ = NEW_POSTEXE(scope, &@$);
                         }
                     /*% %*/
@@ -2200,14 +2201,14 @@ def_name	: fname
                         YYSTYPE c = {.ctxt = p->ctxt};
                         numparam_name(p, fname);
                         NODE *save =
-                            NODE_NEW_INTERNAL(NODE_SELF,
+                            NODE_NEW_INTERNAL(NODE_SELF, rb_node_self_t,
                                               /*head*/numparam_push(p),
                                               /*nth*/p->max_numparam,
                                               /*cval*/c.val);
                         local_push(p, 0);
                         p->cur_arg = 0;
                         p->ctxt.in_def = 1;
-                        $<node>$ = NEW_NODE(NODE_SELF, /*vid*/cur_arg, /*mid*/fname, /*next*/save, &@$);
+                        $<node>$ = NEW_NODE(NODE_SELF, rb_node_self_t, /*vid*/cur_arg, /*mid*/fname, /*next*/save, &@$);
                     /*%%%*/
                     /*%
                         $$ = NEW_RIPPER(fname, get_value($1), $$, &NULL_LOC);
@@ -2219,7 +2220,7 @@ defn_head	: k_def def_name
                     {
                         $$ = $2;
                     /*%%%*/
-                        $$ = NEW_NODE(NODE_DEFN, 0, RNODE_DEF_TEMP($$)->nd_mid, $$, &@$);
+                        $$ = NEW_NODE(NODE_DEFN, rb_node_defn_t, 0, RNODE_DEF_TEMP($$)->nd_mid, $$, &@$);
                     /*% %*/
                     }
                 ;
@@ -2234,7 +2235,7 @@ defs_head	: k_def singleton dot_or_colon
                         SET_LEX_STATE(EXPR_ENDFN|EXPR_LABEL); /* force for args */
                         $$ = $def_name;
                     /*%%%*/
-                        $$ = NEW_NODE(NODE_DEFS, $singleton, RNODE_DEF_TEMP($$)->nd_mid, $$, &@$);
+                        $$ = NEW_NODE(NODE_DEFS, rb_node_defs_t, $singleton, RNODE_DEF_TEMP($$)->nd_mid, $$, &@$);
                     /*%
                         VALUE ary = rb_ary_new_from_args(3, $singleton, $dot_or_colon, get_value($$));
                         add_mark_object(p, ary);
@@ -3615,7 +3616,7 @@ primary		: literal
                         }
                         /* {|*internal_id| <m> = internal_id; ... } */
                         args = new_args(p, (NODE *)m, 0, id, 0, new_args_tail(p, 0, 0, 0, &@2), &@2);
-                        scope = NEW_NODE(NODE_SCOPE, tbl, $5, args, &@$);
+                        scope = NEW_NODE(NODE_SCOPE, rb_node_scope_t, tbl, $5, args, &@$);
                         $$ = NEW_FOR($4, scope, &@$);
                         fixpos($$, $2);
                     /*% %*/
@@ -4621,7 +4622,7 @@ p_as		: p_expr tASSOC p_variable
 p_alt		: p_alt '|' p_expr_basic
                     {
                     /*%%%*/
-                        $$ = NEW_NODE(NODE_OR, $1, $3, 0, &@$);
+                        $$ = NEW_NODE(NODE_OR, rb_node_or_t, $1, $3, 0, &@$);
                     /*% %*/
                     /*% ripper: binary!($1, STATIC_ID2SYM(idOr), $3) %*/
                     }
@@ -10605,18 +10606,18 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
 #define LVAR_USED ((ID)1 << (sizeof(ID) * CHAR_BIT - 1))
 
 static NODE*
-node_new_internal(struct parser_params *p, enum node_type type, VALUE a0, VALUE a1, VALUE a2)
+node_new_internal(struct parser_params *p, enum node_type type, size_t size, VALUE a0, VALUE a1, VALUE a2)
 {
-    NODE_BASIC *n = rb_ast_newnode(p->ast, type);
+    NODE_BASIC *n = rb_ast_newnode(p->ast, type, size);
 
     rb_node_init(n, type, a0, a1, a2);
     return (NODE *)n;
 }
 
 static NODE*
-node_newnode(struct parser_params *p, enum node_type type, VALUE a0, VALUE a1, VALUE a2, const rb_code_location_t *loc)
+node_newnode(struct parser_params *p, enum node_type type, size_t size, VALUE a0, VALUE a1, VALUE a2, const rb_code_location_t *loc)
 {
-    NODE *n = node_new_internal(p, type, a0, a1, a2);
+    NODE *n = node_new_internal(p, type, size, a0, a1, a2);
 
     nd_set_loc(n, loc);
     nd_set_node_id(n, parser_get_node_id(p));
@@ -10880,7 +10881,7 @@ literal_concat(struct parser_params *p, NODE *head, NODE *tail, const YYLTYPE *l
             goto append;
         }
         else {
-            list_concat(head, NEW_NODE(NODE_LIST, NEW_STR(RNODE_DSTR(tail)->nd_lit, loc), RNODE_DSTR(tail)->nd_alen, RNODE_DSTR(tail)->nd_next, loc));
+            list_concat(head, NEW_NODE(NODE_LIST, rb_node_list_t, NEW_STR(RNODE_DSTR(tail)->nd_lit, loc), RNODE_DSTR(tail)->nd_alen, RNODE_DSTR(tail)->nd_next, loc));
         }
         break;
 
@@ -11215,7 +11216,7 @@ new_regexp(struct parser_params *p, NODE *node, int options, const YYLTYPE *loc)
         break;
       default:
         lit = STR_NEW0();
-        node = NEW_NODE(NODE_DSTR, lit, 1, NEW_LIST(node, loc), loc);
+        node = NEW_NODE(NODE_DSTR, rb_node_dstr_t, lit, 1, NEW_LIST(node, loc), loc);
         RB_OBJ_WRITTEN(p->ast, Qnil, lit);
         /* fall through */
       case NODE_DSTR:
@@ -11253,7 +11254,7 @@ new_regexp(struct parser_params *p, NODE *node, int options, const YYLTYPE *loc)
             RB_OBJ_WRITTEN(p->ast, Qnil, RNODE_DREGX(node)->nd_lit = reg_compile(p, src, options));
         }
         if (options & RE_OPTION_ONCE) {
-            node = NEW_NODE(NODE_ONCE, 0, node, 0, loc);
+            node = NEW_NODE(NODE_ONCE, rb_node_once_t, 0, node, 0, loc);
         }
         break;
     }
@@ -11286,7 +11287,7 @@ new_xstring(struct parser_params *p, NODE *node, const YYLTYPE *loc)
         nd_set_loc(node, loc);
         break;
       default:
-        node = NEW_NODE(NODE_DXSTR, Qnil, 1, NEW_LIST(node, loc), loc);
+        node = NEW_NODE(NODE_DXSTR, rb_node_dxstr_t, Qnil, 1, NEW_LIST(node, loc), loc);
         break;
     }
     return node;
@@ -12563,6 +12564,8 @@ new_unless(struct parser_params *p, NODE *cc, NODE *left, NODE *right, const YYL
     return newline_node(NEW_UNLESS(cc, left, right, loc));
 }
 
+STATIC_ASSERT(sizeof_rb_node_and_t, sizeof(rb_node_and_t) == sizeof(rb_node_or_t));
+
 static NODE*
 logop(struct parser_params *p, ID id, NODE *left, NODE *right,
           const YYLTYPE *op_loc, const YYLTYPE *loc)
@@ -12575,12 +12578,12 @@ logop(struct parser_params *p, ID id, NODE *left, NODE *right,
         while ((second = RNODE_AND(node)->nd_2nd) != 0 && nd_type_p(second, type)) {
             node = second;
         }
-        RNODE_AND(node)->nd_2nd = NEW_NODE(type, second, right, 0, loc);
+        RNODE_AND(node)->nd_2nd = NEW_NODE(type, rb_node_and_t, second, right, 0, loc);
         nd_set_line(RNODE_AND(node)->nd_2nd, op_loc->beg_pos.lineno);
         left->nd_loc.end_pos = loc->end_pos;
         return left;
     }
-    op = NEW_NODE(type, left, right, 0, loc);
+    op = NEW_NODE(type, rb_node_and_t, left, right, 0, loc);
     nd_set_line(op, op_loc->beg_pos.lineno);
     return op;
 }
@@ -12723,7 +12726,7 @@ static NODE*
 new_args_tail(struct parser_params *p, NODE *kw_args, ID kw_rest_arg, ID block, const YYLTYPE *kw_rest_loc)
 {
     int saved_line = p->ruby_sourceline;
-    NODE *node = NEW_NODE(NODE_ARGS, 0, 0, 0, &NULL_LOC);
+    NODE *node = NEW_NODE(NODE_ARGS, rb_node_args_t, 0, 0, 0, &NULL_LOC);
     struct rb_args_info *args = ZALLOC(struct rb_args_info);
     RNODE_ARGS(node)->nd_ainfo = args;
     if (p->error_p) return node;
@@ -12816,7 +12819,7 @@ static NODE*
 new_array_pattern_tail(struct parser_params *p, NODE *pre_args, int has_rest, NODE *rest_arg, NODE *post_args, const YYLTYPE *loc)
 {
     int saved_line = p->ruby_sourceline;
-    NODE *node = NEW_NODE(NODE_ARYPTN, 0, 0, 0, loc);
+    NODE *node = NEW_NODE(NODE_ARYPTN, rb_node_aryptn_t, 0, 0, 0, loc);
     struct rb_ary_pattern_info *apinfo = ZALLOC(struct rb_ary_pattern_info);
     RNODE_ARYPTN(node)->nd_apinfo = apinfo;
 
@@ -12847,7 +12850,7 @@ static NODE*
 new_find_pattern_tail(struct parser_params *p, NODE *pre_rest_arg, NODE *args, NODE *post_rest_arg, const YYLTYPE *loc)
 {
     int saved_line = p->ruby_sourceline;
-    NODE *node = NEW_NODE(NODE_FNDPTN, 0, 0, 0, loc);
+    NODE *node = NEW_NODE(NODE_FNDPTN, rb_node_fndptn_t, 0, 0, 0, loc);
     struct rb_fnd_pattern_info *fpinfo = ZALLOC(struct rb_fnd_pattern_info);
     RNODE_FNDPTN(node)->nd_fpinfo = fpinfo;
 
@@ -12882,7 +12885,7 @@ new_hash_pattern_tail(struct parser_params *p, NODE *kw_args, ID kw_rest_arg, co
         kw_rest_arg_node = NULL;
     }
 
-    node = NEW_NODE(NODE_HSHPTN, 0, kw_args, kw_rest_arg_node, loc);
+    node = NEW_NODE(NODE_HSHPTN, rb_node_hshptn_t, 0, kw_args, kw_rest_arg_node, loc);
 
     p->ruby_sourceline = saved_line;
     return node;
@@ -12909,7 +12912,7 @@ dsym_node(struct parser_params *p, NODE *node, const YYLTYPE *loc)
         nd_set_loc(node, loc);
         break;
       default:
-        node = NEW_NODE(NODE_DSYM, Qnil, 1, NEW_LIST(node, loc), loc);
+        node = NEW_NODE(NODE_DSYM, rb_node_dsym_t, Qnil, 1, NEW_LIST(node, loc), loc);
         break;
     }
     return node;
@@ -13288,13 +13291,13 @@ local_tbl(struct parser_params *p)
 }
 
 static NODE*
-node_newnode_with_locals(struct parser_params *p, enum node_type type, VALUE a1, VALUE a2, const rb_code_location_t *loc)
+node_newnode_with_locals(struct parser_params *p, enum node_type type, size_t size, VALUE a1, VALUE a2, const rb_code_location_t *loc)
 {
     rb_ast_id_table_t *a0;
     NODE *n;
 
     a0 = local_tbl(p);
-    n = NEW_NODE(type, a0, a1, a2, loc);
+    n = NEW_NODE(type, size, a0, a1, a2, loc);
     return n;
 }
 

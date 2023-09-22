@@ -1384,7 +1384,7 @@ rb_binding_add_dynavars(VALUE bindval, rb_binding_t *bind, int dyncount, const I
     rb_execution_context_t *ec = GET_EC();
     const rb_iseq_t *base_iseq, *iseq;
     rb_ast_body_t ast;
-    NODE_BASIC tmp_node;
+    rb_node_scope_t tmp_node;
 
     if (dyncount < 0) return 0;
 
@@ -1396,7 +1396,7 @@ rb_binding_add_dynavars(VALUE bindval, rb_binding_t *bind, int dyncount, const I
     dyns->size = dyncount;
     MEMCPY(dyns->ids, dynvars, ID, dyncount);
 
-    rb_node_init(&tmp_node, NODE_SCOPE, (VALUE)dyns, 0, 0);
+    rb_node_init(RNODE_BASIC(&tmp_node), NODE_SCOPE, (VALUE)dyns, 0, 0);
     ast.root = RNODE(&tmp_node);
     ast.frozen_string_literal = -1;
     ast.coverage_enabled = -1;
