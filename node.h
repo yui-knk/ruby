@@ -20,11 +20,12 @@ typedef void (*bug_report_func)(const char *fmt, ...);
 typedef struct node_buffer_elem_struct {
     struct node_buffer_elem_struct *next;
     long len;
-    NODE_BASIC buf[FLEX_ARY_LEN];
+    size_t size; /* Total memory size of allocated nodes */
+    NODE *buf[FLEX_ARY_LEN];
 } node_buffer_elem_t;
 
 typedef struct {
-    long idx, len;
+    long idx, len; /* Index and lenght of head node buffer. */
     node_buffer_elem_t *head;
     node_buffer_elem_t *last;
 } node_buffer_list_t;
@@ -59,14 +60,15 @@ VALUE rb_ast_tokens(rb_ast_t *ast);
 void rb_ast_node_type_change(NODE *n, enum node_type type);
 #endif
 const char *ruby_node_name(int node);
-void rb_node_init(NODE_BASIC *n, enum node_type type, VALUE a0, VALUE a1, VALUE a2);
+void rb_node_init(rb_node_basic_t *n, enum node_type type, VALUE a0, VALUE a1, VALUE a2);
+void rb_node_init0(NODE *n, enum node_type type);
 
 void rb_ast_mark(rb_ast_t*);
 void rb_ast_update_references(rb_ast_t*);
 void rb_ast_free(rb_ast_t*);
 void rb_ast_add_mark_object(rb_ast_t*, VALUE);
 void rb_ast_set_tokens(rb_ast_t*, VALUE);
-NODE_BASIC *rb_ast_newnode(rb_ast_t*, enum node_type type, size_t size);
+NODE *rb_ast_newnode(rb_ast_t*, enum node_type type, size_t size);
 void rb_ast_delete_node(rb_ast_t*, NODE *n);
 rb_ast_id_table_t *rb_ast_new_local_table(rb_ast_t*, int);
 rb_ast_id_table_t *rb_ast_resize_latest_local_table(rb_ast_t*, int);
