@@ -131,6 +131,11 @@ enum node_type {
     NODE_HSHPTN,
     NODE_FNDPTN,
     NODE_ERROR,
+    NODE_BASIC,
+    NODE_DEF_TEMP,
+    NODE_DEF_TEMP2,
+    NODE_RIPPER,
+    NODE_RIPPER2,
     NODE_LAST
 };
 
@@ -174,7 +179,7 @@ typedef struct RNode_BASIC {
     VALUE u1;
     VALUE u2;
     VALUE u3;
-} NODE_BASIC;
+} rb_node_basic_t;
 
 typedef struct RNode_SCOPE {
     NODE node;
@@ -739,7 +744,7 @@ typedef struct RNode_DXSTR {
     NODE node;
 
     VALUE nd_lit;
-    VALUE not_used;
+    long nd_alen;
     struct RNode_LIST *nd_next;
 } rb_node_dxstr_t;
 
@@ -1028,7 +1033,7 @@ typedef struct RNode_DSYM {
     NODE node;
 
     VALUE nd_lit;
-    VALUE not_used;
+    long nd_alen;
     struct RNode_LIST *nd_next;
 } rb_node_dsym_t;
 
@@ -1052,7 +1057,7 @@ typedef struct RNode_ARYPTN {
     NODE node;
 
     struct RNode *nd_pconst;
-    VALUE nd_rval; /* tmpbuf */
+    VALUE not_used;
     struct rb_ary_pattern_info *nd_apinfo;
 } rb_node_aryptn_t;
 
@@ -1068,7 +1073,7 @@ typedef struct RNode_FNDPTN {
     NODE node;
 
     struct RNode *nd_pconst;
-    VALUE nd_rval; /* tmpbuf */
+    VALUE not_used;
     struct rb_fnd_pattern_info *nd_fpinfo;
 } rb_node_fndptn_t;
 
@@ -1194,21 +1199,21 @@ typedef struct RNode_ERROR {
 #define RNODE_FNDPTN(node) ((struct RNode_FNDPTN *)(node))
 
 #ifdef RIPPER
-struct RNode_RIPPER {
+typedef struct RNode_RIPPER {
     NODE node;
 
     ID nd_vid;
     VALUE nd_rval;
     VALUE nd_cval;
-};
+} rb_node_ripper_t;
 
-struct RNode_RIPPER2 {
+typedef struct RNode_RIPPER2 {
     NODE node;
 
     VALUE nd_val1;
     VALUE nd_val2;
     VALUE nd_val3;
-};
+} rb_node_ripper2_t;
 
 #define RNODE_RIPPER(node) ((struct RNode_RIPPER *)(node))
 #define RNODE_RIPPER2(node) ((struct RNode_RIPPER2 *)(node))

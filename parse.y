@@ -843,9 +843,7 @@ static void token_info_drop(struct parser_params *p, const char *token, rb_code_
 #define token_column		((int)(p->lex.ptok - p->lex.pbeg))
 
 #define CALL_Q_P(q) ((q) == TOKEN2VAL(tANDDOT))
-#define NODE_CALL_Q(q) (CALL_Q_P(q) ? NODE_QCALL : NODE_CALL)
-STATIC_ASSERT(sizeof_rb_node_qcall_t, sizeof(rb_node_qcall_t) == sizeof(rb_node_call_t));
-#define NEW_QCALL(q,r,m,a,loc) NEW_NODE(NODE_CALL_Q(q),rb_node_qcall_t,r,m,a,loc)
+#define NEW_QCALL(q,r,m,a,loc) (CALL_Q_P(q) ? NEW_QCALL0(r,m,a,loc) : NEW_CALL(r,m,a,loc))
 
 #define lambda_beginning_p() (p->lex.lpar_beg == p->lex.paren_nest)
 
@@ -870,17 +868,239 @@ add_mark_object(struct parser_params *p, VALUE obj)
     }
     return obj;
 }
+
+static rb_node_ripper_t *rb_node_ripper_new(struct parser_params *p, ID a, VALUE b, VALUE c, const YYLTYPE *loc);
+static rb_node_ripper2_t *rb_node_ripper2_new(struct parser_params *p, VALUE a, VALUE b, VALUE c, const YYLTYPE *loc);
+#define NEW_RIPPER(a,b,c,loc) (VALUE)rb_node_ripper_new(p,a,b,c,loc)
+#define NEW_RIPPER2(a,b,c,loc) (VALUE)rb_node_ripper2_new(p,a,b,c,loc)
+
 #else
-static NODE* node_newnode_with_locals(struct parser_params *, enum node_type, size_t size, VALUE, VALUE, const rb_code_location_t*);
+static rb_node_scope_t *rb_node_scope_new(struct parser_params *p, NODE *nd_args, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_scope_t *rb_node_scope_new2(struct parser_params *p, rb_ast_id_table_t *nd_tbl, NODE *nd_args, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_defn_t *rb_node_defn_new(struct parser_params *p, ID nd_mid, NODE *nd_defn, const YYLTYPE *loc);
+static rb_node_defs_t *rb_node_defs_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_defn, const YYLTYPE *loc);
+static rb_node_block_t *rb_node_block_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc);
+static rb_node_for_t *rb_node_for_new(struct parser_params *p, NODE *nd_iter, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_for_masgn_t *rb_node_for_masgn_new(struct parser_params *p, NODE *nd_var, const YYLTYPE *loc);
+static rb_node_break_t *rb_node_break_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc);
+static rb_node_next_t *rb_node_next_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc);
+static rb_node_redo_t *rb_node_redo_new(struct parser_params *p, const YYLTYPE *loc);
+static rb_node_retry_t *rb_node_retry_new(struct parser_params *p, const YYLTYPE *loc);
+static rb_node_begin_t *rb_node_begin_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_rescue_t *rb_node_rescue_new(struct parser_params *p, NODE *nd_head, NODE *nd_resq, NODE *nd_else, const YYLTYPE *loc);
+static rb_node_resbody_t *rb_node_resbody_new(struct parser_params *p, NODE *nd_args, NODE *nd_body, NODE *nd_head, const YYLTYPE *loc);
+static rb_node_ensure_t *rb_node_ensure_new(struct parser_params *p, NODE *nd_head, NODE *nd_ensr, const YYLTYPE *loc);
+static rb_node_and_t *rb_node_and_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYPE *loc);
+static rb_node_or_t *rb_node_or_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYPE *loc);
+static rb_node_return_t *rb_node_return_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc);
+static rb_node_yield_t *rb_node_yield_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc);
+static rb_node_if_t *rb_node_if_new(struct parser_params *p, NODE *nd_cond, NODE *nd_body, NODE *nd_else, const YYLTYPE *loc);
+static rb_node_unless_t *rb_node_unless_new(struct parser_params *p, NODE *nd_cond, NODE *nd_body, NODE *nd_else, const YYLTYPE *loc);
+static rb_node_class_t *rb_node_class_new(struct parser_params *p, NODE *nd_cpath, NODE *nd_body, NODE *nd_super, const YYLTYPE *loc);
+static rb_node_sclass_t *rb_node_sclass_new(struct parser_params *p, NODE *nd_recv, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_module_t *rb_node_module_new(struct parser_params *p, NODE *nd_cpath, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_iter_t *rb_node_iter_new(struct parser_params *p, NODE *nd_args, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_lambda_t *rb_node_lambda_new(struct parser_params *p, NODE *nd_args, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_case_t *rb_node_case_new(struct parser_params *p, NODE *nd_head, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_case2_t *rb_node_case2_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_case3_t *rb_node_case3_new(struct parser_params *p, NODE *nd_head, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_when_t *rb_node_when_new(struct parser_params *p, NODE *nd_head, NODE *nd_body, NODE *nd_next, const YYLTYPE *loc);
+static rb_node_in_t *rb_node_in_new(struct parser_params *p, NODE *nd_head, NODE *nd_body, NODE *nd_next, const YYLTYPE *loc);
+static rb_node_while_t *rb_node_while_new(struct parser_params *p, NODE *nd_cond, NODE *nd_body, long nd_state, const YYLTYPE *loc);
+static rb_node_until_t *rb_node_until_new(struct parser_params *p, NODE *nd_cond, NODE *nd_body, long nd_state, const YYLTYPE *loc);
+static rb_node_colon2_t *rb_node_colon2_new(struct parser_params *p, NODE *nd_head, ID nd_mid, const YYLTYPE *loc);
+static rb_node_colon3_t *rb_node_colon3_new(struct parser_params *p, ID nd_mid, const YYLTYPE *loc);
+static rb_node_dot2_t *rb_node_dot2_new(struct parser_params *p, NODE *nd_beg, NODE *nd_end, const YYLTYPE *loc);
+static rb_node_dot3_t *rb_node_dot3_new(struct parser_params *p, NODE *nd_beg, NODE *nd_end, const YYLTYPE *loc);
+static rb_node_self_t *rb_node_self_new(struct parser_params *p, const YYLTYPE *loc);
+static rb_node_basic_t *rb_node_basic_new(struct parser_params *p, VALUE u1, VALUE u2, VALUE u3, const YYLTYPE *loc);
+static rb_node_nil_t *rb_node_nil_new(struct parser_params *p, const YYLTYPE *loc);
+static rb_node_true_t *rb_node_true_new(struct parser_params *p, const YYLTYPE *loc);
+static rb_node_false_t *rb_node_false_new(struct parser_params *p, const YYLTYPE *loc);
+static rb_node_super_t *rb_node_super_new(struct parser_params *p, NODE *nd_args, const YYLTYPE *loc);
+static rb_node_zsuper_t * rb_node_zsuper_new(struct parser_params *p, const YYLTYPE *loc);
+static rb_node_match_t *rb_node_match_new(struct parser_params *p, VALUE nd_lit, const YYLTYPE *loc);
+static rb_node_match2_t *rb_node_match2_new(struct parser_params *p, NODE *nd_recv, NODE *nd_value, const YYLTYPE *loc);
+static rb_node_match3_t *rb_node_match3_new(struct parser_params *p, NODE *nd_recv, NODE *nd_value, const YYLTYPE *loc);
+static rb_node_list_t *rb_node_list_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc);
+static rb_node_list_t *rb_node_list_new2(struct parser_params *p, NODE *nd_head, long nd_alen, NODE *nd_next, const YYLTYPE *loc);
+static rb_node_zlist_t *rb_node_zlist_new(struct parser_params *p, const YYLTYPE *loc);
+static rb_node_hash_t *rb_node_hash_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc);
+static rb_node_masgn_t *rb_node_masgn_new(struct parser_params *p, NODE *nd_head, NODE *nd_args, const YYLTYPE *loc);
+static rb_node_gasgn_t *rb_node_gasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLTYPE *loc);
+static rb_node_lasgn_t *rb_node_lasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLTYPE *loc);
+static rb_node_dasgn_t *rb_node_dasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLTYPE *loc);
+static rb_node_iasgn_t *rb_node_iasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLTYPE *loc);
+static rb_node_cvasgn_t *rb_node_cvasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLTYPE *loc);
+static rb_node_op_asgn1_t *rb_node_op_asgn1_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, rb_node_argscat_t *nd_args, const YYLTYPE *loc);
+static rb_node_op_asgn2_t *rb_node_op_asgn2_new(struct parser_params *p, NODE *nd_recv, NODE *nd_value, rb_node_op_asgn22_t *nd_next, const YYLTYPE *loc);
+static rb_node_op_asgn22_t *rb_node_op_asgn22_new(struct parser_params *p, ID nd_vid, ID nd_mid, bool nd_aid, const YYLTYPE *loc);
+static rb_node_op_asgn_or_t *rb_node_op_asgn_or_new(struct parser_params *p, NODE *nd_head, NODE *nd_value, const YYLTYPE *loc);
+static rb_node_op_asgn_and_t *rb_node_op_asgn_and_new(struct parser_params *p, NODE *nd_head, NODE *nd_value, const YYLTYPE *loc);
+static rb_node_gvar_t *rb_node_gvar_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc);
+static rb_node_lvar_t *rb_node_lvar_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc);
+static rb_node_dvar_t *rb_node_dvar_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc);
+static rb_node_ivar_t *rb_node_ivar_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc);
+static rb_node_const_t *rb_node_const_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc);
+static rb_node_cvar_t *rb_node_cvar_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc);
+static rb_node_nth_ref_t *rb_node_nth_ref_new(struct parser_params *p, long nd_nth, const YYLTYPE *loc);
+static rb_node_back_ref_t *rb_node_back_ref_new(struct parser_params *p, long nd_nth, const YYLTYPE *loc);
+static rb_node_lit_t *rb_node_lit_new(struct parser_params *p, VALUE nd_lit, const YYLTYPE *loc);
+static rb_node_str_t *rb_node_str_new(struct parser_params *p, VALUE nd_lit, const YYLTYPE *loc);
+static rb_node_dstr_t *rb_node_dstr_new0(struct parser_params *p, VALUE nd_lit, long nd_alen, NODE *nd_next, const YYLTYPE *loc);
+static rb_node_dstr_t *rb_node_dstr_new(struct parser_params *p, VALUE nd_lit, const YYLTYPE *loc);
+static rb_node_xstr_t *rb_node_xstr_new(struct parser_params *p, VALUE nd_lit, const YYLTYPE *loc);
+static rb_node_dxstr_t *rb_node_dxstr_new(struct parser_params *p, VALUE nd_lit, long nd_alen, NODE *nd_next, const YYLTYPE *loc);
+static rb_node_dsym_t *rb_node_dsym_new(struct parser_params *p, VALUE nd_lit, long nd_alen, NODE *nd_next, const YYLTYPE *loc);
+static rb_node_evstr_t *rb_node_evstr_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_call_t *rb_node_call_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc);
+static rb_node_opcall_t *rb_node_opcall_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc);
+static rb_node_fcall_t *rb_node_fcall_new(struct parser_params *p, ID nd_mid, NODE *nd_args, const YYLTYPE *loc);
+static rb_node_qcall_t *rb_node_qcall_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc);
+static rb_node_vcall_t *rb_node_vcall_new(struct parser_params *p, ID nd_mid, const YYLTYPE *loc);
+static rb_node_once_t *rb_node_once_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_args_t *rb_node_args_new(struct parser_params *p, struct rb_args_info *nd_ainfo, const YYLTYPE *loc);
+static rb_node_args_aux_t *rb_node_args_aux_new(struct parser_params *p, ID nd_pid, long nd_plen, const YYLTYPE *loc);
+static rb_node_opt_arg_t *rb_node_opt_arg_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_kw_arg_t *rb_node_kw_arg_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_postarg_t *rb_node_postarg_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYPE *loc);
+static rb_node_argscat_t *rb_node_argscat_new(struct parser_params *p, NODE *nd_head, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_argspush_t *rb_node_argspush_new(struct parser_params *p, NODE *nd_head, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_splat_t *rb_node_splat_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc);
+static rb_node_block_pass_t *rb_node_block_pass_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_alias_t *rb_node_alias_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYPE *loc);
+static rb_node_valias_t *rb_node_valias_new(struct parser_params *p, ID nd_alias, ID nd_orig, const YYLTYPE *loc);
+static rb_node_undef_t *rb_node_undef_new(struct parser_params *p, NODE *nd_undef, const YYLTYPE *loc);
+static rb_node_errinfo_t *rb_node_errinfo_new(struct parser_params *p, const YYLTYPE *loc);
+static rb_node_defined_t *rb_node_defined_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc);
+static rb_node_postexe_t *rb_node_postexe_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_attrasgn_t *rb_node_attrasgn_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc);
+static rb_node_aryptn_t *rb_node_aryptn_new(struct parser_params *p, const YYLTYPE *loc);
+static rb_node_hshptn_t *rb_node_hshptn_new(struct parser_params *p, NODE *nd_pconst, NODE *nd_pkwargs, NODE *nd_pkwrestarg, const YYLTYPE *loc);
+static rb_node_fndptn_t *rb_node_fndptn_new(struct parser_params *p, const YYLTYPE *loc);
+static rb_node_cdecl_t *rb_node_cdecl_new(struct parser_params *p, ID nd_vid, NODE *nd_value, NODE *nd_else, const YYLTYPE *loc);
+static rb_node_op_cdecl_t *rb_node_op_cdecl_new(struct parser_params *p, NODE *nd_head, NODE *nd_value, ID nd_aid, const YYLTYPE *loc);
+static rb_node_error_t *rb_node_error_new(struct parser_params *p, const YYLTYPE *loc);
+
+#define NEW_SCOPE(a,b,loc) (NODE *)rb_node_scope_new(p,a,b,loc)
+#define NEW_SCOPE2(t,a,b,loc) (NODE *)rb_node_scope_new2(p,t,a,b,loc)
+#define NEW_DEFN(i,s,loc) (NODE *)rb_node_defn_new(p,i,s,loc)
+#define NEW_DEFS(r,i,s,loc) (NODE *)rb_node_defs_new(p,r,i,s,loc)
+#define NEW_NIL(loc) (NODE *)rb_node_nil_new(p,loc)
+#define NEW_WHILE(c,b,n,loc) (NODE *)rb_node_while_new(p,c,b,n,loc)
+#define NEW_UNTIL(c,b,n,loc) (NODE *)rb_node_until_new(p,c,b,n,loc)
+#define NEW_COLON2(c,i,loc) (NODE *)rb_node_colon2_new(p,c,i,loc)
+#define NEW_COLON3(i,loc) (NODE *)rb_node_colon3_new(p,i,loc)
+#define NEW_IN(c,t,e,loc) (NODE *)rb_node_in_new(p,c,t,e,loc)
+#define NEW_TRUE(loc) (NODE *)rb_node_true_new(p,loc)
+#define NEW_FALSE(loc) (NODE *)rb_node_false_new(p,loc)
+#define NEW_CASE(h,b,loc) (NODE *)rb_node_case_new(p,h,b,loc)
+#define NEW_CASE2(b,loc) (NODE *)rb_node_case2_new(p,b,loc)
+#define NEW_CASE3(h,b,loc) (NODE *)rb_node_case3_new(p,h,b,loc)
+#define NEW_DOT2(b,e,loc) (NODE *)rb_node_dot2_new(p,b,e,loc)
+#define NEW_DOT3(b,e,loc) (NODE *)rb_node_dot3_new(p,b,e,loc)
+#define NEW_IF(c,t,e,loc) (NODE *)rb_node_if_new(p,c,t,e,loc)
+#define NEW_UNLESS(c,t,e,loc) (NODE *)rb_node_unless_new(p,c,t,e,loc)
+#define NEW_SELF(loc) (NODE *)rb_node_self_new(p,loc)
+#define NEW_BASIC(u1,u2,u3,loc) (NODE *)rb_node_basic_new(p,u1,u2,u3,loc)
+#define NEW_CLASS(n,b,s,loc) (NODE *)rb_node_class_new(p,n,b,s,loc)
+#define NEW_SCLASS(r,b,loc) (NODE *)rb_node_sclass_new(p,r,b,loc)
+#define NEW_MODULE(n,b,loc) (NODE *)rb_node_module_new(p,n,b,loc)
+#define NEW_LAMBDA(a,b,loc) (NODE *)rb_node_lambda_new(p,a,b,loc)
+#define NEW_ITER(a,b,loc) (NODE *)rb_node_iter_new(p,a,b,loc)
+#define NEW_WHEN(c,t,e,loc) (NODE *)rb_node_when_new(p,c,t,e,loc)
+#define NEW_SUPER(a,loc) (NODE *)rb_node_super_new(p,a,loc)
+#define NEW_ZSUPER(loc) (NODE *)rb_node_zsuper_new(p,loc)
+#define NEW_MATCH(c,loc) (NODE *)rb_node_match_new(p,c,loc)
+#define NEW_MATCH2(n1,n2,loc) (NODE *)rb_node_match2_new(p,n1,n2,loc)
+#define NEW_MATCH3(r,n2,loc) (NODE *)rb_node_match3_new(p,r,n2,loc)
+#define NEW_BLOCK(a,loc) (NODE *)rb_node_block_new(p,a,loc)
+#define NEW_FOR(i,b,loc) (NODE *)rb_node_for_new(p,i,b,loc)
+#define NEW_FOR_MASGN(v,loc) (NODE *)rb_node_for_masgn_new(p,v,loc)
+#define NEW_BREAK(s,loc) (NODE *)rb_node_break_new(p,s,loc)
+#define NEW_NEXT(s,loc) (NODE *)rb_node_next_new(p,s,loc)
+#define NEW_REDO(loc) (NODE *)rb_node_redo_new(p,loc)
+#define NEW_RETRY(loc) (NODE *)rb_node_retry_new(p,loc)
+#define NEW_BEGIN(b,loc) (NODE *)rb_node_begin_new(p,b,loc)
+#define NEW_RESCUE(b,res,e,loc) (NODE *)rb_node_rescue_new(p,b,res,e,loc)
+#define NEW_RESBODY(a,ex,n,loc) (NODE *)rb_node_resbody_new(p,a,ex,n,loc)
+#define NEW_ENSURE(b,en,loc) (NODE *)rb_node_ensure_new(p,b,en,loc)
+#define NEW_AND(f,s,loc) (NODE *)rb_node_and_new(p,f,s,loc)
+#define NEW_OR(f,s,loc) (NODE *)rb_node_or_new(p,f,s,loc)
+#define NEW_RETURN(s,loc) (NODE *)rb_node_return_new(p,s,loc)
+#define NEW_YIELD(a,loc) (NODE *)rb_node_yield_new(p,a,loc)
+#define NEW_LIST(a,loc) (NODE *)rb_node_list_new(p,a,loc)
+#define NEW_LIST2(h,l,n,loc) (NODE *)rb_node_list_new2(p,h,l,n,loc)
+#define NEW_ZLIST(loc) (NODE *)rb_node_zlist_new(p,loc)
+#define NEW_HASH(a,loc) (NODE *)rb_node_hash_new(p,a,loc)
+#define NEW_MASGN(l,r,loc)   (NODE *)rb_node_masgn_new(p,l,r,loc)
+#define NEW_GASGN(v,val,loc) (NODE *)rb_node_gasgn_new(p,v,val,loc)
+#define NEW_LASGN(v,val,loc) (NODE *)rb_node_lasgn_new(p,v,val,loc)
+#define NEW_DASGN(v,val,loc) (NODE *)rb_node_dasgn_new(p,v,val,loc)
+#define NEW_IASGN(v,val,loc) (NODE *)rb_node_iasgn_new(p,v,val,loc)
+#define NEW_CVASGN(v,val,loc) (NODE *)rb_node_cvasgn_new(p,v,val,loc)
+#define NEW_OP_ASGN1(r,id,a,loc) (NODE *)rb_node_op_asgn1_new(p,r,id,a,loc)
+#define NEW_OP_ASGN2(r,t,i,o,val,loc) (NODE *)rb_node_op_asgn2_new(p,r,val,NEW_OP_ASGN22(i,o,t,loc),loc)
+#define NEW_OP_ASGN22(i,o,t,loc) rb_node_op_asgn22_new(p,i,o,t,loc)
+#define NEW_OP_ASGN_OR(i,val,loc) (NODE *)rb_node_op_asgn_or_new(p,i,val,loc)
+#define NEW_OP_ASGN_AND(i,val,loc) (NODE *)rb_node_op_asgn_and_new(p,i,val,loc)
+#define NEW_GVAR(v,loc) (NODE *)rb_node_gvar_new(p,v,loc)
+#define NEW_LVAR(v,loc) (NODE *)rb_node_lvar_new(p,v,loc)
+#define NEW_DVAR(v,loc) (NODE *)rb_node_dvar_new(p,v,loc)
+#define NEW_IVAR(v,loc) (NODE *)rb_node_ivar_new(p,v,loc)
+#define NEW_CONST(v,loc) (NODE *)rb_node_const_new(p,v,loc)
+#define NEW_CVAR(v,loc) (NODE *)rb_node_cvar_new(p,v,loc)
+#define NEW_NTH_REF(n,loc)  (NODE *)rb_node_nth_ref_new(p,n,loc)
+#define NEW_BACK_REF(n,loc) (NODE *)rb_node_back_ref_new(p,n,loc)
+#define NEW_LIT(l,loc) (NODE *)rb_node_lit_new(p,l,loc)
+#define NEW_STR(s,loc) (NODE *)rb_node_str_new(p,s,loc)
+#define NEW_DSTR0(s,l,n,loc) (NODE *)rb_node_dstr_new0(p,s,l,n,loc)
+#define NEW_DSTR(s,loc) (NODE *)rb_node_dstr_new(p,s,loc)
+#define NEW_XSTR(s,loc) (NODE *)rb_node_xstr_new(p,s,loc)
+#define NEW_DXSTR(s,l,n,loc) (NODE *)rb_node_dxstr_new(p,s,l,n,loc)
+#define NEW_DSYM(s,l,n,loc) (NODE *)rb_node_dsym_new(p,s,l,n,loc)
+#define NEW_EVSTR(n,loc) (NODE *)rb_node_evstr_new(p,n,loc)
+#define NEW_CALL(r,m,a,loc) (NODE *)rb_node_call_new(p,r,m,a,loc)
+#define NEW_OPCALL(r,m,a,loc) (NODE *)rb_node_opcall_new(p,r,m,a,loc)
+#define NEW_FCALL(m,a,loc) (NODE *)rb_node_fcall_new(p,m,a,loc)
+#define NEW_QCALL0(r,m,a,loc) (NODE *)rb_node_qcall_new(p,r,m,a,loc)
+#define NEW_VCALL(m,loc) (NODE *)rb_node_vcall_new(p,m,loc)
+#define NEW_ONCE(b,loc) (NODE *)rb_node_once_new(p,b,loc)
+#define NEW_ARGS(a,loc) (NODE *)rb_node_args_new(p,a,loc)
+#define NEW_ARGS_AUX(r,b,loc) (NODE *)rb_node_args_aux_new(p,r,b,loc)
+#define NEW_OPT_ARG(v,loc) (NODE *)rb_node_opt_arg_new(p,v,loc)
+#define NEW_KW_ARG(v,loc) (NODE *)rb_node_kw_arg_new(p,v,loc)
+#define NEW_POSTARG(i,v,loc) (NODE *)rb_node_postarg_new(p,i,v,loc)
+#define NEW_ARGSCAT(a,b,loc) (NODE *)rb_node_argscat_new(p,a,b,loc)
+#define NEW_ARGSPUSH(a,b,loc) (NODE *)rb_node_argspush_new(p,a,b,loc)
+#define NEW_SPLAT(a,loc) (NODE *)rb_node_splat_new(p,a,loc)
+#define NEW_BLOCK_PASS(b,loc) (NODE *)rb_node_block_pass_new(p,b,loc)
+#define NEW_ALIAS(n,o,loc) (NODE *)rb_node_alias_new(p,n,o,loc)
+#define NEW_VALIAS(n,o,loc) (NODE *)rb_node_valias_new(p,n,o,loc)
+#define NEW_UNDEF(i,loc) (NODE *)rb_node_undef_new(p,i,loc)
+#define NEW_ERRINFO(loc) (NODE *)rb_node_errinfo_new(p,loc)
+#define NEW_DEFINED(e,loc) (NODE *)rb_node_defined_new(p,e,loc)
+#define NEW_POSTEXE(b,loc) (NODE *)rb_node_postexe_new(p,b,loc)
+#define NEW_ATTRASGN(r,m,a,loc) (NODE *)rb_node_attrasgn_new(p,r,m,a,loc)
+#define NEW_ARYPTN(loc) (NODE *)rb_node_aryptn_new(p,loc)
+#define NEW_HSHPTN(c,kw,kwrest,loc) (NODE *)rb_node_hshptn_new(p,c,kw,kwrest,loc)
+#define NEW_FNDPTN(loc) (NODE *)rb_node_fndptn_new(p,loc)
+#define NEW_CDECL(v,val,path,loc) (NODE *)rb_node_cdecl_new(p,v,val,path,loc)
+#define NEW_OP_CDECL(v,op,val,loc) (NODE *)rb_node_op_cdecl_new(p,v,val,op,loc)
+#define NEW_ERROR(loc) (NODE *)rb_node_error_new(p,loc)
+
 #endif
 
-static NODE* node_newnode(struct parser_params *, enum node_type, size_t size, VALUE, VALUE, VALUE, const rb_code_location_t*);
-#define rb_node_newnode(type, s, a1, a2, a3, loc) node_newnode(p, (type), sizeof(s), (a1), (a2), (a3), (loc))
+static rb_node_def_temp_t *rb_node_def_temp_new(struct parser_params *p, ID nd_vid, ID nd_mid, rb_node_def_temp2_t *nd_next, const YYLTYPE *loc);
+static rb_node_def_temp2_t *rb_node_def_temp2_new(struct parser_params *p, NODE *nd_head, long nd_nth, VALUE nd_cval);
+
+#define NEW_DEF_TEMP(v,m,n,loc) (NODE *)rb_node_def_temp_new(p,v,m,n,loc)
+#define NEW_DEF_TEMP2(h,n,c) rb_node_def_temp2_new(p,h,n,c)
 
 /* Make a new internal node, which should not be appeared in the
  * result AST and does not have node_id and location. */
-static NODE* node_new_internal(struct parser_params *p, enum node_type type, size_t size, VALUE a0, VALUE a1, VALUE a2);
-#define NODE_NEW_INTERNAL(t,s,a0,a1,a2) node_new_internal(p, (t),sizeof(s),(VALUE)(a0),(VALUE)(a1),(VALUE)(a2))
+static NODE* node_new_internal(struct parser_params *p, enum node_type type, size_t size);
+#define NODE_NEW_INTERNAL(node_type, type) (type *)node_new_internal(p, node_type, sizeof(type))
 
 static NODE *nd_set_loc(NODE *nd, const YYLTYPE *loc);
 
@@ -1038,10 +1258,6 @@ static void check_literal_when(struct parser_params *p, NODE *args, const YYLTYP
 #define get_value(val) (val)
 #define get_num(num) (num)
 #else  /* RIPPER */
-#define NODE_RIPPER NODE_CDECL
-#define NEW_RIPPER(a,b,c,loc) (VALUE)NEW_CDECL(a,b,c,loc)
-#define NODE_RIPPER2 NODE_OP_CDECL
-#define NEW_RIPPER2(a,b,c,loc) (VALUE)NEW_OP_CDECL(a,c,b,loc)
 
 static inline int ripper_is_node_yylval(struct parser_params *p, VALUE n);
 
@@ -1953,8 +2169,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
                         }
                     /*%%%*/
                         {
-                            NODE *scope = NEW_NODE(
-                                NODE_SCOPE, rb_node_scope_t, 0 /* tbl */, $3 /* body */, 0 /* args */, &@$);
+                            NODE *scope = NEW_SCOPE2(0 /* tbl */, 0 /* args */, $3 /* body */, &@$);
                             $$ = NEW_POSTEXE(scope, &@$);
                         }
                     /*% %*/
@@ -2185,15 +2400,14 @@ def_name	: fname
                         ID cur_arg = p->cur_arg;
                         YYSTYPE c = {.ctxt = p->ctxt};
                         numparam_name(p, fname);
-                        NODE *save =
-                            NODE_NEW_INTERNAL(NODE_SELF, rb_node_self_t,
-                                              /*head*/numparam_push(p),
-                                              /*nth*/p->max_numparam,
-                                              /*cval*/c.val);
+                        rb_node_def_temp2_t *save =
+                            NEW_DEF_TEMP2(/*head*/numparam_push(p),
+                                          /*nth*/p->max_numparam,
+                                          /*cval*/c.val);
                         local_push(p, 0);
                         p->cur_arg = 0;
                         p->ctxt.in_def = 1;
-                        $<node>$ = NEW_NODE(NODE_SELF, rb_node_self_t, /*vid*/cur_arg, /*mid*/fname, /*next*/save, &@$);
+                        $<node>$ = NEW_DEF_TEMP(/*vid*/cur_arg, /*mid*/fname, /*next*/save, &@$);
                     /*%%%*/
                     /*%
                         $$ = NEW_RIPPER(fname, get_value($1), $$, &NULL_LOC);
@@ -2205,7 +2419,7 @@ defn_head	: k_def def_name
                     {
                         $$ = $2;
                     /*%%%*/
-                        $$ = NEW_NODE(NODE_DEFN, rb_node_defn_t, 0, RNODE_DEF_TEMP($$)->nd_mid, $$, &@$);
+                        $$ = NEW_DEFN(RNODE_DEF_TEMP($$)->nd_mid, $$, &@$);
                     /*% %*/
                     }
                 ;
@@ -2220,7 +2434,7 @@ defs_head	: k_def singleton dot_or_colon
                         SET_LEX_STATE(EXPR_ENDFN|EXPR_LABEL); /* force for args */
                         $$ = $5;
                     /*%%%*/
-                        $$ = NEW_NODE(NODE_DEFS, rb_node_defs_t, $2, RNODE_DEF_TEMP($$)->nd_mid, $$, &@$);
+                        $$ = NEW_DEFS($2, RNODE_DEF_TEMP($$)->nd_mid, $$, &@$);
                     /*%
                         VALUE ary = rb_ary_new_from_args(3, $2, $3, get_value($$));
                         add_mark_object(p, ary);
@@ -2665,7 +2879,7 @@ cpath		: tCOLON3 cname
                 | cname
                     {
                     /*%%%*/
-                        $$ = NEW_COLON2(0, $$, &@$);
+                        $$ = NEW_COLON2(0, $1, &@$);
                     /*% %*/
                     /*% ripper: const_ref!($1) %*/
                     }
@@ -3599,7 +3813,7 @@ primary		: literal
                         }
                         /* {|*internal_id| <m> = internal_id; ... } */
                         args = new_args(p, (NODE *)m, 0, id, 0, new_args_tail(p, 0, 0, 0, &@2), &@2);
-                        scope = NEW_NODE(NODE_SCOPE, rb_node_scope_t, tbl, $5, args, &@$);
+                        scope = NEW_SCOPE2(tbl, args, $5, &@$);
                         $$ = NEW_FOR($4, scope, &@$);
                         fixpos($$, $2);
                     /*% %*/
@@ -4617,7 +4831,7 @@ p_as		: p_expr tASSOC p_variable
 p_alt		: p_alt '|' p_expr_basic
                     {
                     /*%%%*/
-                        $$ = NEW_NODE(NODE_OR, rb_node_or_t, $1, $3, 0, &@$);
+                        $$ = NEW_OR($1, $3, &@$);
                     /*% %*/
                     /*% ripper: binary!($1, STATIC_ID2SYM(idOr), $3) %*/
                     }
@@ -10602,21 +10816,11 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
 #define LVAR_USED ((ID)1 << (sizeof(ID) * CHAR_BIT - 1))
 
 static NODE*
-node_new_internal(struct parser_params *p, enum node_type type, size_t size, VALUE a0, VALUE a1, VALUE a2)
+node_new_internal(struct parser_params *p, enum node_type type, size_t size)
 {
-    NODE_BASIC *n = rb_ast_newnode(p->ast, type, size);
+    NODE *n = rb_ast_newnode(p->ast, type, size);
 
-    rb_node_init(n, type, a0, a1, a2);
-    return (NODE *)n;
-}
-
-static NODE*
-node_newnode(struct parser_params *p, enum node_type type, size_t size, VALUE a0, VALUE a1, VALUE a2, const rb_code_location_t *loc)
-{
-    NODE *n = node_new_internal(p, type, size, a0, a1, a2);
-
-    nd_set_loc(n, loc);
-    nd_set_node_id(n, parser_get_node_id(p));
+    rb_node_init0(n, type);
     return n;
 }
 
@@ -10626,6 +10830,1245 @@ nd_set_loc(NODE *nd, const YYLTYPE *loc)
     nd->nd_loc = *loc;
     nd_set_line(nd, loc->beg_pos.lineno);
     return nd;
+}
+
+/* TODO: Merge this with node_newnode */
+static NODE*
+node_newnode0(struct parser_params *p, enum node_type type, size_t size, const rb_code_location_t *loc)
+{
+    NODE *n = node_new_internal(p, type, size);
+
+    nd_set_loc(n, loc);
+    nd_set_node_id(n, parser_get_node_id(p));
+    return n;
+}
+
+#define NODE_NEWNODE0(node_type, type, loc) (type *)(node_newnode0(p, node_type, sizeof(type), loc))
+
+#ifndef RIPPER
+
+static rb_node_scope_t *
+rb_node_scope_new(struct parser_params *p, NODE *nd_args, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_ast_id_table_t *nd_tbl;
+    nd_tbl = local_tbl(p);
+    rb_node_scope_t *n = NODE_NEWNODE0(NODE_SCOPE, rb_node_scope_t, loc);
+    n->nd_tbl = nd_tbl;
+    n->nd_body = nd_body;
+    n->nd_args = nd_args;
+
+    return n;
+}
+
+static rb_node_scope_t *
+rb_node_scope_new2(struct parser_params *p, rb_ast_id_table_t *nd_tbl, NODE *nd_args, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_node_scope_t *n = NODE_NEWNODE0(NODE_SCOPE, rb_node_scope_t, loc);
+    n->nd_tbl = nd_tbl;
+    n->nd_body = nd_body;
+    n->nd_args = nd_args;
+
+    return n;
+}
+
+static rb_node_defn_t *
+rb_node_defn_new(struct parser_params *p, ID nd_mid, NODE *nd_defn, const YYLTYPE *loc)
+{
+    rb_node_defn_t *n = NODE_NEWNODE0(NODE_DEFN, rb_node_defn_t, loc);
+    n->not_used = 0;
+    n->nd_mid = nd_mid;
+    n->nd_defn = nd_defn;
+
+    return n;
+}
+
+static rb_node_defs_t *
+rb_node_defs_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_defn, const YYLTYPE *loc)
+{
+    rb_node_defs_t *n = NODE_NEWNODE0(NODE_DEFS, rb_node_defs_t, loc);
+    n->nd_recv = nd_recv;
+    n->nd_mid = nd_mid;
+    n->nd_defn = nd_defn;
+
+    return n;
+}
+
+static rb_node_block_t *
+rb_node_block_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc)
+{
+    rb_node_block_t *n = NODE_NEWNODE0(NODE_BLOCK, rb_node_block_t, loc);
+    n->nd_head = nd_head;
+    n->nd_end = 0;
+    n->nd_next = 0;
+
+    return n;
+}
+
+static rb_node_for_t *
+rb_node_for_new(struct parser_params *p, NODE *nd_iter, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_node_for_t *n = NODE_NEWNODE0(NODE_FOR, rb_node_for_t, loc);
+    n->not_used = 0;
+    n->nd_body = nd_body;
+    n->nd_iter = nd_iter;
+
+    return n;
+}
+
+static rb_node_for_masgn_t *
+rb_node_for_masgn_new(struct parser_params *p, NODE *nd_var, const YYLTYPE *loc)
+{
+    rb_node_for_masgn_t *n = NODE_NEWNODE0(NODE_FOR_MASGN, rb_node_for_masgn_t, loc);
+    n->nd_var = nd_var;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_break_t *
+rb_node_break_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc)
+{
+    rb_node_break_t *n = NODE_NEWNODE0(NODE_BREAK, rb_node_break_t, loc);
+    n->nd_stts = nd_stts;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_next_t *
+rb_node_next_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc)
+{
+    rb_node_next_t *n = NODE_NEWNODE0(NODE_NEXT, rb_node_next_t, loc);
+    n->nd_stts = nd_stts;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_redo_t *
+rb_node_redo_new(struct parser_params *p, const YYLTYPE *loc)
+{
+    rb_node_redo_t *n = NODE_NEWNODE0(NODE_REDO, rb_node_redo_t, loc);
+    n->not_used = 0;
+    n->not_used2 = 0;
+    n->not_used3 = 0;
+
+    return n;
+}
+
+static rb_node_retry_t *
+rb_node_retry_new(struct parser_params *p, const YYLTYPE *loc)
+{
+    rb_node_retry_t *n = NODE_NEWNODE0(NODE_RETRY, rb_node_retry_t, loc);
+    n->not_used = 0;
+    n->not_used2 = 0;
+    n->not_used3 = 0;
+
+    return n;
+}
+
+static rb_node_begin_t *
+rb_node_begin_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_node_begin_t *n = NODE_NEWNODE0(NODE_BEGIN, rb_node_begin_t, loc);
+    n->not_used = 0;
+    n->nd_body = nd_body;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_rescue_t *
+rb_node_rescue_new(struct parser_params *p, NODE *nd_head, NODE *nd_resq, NODE *nd_else, const YYLTYPE *loc)
+{
+    rb_node_rescue_t *n = NODE_NEWNODE0(NODE_RESCUE, rb_node_rescue_t, loc);
+    n->nd_head = nd_head;
+    n->nd_resq = nd_resq;
+    n->nd_else = nd_else;
+
+    return n;
+}
+
+static rb_node_resbody_t *
+rb_node_resbody_new(struct parser_params *p, NODE *nd_args, NODE *nd_body, NODE *nd_head, const YYLTYPE *loc)
+{
+    rb_node_resbody_t *n = NODE_NEWNODE0(NODE_RESBODY, rb_node_resbody_t, loc);
+    n->nd_head = nd_head;
+    n->nd_body = nd_body;
+    n->nd_args = nd_args;
+
+    return n;
+}
+
+static rb_node_ensure_t *
+rb_node_ensure_new(struct parser_params *p, NODE *nd_head, NODE *nd_ensr, const YYLTYPE *loc)
+{
+    rb_node_ensure_t *n = NODE_NEWNODE0(NODE_ENSURE, rb_node_ensure_t, loc);
+    n->nd_head = nd_head;
+    n->nd_resq = 0;
+    n->nd_ensr = nd_ensr;
+
+    return n;
+}
+
+static rb_node_and_t *
+rb_node_and_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYPE *loc)
+{
+    rb_node_and_t *n = NODE_NEWNODE0(NODE_AND, rb_node_and_t, loc);
+    n->nd_1st = nd_1st;
+    n->nd_2nd = nd_2nd;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_or_t *
+rb_node_or_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYPE *loc)
+{
+    rb_node_or_t *n = NODE_NEWNODE0(NODE_OR, rb_node_or_t, loc);
+    n->nd_1st = nd_1st;
+    n->nd_2nd = nd_2nd;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_return_t *
+rb_node_return_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc)
+{
+    rb_node_return_t *n = NODE_NEWNODE0(NODE_RETURN, rb_node_return_t, loc);
+    n->nd_stts = nd_stts;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_yield_t *
+rb_node_yield_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc)
+{
+    rb_node_yield_t *n = NODE_NEWNODE0(NODE_YIELD, rb_node_yield_t, loc);
+    n->nd_head = nd_head;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_if_t *
+rb_node_if_new(struct parser_params *p, NODE *nd_cond, NODE *nd_body, NODE *nd_else, const YYLTYPE *loc)
+{
+    rb_node_if_t *n = NODE_NEWNODE0(NODE_IF, rb_node_if_t, loc);
+    n->nd_cond = nd_cond;
+    n->nd_body = nd_body;
+    n->nd_else = nd_else;
+
+    return n;
+}
+
+static rb_node_unless_t *
+rb_node_unless_new(struct parser_params *p, NODE *nd_cond, NODE *nd_body, NODE *nd_else, const YYLTYPE *loc)
+{
+    rb_node_unless_t *n = NODE_NEWNODE0(NODE_UNLESS, rb_node_unless_t, loc);
+    n->nd_cond = nd_cond;
+    n->nd_body = nd_body;
+    n->nd_else = nd_else;
+
+    return n;
+}
+
+static rb_node_class_t *
+rb_node_class_new(struct parser_params *p, NODE *nd_cpath, NODE *nd_body, NODE *nd_super, const YYLTYPE *loc)
+{
+    /* Keep the order of node creation */
+    NODE *scope = NEW_SCOPE(0, nd_body, loc);
+    rb_node_class_t *n = NODE_NEWNODE0(NODE_CLASS, rb_node_class_t, loc);
+    n->nd_cpath = nd_cpath;
+    n->nd_body = scope;
+    n->nd_super = nd_super;
+
+    return n;
+}
+
+static rb_node_sclass_t *
+rb_node_sclass_new(struct parser_params *p, NODE *nd_recv, NODE *nd_body, const YYLTYPE *loc)
+{
+    /* Keep the order of node creation */
+    NODE *scope = NEW_SCOPE(0, nd_body, loc);
+    rb_node_sclass_t *n = NODE_NEWNODE0(NODE_SCLASS, rb_node_sclass_t, loc);
+    n->nd_recv = nd_recv;
+    n->nd_body = scope;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_module_t *
+rb_node_module_new(struct parser_params *p, NODE *nd_cpath, NODE *nd_body, const YYLTYPE *loc)
+{
+    /* Keep the order of node creation */
+    NODE *scope = NEW_SCOPE(0, nd_body, loc);
+    rb_node_module_t *n = NODE_NEWNODE0(NODE_MODULE, rb_node_module_t, loc);
+    n->nd_cpath = nd_cpath;
+    n->nd_body = scope;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_iter_t *
+rb_node_iter_new(struct parser_params *p, NODE *nd_args, NODE *nd_body, const YYLTYPE *loc)
+{
+    /* Keep the order of node creation */
+    NODE *scope = NEW_SCOPE(nd_args, nd_body, loc);
+    rb_node_iter_t *n = NODE_NEWNODE0(NODE_ITER, rb_node_iter_t, loc);
+    n->not_used = 0;
+    n->nd_body = scope;
+    n->nd_iter = 0;
+
+    return n;
+}
+
+static rb_node_lambda_t *
+rb_node_lambda_new(struct parser_params *p, NODE *nd_args, NODE *nd_body, const YYLTYPE *loc)
+{
+    /* Keep the order of node creation */
+    NODE *scope = NEW_SCOPE(nd_args, nd_body, loc);
+    rb_node_lambda_t *n = NODE_NEWNODE0(NODE_LAMBDA, rb_node_lambda_t, loc);
+    n->not_used = 0;
+    n->nd_body = scope;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_case_t *
+rb_node_case_new(struct parser_params *p, NODE *nd_head, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_node_case_t *n = NODE_NEWNODE0(NODE_CASE, rb_node_case_t, loc);
+    n->nd_head = nd_head;
+    n->nd_body = nd_body;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_case2_t *
+rb_node_case2_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_node_case2_t *n = NODE_NEWNODE0(NODE_CASE2, rb_node_case2_t, loc);
+    n->nd_head = 0;
+    n->nd_body = nd_body;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_case3_t *
+rb_node_case3_new(struct parser_params *p, NODE *nd_head, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_node_case3_t *n = NODE_NEWNODE0(NODE_CASE3, rb_node_case3_t, loc);
+    n->nd_head = nd_head;
+    n->nd_body = nd_body;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_when_t *
+rb_node_when_new(struct parser_params *p, NODE *nd_head, NODE *nd_body, NODE *nd_next, const YYLTYPE *loc)
+{
+    rb_node_when_t *n = NODE_NEWNODE0(NODE_WHEN, rb_node_when_t, loc);
+    n->nd_head = nd_head;
+    n->nd_body = nd_body;
+    n->nd_next = nd_next;
+
+    return n;
+}
+
+static rb_node_in_t *
+rb_node_in_new(struct parser_params *p, NODE *nd_head, NODE *nd_body, NODE *nd_next, const YYLTYPE *loc)
+{
+    rb_node_in_t *n = NODE_NEWNODE0(NODE_IN, rb_node_in_t, loc);
+    n->nd_head = nd_head;
+    n->nd_body = nd_body;
+    n->nd_next = nd_next;
+
+    return n;
+}
+
+static rb_node_while_t *
+rb_node_while_new(struct parser_params *p, NODE *nd_cond, NODE *nd_body, long nd_state, const YYLTYPE *loc)
+{
+    rb_node_while_t *n = NODE_NEWNODE0(NODE_WHILE, rb_node_while_t, loc);
+    n->nd_cond = nd_cond;
+    n->nd_body = nd_body;
+    n->nd_state = nd_state;
+
+    return n;
+}
+
+static rb_node_until_t *
+rb_node_until_new(struct parser_params *p, NODE *nd_cond, NODE *nd_body, long nd_state, const YYLTYPE *loc)
+{
+    rb_node_until_t *n = NODE_NEWNODE0(NODE_UNTIL, rb_node_until_t, loc);
+    n->nd_cond = nd_cond;
+    n->nd_body = nd_body;
+    n->nd_state = nd_state;
+
+    return n;
+}
+
+static rb_node_colon2_t *
+rb_node_colon2_new(struct parser_params *p, NODE *nd_head, ID nd_mid, const YYLTYPE *loc)
+{
+    rb_node_colon2_t *n = NODE_NEWNODE0(NODE_COLON2, rb_node_colon2_t, loc);
+    n->nd_head = nd_head;
+    n->nd_mid = nd_mid;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_colon3_t *
+rb_node_colon3_new(struct parser_params *p, ID nd_mid, const YYLTYPE *loc)
+{
+    rb_node_colon3_t *n = NODE_NEWNODE0(NODE_COLON3, rb_node_colon3_t, loc);
+    n->not_used = 0;
+    n->nd_mid = nd_mid;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_dot2_t *
+rb_node_dot2_new(struct parser_params *p, NODE *nd_beg, NODE *nd_end, const YYLTYPE *loc)
+{
+    rb_node_dot2_t *n = NODE_NEWNODE0(NODE_DOT2, rb_node_dot2_t, loc);
+    n->nd_beg = nd_beg;
+    n->nd_end = nd_end;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_dot3_t *
+rb_node_dot3_new(struct parser_params *p, NODE *nd_beg, NODE *nd_end, const YYLTYPE *loc)
+{
+    rb_node_dot3_t *n = NODE_NEWNODE0(NODE_DOT3, rb_node_dot3_t, loc);
+    n->nd_beg = nd_beg;
+    n->nd_end = nd_end;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_self_t *
+rb_node_self_new(struct parser_params *p, const YYLTYPE *loc)
+{
+    rb_node_self_t *n = NODE_NEWNODE0(NODE_SELF, rb_node_self_t, loc);
+    n->not_used = 0;
+    n->not_used2 = 0;
+    n->nd_state = 1;
+
+    return n;
+}
+
+/* TODO: Remove this hack */
+static rb_node_basic_t *
+rb_node_basic_new(struct parser_params *p, VALUE u1, VALUE u2, VALUE u3, const YYLTYPE *loc)
+{
+    rb_node_basic_t *n = NODE_NEWNODE0(NODE_BASIC, rb_node_basic_t, loc);
+    n->u1 = u1;
+    n->u2 = u2;
+    n->u3 = u3;
+
+    return n;
+}
+
+static rb_node_nil_t *
+rb_node_nil_new(struct parser_params *p, const YYLTYPE *loc)
+{
+    rb_node_nil_t *n = NODE_NEWNODE0(NODE_NIL, rb_node_nil_t, loc);
+    n->not_used = 0;
+    n->not_used2 = 0;
+    n->not_used3 = 0;
+
+    return n;
+}
+
+static rb_node_true_t *
+rb_node_true_new(struct parser_params *p, const YYLTYPE *loc)
+{
+    rb_node_true_t *n = NODE_NEWNODE0(NODE_TRUE, rb_node_true_t, loc);
+    n->not_used = 0;
+    n->not_used2 = 0;
+    n->not_used3 = 0;
+
+    return n;
+}
+
+static rb_node_false_t *
+rb_node_false_new(struct parser_params *p, const YYLTYPE *loc)
+{
+    rb_node_false_t *n = NODE_NEWNODE0(NODE_FALSE, rb_node_false_t, loc);
+    n->not_used = 0;
+    n->not_used2 = 0;
+    n->not_used3 = 0;
+
+    return n;
+}
+
+static rb_node_super_t *
+rb_node_super_new(struct parser_params *p, NODE *nd_args, const YYLTYPE *loc)
+{
+    rb_node_super_t *n = NODE_NEWNODE0(NODE_SUPER, rb_node_super_t, loc);
+    n->not_used = 0;
+    n->not_used2 = 0;
+    n->nd_args = nd_args;
+
+    return n;
+}
+
+static rb_node_zsuper_t *
+rb_node_zsuper_new(struct parser_params *p, const YYLTYPE *loc)
+{
+    rb_node_zsuper_t *n = NODE_NEWNODE0(NODE_ZSUPER, rb_node_zsuper_t, loc);
+    n->not_used = 0;
+    n->not_used2 = 0;
+    n->not_used3 = 0;
+
+    return n;
+}
+
+static rb_node_match_t *
+rb_node_match_new(struct parser_params *p, VALUE nd_lit, const YYLTYPE *loc)
+{
+    rb_node_match_t *n = NODE_NEWNODE0(NODE_MATCH, rb_node_match_t, loc);
+    n->nd_lit = nd_lit;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_match2_t *
+rb_node_match2_new(struct parser_params *p, NODE *nd_recv, NODE *nd_value, const YYLTYPE *loc)
+{
+    rb_node_match2_t *n = NODE_NEWNODE0(NODE_MATCH2, rb_node_match2_t, loc);
+    n->nd_recv = nd_recv;
+    n->nd_value = nd_value;
+    n->nd_args = 0;
+
+    return n;
+}
+
+static rb_node_match3_t *
+rb_node_match3_new(struct parser_params *p, NODE *nd_recv, NODE *nd_value, const YYLTYPE *loc)
+{
+    rb_node_match3_t *n = NODE_NEWNODE0(NODE_MATCH3, rb_node_match3_t, loc);
+    n->nd_recv = nd_recv;
+    n->nd_value = nd_value;
+    n->not_used = 0;
+
+    return n;
+}
+
+/* TODO: Use union for NODE_LIST2 */
+static rb_node_list_t *
+rb_node_list_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc)
+{
+    rb_node_list_t *n = NODE_NEWNODE0(NODE_LIST, rb_node_list_t, loc);
+    n->nd_head = nd_head;
+    n->nd_alen = 1;
+    n->nd_next = 0;
+
+    return n;
+}
+
+static rb_node_list_t *
+rb_node_list_new2(struct parser_params *p, NODE *nd_head, long nd_alen, NODE *nd_next, const YYLTYPE *loc)
+{
+    rb_node_list_t *n = NODE_NEWNODE0(NODE_LIST, rb_node_list_t, loc);
+    n->nd_head = nd_head;
+    n->nd_alen = nd_alen;
+    n->nd_next = nd_next;
+
+    return n;
+}
+
+static rb_node_zlist_t *
+rb_node_zlist_new(struct parser_params *p, const YYLTYPE *loc)
+{
+    rb_node_zlist_t *n = NODE_NEWNODE0(NODE_ZLIST, rb_node_zlist_t, loc);
+    n->not_used = 0;
+    n->not_used2 = 0;
+    n->not_used3 = 0;
+
+    return n;
+}
+
+static rb_node_hash_t *
+rb_node_hash_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc)
+{
+    rb_node_hash_t *n = NODE_NEWNODE0(NODE_HASH, rb_node_hash_t, loc);
+    n->nd_head = nd_head;
+    n->nd_brace = 0;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_masgn_t *
+rb_node_masgn_new(struct parser_params *p, NODE *nd_head, NODE *nd_args, const YYLTYPE *loc)
+{
+    rb_node_masgn_t *n = NODE_NEWNODE0(NODE_MASGN, rb_node_masgn_t, loc);
+    n->nd_head = nd_head;
+    n->nd_value = 0;
+    n->nd_args = nd_args;
+
+    return n;
+}
+
+static rb_node_gasgn_t *
+rb_node_gasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLTYPE *loc)
+{
+    rb_node_gasgn_t *n = NODE_NEWNODE0(NODE_GASGN, rb_node_gasgn_t, loc);
+    n->nd_vid = nd_vid;
+    n->nd_value = nd_value;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_lasgn_t *
+rb_node_lasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLTYPE *loc)
+{
+    rb_node_lasgn_t *n = NODE_NEWNODE0(NODE_LASGN, rb_node_lasgn_t, loc);
+    n->nd_vid = nd_vid;
+    n->nd_value = nd_value;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_dasgn_t *
+rb_node_dasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLTYPE *loc)
+{
+    rb_node_dasgn_t *n = NODE_NEWNODE0(NODE_DASGN, rb_node_dasgn_t, loc);
+    n->nd_vid = nd_vid;
+    n->nd_value = nd_value;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_iasgn_t *
+rb_node_iasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLTYPE *loc)
+{
+    rb_node_iasgn_t *n = NODE_NEWNODE0(NODE_IASGN, rb_node_iasgn_t, loc);
+    n->nd_vid = nd_vid;
+    n->nd_value = nd_value;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_cvasgn_t *
+rb_node_cvasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLTYPE *loc)
+{
+    rb_node_cvasgn_t *n = NODE_NEWNODE0(NODE_CVASGN, rb_node_cvasgn_t, loc);
+    n->nd_vid = nd_vid;
+    n->nd_value = nd_value;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_op_asgn1_t *
+rb_node_op_asgn1_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, rb_node_argscat_t *nd_args, const YYLTYPE *loc)
+{
+    rb_node_op_asgn1_t *n = NODE_NEWNODE0(NODE_OP_ASGN1, rb_node_op_asgn1_t, loc);
+    n->nd_recv = nd_recv;
+    n->nd_mid = nd_mid;
+    n->nd_args = nd_args;
+
+    return n;
+}
+
+static rb_node_op_asgn2_t *
+rb_node_op_asgn2_new(struct parser_params *p, NODE *nd_recv, NODE *nd_value, rb_node_op_asgn22_t *nd_next, const YYLTYPE *loc)
+{
+    rb_node_op_asgn2_t *n = NODE_NEWNODE0(NODE_OP_ASGN2, rb_node_op_asgn2_t, loc);
+    n->nd_recv = nd_recv;
+    n->nd_value = nd_value;
+    n->nd_next = nd_next;
+
+    return n;
+}
+
+static rb_node_op_asgn22_t *
+rb_node_op_asgn22_new(struct parser_params *p, ID nd_vid, ID nd_mid, bool nd_aid, const YYLTYPE *loc)
+{
+    rb_node_op_asgn22_t *n = NODE_NEWNODE0(NODE_OP_ASGN2, rb_node_op_asgn22_t, loc);
+    n->nd_vid = nd_vid;
+    n->nd_mid = nd_mid;
+    n->nd_aid = nd_aid;
+
+    return n;
+}
+
+static rb_node_op_asgn_or_t *
+rb_node_op_asgn_or_new(struct parser_params *p, NODE *nd_head, NODE *nd_value, const YYLTYPE *loc)
+{
+    rb_node_op_asgn_or_t *n = NODE_NEWNODE0(NODE_OP_ASGN_OR, rb_node_op_asgn_or_t, loc);
+    n->nd_head = nd_head;
+    n->nd_value = nd_value;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_op_asgn_and_t *
+rb_node_op_asgn_and_new(struct parser_params *p, NODE *nd_head, NODE *nd_value, const YYLTYPE *loc)
+{
+    rb_node_op_asgn_and_t *n = NODE_NEWNODE0(NODE_OP_ASGN_AND, rb_node_op_asgn_and_t, loc);
+    n->nd_head = nd_head;
+    n->nd_value = nd_value;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_gvar_t *
+rb_node_gvar_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc)
+{
+    rb_node_gvar_t *n = NODE_NEWNODE0(NODE_GVAR, rb_node_gvar_t, loc);
+    n->nd_vid = nd_vid;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_lvar_t *
+rb_node_lvar_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc)
+{
+    rb_node_lvar_t *n = NODE_NEWNODE0(NODE_LVAR, rb_node_lvar_t, loc);
+    n->nd_vid = nd_vid;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_dvar_t *
+rb_node_dvar_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc)
+{
+    rb_node_dvar_t *n = NODE_NEWNODE0(NODE_DVAR, rb_node_dvar_t, loc);
+    n->nd_vid = nd_vid;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_ivar_t *
+rb_node_ivar_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc)
+{
+    rb_node_ivar_t *n = NODE_NEWNODE0(NODE_IVAR, rb_node_ivar_t, loc);
+    n->nd_vid = nd_vid;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_const_t *
+rb_node_const_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc)
+{
+    rb_node_const_t *n = NODE_NEWNODE0(NODE_CONST, rb_node_const_t, loc);
+    n->nd_vid = nd_vid;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_cvar_t *
+rb_node_cvar_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc)
+{
+    rb_node_cvar_t *n = NODE_NEWNODE0(NODE_CVAR, rb_node_cvar_t, loc);
+    n->nd_vid = nd_vid;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_nth_ref_t *
+rb_node_nth_ref_new(struct parser_params *p, long nd_nth, const YYLTYPE *loc)
+{
+    rb_node_nth_ref_t *n = NODE_NEWNODE0(NODE_NTH_REF, rb_node_nth_ref_t, loc);
+    n->not_used = 0;
+    n->nd_nth = nd_nth;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_back_ref_t *
+rb_node_back_ref_new(struct parser_params *p, long nd_nth, const YYLTYPE *loc)
+{
+    rb_node_back_ref_t *n = NODE_NEWNODE0(NODE_BACK_REF, rb_node_back_ref_t, loc);
+    n->not_used = 0;
+    n->nd_nth = nd_nth;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_lit_t *
+rb_node_lit_new(struct parser_params *p, VALUE nd_lit, const YYLTYPE *loc)
+{
+    rb_node_lit_t *n = NODE_NEWNODE0(NODE_LIT, rb_node_lit_t, loc);
+    n->nd_lit = nd_lit;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_str_t *
+rb_node_str_new(struct parser_params *p, VALUE nd_lit, const YYLTYPE *loc)
+{
+    rb_node_str_t *n = NODE_NEWNODE0(NODE_STR, rb_node_str_t, loc);
+    n->nd_lit = nd_lit;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+/* TODO; Use union for NODE_DSTR2 */
+static rb_node_dstr_t *
+rb_node_dstr_new0(struct parser_params *p, VALUE nd_lit, long nd_alen, NODE *nd_next, const YYLTYPE *loc)
+{
+    rb_node_dstr_t *n = NODE_NEWNODE0(NODE_DSTR, rb_node_dstr_t, loc);
+    n->nd_lit = nd_lit;
+    n->nd_alen = nd_alen;
+    n->nd_next = (rb_node_list_t *)nd_next;
+
+    return n;
+}
+
+static rb_node_dstr_t *
+rb_node_dstr_new(struct parser_params *p, VALUE nd_lit, const YYLTYPE *loc)
+{
+    return rb_node_dstr_new0(p, nd_lit, 1, 0, loc);
+}
+
+static rb_node_xstr_t *
+rb_node_xstr_new(struct parser_params *p, VALUE nd_lit, const YYLTYPE *loc)
+{
+    rb_node_xstr_t *n = NODE_NEWNODE0(NODE_XSTR, rb_node_xstr_t, loc);
+    n->nd_lit = nd_lit;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_dxstr_t *
+rb_node_dxstr_new(struct parser_params *p, VALUE nd_lit, long nd_alen, NODE *nd_next, const YYLTYPE *loc)
+{
+    rb_node_dxstr_t *n = NODE_NEWNODE0(NODE_DXSTR, rb_node_dxstr_t, loc);
+    n->nd_lit = nd_lit;
+    n->nd_alen = nd_alen;
+    n->nd_next = (rb_node_list_t *)nd_next;
+
+    return n;
+}
+
+static rb_node_dsym_t *
+rb_node_dsym_new(struct parser_params *p, VALUE nd_lit, long nd_alen, NODE *nd_next, const YYLTYPE *loc)
+{
+    rb_node_dsym_t *n = NODE_NEWNODE0(NODE_DSYM, rb_node_dsym_t, loc);
+    n->nd_lit = nd_lit;
+    n->nd_alen = nd_alen;
+    n->nd_next = (rb_node_list_t *)nd_next;
+
+    return n;
+}
+
+static rb_node_evstr_t *
+rb_node_evstr_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_node_evstr_t *n = NODE_NEWNODE0(NODE_EVSTR, rb_node_evstr_t, loc);
+    n->not_used = 0;
+    n->nd_body = nd_body;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_call_t *
+rb_node_call_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc)
+{
+    rb_node_call_t *n = NODE_NEWNODE0(NODE_CALL, rb_node_call_t, loc);
+    n->nd_recv = nd_recv;
+    n->nd_mid = nd_mid;
+    n->nd_args = nd_args;
+
+    return n;
+}
+
+static rb_node_opcall_t *
+rb_node_opcall_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc)
+{
+    rb_node_opcall_t *n = NODE_NEWNODE0(NODE_OPCALL, rb_node_opcall_t, loc);
+    n->nd_recv = nd_recv;
+    n->nd_mid = nd_mid;
+    n->nd_args = nd_args;
+
+    return n;
+}
+
+static rb_node_fcall_t *
+rb_node_fcall_new(struct parser_params *p, ID nd_mid, NODE *nd_args, const YYLTYPE *loc)
+{
+    rb_node_fcall_t *n = NODE_NEWNODE0(NODE_FCALL, rb_node_fcall_t, loc);
+    n->not_used = 0;
+    n->nd_mid = nd_mid;
+    n->nd_args = nd_args;
+
+    return n;
+}
+
+static rb_node_qcall_t *
+rb_node_qcall_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc)
+{
+    rb_node_qcall_t *n = NODE_NEWNODE0(NODE_QCALL, rb_node_qcall_t, loc);
+    n->nd_recv = nd_recv;
+    n->nd_mid = nd_mid;
+    n->nd_args = nd_args;
+
+    return n;
+}
+
+static rb_node_vcall_t *
+rb_node_vcall_new(struct parser_params *p, ID nd_mid, const YYLTYPE *loc)
+{
+    rb_node_vcall_t *n = NODE_NEWNODE0(NODE_VCALL, rb_node_vcall_t, loc);
+    n->not_used = 0;
+    n->nd_mid = nd_mid;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_once_t *
+rb_node_once_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_node_once_t *n = NODE_NEWNODE0(NODE_ONCE, rb_node_once_t, loc);
+    n->not_used = 0;
+    n->nd_body = nd_body;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_args_t *
+rb_node_args_new(struct parser_params *p, struct rb_args_info *nd_ainfo, const YYLTYPE *loc)
+{
+    rb_node_args_t *n = NODE_NEWNODE0(NODE_ARGS, rb_node_args_t, loc);
+    n->not_used = 0;
+    n->not_used2 = 0;
+    n->nd_ainfo = nd_ainfo;
+
+    return n;
+}
+
+static rb_node_args_aux_t *
+rb_node_args_aux_new(struct parser_params *p, ID nd_pid, long nd_plen, const YYLTYPE *loc)
+{
+    rb_node_args_aux_t *n = NODE_NEWNODE0(NODE_ARGS_AUX, rb_node_args_aux_t, loc);
+    n->nd_pid = nd_pid;
+    n->nd_plen = nd_plen;
+    n->nd_next = 0;
+
+    return n;
+}
+
+static rb_node_opt_arg_t *
+rb_node_opt_arg_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_node_opt_arg_t *n = NODE_NEWNODE0(NODE_OPT_ARG, rb_node_opt_arg_t, loc);
+    n->not_used = 0;
+    n->nd_body = nd_body;
+    n->nd_next = 0;
+
+    return n;
+}
+
+static rb_node_kw_arg_t *
+rb_node_kw_arg_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_node_kw_arg_t *n = NODE_NEWNODE0(NODE_KW_ARG, rb_node_kw_arg_t, loc);
+    n->not_used = 0;
+    n->nd_body = nd_body;
+    n->nd_next = 0;
+
+    return n;
+}
+
+static rb_node_postarg_t *
+rb_node_postarg_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYPE *loc)
+{
+    rb_node_postarg_t *n = NODE_NEWNODE0(NODE_POSTARG, rb_node_postarg_t, loc);
+    n->nd_1st = nd_1st;
+    n->nd_2nd = nd_2nd;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_argscat_t *
+rb_node_argscat_new(struct parser_params *p, NODE *nd_head, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_node_argscat_t *n = NODE_NEWNODE0(NODE_ARGSCAT, rb_node_argscat_t, loc);
+    n->nd_head = nd_head;
+    n->nd_body = nd_body;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_argspush_t *
+rb_node_argspush_new(struct parser_params *p, NODE *nd_head, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_node_argspush_t *n = NODE_NEWNODE0(NODE_ARGSPUSH, rb_node_argspush_t, loc);
+    n->nd_head = nd_head;
+    n->nd_body = nd_body;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_splat_t *
+rb_node_splat_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc)
+{
+    rb_node_splat_t *n = NODE_NEWNODE0(NODE_SPLAT, rb_node_splat_t, loc);
+    n->nd_head = nd_head;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_block_pass_t *
+rb_node_block_pass_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_node_block_pass_t *n = NODE_NEWNODE0(NODE_BLOCK_PASS, rb_node_block_pass_t, loc);
+    n->nd_head = 0;
+    n->nd_body = nd_body;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_alias_t *
+rb_node_alias_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYPE *loc)
+{
+    rb_node_alias_t *n = NODE_NEWNODE0(NODE_ALIAS, rb_node_alias_t, loc);
+    n->nd_1st = nd_1st;
+    n->nd_2nd = nd_2nd;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_valias_t *
+rb_node_valias_new(struct parser_params *p, ID nd_alias, ID nd_orig, const YYLTYPE *loc)
+{
+    rb_node_valias_t *n = NODE_NEWNODE0(NODE_VALIAS, rb_node_valias_t, loc);
+    n->nd_alias = nd_alias;
+    n->nd_orig = nd_orig;
+    n->not_used = 0;
+
+    return n;
+}
+
+static rb_node_undef_t *
+rb_node_undef_new(struct parser_params *p, NODE *nd_undef, const YYLTYPE *loc)
+{
+    rb_node_undef_t *n = NODE_NEWNODE0(NODE_UNDEF, rb_node_undef_t, loc);
+    n->not_used = 0;
+    n->nd_undef = nd_undef;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_errinfo_t *
+rb_node_errinfo_new(struct parser_params *p, const YYLTYPE *loc)
+{
+    rb_node_errinfo_t *n = NODE_NEWNODE0(NODE_ERRINFO, rb_node_errinfo_t, loc);
+    n->not_used = 0;
+    n->not_used2 = 0;
+    n->not_used3 = 0;
+
+    return n;
+}
+
+static rb_node_defined_t *
+rb_node_defined_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc)
+{
+    rb_node_defined_t *n = NODE_NEWNODE0(NODE_DEFINED, rb_node_defined_t, loc);
+    n->nd_head = nd_head;
+    n->not_used = 0;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_postexe_t *
+rb_node_postexe_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc)
+{
+    rb_node_postexe_t *n = NODE_NEWNODE0(NODE_POSTEXE, rb_node_postexe_t, loc);
+    n->not_used = 0;
+    n->nd_body = nd_body;
+    n->not_used2 = 0;
+
+    return n;
+}
+
+static rb_node_attrasgn_t *
+rb_node_attrasgn_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc)
+{
+    rb_node_attrasgn_t *n = NODE_NEWNODE0(NODE_ATTRASGN, rb_node_attrasgn_t, loc);
+    n->nd_recv = nd_recv;
+    n->nd_mid = nd_mid;
+    n->nd_args = nd_args;
+
+    return n;
+}
+
+static rb_node_aryptn_t *
+rb_node_aryptn_new(struct parser_params *p, const YYLTYPE *loc)
+{
+    rb_node_aryptn_t *n = NODE_NEWNODE0(NODE_ARYPTN, rb_node_aryptn_t, loc);
+    n->nd_pconst = 0;
+    n->not_used = 0;
+    n->nd_apinfo = 0;
+
+    return n;
+}
+
+static rb_node_hshptn_t *
+rb_node_hshptn_new(struct parser_params *p, NODE *nd_pconst, NODE *nd_pkwargs, NODE *nd_pkwrestarg, const YYLTYPE *loc)
+{
+    rb_node_hshptn_t *n = NODE_NEWNODE0(NODE_HSHPTN, rb_node_hshptn_t, loc);
+    n->nd_pconst = nd_pconst;
+    n->nd_pkwargs = nd_pkwargs;
+    n->nd_pkwrestarg = nd_pkwrestarg;
+
+    return n;
+}
+
+static rb_node_fndptn_t *
+rb_node_fndptn_new(struct parser_params *p, const YYLTYPE *loc)
+{
+    rb_node_fndptn_t *n = NODE_NEWNODE0(NODE_FNDPTN, rb_node_fndptn_t, loc);
+    n->nd_pconst = 0;
+    n->not_used = 0;
+    n->nd_fpinfo = 0;
+
+    return n;
+}
+
+static rb_node_cdecl_t *
+rb_node_cdecl_new(struct parser_params *p, ID nd_vid, NODE *nd_value, NODE *nd_else, const YYLTYPE *loc)
+{
+    rb_node_cdecl_t *n = NODE_NEWNODE0(NODE_CDECL, rb_node_cdecl_t, loc);
+    n->nd_vid = nd_vid;
+    n->nd_value = nd_value;
+    n->nd_else = nd_else;
+
+    return n;
+}
+
+static rb_node_op_cdecl_t *
+rb_node_op_cdecl_new(struct parser_params *p, NODE *nd_head, NODE *nd_value, ID nd_aid, const YYLTYPE *loc)
+{
+    rb_node_op_cdecl_t *n = NODE_NEWNODE0(NODE_OP_CDECL, rb_node_op_cdecl_t, loc);
+    n->nd_head = nd_head;
+    n->nd_value = nd_value;
+    n->nd_aid = nd_aid;
+
+    return n;
+}
+
+static rb_node_error_t *
+rb_node_error_new(struct parser_params *p, const YYLTYPE *loc)
+{
+    rb_node_error_t *n = NODE_NEWNODE0(NODE_ERROR, rb_node_error_t, loc);
+    n->not_used = 0;
+    n->not_used2 = 0;
+    n->not_used3 = 0;
+
+    return n;
+}
+
+#else
+
+static rb_node_ripper_t *
+rb_node_ripper_new(struct parser_params *p, ID nd_vid, VALUE nd_rval, VALUE nd_cval, const YYLTYPE *loc)
+{
+    rb_node_ripper_t *n = NODE_NEWNODE0(NODE_RIPPER, rb_node_ripper_t, loc);
+    n->nd_vid = nd_vid;
+    n->nd_rval = nd_rval;
+    n->nd_cval = nd_cval;
+
+    return n;
+}
+
+static rb_node_ripper2_t *
+rb_node_ripper2_new(struct parser_params *p, VALUE nd_val1, VALUE nd_val2, VALUE nd_val3, const YYLTYPE *loc)
+{
+    rb_node_ripper2_t *n = NODE_NEWNODE0(NODE_RIPPER2, rb_node_ripper2_t, loc);
+    n->nd_val1 = nd_val1;
+    n->nd_val2 = nd_val2;
+    n->nd_val3 = nd_val3;
+
+    return n;
+}
+
+#endif
+
+static rb_node_def_temp_t *
+rb_node_def_temp_new(struct parser_params *p, ID nd_vid, ID nd_mid, rb_node_def_temp2_t *nd_next, const YYLTYPE *loc)
+{
+    rb_node_def_temp_t *n = NODE_NEWNODE0(NODE_DEF_TEMP, rb_node_def_temp_t, loc);
+    n->nd_vid = nd_vid;
+    n->nd_mid = nd_mid;
+    n->nd_next = nd_next;
+
+    return n;
+}
+
+static rb_node_def_temp2_t *
+rb_node_def_temp2_new(struct parser_params *p, NODE *nd_head, long nd_nth, VALUE nd_cval)
+{
+    rb_node_def_temp2_t *n = NODE_NEW_INTERNAL(NODE_DEF_TEMP2, rb_node_def_temp2_t);
+    n->nd_head = nd_head;
+    n->nd_nth = nd_nth;
+    n->nd_cval = nd_cval;
+
+    return n;
 }
 
 #ifndef RIPPER
@@ -10877,7 +12320,7 @@ literal_concat(struct parser_params *p, NODE *head, NODE *tail, const YYLTYPE *l
             goto append;
         }
         else {
-            list_concat(head, NEW_NODE(NODE_LIST, rb_node_list_t, NEW_STR(RNODE_DSTR(tail)->nd_lit, loc), RNODE_DSTR(tail)->nd_alen, RNODE_DSTR(tail)->nd_next, loc));
+            list_concat(head, NEW_LIST2(NEW_STR(RNODE_DSTR(tail)->nd_lit, loc), RNODE_DSTR(tail)->nd_alen, (NODE *)RNODE_DSTR(tail)->nd_next, loc));
         }
         break;
 
@@ -11212,7 +12655,7 @@ new_regexp(struct parser_params *p, NODE *node, int options, const YYLTYPE *loc)
         break;
       default:
         lit = STR_NEW0();
-        node = NEW_NODE(NODE_DSTR, rb_node_dstr_t, lit, 1, NEW_LIST(node, loc), loc);
+        node = NEW_DSTR0(lit, 1, NEW_LIST(node, loc), loc);
         RB_OBJ_WRITTEN(p->ast, Qnil, lit);
         /* fall through */
       case NODE_DSTR:
@@ -11250,7 +12693,7 @@ new_regexp(struct parser_params *p, NODE *node, int options, const YYLTYPE *loc)
             RB_OBJ_WRITTEN(p->ast, Qnil, RNODE_DREGX(node)->nd_lit = reg_compile(p, src, options));
         }
         if (options & RE_OPTION_ONCE) {
-            node = NEW_NODE(NODE_ONCE, rb_node_once_t, 0, node, 0, loc);
+            node = NEW_ONCE(node, loc);
         }
         break;
     }
@@ -11283,7 +12726,7 @@ new_xstring(struct parser_params *p, NODE *node, const YYLTYPE *loc)
         nd_set_loc(node, loc);
         break;
       default:
-        node = NEW_NODE(NODE_DXSTR, rb_node_dxstr_t, Qnil, 1, NEW_LIST(node, loc), loc);
+        node = NEW_DXSTR(Qnil, 1, NEW_LIST(node, loc), loc);
         break;
     }
     return node;
@@ -12560,7 +14003,7 @@ new_unless(struct parser_params *p, NODE *cc, NODE *left, NODE *right, const YYL
     return newline_node(NEW_UNLESS(cc, left, right, loc));
 }
 
-STATIC_ASSERT(sizeof_rb_node_and_t, sizeof(rb_node_and_t) == sizeof(rb_node_or_t));
+#define NEW_AND_OR(type, f, s, loc) (type == NODE_AND ? NEW_AND(f,s,loc) : NEW_OR(f,s,loc))
 
 static NODE*
 logop(struct parser_params *p, ID id, NODE *left, NODE *right,
@@ -12574,15 +14017,17 @@ logop(struct parser_params *p, ID id, NODE *left, NODE *right,
         while ((second = RNODE_AND(node)->nd_2nd) != 0 && nd_type_p(second, type)) {
             node = second;
         }
-        RNODE_AND(node)->nd_2nd = NEW_NODE(type, rb_node_and_t, second, right, 0, loc);
+        RNODE_AND(node)->nd_2nd = NEW_AND_OR(type, second, right, loc);
         nd_set_line(RNODE_AND(node)->nd_2nd, op_loc->beg_pos.lineno);
         left->nd_loc.end_pos = loc->end_pos;
         return left;
     }
-    op = NEW_NODE(type, rb_node_and_t, left, right, 0, loc);
+    op = NEW_AND_OR(type, left, right, loc);
     nd_set_line(op, op_loc->beg_pos.lineno);
     return op;
 }
+
+#undef NEW_AND_OR
 
 static void
 no_blockarg(struct parser_params *p, NODE *node)
@@ -12722,7 +14167,7 @@ static NODE*
 new_args_tail(struct parser_params *p, NODE *kw_args, ID kw_rest_arg, ID block, const YYLTYPE *kw_rest_loc)
 {
     int saved_line = p->ruby_sourceline;
-    NODE *node = NEW_NODE(NODE_ARGS, rb_node_args_t, 0, 0, 0, &NULL_LOC);
+    NODE *node = NEW_ARGS(0, &NULL_LOC);
     struct rb_args_info *args = ZALLOC(struct rb_args_info);
     RNODE_ARGS(node)->nd_ainfo = args;
     if (p->error_p) return node;
@@ -12815,7 +14260,7 @@ static NODE*
 new_array_pattern_tail(struct parser_params *p, NODE *pre_args, int has_rest, NODE *rest_arg, NODE *post_args, const YYLTYPE *loc)
 {
     int saved_line = p->ruby_sourceline;
-    NODE *node = NEW_NODE(NODE_ARYPTN, rb_node_aryptn_t, 0, 0, 0, loc);
+    NODE *node = NEW_ARYPTN(loc);
     struct rb_ary_pattern_info *apinfo = ZALLOC(struct rb_ary_pattern_info);
     RNODE_ARYPTN(node)->nd_apinfo = apinfo;
 
@@ -12846,7 +14291,7 @@ static NODE*
 new_find_pattern_tail(struct parser_params *p, NODE *pre_rest_arg, NODE *args, NODE *post_rest_arg, const YYLTYPE *loc)
 {
     int saved_line = p->ruby_sourceline;
-    NODE *node = NEW_NODE(NODE_FNDPTN, rb_node_fndptn_t, 0, 0, 0, loc);
+    NODE *node = NEW_FNDPTN(loc);
     struct rb_fnd_pattern_info *fpinfo = ZALLOC(struct rb_fnd_pattern_info);
     RNODE_FNDPTN(node)->nd_fpinfo = fpinfo;
 
@@ -12881,7 +14326,7 @@ new_hash_pattern_tail(struct parser_params *p, NODE *kw_args, ID kw_rest_arg, co
         kw_rest_arg_node = NULL;
     }
 
-    node = NEW_NODE(NODE_HSHPTN, rb_node_hshptn_t, 0, kw_args, kw_rest_arg_node, loc);
+    node = NEW_HSHPTN(0, kw_args, kw_rest_arg_node, loc);
 
     p->ruby_sourceline = saved_line;
     return node;
@@ -12908,7 +14353,7 @@ dsym_node(struct parser_params *p, NODE *node, const YYLTYPE *loc)
         nd_set_loc(node, loc);
         break;
       default:
-        node = NEW_NODE(NODE_DSYM, rb_node_dsym_t, Qnil, 1, NEW_LIST(node, loc), loc);
+        node = NEW_DSYM(Qnil, 1, NEW_LIST(node, loc), loc);
         break;
     }
     return node;
@@ -13082,7 +14527,7 @@ new_ary_op_assign(struct parser_params *p, NODE *ary,
     else {
         args = arg_concat(p, args, rhs, loc);
     }
-    asgn = NEW_OP_ASGN1(ary, op, args, loc);
+    asgn = NEW_OP_ASGN1(ary, op, (rb_node_argscat_t *)args, loc);
     fixpos(asgn, ary);
     return asgn;
 }
@@ -13284,17 +14729,6 @@ local_tbl(struct parser_params *p)
     }
 
     return tbl;
-}
-
-static NODE*
-node_newnode_with_locals(struct parser_params *p, enum node_type type, size_t size, VALUE a1, VALUE a2, const rb_code_location_t *loc)
-{
-    rb_ast_id_table_t *a0;
-    NODE *n;
-
-    a0 = local_tbl(p);
-    n = NEW_NODE(type, size, a0, a1, a2, loc);
-    return n;
 }
 
 #endif
