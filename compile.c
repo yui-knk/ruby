@@ -1808,7 +1808,7 @@ static int
 iseq_set_arguments_keywords(rb_iseq_t *iseq, LINK_ANCHOR *const optargs,
                             const struct rb_args_info *args, int arg_size)
 {
-    const NODE *node = args->kw_args;
+    const rb_node_kw_arg_t *node = args->kw_args;
     struct rb_iseq_constant_body *const body = ISEQ_BODY(iseq);
     struct rb_iseq_param_keyword *keyword;
     const VALUE default_values = rb_ary_hidden_new(1);
@@ -1820,14 +1820,14 @@ iseq_set_arguments_keywords(rb_iseq_t *iseq, LINK_ANCHOR *const optargs,
 
     while (node) {
         kw++;
-        node = RNODE_KW_ARG(node)->nd_next;
+        node = node->nd_next;
     }
     arg_size += kw;
     keyword->bits_start = arg_size++;
 
     node = args->kw_args;
     while (node) {
-        const NODE *val_node = RNODE_LASGN(RNODE_KW_ARG(node)->nd_body)->nd_value;
+        const NODE *val_node = RNODE_LASGN(node->nd_body)->nd_value;
         VALUE dv;
 
         if (val_node == NODE_SPECIAL_REQUIRED_KEYWORD) {
@@ -1848,7 +1848,7 @@ iseq_set_arguments_keywords(rb_iseq_t *iseq, LINK_ANCHOR *const optargs,
                 dv = Qfalse;
                 break;
               default:
-                NO_CHECK(COMPILE_POPPED(optargs, "kwarg", node)); /* nd_type_p(node, NODE_KW_ARG) */
+                NO_CHECK(COMPILE_POPPED(optargs, "kwarg", (NODE *)node)); /* nd_type_p(node, NODE_KW_ARG) */
                 dv = complex_mark;
             }
 
@@ -1856,7 +1856,7 @@ iseq_set_arguments_keywords(rb_iseq_t *iseq, LINK_ANCHOR *const optargs,
             rb_ary_push(default_values, dv);
         }
 
-        node = RNODE_KW_ARG(node)->nd_next;
+        node = node->nd_next;
     }
 
     keyword->num = kw;
@@ -1913,18 +1913,18 @@ iseq_set_arguments(rb_iseq_t *iseq, LINK_ANCHOR *const optargs, const NODE *cons
         block_id = args->block_arg;
 
         if (args->opt_args) {
-            const NODE *node = args->opt_args;
+            const rb_node_opt_arg_t *node = args->opt_args;
             LABEL *label;
             VALUE labels = rb_ary_hidden_new(1);
             VALUE *opt_table;
             int i = 0, j;
 
             while (node) {
-                label = NEW_LABEL(nd_line(node));
+                label = NEW_LABEL(nd_line(RNODE(node)));
                 rb_ary_push(labels, (VALUE)label | 1);
                 ADD_LABEL(optargs, label);
-                NO_CHECK(COMPILE_POPPED(optargs, "optarg", RNODE_OPT_ARG(node)->nd_body));
-                node = RNODE_OPT_ARG(node)->nd_next;
+                NO_CHECK(COMPILE_POPPED(optargs, "optarg", node->nd_body));
+                node = node->nd_next;
                 i += 1;
             }
 
@@ -9272,11 +9272,12 @@ compile_errinfo(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node,
 }
 
 static int
-compile_kw_arg(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, int popped)
+compile_kw_arg(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_kw_arg_t *const node_kw_arg, int popped)
 {
     struct rb_iseq_constant_body *const body = ISEQ_BODY(iseq);
+    const NODE *node = RNODE(node_kw_arg);
     LABEL *end_label = NEW_LABEL(nd_line(node));
-    const NODE *default_value = RNODE_DASGN(RNODE_KW_ARG(node)->nd_body)->nd_value;
+    const NODE *default_value = RNODE_DASGN(node_kw_arg->nd_body)->nd_value;
 
     if (default_value == NODE_SPECIAL_REQUIRED_KEYWORD) {
         /* required argument. do nothing */
@@ -9300,7 +9301,7 @@ compile_kw_arg(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, 
 
         ADD_INSN2(ret, node, checkkeyword, INT2FIX(kw_bits_idx + VM_ENV_DATA_SIZE - 1), INT2FIX(keyword_idx));
         ADD_INSNL(ret, node, branchif, end_label);
-        CHECK(COMPILE_POPPED(ret, "keyword default argument", RNODE_KW_ARG(node)->nd_body));
+        CHECK(COMPILE_POPPED(ret, "keyword default argument", node_kw_arg->nd_body));
         ADD_LABEL(ret, end_label);
     }
     return COMPILE_OK;
@@ -10079,7 +10080,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
         break;
       }
       case NODE_KW_ARG:
-        CHECK(compile_kw_arg(iseq, ret, node, popped));
+        CHECK(compile_kw_arg(iseq, ret, RNODE_KW_ARG(node), popped));
         break;
       case NODE_DSYM:{
         compile_dstr(iseq, ret, node);
