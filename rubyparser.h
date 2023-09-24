@@ -131,7 +131,6 @@ enum node_type {
     NODE_HSHPTN,
     NODE_FNDPTN,
     NODE_ERROR,
-    NODE_BASIC,
     NODE_DEF_TEMP,
     NODE_DEF_TEMP2,
     NODE_RIPPER,
@@ -172,14 +171,6 @@ typedef struct RNode {
     rb_code_location_t nd_loc;
     int node_id;
 } NODE;
-
-typedef struct RNode_BASIC {
-    NODE node;
-
-    VALUE u1;
-    VALUE u2;
-    VALUE u3;
-} rb_node_basic_t;
 
 typedef struct RNode_SCOPE {
     NODE node;
@@ -1087,7 +1078,6 @@ typedef struct RNode_ERROR {
 
 #define RNODE(obj)  ((struct RNode *)(obj))
 
-#define RNODE_BASIC(node) ((struct RNode_BASIC *)(node))
 #define RNODE_SCOPE(node) ((struct RNode_SCOPE *)(node))
 #define RNODE_BLOCK(node) ((struct RNode_BLOCK *)(node))
 #define RNODE_IF(node) ((struct RNode_IF *)(node))

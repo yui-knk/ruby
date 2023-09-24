@@ -1396,7 +1396,7 @@ rb_binding_add_dynavars(VALUE bindval, rb_binding_t *bind, int dyncount, const I
     dyns->size = dyncount;
     MEMCPY(dyns->ids, dynvars, ID, dyncount);
 
-    rb_node_init0(RNODE(&tmp_node), NODE_SCOPE);
+    rb_node_init(RNODE(&tmp_node), NODE_SCOPE);
     tmp_node.nd_tbl = dyns;
     tmp_node.nd_body = 0;
     tmp_node.nd_args = 0;
