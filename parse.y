@@ -1442,7 +1442,7 @@ void ripper_error(struct parser_params *p);
 static inline VALUE
 new_args(struct parser_params *p, VALUE pre_args, VALUE opt_args, VALUE rest_arg, VALUE post_args, VALUE tail, YYLTYPE *loc)
 {
-    struct RNode_RIPPER2 *t = RNODE_RIPPER2(tail);
+    rb_node_ripper2_t *t = RNODE_RIPPER2(tail);
     VALUE kw_args = t->nd_val1, kw_rest_arg = t->nd_val2, block = t->nd_val3;
     return params_new(pre_args, opt_args, rest_arg, post_args, kw_args, kw_rest_arg, escape_Qundef(block));
 }
@@ -1462,7 +1462,7 @@ args_with_numbered(struct parser_params *p, VALUE args, int max_numparam)
 static VALUE
 new_array_pattern(struct parser_params *p, VALUE constant, VALUE pre_arg, VALUE aryptn, const YYLTYPE *loc)
 {
-    struct RNode_RIPPER2 *t = RNODE_RIPPER2(aryptn);
+    rb_node_ripper2_t *t = RNODE_RIPPER2(aryptn);
     VALUE pre_args = t->nd_val1, rest_arg = t->nd_val2, post_args = t->nd_val3;
 
     if (!NIL_P(pre_arg)) {
@@ -1485,7 +1485,7 @@ new_array_pattern_tail(struct parser_params *p, VALUE pre_args, VALUE has_rest, 
 static VALUE
 new_find_pattern(struct parser_params *p, VALUE constant, VALUE fndptn, const YYLTYPE *loc)
 {
-    struct RNode_RIPPER2 *t = RNODE_RIPPER2(fndptn);
+    rb_node_ripper2_t *t = RNODE_RIPPER2(fndptn);
     VALUE pre_rest_arg = t->nd_val1, args = t->nd_val2, post_rest_arg = t->nd_val3;
 
     return dispatch4(fndptn, constant, pre_rest_arg, args, post_rest_arg);
@@ -1508,7 +1508,7 @@ new_unique_key_hash(struct parser_params *p, VALUE ary, const YYLTYPE *loc)
 static VALUE
 new_hash_pattern(struct parser_params *p, VALUE constant, VALUE hshptn, const YYLTYPE *loc)
 {
-    struct RNode_RIPPER2 *t = RNODE_RIPPER2(hshptn);
+    rb_node_ripper2_t *t = RNODE_RIPPER2(hshptn);
     VALUE kw_args = t->nd_val1, kw_rest_arg = t->nd_val2;
     return dispatch3(hshptn, constant, kw_args, kw_rest_arg);
 }
@@ -1562,7 +1562,7 @@ static void
 restore_defun(struct parser_params *p, NODE *name)
 {
     /* See: def_name action */
-    struct RNode_DEF_TEMP2 *save = RNODE_DEF_TEMP(name)->nd_next;
+    rb_node_def_temp2_t *save = RNODE_DEF_TEMP(name)->nd_next;
     YYSTYPE c = {.val = save->nd_cval};
     p->cur_arg = RNODE_DEF_TEMP(name)->nd_vid;
     p->ctxt.in_def = c.ctxt.in_def;
@@ -3792,7 +3792,7 @@ primary		: literal
                          *  e.each{|x| a, = x}
                          */
                         ID id = internal_id(p);
-                        struct RNode_ARGS_AUX *m = RNODE_ARGS_AUX(NEW_ARGS_AUX(0, 0, &NULL_LOC));
+                        rb_node_args_aux_t *m = RNODE_ARGS_AUX(NEW_ARGS_AUX(0, 0, &NULL_LOC));
                         NODE *args, *scope, *internal_var = NEW_DVAR(id, &@2);
                         rb_ast_id_table_t *tbl = rb_ast_new_local_table(p->ast, 1);
                         tbl->ids[0] = id; /* internal id */
@@ -12612,7 +12612,7 @@ symbol_append(struct parser_params *p, NODE *symbols, NODE *symbol)
 static NODE *
 new_regexp(struct parser_params *p, NODE *node, int options, const YYLTYPE *loc)
 {
-    struct RNode_LIST *list;
+    rb_node_list_t *list;
     NODE *prev;
     VALUE lit;
 
