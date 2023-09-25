@@ -6370,7 +6370,7 @@ assoc		: arg_value tASSOC arg_value
                     {
                     /*%%%*/
                         if (nd_type_p($2, NODE_HASH) &&
-                            !(RNODE_HASH($2)->nd_head && RNODE_LIST(RNODE_HASH($2)->nd_head)->nd_alen)) {
+                            !(RNODE_HASH($2)->nd_head && RNODE_LIST(RNODE_HASH($2)->nd_head)->as.nd_alen)) {
                             static VALUE empty_hash;
                             if (!empty_hash) {
                                 empty_hash = rb_obj_freeze(rb_hash_new());
@@ -8473,14 +8473,14 @@ heredoc_dedent(struct parser_params *p, NODE *root)
             return 0;
         }
         else {
-            NODE *end = RNODE_LIST2(node)->nd_end;
+            NODE *end = RNODE_LIST(node)->as.nd_end;
             node = RNODE_LIST(prev_node)->nd_next = RNODE_LIST(node)->nd_next;
             if (!node) {
                 if (nd_type_p(prev_node, NODE_DSTR))
                     nd_set_type(prev_node, NODE_STR);
                 break;
             }
-            RNODE_LIST2(node)->nd_end = end;
+            RNODE_LIST(node)->as.nd_end = end;
             goto next_str;
         }
 
@@ -11359,7 +11359,7 @@ rb_node_list_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc)
 {
     rb_node_list_t *n = NODE_NEWNODE(NODE_LIST, rb_node_list_t, loc);
     n->nd_head = nd_head;
-    n->nd_alen = 1;
+    n->as.nd_alen = 1;
     n->nd_next = 0;
 
     return n;
@@ -11370,7 +11370,7 @@ rb_node_list_new2(struct parser_params *p, NODE *nd_head, long nd_alen, NODE *nd
 {
     rb_node_list_t *n = NODE_NEWNODE(NODE_LIST, rb_node_list_t, loc);
     n->nd_head = nd_head;
-    n->nd_alen = nd_alen;
+    n->as.nd_alen = nd_alen;
     n->nd_next = nd_next;
 
     return n;
@@ -11635,7 +11635,7 @@ rb_node_dstr_new0(struct parser_params *p, VALUE nd_lit, long nd_alen, NODE *nd_
 {
     rb_node_dstr_t *n = NODE_NEWNODE(NODE_DSTR, rb_node_dstr_t, loc);
     n->nd_lit = nd_lit;
-    n->nd_alen = nd_alen;
+    n->as.nd_alen = nd_alen;
     n->nd_next = (rb_node_list_t *)nd_next;
 
     return n;
@@ -12151,15 +12151,15 @@ list_append(struct parser_params *p, NODE *list, NODE *item)
 
     if (list == 0) return NEW_LIST(item, &item->nd_loc);
     if (RNODE_LIST(list)->nd_next) {
-        last = RNODE_LIST2(RNODE_LIST(list)->nd_next)->nd_end;
+        last = RNODE_LIST(RNODE_LIST(list)->nd_next)->as.nd_end;
     }
     else {
         last = list;
     }
 
-    RNODE_LIST(list)->nd_alen += 1;
+    RNODE_LIST(list)->as.nd_alen += 1;
     RNODE_LIST(last)->nd_next = NEW_LIST(item, &item->nd_loc);
-    RNODE_LIST2(RNODE_LIST(list)->nd_next)->nd_end = RNODE_LIST(last)->nd_next;
+    RNODE_LIST(RNODE_LIST(list)->nd_next)->as.nd_end = RNODE_LIST(last)->nd_next;
 
     nd_set_last_loc(list, nd_last_loc(item));
 
@@ -12173,19 +12173,19 @@ list_concat(NODE *head, NODE *tail)
     NODE *last;
 
     if (RNODE_LIST(head)->nd_next) {
-        last = RNODE_LIST2(RNODE_LIST(head)->nd_next)->nd_end;
+        last = RNODE_LIST(RNODE_LIST(head)->nd_next)->as.nd_end;
     }
     else {
         last = head;
     }
 
-    RNODE_LIST(head)->nd_alen += RNODE_LIST(tail)->nd_alen;
+    RNODE_LIST(head)->as.nd_alen += RNODE_LIST(tail)->as.nd_alen;
     RNODE_LIST(last)->nd_next = tail;
     if (RNODE_LIST(tail)->nd_next) {
-        RNODE_LIST2(RNODE_LIST(head)->nd_next)->nd_end = RNODE_LIST2(RNODE_LIST(tail)->nd_next)->nd_end;
+        RNODE_LIST(RNODE_LIST(head)->nd_next)->as.nd_end = RNODE_LIST(RNODE_LIST(tail)->nd_next)->as.nd_end;
     }
     else {
-        RNODE_LIST2(RNODE_LIST(head)->nd_next)->nd_end = tail;
+        RNODE_LIST(RNODE_LIST(head)->nd_next)->as.nd_end = tail;
     }
 
     nd_set_last_loc(head, nd_last_loc(tail));
@@ -12214,7 +12214,7 @@ string_literal_head(struct parser_params *p, enum node_type htype, NODE *head)
 {
     if (htype != NODE_DSTR) return Qfalse;
     if (RNODE_DSTR(head)->nd_next) {
-        head = RNODE_LIST(RNODE_LIST2(RNODE_DSTR(head)->nd_next)->nd_end)->nd_head;
+        head = RNODE_LIST(RNODE_LIST(RNODE_DSTR(head)->nd_next)->as.nd_end)->nd_head;
         if (!head || !nd_type_p(head, NODE_STR)) return Qfalse;
     }
     const VALUE lit = RNODE_DSTR(head)->nd_lit;
@@ -12279,13 +12279,13 @@ literal_concat(struct parser_params *p, NODE *head, NODE *tail, const YYLTYPE *l
         }
         else if (NIL_P(RNODE_DSTR(tail)->nd_lit)) {
           append:
-            RNODE_DSTR(head)->nd_alen += RNODE_DSTR(tail)->nd_alen - 1;
+            RNODE_DSTR(head)->as.nd_alen += RNODE_DSTR(tail)->as.nd_alen - 1;
             if (!RNODE_DSTR(head)->nd_next) {
                 RNODE_DSTR(head)->nd_next = RNODE_DSTR(tail)->nd_next;
             }
             else if (RNODE_DSTR(tail)->nd_next) {
-                RNODE_DSTR(RNODE_DSTR2(RNODE_DSTR(head)->nd_next)->nd_end)->nd_next = RNODE_DSTR(tail)->nd_next;
-                RNODE_DSTR2(RNODE_DSTR(head)->nd_next)->nd_end = RNODE_DSTR2(RNODE_DSTR(tail)->nd_next)->nd_end;
+                RNODE_DSTR(RNODE_DSTR(RNODE_DSTR(head)->nd_next)->as.nd_end)->nd_next = RNODE_DSTR(tail)->nd_next;
+                RNODE_DSTR(RNODE_DSTR(head)->nd_next)->as.nd_end = RNODE_DSTR(RNODE_DSTR(tail)->nd_next)->as.nd_end;
             }
             rb_discard_node(p, tail);
         }
@@ -12296,14 +12296,14 @@ literal_concat(struct parser_params *p, NODE *head, NODE *tail, const YYLTYPE *l
             goto append;
         }
         else {
-            list_concat(head, NEW_LIST2(NEW_STR(RNODE_DSTR(tail)->nd_lit, loc), RNODE_DSTR(tail)->nd_alen, (NODE *)RNODE_DSTR(tail)->nd_next, loc));
+            list_concat(head, NEW_LIST2(NEW_STR(RNODE_DSTR(tail)->nd_lit, loc), RNODE_DSTR(tail)->as.nd_alen, (NODE *)RNODE_DSTR(tail)->nd_next, loc));
         }
         break;
 
       case NODE_EVSTR:
         if (htype == NODE_STR) {
             nd_set_type(head, NODE_DSTR);
-            RNODE_DSTR(head)->nd_alen = 1;
+            RNODE_DSTR(head)->as.nd_alen = 1;
         }
         list_append(p, head, tail);
         break;
@@ -14340,8 +14340,8 @@ append_literal_keys(st_data_t k, st_data_t v, st_data_t h)
 {
     NODE *node = (NODE *)v;
     NODE **result = (NODE **)h;
-    RNODE_LIST(node)->nd_alen = 2;
-    RNODE_LIST2(RNODE_LIST(node)->nd_next)->nd_end = RNODE_LIST(node)->nd_next;
+    RNODE_LIST(node)->as.nd_alen = 2;
+    RNODE_LIST(RNODE_LIST(node)->nd_next)->as.nd_end = RNODE_LIST(node)->nd_next;
     RNODE_LIST(RNODE_LIST(node)->nd_next)->nd_next = 0;
     if (*result)
         list_concat(*result, node);
@@ -14358,7 +14358,7 @@ remove_duplicate_keys(struct parser_params *p, NODE *hash)
         literal_hash,
     };
 
-    st_table *literal_keys = st_init_table_with_size(&literal_type, RNODE_LIST(hash)->nd_alen / 2);
+    st_table *literal_keys = st_init_table_with_size(&literal_type, RNODE_LIST(hash)->as.nd_alen / 2);
     NODE *result = 0;
     NODE *last_expr = 0;
     rb_code_location_t loc = hash->nd_loc;

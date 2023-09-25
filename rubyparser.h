@@ -546,17 +546,12 @@ typedef struct RNode_LIST {
     NODE node;
 
     struct RNode *nd_head; /* element */
-    long nd_alen;
-    struct RNode *nd_next; /*  */
+    union {
+        long nd_alen;
+        struct RNode *nd_end; /* Second list node has this structure */
+    } as;
+    struct RNode *nd_next; /* next list node */
 } rb_node_list_t;
-
-typedef struct RNode_LIST2 {
-    NODE node;
-
-    VALUE not_used;
-    struct RNode *nd_end;
-    VALUE not_used2;
-} rb_node_list2_t;
 
 typedef struct RNode_ZLIST {
     NODE node;
@@ -710,18 +705,12 @@ typedef struct RNode_DSTR {
     NODE node;
 
     VALUE nd_lit;
-    long nd_alen;
+    union {
+        long nd_alen;
+        struct RNode *nd_end; /* Second dstr node has this structure. See also RNode_LIST */
+    } as;
     struct RNode_LIST *nd_next;
 } rb_node_dstr_t;
-
-/* See also RNode_LIST2 */
-typedef struct RNode_DSTR2 {
-    NODE node;
-
-    VALUE not_used;
-    struct RNode *nd_end;
-    VALUE not_used2;
-} rb_node_dstr2_t;
 
 typedef struct RNode_XSTR {
     NODE node;
@@ -1123,7 +1112,6 @@ typedef struct RNode_ERROR {
 #define RNODE_SUPER(node) ((struct RNode_SUPER *)(node))
 #define RNODE_ZSUPER(node) ((struct RNode_ZSUPER *)(node))
 #define RNODE_LIST(node) ((struct RNode_LIST *)(node))
-#define RNODE_LIST2(node) ((struct RNode_LIST2 *)(node))
 #define RNODE_ZLIST(node) ((struct RNode_ZLIST *)(node))
 #define RNODE_VALUES(node) ((struct RNode_VALUES *)(node))
 #define RNODE_HASH(node) ((struct RNode_HASH *)(node))
@@ -1143,7 +1131,6 @@ typedef struct RNode_ERROR {
 #define RNODE_LIT(node) ((struct RNode_LIT *)(node))
 #define RNODE_STR(node) ((struct RNode_STR *)(node))
 #define RNODE_DSTR(node) ((struct RNode_DSTR *)(node))
-#define RNODE_DSTR2(node) ((struct RNode_DSTR2 *)(node))
 #define RNODE_XSTR(node) ((struct RNode_XSTR *)(node))
 #define RNODE_DXSTR(node) ((struct RNode_DXSTR *)(node))
 #define RNODE_EVSTR(node) ((struct RNode_EVSTR *)(node))

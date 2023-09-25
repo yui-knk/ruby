@@ -4325,7 +4325,7 @@ compile_keyword_arg(rb_iseq_t *iseq, LINK_ANCHOR *const ret,
         /* may be keywords */
         node = RNODE_HASH(root_node)->nd_head;
         {
-            int len = (int)RNODE_LIST(node)->nd_alen / 2;
+            int len = (int)RNODE_LIST(node)->as.nd_alen / 2;
             struct rb_callinfo_kwarg *kw_arg =
                 rb_xmalloc_mul_add(len, sizeof(VALUE), sizeof(struct rb_callinfo_kwarg));
             VALUE *keywords = kw_arg->keywords;
@@ -5198,7 +5198,7 @@ compile_massign0(rb_iseq_t *iseq, LINK_ANCHOR *const pre, LINK_ANCHOR *const rhs
             /*a, b, *r, p1, p2 */
             const NODE *postn = RNODE_POSTARG(splatn)->nd_2nd;
             const NODE *restn = RNODE_POSTARG(splatn)->nd_1st;
-            int plen = (int)RNODE_LIST(postn)->nd_alen;
+            int plen = (int)RNODE_LIST(postn)->as.nd_alen;
             int ppos = 0;
             int flag = 0x02 | (NODE_NAMED_REST_P(restn) ? 0x01 : 0x00);
 
@@ -6331,8 +6331,8 @@ iseq_compile_pattern_each(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *c
          */
         struct rb_ary_pattern_info *apinfo = RNODE_ARYPTN(node)->nd_apinfo;
         const NODE *args = apinfo->pre_args;
-        const int pre_args_num = apinfo->pre_args ? rb_long2int(RNODE_LIST(apinfo->pre_args)->nd_alen) : 0;
-        const int post_args_num = apinfo->post_args ? rb_long2int(RNODE_LIST(apinfo->post_args)->nd_alen) : 0;
+        const int pre_args_num = apinfo->pre_args ? rb_long2int(RNODE_LIST(apinfo->pre_args)->as.nd_alen) : 0;
+        const int post_args_num = apinfo->post_args ? rb_long2int(RNODE_LIST(apinfo->post_args)->as.nd_alen) : 0;
 
         const int min_argc = pre_args_num + post_args_num;
         const int use_rest_num = apinfo->rest_arg && (NODE_NAMED_REST_P(apinfo->rest_arg) ||
@@ -6492,7 +6492,7 @@ iseq_compile_pattern_each(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *c
          */
         struct rb_fnd_pattern_info *fpinfo = RNODE_FNDPTN(node)->nd_fpinfo;
         const NODE *args = fpinfo->args;
-        const int args_num = fpinfo->args ? rb_long2int(RNODE_LIST(fpinfo->args)->nd_alen) : 0;
+        const int args_num = fpinfo->args ? rb_long2int(RNODE_LIST(fpinfo->args)->as.nd_alen) : 0;
 
         LABEL *match_failed, *type_error, *deconstruct, *deconstructed;
         match_failed = NEW_LABEL(line);
@@ -6679,7 +6679,7 @@ iseq_compile_pattern_each(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *c
 
         if (RNODE_HSHPTN(node)->nd_pkwargs && !RNODE_HSHPTN(node)->nd_pkwrestarg) {
             const NODE *kw_args = RNODE_HASH(RNODE_HSHPTN(node)->nd_pkwargs)->nd_head;
-            keys = rb_ary_new_capa(kw_args ? RNODE_LIST(kw_args)->nd_alen/2 : 0);
+            keys = rb_ary_new_capa(kw_args ? RNODE_LIST(kw_args)->as.nd_alen/2 : 0);
             while (kw_args) {
                 rb_ary_push(keys, RNODE_LIT(RNODE_LIST(kw_args)->nd_head)->nd_lit);
                 kw_args = RNODE_LIST(RNODE_LIST(kw_args)->nd_next)->nd_next;
@@ -6721,7 +6721,7 @@ iseq_compile_pattern_each(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *c
             if (args) {
                 DECL_ANCHOR(match_values);
                 INIT_ANCHOR(match_values);
-                keys_num = rb_long2int(RNODE_LIST(args)->nd_alen) / 2;
+                keys_num = rb_long2int(RNODE_LIST(args)->as.nd_alen) / 2;
                 for (i = 0; i < keys_num; i++) {
                     NODE *key_node = RNODE_LIST(args)->nd_head;
                     NODE *value_node = RNODE_LIST(RNODE_LIST(args)->nd_next)->nd_head;
@@ -6926,7 +6926,7 @@ iseq_compile_pattern_each(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *c
         match_failed = NEW_LABEL(line);
 
         n = RNODE_HASH(node)->nd_head;
-        if (! (nd_type_p(n, NODE_LIST) && RNODE_LIST(n)->nd_alen == 2)) {
+        if (! (nd_type_p(n, NODE_LIST) && RNODE_LIST(n)->as.nd_alen == 2)) {
             COMPILE_ERROR(ERROR_ARGS "unexpected node");
             return COMPILE_NG;
         }
@@ -8045,7 +8045,7 @@ compile_call_precheck_freeze(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE
      *   obj["literal"] -> opt_aref_with(obj, "literal")
      */
     if (RNODE_CALL(node)->nd_mid == idAREF && !private_recv_p(node) && RNODE_CALL(node)->nd_args &&
-        nd_type_p(RNODE_CALL(node)->nd_args, NODE_LIST) && RNODE_LIST(RNODE_CALL(node)->nd_args)->nd_alen == 1 &&
+        nd_type_p(RNODE_CALL(node)->nd_args, NODE_LIST) && RNODE_LIST(RNODE_CALL(node)->nd_args)->as.nd_alen == 1 &&
         nd_type_p(RNODE_LIST(RNODE_CALL(node)->nd_args)->nd_head, NODE_STR) &&
         ISEQ_COMPILE_DATA(iseq)->current_block == NULL &&
         !ISEQ_COMPILE_DATA(iseq)->option->frozen_string_literal &&
@@ -9321,7 +9321,7 @@ compile_attrasgn(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node
      *   obj["literal"] = value -> opt_aset_with(obj, "literal", value)
      */
     if (mid == idASET && !private_recv_p(node) && RNODE_ATTRASGN(node)->nd_args &&
-        nd_type_p(RNODE_ATTRASGN(node)->nd_args, NODE_LIST) && RNODE_LIST(RNODE_ATTRASGN(node)->nd_args)->nd_alen == 2 &&
+        nd_type_p(RNODE_ATTRASGN(node)->nd_args, NODE_LIST) && RNODE_LIST(RNODE_ATTRASGN(node)->nd_args)->as.nd_alen == 2 &&
         nd_type_p(RNODE_LIST(RNODE_ATTRASGN(node)->nd_args)->nd_head, NODE_STR) &&
         ISEQ_COMPILE_DATA(iseq)->current_block == NULL &&
         !ISEQ_COMPILE_DATA(iseq)->option->frozen_string_literal &&

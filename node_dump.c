@@ -134,7 +134,7 @@ dump_array(VALUE buf, VALUE indent, int comment, const NODE *node)
 {
     int field_flag;
     const char *next_indent = default_indent;
-    F_LONG(nd_alen, RNODE_LIST, "length");
+    F_LONG(as.nd_alen, RNODE_LIST, "length");
     F_NODE(nd_head, RNODE_LIST, "element");
     while (RNODE_LIST(node)->nd_next && nd_type_p(RNODE_LIST(node)->nd_next, NODE_LIST)) {
         node = RNODE_LIST(node)->nd_next;
