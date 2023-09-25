@@ -43,7 +43,6 @@ init_node_buffer_list(node_buffer_list_t * nb, node_buffer_elem_t *head, void *x
 {
     init_node_buffer_elem(head, NODE_BUF_DEFAULT_SIZE, xmalloc);
     nb->head = nb->last = head;
-    // fprintf(stderr, "nbe: %p, nodes: %ld, allocated: %ld\n", nb->head, NODE_BUF_DEFAULT_SIZE / sizeof(struct RNode), nb->head->allocated);
     nb->head->next = NULL;
 }
 
@@ -149,7 +148,6 @@ static void
 node_buffer_list_free(rb_ast_t *ast, node_buffer_list_t * nb)
 {
     node_buffer_elem_t *nbe = nb->head;
-    // fprintf(stderr, "free: %p\n", nbe);
     while (nbe != nb->last) {
         void *buf = nbe;
         xfree(nbe->nodes);
@@ -197,28 +195,30 @@ rb_node_buffer_free(rb_ast_t *ast, node_buffer_t *nb)
     xfree(nb);
 }
 
+#define buf_add_offset(nbe, offset) ((char *)(nbe->buf) + (offset))
+
 static NODE *
 ast_newnode_in_bucket(rb_ast_t *ast, node_buffer_list_t *nb, size_t size, size_t alignment)
 {
-    size_t s = size;
-    size_t padding = 0; /* TODO: take care of alignment */
+    size_t padding;
     NODE *ptr;
 
-    if (nb->head->used + s + padding > nb->head->allocated) {
+    padding = alignment - (size_t)buf_add_offset(nb->head, nb->head->used) % alignment;
+    padding = padding == alignment ? 0 : padding;
+
+    if (nb->head->used + size + padding > nb->head->allocated) {
         size_t n = nb->head->allocated * 2;
         node_buffer_elem_t *nbe;
         nbe = rb_xmalloc_mul_add(n, sizeof(char *), offsetof(node_buffer_elem_t, buf));
         init_node_buffer_elem(nbe, n, ruby_xmalloc);
         nbe->next = nb->head;
         nb->head = nbe;
-        padding = 0; /*  */
-        // fprintf(stderr, "nbe: %p, nodes: %ld, allocated: %ld\n", nb->head, n / sizeof(struct RNode), nb->head->allocated);
+        padding = 0; /* malloc returns aligned address then no need to add padding */
     }
 
-    ptr = (NODE *)&nb->head->buf[nb->head->used + padding];
-    nb->head->used += (s + padding);
+    ptr = (NODE *)buf_add_offset(nb->head, nb->head->used + padding);
+    nb->head->used += (size + padding);
     nb->head->nodes[nb->head->len++] = ptr;
-    // fprintf(stderr, "#1: nbe: %p, len: %ld, ptr: %p, used: %ld\n", nb->head, nb->head->len, ptr, nb->head->used);
     return ptr;
 }
 
@@ -317,7 +317,6 @@ iterate_buffer_elements(rb_ast_t *ast, node_buffer_elem_t *nbe, long len, node_i
 {
     long cursor;
     for (cursor = 0; cursor < len; cursor++) {
-        // fprintf(stderr, "#2: nbe: %p, len: %ld, ptr: %p\n", nbe, nbe->len, nbe->nodes[cursor]);
         func(ast, ctx, nbe->nodes[cursor]);
     }
 }
@@ -426,7 +425,7 @@ buffer_list_size(node_buffer_list_t *nb)
     size_t size = 0;
     node_buffer_elem_t *nbe = nb->head;
     while (nbe != nb->last) {
-        size += offsetof(node_buffer_elem_t, buf) + nbe->allocated;
+        size += offsetof(node_buffer_elem_t, buf) + nbe->used;
         nbe = nbe->next;
     }
     return size;
@@ -439,7 +438,7 @@ rb_ast_memsize(const rb_ast_t *ast)
     node_buffer_t *nb = ast->node_buffer;
 
     if (nb) {
-        size += sizeof(node_buffer_t) + offsetof(node_buffer_elem_t, buf) + NODE_BUF_DEFAULT_SIZE * sizeof(NODE *);
+        size += sizeof(node_buffer_t);
         size += buffer_list_size(&nb->unmarkable);
         size += buffer_list_size(&nb->markable);
     }

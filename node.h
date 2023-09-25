@@ -20,14 +20,13 @@ typedef void (*bug_report_func)(const char *fmt, ...);
 typedef struct node_buffer_elem_struct {
     struct node_buffer_elem_struct *next;
     long len; /* Lenght of nodes */
-    size_t allocated; /* Total memory size of allocated nodes */
+    size_t allocated; /* Total memory size of allocated buf */
     size_t used; /* Current usage of buf */
     NODE **nodes; /* Array of node pointers */
-    char buf[FLEX_ARY_LEN];
+    NODE *buf[FLEX_ARY_LEN];
 } node_buffer_elem_t;
 
 typedef struct {
-    // size_t allocated, used; /* allocated and used of head node buffer. */
     node_buffer_elem_t *head;
     node_buffer_elem_t *last;
 } node_buffer_list_t;
