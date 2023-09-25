@@ -19,13 +19,15 @@ typedef void (*bug_report_func)(const char *fmt, ...);
 
 typedef struct node_buffer_elem_struct {
     struct node_buffer_elem_struct *next;
-    long len;
-    size_t size; /* Total memory size of allocated nodes */
-    NODE *buf[FLEX_ARY_LEN];
+    long len; /* Lenght of nodes */
+    size_t allocated; /* Total memory size of allocated nodes */
+    size_t used; /* Current usage of buf */
+    NODE **nodes; /* Array of node pointers */
+    char buf[FLEX_ARY_LEN];
 } node_buffer_elem_t;
 
 typedef struct {
-    long idx, len; /* Index and lenght of head node buffer. */
+    // size_t allocated, used; /* allocated and used of head node buffer. */
     node_buffer_elem_t *head;
     node_buffer_elem_t *last;
 } node_buffer_list_t;
@@ -67,7 +69,7 @@ void rb_ast_update_references(rb_ast_t*);
 void rb_ast_free(rb_ast_t*);
 void rb_ast_add_mark_object(rb_ast_t*, VALUE);
 void rb_ast_set_tokens(rb_ast_t*, VALUE);
-NODE *rb_ast_newnode(rb_ast_t*, enum node_type type, size_t size);
+NODE *rb_ast_newnode(rb_ast_t*, enum node_type type, size_t size, size_t alignment);
 void rb_ast_delete_node(rb_ast_t*, NODE *n);
 rb_ast_id_table_t *rb_ast_new_local_table(rb_ast_t*, int);
 rb_ast_id_table_t *rb_ast_resize_latest_local_table(rb_ast_t*, int);

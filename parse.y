@@ -1095,8 +1095,8 @@ static rb_node_def_temp2_t *rb_node_def_temp2_new(struct parser_params *p, NODE 
 
 /* Make a new internal node, which should not be appeared in the
  * result AST and does not have node_id and location. */
-static NODE* node_new_internal(struct parser_params *p, enum node_type type, size_t size);
-#define NODE_NEW_INTERNAL(node_type, type) (type *)node_new_internal(p, node_type, sizeof(type))
+static NODE* node_new_internal(struct parser_params *p, enum node_type type, size_t size, size_t alignment);
+#define NODE_NEW_INTERNAL(node_type, type) (type *)node_new_internal(p, node_type, sizeof(type), RUBY_ALIGNOF(type))
 
 static NODE *nd_set_loc(NODE *nd, const YYLTYPE *loc);
 
@@ -10816,9 +10816,9 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
 #define LVAR_USED ((ID)1 << (sizeof(ID) * CHAR_BIT - 1))
 
 static NODE*
-node_new_internal(struct parser_params *p, enum node_type type, size_t size)
+node_new_internal(struct parser_params *p, enum node_type type, size_t size, size_t alignment)
 {
-    NODE *n = rb_ast_newnode(p->ast, type, size);
+    NODE *n = rb_ast_newnode(p->ast, type, size, alignment);
 
     rb_node_init(n, type);
     return n;
@@ -10833,16 +10833,16 @@ nd_set_loc(NODE *nd, const YYLTYPE *loc)
 }
 
 static NODE*
-node_newnode(struct parser_params *p, enum node_type type, size_t size, const rb_code_location_t *loc)
+node_newnode(struct parser_params *p, enum node_type type, size_t size, size_t alignment, const rb_code_location_t *loc)
 {
-    NODE *n = node_new_internal(p, type, size);
+    NODE *n = node_new_internal(p, type, size, alignment);
 
     nd_set_loc(n, loc);
     nd_set_node_id(n, parser_get_node_id(p));
     return n;
 }
 
-#define NODE_NEWNODE(node_type, type, loc) (type *)(node_newnode(p, node_type, sizeof(type), loc))
+#define NODE_NEWNODE(node_type, type, loc) (type *)(node_newnode(p, node_type, sizeof(type), RUBY_ALIGNOF(type), loc))
 
 #ifndef RIPPER
 
