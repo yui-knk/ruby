@@ -1413,7 +1413,7 @@ rb_binding_add_dynavars(VALUE bindval, rb_binding_t *bind, int dyncount, const I
         VALUE tempstr = rb_fstring_lit("<temp>");
         iseq = rb_iseq_new_top(&ast, tempstr, tempstr, tempstr, NULL);
     }
-    RNODE_SCOPE(&tmp_node)->nd_tbl = 0; /* reset table */
+    tmp_node.nd_tbl = 0; /* reset table */
     ALLOCV_END(idtmp);
 
     vm_set_eval_stack(ec, iseq, 0, base_block);
