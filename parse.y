@@ -11566,7 +11566,6 @@ rb_node_gasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLT
     rb_node_gasgn_t *n = NODE_NEWNODE(NODE_GASGN, rb_node_gasgn_t, loc);
     n->nd_vid = nd_vid;
     n->nd_value = nd_value;
-    n->not_used = 0;
 
     return n;
 }
@@ -11577,7 +11576,6 @@ rb_node_lasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLT
     rb_node_lasgn_t *n = NODE_NEWNODE(NODE_LASGN, rb_node_lasgn_t, loc);
     n->nd_vid = nd_vid;
     n->nd_value = nd_value;
-    n->not_used = 0;
 
     return n;
 }
@@ -11588,7 +11586,6 @@ rb_node_dasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLT
     rb_node_dasgn_t *n = NODE_NEWNODE(NODE_DASGN, rb_node_dasgn_t, loc);
     n->nd_vid = nd_vid;
     n->nd_value = nd_value;
-    n->not_used = 0;
 
     return n;
 }
@@ -11599,7 +11596,6 @@ rb_node_iasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLT
     rb_node_iasgn_t *n = NODE_NEWNODE(NODE_IASGN, rb_node_iasgn_t, loc);
     n->nd_vid = nd_vid;
     n->nd_value = nd_value;
-    n->not_used = 0;
 
     return n;
 }
@@ -11610,7 +11606,6 @@ rb_node_cvasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYL
     rb_node_cvasgn_t *n = NODE_NEWNODE(NODE_CVASGN, rb_node_cvasgn_t, loc);
     n->nd_vid = nd_vid;
     n->nd_value = nd_value;
-    n->not_used = 0;
 
     return n;
 }

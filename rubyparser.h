@@ -360,7 +360,6 @@ typedef struct RNode_LASGN {
 
     ID nd_vid;
     struct RNode *nd_value;
-    VALUE not_used;
 } rb_node_lasgn_t;
 
 typedef struct RNode_DASGN {
@@ -368,7 +367,6 @@ typedef struct RNode_DASGN {
 
     ID nd_vid;
     struct RNode *nd_value;
-    VALUE not_used;
 } rb_node_dasgn_t;
 
 typedef struct RNode_GASGN {
@@ -376,7 +374,6 @@ typedef struct RNode_GASGN {
 
     ID nd_vid;
     struct RNode *nd_value;
-    VALUE not_used;
 } rb_node_gasgn_t;
 
 typedef struct RNode_IASGN {
@@ -384,7 +381,6 @@ typedef struct RNode_IASGN {
 
     ID nd_vid;
     struct RNode *nd_value;
-    VALUE not_used;
 } rb_node_iasgn_t;
 
 typedef struct RNode_CDECL {
@@ -400,7 +396,6 @@ typedef struct RNode_CVASGN {
 
     ID nd_vid;
     struct RNode *nd_value;
-    VALUE not_used;
 } rb_node_cvasgn_t;
 
 typedef struct RNode_OP_ASGN1 {
