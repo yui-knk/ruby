@@ -13614,6 +13614,37 @@ shareable_constant_value(struct parser_params *p, enum shareability shareable,
     }
 }
 
+static void
+set_nd_value(struct parser_params *p, NODE *node, NODE *rhs)
+{
+    switch (nd_type(node)) {
+      case NODE_CDECL:
+        RNODE_CDECL(node)->nd_value = rhs;
+        break;
+      case NODE_GASGN:
+        RNODE_GASGN(node)->nd_value = rhs;
+        break;
+      case NODE_IASGN:
+        RNODE_IASGN(node)->nd_value = rhs;
+        break;
+      case NODE_LASGN:
+        RNODE_LASGN(node)->nd_value = rhs;
+        break;
+      case NODE_DASGN:
+        RNODE_DASGN(node)->nd_value = rhs;
+        break;
+      case NODE_MASGN:
+        RNODE_MASGN(node)->nd_value = rhs;
+        break;
+      case NODE_CVASGN:
+        RNODE_CVASGN(node)->nd_value = rhs;
+        break;
+      default:
+        compile_error(p, "unexpected node: %s", ruby_node_name(nd_type(node)));
+        break;
+    }
+}
+
 static NODE *
 node_assign(struct parser_params *p, NODE *lhs, NODE *rhs, struct lex_context ctxt, const YYLTYPE *loc)
 {
@@ -13630,7 +13661,7 @@ node_assign(struct parser_params *p, NODE *lhs, NODE *rhs, struct lex_context ct
       case NODE_DASGN:
       case NODE_MASGN:
       case NODE_CVASGN:
-        RNODE_GASGN(lhs)->nd_value = rhs;
+        set_nd_value(p, lhs, rhs);
         nd_set_loc(lhs, loc);
         break;
 

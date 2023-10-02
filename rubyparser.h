@@ -354,7 +354,6 @@ typedef struct RNode_MASGN {
     struct RNode *nd_args;
 } rb_node_masgn_t;
 
-/* RNode_LASGN, RNode_DASGN, RNode_IASGN, RNode_CVASGN and RNode_GASGN should be same structure */
 typedef struct RNode_LASGN {
     NODE node;
 
