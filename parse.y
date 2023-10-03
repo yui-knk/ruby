@@ -1849,6 +1849,28 @@ set_nd_value(struct parser_params *p, NODE *node, NODE *rhs)
     }
 }
 
+static ID
+get_nd_vid(struct parser_params *p, NODE *node)
+{
+    switch (nd_type(node)) {
+      case NODE_CDECL:
+        return RNODE_CDECL(node)->nd_vid;
+      case NODE_GASGN:
+        return RNODE_GASGN(node)->nd_vid;
+      case NODE_IASGN:
+        return RNODE_IASGN(node)->nd_vid;
+      case NODE_LASGN:
+        return RNODE_LASGN(node)->nd_vid;
+      case NODE_DASGN:
+        return RNODE_DASGN(node)->nd_vid;
+      case NODE_CVASGN:
+        return RNODE_CVASGN(node)->nd_vid;
+      default:
+        compile_error(p, "unexpected node: %s", ruby_node_name(nd_type(node)));
+        return 0;
+    }
+}
+
 static NODE *
 get_nd_args(struct parser_params *p, NODE *node)
 {
@@ -14332,7 +14354,7 @@ new_args_tail(struct parser_params *p, rb_node_kw_arg_t *kw_args, ID kw_rest_arg
         }
 
         for (kwn = kw_args; kwn; kwn = kwn->nd_next) {
-            ID vid = RNODE_LASGN(kwn->nd_body)->nd_vid;
+            ID vid = get_nd_vid(p, kwn->nd_body);
             if (NODE_REQUIRED_KEYWORD_P(get_nd_value(p, kwn->nd_body))) {
                 *required_kw_vars++ = vid;
             }
@@ -14585,7 +14607,7 @@ new_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct lex_c
     NODE *asgn;
 
     if (lhs) {
-        ID vid = RNODE_LASGN(lhs)->nd_vid;
+        ID vid = get_nd_vid(p, lhs);
         YYLTYPE lhs_loc = lhs->nd_loc;
         int shareable = ctxt.shareable_constant_value;
         if (shareable) {
