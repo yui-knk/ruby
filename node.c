@@ -339,14 +339,28 @@ mark_ast_value(rb_ast_t *ast, void *ctx, NODE *node)
 
     switch (nd_type(node)) {
       case NODE_MATCH:
+        rb_gc_mark_movable(RNODE_MATCH(node)->nd_lit);
+        break;
       case NODE_LIT:
-      case NODE_STR:
-      case NODE_XSTR:
-      case NODE_DSTR:
-      case NODE_DXSTR:
-      case NODE_DREGX:
-      case NODE_DSYM:
         rb_gc_mark_movable(RNODE_LIT(node)->nd_lit);
+        break;
+      case NODE_STR:
+        rb_gc_mark_movable(RNODE_STR(node)->nd_lit);
+        break;
+      case NODE_XSTR:
+        rb_gc_mark_movable(RNODE_XSTR(node)->nd_lit);
+        break;
+      case NODE_DSTR:
+        rb_gc_mark_movable(RNODE_DSTR(node)->nd_lit);
+        break;
+      case NODE_DXSTR:
+        rb_gc_mark_movable(RNODE_DXSTR(node)->nd_lit);
+        break;
+      case NODE_DREGX:
+        rb_gc_mark_movable(RNODE_DREGX(node)->nd_lit);
+        break;
+      case NODE_DSYM:
+        rb_gc_mark_movable(RNODE_DSYM(node)->nd_lit);
         break;
       default:
         rb_bug("unreachable node %s", ruby_node_name(nd_type(node)));
@@ -362,14 +376,28 @@ update_ast_value(rb_ast_t *ast, void *ctx, NODE *node)
 
     switch (nd_type(node)) {
       case NODE_MATCH:
+        RNODE_MATCH(node)->nd_lit = rb_gc_location(RNODE_MATCH(node)->nd_lit);
+        break;
       case NODE_LIT:
-      case NODE_STR:
-      case NODE_XSTR:
-      case NODE_DSTR:
-      case NODE_DXSTR:
-      case NODE_DREGX:
-      case NODE_DSYM:
         RNODE_LIT(node)->nd_lit = rb_gc_location(RNODE_LIT(node)->nd_lit);
+        break;
+      case NODE_STR:
+        RNODE_STR(node)->nd_lit = rb_gc_location(RNODE_STR(node)->nd_lit);
+        break;
+      case NODE_XSTR:
+        RNODE_XSTR(node)->nd_lit = rb_gc_location(RNODE_XSTR(node)->nd_lit);
+        break;
+      case NODE_DSTR:
+        RNODE_DSTR(node)->nd_lit = rb_gc_location(RNODE_DSTR(node)->nd_lit);
+        break;
+      case NODE_DXSTR:
+        RNODE_DXSTR(node)->nd_lit = rb_gc_location(RNODE_DXSTR(node)->nd_lit);
+        break;
+      case NODE_DREGX:
+        RNODE_DREGX(node)->nd_lit = rb_gc_location(RNODE_DREGX(node)->nd_lit);
+        break;
+      case NODE_DSYM:
+        RNODE_DSYM(node)->nd_lit = rb_gc_location(RNODE_DSYM(node)->nd_lit);
         break;
       default:
         rb_bug("unreachable");

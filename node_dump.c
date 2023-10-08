@@ -706,18 +706,19 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("literal");
         ANN("format: [nd_lit]");
         ANN("example: 1, /foo/");
-        goto lit;
+        F_LIT(nd_lit, RNODE_LIT, "literal");
+        return;
       case NODE_STR:
         ANN("string literal");
         ANN("format: [nd_lit]");
         ANN("example: 'foo'");
-        goto lit;
+        F_LIT(nd_lit, RNODE_STR, "literal");
+        return;
       case NODE_XSTR:
         ANN("xstring literal");
         ANN("format: [nd_lit]");
         ANN("example: `foo`");
-      lit:
-        F_LIT(nd_lit, RNODE_LIT, "literal");
+        F_LIT(nd_lit, RNODE_XSTR, "literal");
         return;
 
       case NODE_ONCE:

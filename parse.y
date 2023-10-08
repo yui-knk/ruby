@@ -1823,6 +1823,20 @@ clear_block_exit(struct parser_params *p, bool error)
 static int looking_at_eol_p(struct parser_params *p);
 
 #ifndef RIPPER
+static VALUE
+get_node_str_nd_lit(struct parser_params *p, NODE *node)
+{
+    switch (nd_type(node)) {
+      case NODE_STR:
+        return RNODE_STR(node)->nd_lit;
+      case NODE_DSTR:
+        return RNODE_DSTR(node)->nd_lit;
+      default:
+        compile_error(p, "unexpected node: %s", ruby_node_name(nd_type(node)));
+        return 0;
+    }
+}
+
 static NODE *
 get_nd_value(struct parser_params *p, NODE *node)
 {
@@ -8802,7 +8816,7 @@ heredoc_dedent(struct parser_params *p, NODE *root)
     if (nd_type_p(root, NODE_LIST)) str_node = RNODE_LIST(root)->nd_head;
 
     while (str_node) {
-        VALUE lit = RNODE_LIT(str_node)->nd_lit;
+        VALUE lit = get_node_str_nd_lit(p, str_node);
         if (str_node->flags & NODE_FL_NEWLINE) {
             dedent_string(p, lit, indent);
         }
@@ -12449,7 +12463,8 @@ string_literal_head(struct parser_params *p, enum node_type htype, NODE *head)
         head = RNODE_LIST(RNODE_LIST(RNODE_DSTR(head)->nd_next)->as.nd_end)->nd_head;
         if (!head || !nd_type_p(head, NODE_STR)) return Qfalse;
     }
-    const VALUE lit = RNODE_DSTR(head)->nd_lit;
+    /* TODO */
+    const VALUE lit = RNODE_STR(head)->nd_lit;
     ASSUME(lit != Qfalse);
     return lit;
 }
@@ -12485,7 +12500,7 @@ literal_concat(struct parser_params *p, NODE *head, NODE *tail, const YYLTYPE *l
             htype = NODE_STR;
         }
         else {
-            lit = RNODE_DSTR(head)->nd_lit;
+            lit = get_node_str_nd_lit(p, head);
         }
         if (htype == NODE_STR) {
             if (!literal_concat0(p, lit, RNODE_STR(tail)->nd_lit)) {
@@ -12880,7 +12895,7 @@ symbol_append(struct parser_params *p, NODE *symbols, NODE *symbol)
         break;
       case NODE_STR:
         symbol = str2lit(p, symbol);
-        RB_OBJ_WRITTEN(p->ast, Qnil, RNODE_STR(symbol)->nd_lit = rb_str_intern(RNODE_STR(symbol)->nd_lit));
+        RB_OBJ_WRITTEN(p->ast, Qnil, RNODE_LIT(symbol)->nd_lit = rb_str_intern(RNODE_LIT(symbol)->nd_lit));
         break;
       default:
         compile_error(p, "unexpected node as symbol: %s", parser_node_name(type));
@@ -12906,7 +12921,7 @@ new_regexp(struct parser_params *p, NODE *node, int options, const YYLTYPE *loc)
             VALUE src = RNODE_STR(node)->nd_lit;
             node = str2lit(p, node);
             nd_set_loc(node, loc);
-            RB_OBJ_WRITTEN(p->ast, Qnil, RNODE_STR(node)->nd_lit = reg_compile(p, src, options));
+            RB_OBJ_WRITTEN(p->ast, Qnil, RNODE_LIT(node)->nd_lit = reg_compile(p, src, options));
         }
         break;
       default:
@@ -12923,7 +12938,7 @@ new_regexp(struct parser_params *p, NODE *node, int options, const YYLTYPE *loc)
             NODE *frag = list->nd_head;
             enum node_type type = nd_type(frag);
             if (type == NODE_STR || (type == NODE_DSTR && !RNODE_DSTR(frag)->nd_next)) {
-                VALUE tail = RNODE_STR(frag)->nd_lit;
+                VALUE tail = get_node_str_nd_lit(p, frag);
                 if (reg_fragment_check(p, tail, options) && prev && !NIL_P(RNODE_DREGX(prev)->nd_lit)) {
                     VALUE lit = prev == node ? RNODE_DREGX(prev)->nd_lit : RNODE_LIT(RNODE_LIST(prev)->nd_head)->nd_lit;
                     if (!literal_concat0(p, lit, tail)) {
@@ -13649,7 +13664,7 @@ shareable_literal_constant(struct parser_params *p, enum shareability shareable,
       case NODE_STR:
         lit = rb_fstring(RNODE_STR(value)->nd_lit);
         value = str2lit(p, value);
-        RB_OBJ_WRITE(p->ast, &RNODE_STR(value)->nd_lit, lit);
+        RB_OBJ_WRITE(p->ast, &RNODE_LIT(value)->nd_lit, lit);
         return value;
 
       case NODE_ZLIST:

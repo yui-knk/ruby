@@ -621,9 +621,9 @@ typedef struct RNode_LIT {
 typedef struct RNode_STR {
     NODE node;
 
-    VALUE nd_lit;
     VALUE not_used;
     VALUE not_used2;
+    VALUE nd_lit;
 } rb_node_str_t;
 
 /* RNode_DSTR, RNode_DXSTR and RNode_DSYM should be same structure */
