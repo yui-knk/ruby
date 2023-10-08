@@ -8804,7 +8804,7 @@ dedent_string(struct parser_params *p, VALUE string, int width)
 static NODE *
 heredoc_dedent(struct parser_params *p, NODE *root)
 {
-    NODE *node, *str_node, *prev_node;
+    NODE *node, *str_node, **prev_node;
     int indent = p->heredoc_indent;
     VALUE prev_lit = 0;
 
@@ -8812,7 +8812,8 @@ heredoc_dedent(struct parser_params *p, NODE *root)
     p->heredoc_indent = 0;
     if (!root) return root;
 
-    prev_node = node = str_node = root;
+    node = str_node = root;
+    prev_node = &node;
     if (nd_type_p(root, NODE_LIST)) str_node = RNODE_LIST(root)->nd_head;
 
     while (str_node) {
@@ -8830,8 +8831,8 @@ heredoc_dedent(struct parser_params *p, NODE *root)
             NODE *end = RNODE_LIST(node)->as.nd_end;
             node = RNODE_LIST(prev_node)->nd_next = RNODE_LIST(node)->nd_next;
             if (!node) {
-                if (nd_type_p(prev_node, NODE_DSTR))
-                    prev_node = dstr2str(p, prev_node);
+                if (nd_type_p(*prev_node, NODE_DSTR))
+                    *prev_node = dstr2str(p, *prev_node);
                 break;
             }
             RNODE_LIST(node)->as.nd_end = end;
@@ -8839,7 +8840,7 @@ heredoc_dedent(struct parser_params *p, NODE *root)
         }
 
         str_node = 0;
-        while ((node = RNODE_LIST(prev_node = node)->nd_next) != 0) {
+        while ((node = RNODE_LIST(prev_node = &node)->nd_next) != 0) {
           next_str:
             if (!nd_type_p(node, NODE_LIST)) break;
             if ((str_node = RNODE_LIST(node)->nd_head) != 0) {
