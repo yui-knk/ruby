@@ -248,7 +248,10 @@ class RbInspector(LLDBInterface):
                 nd_type = (rval.flags & rbNodeTypeMask) >> rbNodeTypeShift
                 val = val.Cast(tRNode)
 
-                self._append_command_output("p (node_type) %d" % nd_type)
+                if nd_type < self.ruby_globals["NODE_LAST"]:
+                    self._append_command_output("p (node_type) %d" % nd_type)
+                else:
+                    self._append_command_output("p (internal_node_type) %d" % nd_type)
 
                 if nd_type == self.ruby_globals["NODE_SCOPE"]:
                     self._append_command_output("p *(struct RNode_SCOPE *) %0#x" % val.GetValueAsUnsigned())
@@ -458,6 +461,13 @@ class RbInspector(LLDBInterface):
                     self._append_command_output("p *(struct RNode_RIPPER *) %0#x" % val.GetValueAsUnsigned())
                 elif nd_type == self.ruby_globals["NODE_RIPPER_VALUES"]:
                     self._append_command_output("p *(struct RNode_RIPPER_VALUES *) %0#x" % val.GetValueAsUnsigned())
+
+                # Internal nodes
+                elif nd_type == self.ruby_globals["NODE_DEF_TEMP"]:
+                    self._append_command_output("p *(struct RNode_DEF_TEMP *) %0#x" % val.GetValueAsUnsigned())
+                elif nd_type == self.ruby_globals["NODE_EXITS"]:
+                    self._append_command_output("p *(struct RNode_EXITS *) %0#x" % val.GetValueAsUnsigned())
+
                 else:
                     self._append_command_output("p *(struct RNode *) %0#x" % val.GetValueAsUnsigned())
 

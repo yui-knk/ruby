@@ -16,6 +16,7 @@
 #include "eval_intern.h"
 #include "encindex.h"
 #include "id.h"
+#include "internal/ruby_parser.h"
 #include "internal/signal.h"
 #include "ruby/encoding.h"
 #include "ruby/io.h"
@@ -43,6 +44,7 @@ const union {
     enum ruby_value_type        value_type;
     enum ruby_tag_type          tag_type;
     enum node_type              node_type;
+    enum internal_node_type     internal_node_type;
     enum ruby_method_ids        method_ids;
     enum ruby_id_types          id_types;
     enum ruby_fl_type           fl_types;

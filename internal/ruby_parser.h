@@ -66,4 +66,12 @@ enum lex_state_e {
     EXPR_END_ANY  =  (EXPR_END | EXPR_ENDARG | EXPR_ENDFN),
     EXPR_NONE = 0
 };
+
+enum internal_node_type {
+    NODE_INTERNAL_ONLY = NODE_LAST,
+    NODE_DEF_TEMP,
+    NODE_EXITS,
+    NODE_INTERNAL_LAST
+};
+
 #endif /* INTERNAL_RUBY_PARSE_H */

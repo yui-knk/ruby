@@ -1080,13 +1080,6 @@ static rb_node_error_t *rb_node_error_new(struct parser_params *p, const YYLTYPE
 
 #endif
 
-enum internal_node_type {
-    NODE_INTERNAL_ONLY = NODE_LAST,
-    NODE_DEF_TEMP,
-    NODE_EXITS,
-    NODE_INTERNAL_LAST
-};
-
 /* This node is parse.y internal */
 typedef struct RNode_DEF_TEMP {
     NODE node;
