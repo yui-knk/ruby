@@ -2,6 +2,7 @@ require "lrama/grammar/auxiliary"
 require "lrama/grammar/code"
 require "lrama/grammar/counter"
 require "lrama/grammar/error_token"
+require "lrama/grammar/parser_state"
 require "lrama/grammar/percent_code"
 require "lrama/grammar/precedence"
 require "lrama/grammar/printer"
@@ -9,14 +10,14 @@ require "lrama/grammar/reference"
 require "lrama/grammar/rule"
 require "lrama/grammar/rule_builder"
 require "lrama/grammar/symbol"
+require "lrama/grammar/type"
 require "lrama/grammar/union"
 require "lrama/lexer"
-require "lrama/type"
 
 module Lrama
   # Grammar is the result of parsing an input grammar file
   class Grammar
-    attr_reader :percent_codes, :eof_symbol, :error_symbol, :undef_symbol, :accept_symbol, :aux
+    attr_reader :percent_codes, :parser_states, :eof_symbol, :error_symbol, :undef_symbol, :accept_symbol, :aux
     attr_accessor :union, :expect,
                   :printers, :error_tokens,
                   :lex_param, :parse_param, :initial_action,
@@ -31,6 +32,7 @@ module Lrama
       @percent_codes = []
       @printers = []
       @error_tokens = []
+      @parser_states = []
       @symbols = []
       @types = []
       @rule_builders = []
@@ -56,6 +58,10 @@ module Lrama
 
     def add_error_token(ident_or_tags:, token_code:, lineno:)
       @error_tokens << ErrorToken.new(ident_or_tags: ident_or_tags, token_code: token_code, lineno: lineno)
+    end
+
+    def add_parser_state(state_id, state_list)
+      @parser_states << ParserState.new(state_id: state_id, state_list: state_list)
     end
 
     def add_term(id:, alias_name: nil, tag: nil, token_id: nil, replace: false)
@@ -148,7 +154,7 @@ module Lrama
     def prepare
       normalize_rules
       collect_symbols
-      replace_token_with_symbol
+      set_lhs_and_rhs
       fill_symbol_number
       fill_default_precedence
       fill_sym_to_rules
@@ -186,7 +192,7 @@ module Lrama
     end
 
     def find_symbol_by_id!(id)
-      find_symbol_by_id(id) || (raise "Symbol not found: #{id}")
+      find_symbol_by_id(id) || (raise "Symbol not found: #{id.s_value}")
     end
 
     def find_symbol_by_number!(number)
@@ -391,6 +397,11 @@ module Lrama
           @rules << rule
         end
 
+        builder.parameterizing_rules.each do |rule|
+          add_nterm(id: rule._lhs)
+          @rules << rule
+        end
+
         builder.midrule_action_rules.each do |rule|
           add_nterm(id: rule._lhs)
         end
@@ -484,7 +495,7 @@ module Lrama
       end
     end
 
-    def replace_token_with_symbol
+    def set_lhs_and_rhs
       @rules.each do |rule|
         rule.lhs = token_to_symbol(rule._lhs) if rule._lhs
 
