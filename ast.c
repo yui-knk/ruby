@@ -500,18 +500,18 @@ node_children(rb_ast_t *ast, const NODE *node)
       case NODE_CALL:
         return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_CALL(node)->nd_recv),
                                     ID2SYM(RNODE_CALL(node)->nd_mid),
-                                    NEW_CHILD(ast, RNODE_CALL(node)->nd_args));
+                                    NEW_CHILD(ast, (NODE *)RNODE_CALL(node)->nd_args));
       case NODE_OPCALL:
         return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_OPCALL(node)->nd_recv),
                                     ID2SYM(RNODE_OPCALL(node)->nd_mid),
-                                    NEW_CHILD(ast, RNODE_OPCALL(node)->nd_args));
+                                    NEW_CHILD(ast, (NODE *)RNODE_OPCALL(node)->nd_args));
       case NODE_QCALL:
         return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_QCALL(node)->nd_recv),
                                     ID2SYM(RNODE_QCALL(node)->nd_mid),
-                                    NEW_CHILD(ast, RNODE_QCALL(node)->nd_args));
+                                    NEW_CHILD(ast, (NODE *)RNODE_QCALL(node)->nd_args));
       case NODE_FCALL:
         return rb_ary_new_from_args(2, ID2SYM(RNODE_FCALL(node)->nd_mid),
-                                    NEW_CHILD(ast, RNODE_FCALL(node)->nd_args));
+                                    NEW_CHILD(ast, (NODE *)RNODE_FCALL(node)->nd_args));
       case NODE_VCALL:
         return rb_ary_new_from_args(1, ID2SYM(RNODE_VCALL(node)->nd_mid));
       case NODE_SUPER:
@@ -575,6 +575,8 @@ node_children(rb_ast_t *ast, const NODE *node)
         }
       case NODE_EVSTR:
         return rb_ary_new_from_node_args(ast, 1, RNODE_EVSTR(node)->nd_body);
+    case NODE_ARGUMENTS:
+        return rb_ary_new_from_node_args(ast, 2, RNODE_ARGUMENTS(node)->nd_args, RNODE_ARGUMENTS(node)->nd_block);
       case NODE_ARGSCAT:
         return rb_ary_new_from_node_args(ast, 2, RNODE_ARGSCAT(node)->nd_head, RNODE_ARGSCAT(node)->nd_body);
       case NODE_ARGSPUSH:
@@ -623,7 +625,7 @@ node_children(rb_ast_t *ast, const NODE *node)
       case NODE_POSTEXE:
         return rb_ary_new_from_node_args(ast, 1, RNODE_POSTEXE(node)->nd_body);
       case NODE_ATTRASGN:
-        return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_ATTRASGN(node)->nd_recv), ID2SYM(RNODE_ATTRASGN(node)->nd_mid), NEW_CHILD(ast, RNODE_ATTRASGN(node)->nd_args));
+        return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_ATTRASGN(node)->nd_recv), ID2SYM(RNODE_ATTRASGN(node)->nd_mid), NEW_CHILD(ast, (NODE *)RNODE_ATTRASGN(node)->nd_args));
       case NODE_LAMBDA:
         return rb_ary_new_from_node_args(ast, 1, RNODE_LAMBDA(node)->nd_body);
       case NODE_OPT_ARG:

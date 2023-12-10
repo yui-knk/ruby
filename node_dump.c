@@ -762,6 +762,15 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         F_NODE(nd_body, RNODE_EVSTR, "body");
         return;
 
+      case NODE_ARGUMENTS:
+        ANN("method arguments");
+        ANN("format: ..([nd_args..], &[nd_block])");
+        ANN("example: foo(1, *ary, post_arg1, post_arg2, &block)");
+        F_NODE(nd_args, RNODE_ARGUMENTS, "arguments");
+        LAST_NODE;
+        F_NODE(nd_block, RNODE_ARGUMENTS, "block argument");
+        return;
+
       case NODE_ARGSCAT:
         ANN("splat argument following arguments");
         ANN("format: ..(*[nd_head], [nd_body..])");

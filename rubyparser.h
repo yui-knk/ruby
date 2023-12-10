@@ -98,6 +98,7 @@ enum node_type {
     NODE_OPT_ARG,
     NODE_KW_ARG,
     NODE_POSTARG,
+    NODE_ARGUMENTS,
     NODE_ARGSCAT,
     NODE_ARGSPUSH,
     NODE_SPLAT,
@@ -281,14 +282,14 @@ typedef struct RNode_BREAK {
     NODE node;
 
     struct RNode *nd_chain;
-    struct RNode *nd_stts;
+    struct RNode_ARGUMENTS *nd_stts;
 } rb_node_break_t;
 
 typedef struct RNode_NEXT {
     NODE node;
 
     struct RNode *nd_chain;
-    struct RNode *nd_stts;
+    struct RNode_ARGUMENTS *nd_stts;
 } rb_node_next_t;
 
 typedef struct RNode_REDO {
@@ -443,7 +444,7 @@ typedef struct RNode_CALL {
 
     struct RNode *nd_recv;
     ID nd_mid;
-    struct RNode *nd_args;
+    struct RNode_ARGUMENTS *nd_args;
 } rb_node_call_t;
 
 typedef struct RNode_OPCALL {
@@ -451,14 +452,14 @@ typedef struct RNode_OPCALL {
 
     struct RNode *nd_recv;
     ID nd_mid;
-    struct RNode *nd_args;
+    struct RNode_ARGUMENTS *nd_args;
 } rb_node_opcall_t;
 
 typedef struct RNode_FCALL {
     NODE node;
 
     ID nd_mid;
-    struct RNode *nd_args;
+    struct RNode_ARGUMENTS *nd_args;
 } rb_node_fcall_t;
 
 typedef struct RNode_VCALL {
@@ -472,13 +473,13 @@ typedef struct RNode_QCALL {
 
     struct RNode *nd_recv;
     ID nd_mid;
-    struct RNode *nd_args;
+    struct RNode_ARGUMENTS *nd_args;
 } rb_node_qcall_t;
 
 typedef struct RNode_SUPER {
     NODE node;
 
-    struct RNode *nd_args;
+    struct RNode_ARGUMENTS *nd_args;
 } rb_node_super_t;
 
 typedef struct RNode_ZSUPER {
@@ -530,13 +531,13 @@ typedef struct RNode_HASH {
 typedef struct RNode_RETURN {
     NODE node;
 
-    struct RNode *nd_stts;
+    struct RNode_ARGUMENTS *nd_stts;
 } rb_node_return_t;
 
 typedef struct RNode_YIELD {
     NODE node;
 
-    struct RNode *nd_head;
+    struct RNode_ARGUMENTS *nd_head;
 } rb_node_yield_t;
 
 typedef struct RNode_LVAR {
@@ -723,6 +724,13 @@ typedef struct RNode_POSTARG {
     struct RNode *nd_2nd;
 } rb_node_postarg_t;
 
+typedef struct RNode_ARGUMENTS {
+    NODE node;
+
+    struct RNode *nd_args;
+    struct RNode *nd_block;
+} rb_node_arguments_t;
+
 typedef struct RNode_ARGSCAT {
     NODE node;
 
@@ -896,7 +904,7 @@ typedef struct RNode_ATTRASGN {
 
     struct RNode *nd_recv;
     ID nd_mid;
-    struct RNode *nd_args;
+    struct RNode_ARGUMENTS *nd_args;
 } rb_node_attrasgn_t;
 
 typedef struct RNode_LAMBDA {
@@ -1009,6 +1017,7 @@ typedef struct RNode_ERROR {
 #define RNODE_OPT_ARG(node) ((struct RNode_OPT_ARG *)(node))
 #define RNODE_KW_ARG(node) ((struct RNode_KW_ARG *)(node))
 #define RNODE_POSTARG(node) ((struct RNode_POSTARG *)(node))
+#define RNODE_ARGUMENTS(node) ((struct RNode_ARGUMENTS *)(node))
 #define RNODE_ARGSCAT(node) ((struct RNode_ARGSCAT *)(node))
 #define RNODE_ARGSPUSH(node) ((struct RNode_ARGSPUSH *)(node))
 #define RNODE_SPLAT(node) ((struct RNode_SPLAT *)(node))
