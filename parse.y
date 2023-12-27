@@ -2058,7 +2058,7 @@ get_nd_args(struct parser_params *p, NODE *node)
 /*ripper*/ %type <node_def_temp> defn_head defs_head k_def
 /*ripper*/ %type <node_exits> block_open k_while k_until k_for allow_exits
 %type <node> top_compstmt top_stmts top_stmt begin_block endless_arg endless_command
-%type <node> bodystmt compstmt stmts stmt_or_begin stmt expr arg primary command command_call method_call
+%type <node> bodystmt compstmt stmts stmt_or_begin stmt expr_command_call expr arg primary command command_call method_call
 %type <node> expr_value expr_value_do arg_value primary_value rel_expr
 %type <node_fcall> fcall
 %type <node> if_tail opt_else case_body case_args cases opt_rescue exc_list exc_var opt_ensure
@@ -2635,7 +2635,13 @@ command_rhs	: command_call   %prec tOP_ASGN
                 | command_asgn
                 ;
 
-expr		: command_call
+expr_command_call: command_call
+                 | '!' expr_command_call
+                     {
+                         $$ = call_uni_op(p, method_cond(p, $2, &@2), '!', &@1, &@$);
+                     }
+
+expr		: expr_command_call
                 | expr keyword_and expr
                     {
                         $$ = logop(p, idAND, $1, $3, &@2, &@$);
@@ -2647,10 +2653,6 @@ expr		: command_call
                 | keyword_not opt_nl expr
                     {
                         $$ = call_uni_op(p, method_cond(p, $3, &@3), METHOD_NOT, &@1, &@$);
-                    }
-                | '!' command_call
-                    {
-                        $$ = call_uni_op(p, method_cond(p, $2, &@2), '!', &@1, &@$);
                     }
                 | arg tASSOC
                     {

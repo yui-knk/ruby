@@ -1404,6 +1404,10 @@ x = __ENCODING__
     assert_valid_syntax('let () { m(a) do; end }')
   end
 
+  def test_multiple_bang_command_call
+    assert_valid_syntax('!!1.!1')
+  end
+
   def test_void_value_in_rhs
     w = "void value expression"
     ["x = return 1", "x = return, 1", "x = 1, return", "x, y = return"].each do |code|
