@@ -2640,6 +2640,15 @@ expr_command_call: command_call
                      {
                          $$ = call_uni_op(p, method_cond(p, $2, &@2), '!', &@1, &@$);
                      }
+                 | tUPLUS expr_command_call
+                    {
+                        $$ = call_uni_op(p, $2, idUPlus, &@1, &@$);
+                    }
+                 | tUMINUS expr_command_call
+                    {
+                        $$ = call_uni_op(p, $2, idUMinus, &@1, &@$);
+                    }
+                 ;
 
 expr		: expr_command_call
                 | expr keyword_and expr
