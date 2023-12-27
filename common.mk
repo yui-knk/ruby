@@ -111,6 +111,10 @@ PRISM_FILES = prism/api_node.$(OBJEXT) \
 		prism/prism.$(OBJEXT) \
 		prism_init.$(OBJEXT)
 
+LIBRUBYPARSER_OBJS = node.$(OBJEXT) \
+		parse.$(OBJEXT) \
+		parser_st.$(OBJEXT)
+
 COMMONOBJS    = array.$(OBJEXT) \
 		ast.$(OBJEXT) \
 		bignum.$(OBJEXT) \
@@ -439,6 +443,12 @@ Doxyfile: $(srcdir)/template/Doxyfile.tmpl $(PREP) $(tooldir)/generic_erb.rb $(R
 	$(Q) $(MINIRUBY) $(tooldir)/generic_erb.rb -o $@ $(srcdir)/template/Doxyfile.tmpl \
 	--srcdir="$(srcdir)" --miniruby="$(MINIRUBY)"
 
+$(LIBRUBYPARSER_SO): $(LIBRUBYPARSER_OBJS)
+	$(ECHO) linking shared-library $@
+	$(Q) $(LDSHARED) $(DLDFLAGS) $(LIBRUBYPARSER_OBJS) $(OUTFLAG)$@
+
+librubyparser: $(LIBRUBYPARSER_SO)
+
 program: $(SHOWFLAGS) $(DOT_WAIT) $(PROGRAM)
 wprogram: $(SHOWFLAGS) $(DOT_WAIT) $(WPROGRAM)
 mini: PHONY miniruby$(EXEEXT)
@@ -709,6 +719,7 @@ clean: clean-ext clean-enc clean-golf clean-docs clean-extout clean-local clean-
 clean-local:: clean-runnable
 	$(Q)$(RM) $(OBJS) $(MINIOBJS) $(INITOBJS) $(MAINOBJ) $(LIBRUBY_A) $(LIBRUBY_SO) $(LIBRUBY) $(LIBRUBY_ALIASES)
 	$(Q)$(RM) $(PROGRAM) $(WPROGRAM) miniruby$(EXEEXT) dmyext.$(OBJEXT) dmyenc.$(OBJEXT) $(ARCHFILE) .*.time
+	$(Q)$(RM) $(LIBRUBYPARSER_SO)
 	$(Q)$(RM) y.tab.c y.output encdb.h transdb.h config.log rbconfig.rb $(ruby_pc) $(COROUTINE_H:/Context.h=/.time)
 	$(Q)$(RM) probes.h probes.$(OBJEXT) probes.stamp ruby-glommed.$(OBJEXT) ruby.imp ChangeLog $(STATIC_RUBY)$(EXEEXT)
 	$(Q)$(RM) GNUmakefile.old Makefile.old $(arch)-fake.rb bisect.sh $(ENC_TRANS_D) builtin_binary.inc

@@ -3479,22 +3479,32 @@ sitearchincludedir='${includedir}/${sitearch}'
 
 AC_ARG_WITH(soname,
 	AS_HELP_STRING([--with-soname=SONAME], [base name of shared library]),
-	[RUBY_SO_NAME=$withval],
+	[
+	    RUBY_SO_NAME="$withval"
+	    RUBYPARSER_SO_NAME="$withval"parser
+	],
 	[
 	    AS_CASE(["$target_os"],
 	    [darwin*], [
 	        RUBY_SO_NAME='$(RUBY_BASE_NAME).$(RUBY_API_VERSION)'
+	        RUBYPARSER_SO_NAME='$(RUBY_BASE_NAME)parser.$(RUBY_API_VERSION)'
 	    ],
 	    [cygwin*], [
 	        RUBY_SO_NAME='$(RUBY_BASE_NAME)$(MAJOR)$(MINOR)0'
+	        RUBYPARSER_SO_NAME='$(RUBY_BASE_NAME)parser$(MAJOR)$(MINOR)0'
 	    ],
 	    [mingw*], [
 		RUBY_SO_NAME="${rb_cv_msvcrt}"'-$(RUBY_BASE_NAME)$(MAJOR)$(MINOR)0'
+		RUBYPARSER_SO_NAME="${rb_cv_msvcrt}"'-$(RUBY_BASE_NAME)parser$(MAJOR)$(MINOR)0'
 		AS_IF([test x"${target_cpu}" != xi386], [
 		    RUBY_SO_NAME="${target_cpu}-${RUBY_SO_NAME}"
+		    RUBYPARSER_SO_NAME="${target_cpu}-${RUBY_SO_NAME}"'parser'
 		])
 	    ],
-	    [RUBY_SO_NAME='$(RUBY_BASE_NAME)'])
+	    [
+		RUBY_SO_NAME='$(RUBY_BASE_NAME)'
+		RUBYPARSER_SO_NAME='$(RUBY_BASE_NAME)parser'
+	    ])
 	])
 
 LIBRUBY_LDSHARED=${DLDSHARED=${LDSHARED}}
@@ -3502,6 +3512,8 @@ LIBRUBY_DLDFLAGS=$DLDFLAGS
 LIBRUBY_SO='lib$(RUBY_SO_NAME).$(SOEXT).$(RUBY_PROGRAM_VERSION)'
 LIBRUBY_SONAME='lib$(RUBY_SO_NAME).$(SOEXT).$(RUBY_API_VERSION)'
 LIBRUBY_ALIASES='lib$(RUBY_SO_NAME).$(SOEXT)'
+LIBRUBYPARSER_SO='lib$(RUBYPARSER_SO_NAME).$(SOEXT)'
+LIBRUBYPARSER_ALIASES='lib$(RUBYPARSER_SO_NAME).$(SOEXT)'
 ENABLE_SHARED=no
 
 AC_ARG_ENABLE(shared,
@@ -3686,6 +3698,13 @@ AS_CASE("$cross_compiling:${LIBPATHENV}", [yes:* | no:], [], [
 	[AC_SUBST(XRUBY_LIBPATHENV_WRAPPER, 'exe/$(PROGRAM)')
 	AC_MSG_RESULT(yes)]
     )
+])
+
+AC_ARG_ENABLE(universal_parser,
+        AS_HELP_STRING([--enable-universal_parser], [build an universal parser]),
+        [enable_universal_parser=$enableval])
+AS_CASE("$enable_universal_parser", [yes], [
+    RUBY_APPEND_OPTION(CPPFLAGS, -DUNIVERSAL_PARSER=1)
 ])
 
 AC_ARG_ENABLE(dtrace,
@@ -4217,6 +4236,9 @@ AC_SUBST(RUBY_INSTALL_NAME)
 AC_SUBST(rubyw_install_name)
 AC_SUBST(RUBYW_INSTALL_NAME)
 AC_SUBST(RUBY_SO_NAME)
+AC_SUBST(RUBYPARSER_SO_NAME)
+AC_SUBST(LIBRUBYPARSER_SO)
+AC_SUBST(LIBRUBYPARSER_ALIASES)
 AC_SUBST(LIBRUBY_A)
 AC_SUBST(LIBRUBY_SO)
 AC_SUBST(LIBRUBY_SONAME)
