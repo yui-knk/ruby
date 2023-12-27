@@ -2,7 +2,6 @@
 #define INTERNAL_RUBY_PARSE_H
 
 #include "internal.h"
-#include "internal/imemo.h"
 #include "rubyparser.h"
 #include "vm.h"
 

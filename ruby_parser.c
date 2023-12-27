@@ -480,12 +480,6 @@ gc_guard(VALUE obj)
     RB_GC_GUARD(obj);
 }
 
-static rb_imemo_tmpbuf_t *
-tmpbuf_parser_heap(void *buf, rb_imemo_tmpbuf_t *old_heap, size_t cnt)
-{
-    return rb_imemo_tmpbuf_parser_heap(buf, old_heap, cnt);
-}
-
 static int
 special_const_p(VALUE obj)
 {
@@ -538,7 +532,6 @@ rb_parser_config_initialize(rb_parser_config_t *config)
     config->nonempty_memcpy = nonempty_memcpy;
     config->xmalloc_mul_add = rb_xmalloc_mul_add;
 
-    config->tmpbuf_parser_heap = tmpbuf_parser_heap;
     config->ast_new = ast_new;
 
     config->compile_callback         = rb_suppress_tracing;

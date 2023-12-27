@@ -111,8 +111,6 @@ struct rb_imemo_tmpbuf_struct {
 #undef MEMCPY
 #define MEMCPY(p1,p2,type,n) (p->config->nonempty_memcpy((p1), (p2), sizeof(type), (n)))
 
-#define rb_imemo_tmpbuf_parser_heap p->config->tmpbuf_parser_heap
-
 #define compile_callback         p->config->compile_callback
 #define reg_named_capture_assign p->config->reg_named_capture_assign
 #define script_lines_defined     p->config->script_lines_defined

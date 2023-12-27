@@ -3066,12 +3066,6 @@ rb_imemo_tmpbuf_auto_free_maybe_mark_buffer(void *buf, size_t cnt)
     return rb_imemo_tmpbuf_new((VALUE)buf, 0, (VALUE)cnt, 0);
 }
 
-rb_imemo_tmpbuf_t *
-rb_imemo_tmpbuf_parser_heap(void *buf, rb_imemo_tmpbuf_t *old_heap, size_t cnt)
-{
-    return (rb_imemo_tmpbuf_t *)rb_imemo_tmpbuf_new((VALUE)buf, (VALUE)old_heap, (VALUE)cnt, 0);
-}
-
 static size_t
 imemo_memsize(VALUE obj)
 {

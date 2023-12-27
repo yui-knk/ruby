@@ -53,7 +53,6 @@
 #include "internal/encoding.h"
 #include "internal/error.h"
 #include "internal/hash.h"
-#include "internal/imemo.h"
 #include "internal/io.h"
 #include "internal/numeric.h"
 #include "internal/parse.h"
@@ -425,7 +424,7 @@ typedef struct token_info {
                      token
 */
 struct parser_params {
-    rb_imemo_tmpbuf_t *heap;
+    void *heap;
 
     YYSTYPE *lval;
     YYLTYPE *yylloc;
@@ -15551,9 +15550,6 @@ rb_ruby_parser_mark(void *ptr)
 #endif
     rb_gc_mark(p->debug_buffer);
     rb_gc_mark(p->debug_output);
-#ifdef YYMALLOC
-    rb_gc_mark((VALUE)p->heap);
-#endif
 }
 
 void
@@ -16001,65 +15997,35 @@ rb_ruby_ripper_parser_allocate(void)
 
 #ifndef RIPPER
 #ifdef YYMALLOC
-#define HEAPCNT(n, size) ((n) * (size) / sizeof(YYSTYPE))
-/* Keep the order; NEWHEAP then xmalloc and ADD2HEAP to get rid of
- * potential memory leak */
-#define NEWHEAP() rb_imemo_tmpbuf_parser_heap(0, p->heap, 0)
-#define ADD2HEAP(new, cnt, ptr) ((p->heap = (new))->ptr = (ptr), \
-                           (new)->cnt = (cnt), (ptr))
-
 void *
 rb_parser_malloc(struct parser_params *p, size_t size)
 {
-    size_t cnt = HEAPCNT(1, size);
-    rb_imemo_tmpbuf_t *n = NEWHEAP();
     void *ptr = xmalloc(size);
 
-    return ADD2HEAP(n, cnt, ptr);
+    p->heap = ptr;
+    return ptr;
 }
 
 void *
 rb_parser_calloc(struct parser_params *p, size_t nelem, size_t size)
 {
-    size_t cnt = HEAPCNT(nelem, size);
-    rb_imemo_tmpbuf_t *n = NEWHEAP();
     void *ptr = xcalloc(nelem, size);
 
-    return ADD2HEAP(n, cnt, ptr);
+    p->heap = ptr;
+    return ptr;
 }
 
 void *
 rb_parser_realloc(struct parser_params *p, void *ptr, size_t size)
 {
-    rb_imemo_tmpbuf_t *n;
-    size_t cnt = HEAPCNT(1, size);
-
-    if (ptr && (n = p->heap) != NULL) {
-        do {
-            if (n->ptr == ptr) {
-                n->ptr = ptr = xrealloc(ptr, size);
-                if (n->cnt) n->cnt = cnt;
-                return ptr;
-            }
-        } while ((n = n->next) != NULL);
-    }
-    n = NEWHEAP();
     ptr = xrealloc(ptr, size);
-    return ADD2HEAP(n, cnt, ptr);
+    return ptr;
 }
 
 void
 rb_parser_free(struct parser_params *p, void *ptr)
 {
-    rb_imemo_tmpbuf_t **prev = &p->heap, *n;
-
-    while ((n = *prev) != NULL) {
-        if (n->ptr == ptr) {
-            *prev = n->next;
-            break;
-        }
-        prev = &n->next;
-    }
+    if (p->heap) xfree(p->heap);
 }
 #endif
 

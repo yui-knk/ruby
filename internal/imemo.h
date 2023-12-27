@@ -127,7 +127,6 @@ struct MEMO {
    MEMO_FOR(type, value))
 
 typedef struct rb_imemo_tmpbuf_struct rb_imemo_tmpbuf_t;
-rb_imemo_tmpbuf_t *rb_imemo_tmpbuf_parser_heap(void *buf, rb_imemo_tmpbuf_t *old_heap, size_t cnt);
 struct vm_ifunc *rb_vm_ifunc_new(rb_block_call_func_t func, const void *data, int min_argc, int max_argc);
 static inline enum imemo_type imemo_type(VALUE imemo);
 static inline int imemo_type_p(VALUE imemo, enum imemo_type imemo_type);
