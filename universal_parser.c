@@ -376,3 +376,16 @@ struct rb_imemo_tmpbuf_struct {
 
 #define rb_ast_new() \
     rb_ast_new(p->config)
+
+/* TODO: Remove this */
+void
+rb_unexpected_type(VALUE x, int t)
+{
+    exit(1);
+}
+
+void
+ruby_malloc_size_overflow(size_t count, size_t elsize)
+{
+    exit(1);
+}
