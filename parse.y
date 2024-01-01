@@ -896,7 +896,6 @@ static rb_node_qcall_t *rb_node_qcall_new(struct parser_params *p, NODE *nd_recv
 static rb_node_super_t *rb_node_super_new(struct parser_params *p, NODE *nd_args, const YYLTYPE *loc);
 static rb_node_zsuper_t * rb_node_zsuper_new(struct parser_params *p, const YYLTYPE *loc);
 static rb_node_list_t *rb_node_list_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc);
-static rb_node_list_t *rb_node_list_new2(struct parser_params *p, NODE *nd_head, long nd_alen, NODE *nd_next, const YYLTYPE *loc);
 static rb_node_zlist_t *rb_node_zlist_new(struct parser_params *p, const YYLTYPE *loc);
 static rb_node_hash_t *rb_node_hash_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc);
 static rb_node_return_t *rb_node_return_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc);
@@ -999,7 +998,6 @@ static rb_node_error_t *rb_node_error_new(struct parser_params *p, const YYLTYPE
 #define NEW_SUPER(a,loc) (NODE *)rb_node_super_new(p,a,loc)
 #define NEW_ZSUPER(loc) (NODE *)rb_node_zsuper_new(p,loc)
 #define NEW_LIST(a,loc) (NODE *)rb_node_list_new(p,a,loc)
-#define NEW_LIST2(h,l,n,loc) (NODE *)rb_node_list_new2(p,h,l,n,loc)
 #define NEW_ZLIST(loc) (NODE *)rb_node_zlist_new(p,loc)
 #define NEW_HASH(a,loc) (NODE *)rb_node_hash_new(p,a,loc)
 #define NEW_RETURN(s,loc) (NODE *)rb_node_return_new(p,s,loc)
@@ -11697,17 +11695,6 @@ rb_node_list_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc)
     return n;
 }
 
-static rb_node_list_t *
-rb_node_list_new2(struct parser_params *p, NODE *nd_head, long nd_alen, NODE *nd_next, const YYLTYPE *loc)
-{
-    rb_node_list_t *n = NODE_NEWNODE(NODE_LIST, rb_node_list_t, loc);
-    n->nd_head = nd_head;
-    n->as.nd_alen = nd_alen;
-    n->nd_next = nd_next;
-
-    return n;
-}
-
 static rb_node_zlist_t *
 rb_node_zlist_new(struct parser_params *p, const YYLTYPE *loc)
 {
@@ -12513,105 +12500,29 @@ literal_concat0(struct parser_params *p, VALUE head, VALUE tail)
     return 1;
 }
 
-static VALUE
-string_literal_head(struct parser_params *p, enum node_type htype, NODE *head)
-{
-    if (htype != NODE_DSTR) return Qfalse;
-    if (RNODE_DSTR(head)->nd_next) {
-        head = RNODE_LIST(RNODE_LIST(RNODE_DSTR(head)->nd_next)->as.nd_end)->nd_head;
-        if (!head || !nd_type_p(head, NODE_STR)) return Qfalse;
-    }
-    const VALUE lit = RNODE_DSTR(head)->nd_lit;
-    ASSUME(lit != Qfalse);
-    return lit;
-}
-
-/* concat two string literals */
+/* concat two string literals without modification for VALUE */
 static NODE *
 literal_concat(struct parser_params *p, NODE *head, NODE *tail, const YYLTYPE *loc)
 {
-    enum node_type htype;
-    VALUE lit;
-
     if (!head) return tail;
     if (!tail) return head;
 
-    htype = nd_type(head);
-    if (htype == NODE_EVSTR) {
-        head = new_dstr(p, head, loc);
-        htype = NODE_DSTR;
-    }
-    if (p->heredoc_indent > 0) {
-        switch (htype) {
-          case NODE_STR:
-            head = str2dstr(p, head);
-          case NODE_DSTR:
-            return list_append(p, head, tail);
-          default:
-            break;
-        }
-    }
-    switch (nd_type(tail)) {
-      case NODE_STR:
-        if ((lit = string_literal_head(p, htype, head)) != Qfalse) {
-            htype = NODE_STR;
-        }
-        else {
-            lit = RNODE_DSTR(head)->nd_lit;
-        }
-        if (htype == NODE_STR) {
-            if (!literal_concat0(p, lit, RNODE_STR(tail)->nd_lit)) {
-              error:
-                rb_discard_node(p, head);
-                rb_discard_node(p, tail);
-                return 0;
-            }
-            rb_discard_node(p, tail);
-        }
-        else {
-            list_append(p, head, tail);
-        }
-        break;
-
-      case NODE_DSTR:
-        if (htype == NODE_STR) {
-            if (!literal_concat0(p, RNODE_STR(head)->nd_lit, RNODE_DSTR(tail)->nd_lit))
-                goto error;
-            RNODE_DSTR(tail)->nd_lit = RNODE_STR(head)->nd_lit;
-            rb_discard_node(p, head);
-            head = tail;
-        }
-        else if (NIL_P(RNODE_DSTR(tail)->nd_lit)) {
-          append:
-            RNODE_DSTR(head)->as.nd_alen += RNODE_DSTR(tail)->as.nd_alen - 1;
-            if (!RNODE_DSTR(head)->nd_next) {
-                RNODE_DSTR(head)->nd_next = RNODE_DSTR(tail)->nd_next;
-            }
-            else if (RNODE_DSTR(tail)->nd_next) {
-                RNODE_DSTR(RNODE_DSTR(RNODE_DSTR(head)->nd_next)->as.nd_end)->nd_next = RNODE_DSTR(tail)->nd_next;
-                RNODE_DSTR(RNODE_DSTR(head)->nd_next)->as.nd_end = RNODE_DSTR(RNODE_DSTR(tail)->nd_next)->as.nd_end;
-            }
-            rb_discard_node(p, tail);
-        }
-        else if ((lit = string_literal_head(p, htype, head)) != Qfalse) {
-            if (!literal_concat0(p, lit, RNODE_DSTR(tail)->nd_lit))
-                goto error;
-            RNODE_DSTR(tail)->nd_lit = Qnil;
-            goto append;
-        }
-        else {
-            list_concat(head, NEW_LIST2(NEW_STR(RNODE_DSTR(tail)->nd_lit, loc), RNODE_DSTR(tail)->as.nd_alen, (NODE *)RNODE_DSTR(tail)->nd_next, loc));
-        }
-        break;
-
+    /* Ensure head is DSTR */
+    switch (nd_type(head)) {
       case NODE_EVSTR:
-        if (htype == NODE_STR) {
-            head = str2dstr(p, head);
-            RNODE_DSTR(head)->as.nd_alen = 1;
-        }
-        list_append(p, head, tail);
+        head = new_dstr(p, head, loc);
         break;
+      case NODE_STR:
+        head = str2dstr(p, head);
+        RNODE_DSTR(head)->as.nd_alen = 1;
+        break;
+      case NODE_DSTR:
+        break;
+      default:
+        compile_error(p, "unexpected node: %s", parser_node_name(nd_type(head)));
     }
+
+    list_append(p, head, tail);
     return head;
 }
 
