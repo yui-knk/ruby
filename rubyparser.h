@@ -118,6 +118,7 @@ enum node_type {
     NODE_XSTR,
     NODE_DXSTR,
     NODE_EVSTR,
+    NODE_REGX,
     NODE_DREGX,
     NODE_ONCE,
     NODE_ARGS,
@@ -605,11 +606,14 @@ typedef struct RNode_BACK_REF {
     long nd_nth;
 } rb_node_back_ref_t;
 
-/* RNode_MATCH, RNode_LIT, RNode_STR and RNode_XSTR should be same structure */
+/* RNode_MATCH and RNode_REGX should be same structure */
 typedef struct RNode_MATCH {
     NODE node;
 
-    VALUE nd_lit;
+    struct rb_parser_string *string;
+    int options;
+    struct rb_parser_string *sourcefile;
+    int sourceline;
 } rb_node_match_t;
 
 typedef struct RNode_MATCH2 {
@@ -627,6 +631,7 @@ typedef struct RNode_MATCH3 {
     struct RNode *nd_value;
 } rb_node_match3_t;
 
+/* RNode_LIT, RNode_STR and RNode_XSTR should be same structure */
 typedef struct RNode_LIT {
     NODE node;
 
@@ -710,6 +715,15 @@ typedef struct RNode_EVSTR {
 
     struct RNode *nd_body;
 } rb_node_evstr_t;
+
+typedef struct RNode_REGX {
+    NODE node;
+
+    struct rb_parser_string *string;
+    int options;
+    struct rb_parser_string *sourcefile;
+    int sourceline;
+} rb_node_regx_t;
 
 typedef struct RNode_DREGX {
     NODE node;
@@ -1085,6 +1099,7 @@ typedef struct RNode_ERROR {
 #define RNODE_XSTR(node) ((struct RNode_XSTR *)(node))
 #define RNODE_DXSTR(node) ((struct RNode_DXSTR *)(node))
 #define RNODE_EVSTR(node) ((struct RNode_EVSTR *)(node))
+#define RNODE_REGX(node) ((struct RNode_REGX *)(node))
 #define RNODE_DREGX(node) ((struct RNode_DREGX *)(node))
 #define RNODE_ONCE(node) ((struct RNode_ONCE *)(node))
 #define RNODE_ARGS(node) ((struct RNode_ARGS *)(node))

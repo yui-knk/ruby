@@ -182,6 +182,11 @@ free_ast_value(rb_ast_t *ast, void *ctx, NODE *node)
       case NODE_SYM:
         parser_string_free(ast, RNODE_SYM(node)->string);
         break;
+      case NODE_REGX:
+      case NODE_MATCH:
+        parser_string_free(ast, RNODE_REGX(node)->string);
+        parser_string_free(ast, RNODE_REGX(node)->sourcefile);
+        break;
       case NODE_FILE:
         parser_string_free(ast, RNODE_FILE(node)->path);
         break;
@@ -249,7 +254,6 @@ static bool
 nodetype_markable_p(enum node_type type)
 {
     switch (type) {
-      case NODE_MATCH:
       case NODE_LIT:
       case NODE_STR:
       case NODE_XSTR:
@@ -361,7 +365,6 @@ mark_ast_value(rb_ast_t *ast, void *ctx, NODE *node)
 #endif
 
     switch (nd_type(node)) {
-      case NODE_MATCH:
       case NODE_LIT:
       case NODE_STR:
       case NODE_XSTR:
@@ -384,7 +387,6 @@ update_ast_value(rb_ast_t *ast, void *ctx, NODE *node)
 #endif
 
     switch (nd_type(node)) {
-      case NODE_MATCH:
       case NODE_LIT:
       case NODE_STR:
       case NODE_XSTR:
