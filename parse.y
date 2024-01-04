@@ -13732,9 +13732,9 @@ shareable_literal_constant(struct parser_params *p, enum rb_parser_shareability 
         return value;
 
       case NODE_DSTR:
-        if (shareable == rb_parser_shareable_literal) {
-            value = NEW_CALL(value, idUMinus, 0, loc);
-        }
+        // if (shareable == rb_parser_shareable_literal) {
+        //     value = NEW_CALL(value, idUMinus, 0, loc);
+        // }
         return value;
 
       case NODE_STR:
@@ -13885,7 +13885,8 @@ node_assign(struct parser_params *p, NODE *lhs, NODE *rhs, struct lex_context ct
 
     switch (nd_type(lhs)) {
       case NODE_CDECL:
-        rhs = shareable_constant_value(p, ctxt.shareable_constant_value, lhs, rhs, loc);
+        RNODE_CDECL(lhs)->shareability = ctxt.shareable_constant_value;
+        // rhs = shareable_constant_value(p, ctxt.shareable_constant_value, lhs, rhs, loc);
         /* fallthru */
 
       case NODE_GASGN:

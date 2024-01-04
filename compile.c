@@ -9788,6 +9788,64 @@ compile_attrasgn(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node
     return COMPILE_OK;
 }
 
+static int
+compile_shareable_literal_constant(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_parser_shareability shareable, NODE **dest, NODE *value, size_t level)
+{
+    // if (!value) return 0;
+    enum node_type type = nd_type(value);
+    switch (type) {
+      case NODE_TRUE:
+      case NODE_FALSE:
+      case NODE_NIL:
+      case NODE_LIT:
+      case NODE_LINE:
+        CHECK(COMPILE(ret, "shareable_literal_constant", value));
+        return COMPILE_OK;
+
+      case NODE_DSTR:
+        CHECK(COMPILE(ret, "shareable_literal_constant", value));
+        if (shareable == rb_parser_shareable_literal) {
+            /*
+             *  NEW_CALL(value, idUMinus, 0, loc);
+             *
+             *  -"#{var}"
+             */
+            ADD_SEND_WITH_FLAG(ret, value, idUMinus, INT2FIX(0), INT2FIX(VM_CALL_ARGS_SIMPLE));
+        }
+        return COMPILE_OK;
+
+      default:
+        /* TODO */
+        return COMPILE_OK;
+    }
+
+    /* Array or Hash */
+}
+
+static int
+compile_shareable_constant_value(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_parser_shareability shareable, const NODE *lhs, const NODE *value)
+{
+    switch (shareable) {
+      case rb_parser_shareable_none:
+        CHECK(COMPILE(ret, "compile_shareable_constant_value", value));
+        return COMPILE_OK;
+
+      case rb_parser_shareable_literal:
+        CHECK(compile_shareable_literal_constant(iseq, ret, shareable, &lhs, value, 0));
+        return COMPILE_OK;
+
+      case rb_parser_shareable_copy:
+      case rb_parser_shareable_everything:
+        {
+            // NODE *lit = shareable_literal_constant(iseq, ret, shareable, &lhs, value, loc, 0);
+            // if (lit) return lit;
+            // return make_shareable_node(p, value, shareable == rb_parser_shareable_copy, loc);
+        }
+        return COMPILE_OK;
+    }
+}
+
+
 static int iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, int popped);
 /**
   compile each node
@@ -9971,7 +10029,8 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
       }
       case NODE_CDECL:{
         if (RNODE_CDECL(node)->nd_vid) {
-            CHECK(COMPILE(ret, "lvalue", RNODE_CDECL(node)->nd_value));
+            CHECK(compile_shareable_constant_value(iseq, ret, RNODE_CDECL(node)->shareability, node, RNODE_CDECL(node)->nd_value));
+            // CHECK(COMPILE(ret, "lvalue", RNODE_CDECL(node)->nd_value));
 
             if (!popped) {
                 ADD_INSN(ret, node, dup);
@@ -9983,6 +10042,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
         }
         else {
             compile_cpath(ret, iseq, RNODE_CDECL(node)->nd_else);
+            /* TODO */
             CHECK(COMPILE(ret, "lvalue", RNODE_CDECL(node)->nd_value));
             ADD_INSN(ret, node, swap);
 
