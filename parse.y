@@ -13869,7 +13869,8 @@ shareable_constant_value(struct parser_params *p, enum rb_parser_shareability sh
         {
             NODE *lit = shareable_literal_constant(p, shareable, &lhs, value, loc, 0);
             if (lit) return lit;
-            return make_shareable_node(p, value, shareable == rb_parser_shareable_copy, loc);
+            return value;
+            // return make_shareable_node(p, value, shareable == rb_parser_shareable_copy, loc);
         }
         break;
 
