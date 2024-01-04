@@ -45,6 +45,13 @@ typedef struct rb_parser_string {
     char ptr[FLEX_ARY_LEN];
 } rb_parser_string_t;
 
+enum rb_parser_shareability {
+    rb_parser_shareable_none,
+    rb_parser_shareable_literal,
+    rb_parser_shareable_copy,
+    rb_parser_shareable_everything,
+};
+
 /*
  * AST Node
  */

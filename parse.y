@@ -246,13 +246,6 @@ parse_isxdigit(int c)
 #include "ripper_init.h"
 #endif
 
-enum shareability {
-    shareable_none,
-    shareable_literal,
-    shareable_copy,
-    shareable_everything,
-};
-
 enum rescue_context {
     before_rescue,
     after_rescue,
@@ -266,7 +259,7 @@ struct lex_context {
     unsigned int in_argdef: 1;
     unsigned int in_def: 1;
     unsigned int in_class: 1;
-    BITFIELD(enum shareability, shareable_constant_value, 2);
+    BITFIELD(enum rb_parser_shareability, shareable_constant_value, 2);
     BITFIELD(enum rescue_context, in_rescue, 2);
 };
 
@@ -9413,23 +9406,23 @@ parser_set_shareable_constant_value(struct parser_params *p, const char *name, c
     switch (*val) {
       case 'n': case 'N':
         if (STRCASECMP(val, "none") == 0) {
-            p->ctxt.shareable_constant_value = shareable_none;
+            p->ctxt.shareable_constant_value = rb_parser_shareable_none;
             return;
         }
         break;
       case 'l': case 'L':
         if (STRCASECMP(val, "literal") == 0) {
-            p->ctxt.shareable_constant_value = shareable_literal;
+            p->ctxt.shareable_constant_value = rb_parser_shareable_literal;
             return;
         }
         break;
       case 'e': case 'E':
         if (STRCASECMP(val, "experimental_copy") == 0) {
-            p->ctxt.shareable_constant_value = shareable_copy;
+            p->ctxt.shareable_constant_value = rb_parser_shareable_copy;
             return;
         }
         if (STRCASECMP(val, "experimental_everything") == 0) {
-            p->ctxt.shareable_constant_value = shareable_everything;
+            p->ctxt.shareable_constant_value = rb_parser_shareable_everything;
             return;
         }
         break;
@@ -13721,7 +13714,7 @@ shareable_literal_value(struct parser_params *p, NODE *node)
 #endif
 
 static NODE *
-shareable_literal_constant(struct parser_params *p, enum shareability shareable,
+shareable_literal_constant(struct parser_params *p, enum rb_parser_shareability shareable,
                            NODE **dest, NODE *value, const YYLTYPE *loc, size_t level)
 {
 # define shareable_literal_constant_next(n) \
@@ -13739,7 +13732,7 @@ shareable_literal_constant(struct parser_params *p, enum shareability shareable,
         return value;
 
       case NODE_DSTR:
-        if (shareable == shareable_literal) {
+        if (shareable == rb_parser_shareable_literal) {
             value = NEW_CALL(value, idUMinus, 0, loc);
         }
         return value;
@@ -13831,7 +13824,7 @@ shareable_literal_constant(struct parser_params *p, enum shareability shareable,
         break;
 
       default:
-        if (shareable == shareable_literal &&
+        if (shareable == rb_parser_shareable_literal &&
             (SHAREABLE_BARE_EXPRESSION || level > 0)) {
             return ensure_shareable_node(p, dest, value, loc);
         }
@@ -13855,15 +13848,15 @@ shareable_literal_constant(struct parser_params *p, enum shareability shareable,
 }
 
 static NODE *
-shareable_constant_value(struct parser_params *p, enum shareability shareable,
+shareable_constant_value(struct parser_params *p, enum rb_parser_shareability shareable,
                          NODE *lhs, NODE *value, const YYLTYPE *loc)
 {
     if (!value) return 0;
     switch (shareable) {
-      case shareable_none:
+      case rb_parser_shareable_none:
         return value;
 
-      case shareable_literal:
+      case rb_parser_shareable_literal:
         {
             NODE *lit = shareable_literal_constant(p, shareable, &lhs, value, loc, 0);
             if (lit) return lit;
@@ -13871,12 +13864,12 @@ shareable_constant_value(struct parser_params *p, enum shareability shareable,
         }
         break;
 
-      case shareable_copy:
-      case shareable_everything:
+      case rb_parser_shareable_copy:
+      case rb_parser_shareable_everything:
         {
             NODE *lit = shareable_literal_constant(p, shareable, &lhs, value, loc, 0);
             if (lit) return lit;
-            return make_shareable_node(p, value, shareable == shareable_copy, loc);
+            return make_shareable_node(p, value, shareable == rb_parser_shareable_copy, loc);
         }
         break;
 
