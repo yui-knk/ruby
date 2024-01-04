@@ -13738,9 +13738,9 @@ shareable_literal_constant(struct parser_params *p, enum rb_parser_shareability 
         return value;
 
       case NODE_STR:
-        lit = rb_fstring(RNODE_STR(value)->nd_lit);
-        nd_set_type(value, NODE_LIT);
-        RB_OBJ_WRITE(p->ast, &RNODE_LIT(value)->nd_lit, lit);
+        // lit = rb_fstring(RNODE_STR(value)->nd_lit);
+        // nd_set_type(value, NODE_LIT);
+        // RB_OBJ_WRITE(p->ast, &RNODE_LIT(value)->nd_lit, lit);
         return value;
 
       case NODE_FILE:

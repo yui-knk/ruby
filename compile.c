@@ -9814,6 +9814,19 @@ compile_shareable_literal_constant(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_pa
         }
         return COMPILE_OK;
 
+      case NODE_STR:{
+        VALUE lit = rb_fstring(RNODE_STR(value)->nd_lit);
+        ADD_INSN1(ret, value, putobject, lit);
+        RB_OBJ_WRITTEN(iseq, Qundef, lit);
+
+        return COMPILE_OK;
+      }
+
+      case NODE_FILE:
+      case NODE_ZLIST:
+      case NODE_LIST:
+      case NODE_HASH:
+
       default:
         /* TODO */
         return COMPILE_OK;
