@@ -144,6 +144,14 @@ node_cdhash_cmp(VALUE val, VALUE lit)
         return 0;
     }
 
+    /* Special case for __LINE__ and Integer */
+    if (OBJ_BUILTIN_TYPE(val) == T_NODE && nd_type(RNODE(val)) == NODE_LINE && RB_INTEGER_TYPE_P(lit)) {
+        return RNODE(val)->nd_loc.beg_pos.lineno != FIX2INT(lit);
+    }
+    if (OBJ_BUILTIN_TYPE(lit) == T_NODE && nd_type(RNODE(lit)) == NODE_LINE && RB_INTEGER_TYPE_P(val)) {
+        return RNODE(lit)->nd_loc.beg_pos.lineno != FIX2INT(val);
+    }
+
     if ((OBJ_BUILTIN_TYPE(val) == T_NODE) && (OBJ_BUILTIN_TYPE(lit) == T_NODE)) {
         NODE *node_val = RNODE(val);
         NODE *node_lit = RNODE(lit);
@@ -178,16 +186,18 @@ node_cdhash_hash(VALUE a)
       case T_NODE:{
         enum node_type type = nd_type(RNODE(a));
         switch (type) {
-          /* OBJ_BUILTIN_TYPE is -1, ruby_value_type is positive numbers, then use -2, -3, ... */
           case NODE_LINE:
-            return -2;
+            // fprintf(stderr, "LINE: %d\n", INT2FIX(RNODE(a)->nd_loc.beg_pos.lineno));
+            return INT2FIX(RNODE(a)->nd_loc.beg_pos.lineno); /* Same with Integer in rb_iseq_cdhash_hash */ 
           case NODE_FILE:
-            return -3;
+            return -1;
+          /* ruby_special_consts is greater than or equal to 0, then use -1, -2, -3, ... for other NODE */
           default:
             rb_bug("unexpected node: %s", ruby_node_name(type));
         }
       }
       default:
+        // fprintf(stderr, "OBJ: %d\n", rb_iseq_cdhash_hash(a));
         return rb_iseq_cdhash_hash(a);
     }
 }
