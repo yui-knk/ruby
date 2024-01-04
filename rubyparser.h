@@ -408,6 +408,7 @@ typedef struct RNode_CDECL {
     ID nd_vid;
     struct RNode *nd_value;
     struct RNode *nd_else;
+    enum rb_parser_shareability shareability;
 } rb_node_cdecl_t;
 
 typedef struct RNode_CVASGN {
