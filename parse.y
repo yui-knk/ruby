@@ -152,6 +152,14 @@ node_cdhash_cmp(VALUE val, VALUE lit)
         return RNODE(lit)->nd_loc.beg_pos.lineno != FIX2INT(val);
     }
 
+    /* Special case for __FILE__ and String */
+    if (OBJ_BUILTIN_TYPE(val) == T_NODE && nd_type(RNODE(val)) == NODE_FILE && RB_TYPE_P(lit, T_STRING)) {
+        return rb_str_hash_cmp(rb_node_file_path_val(RNODE(val)), lit);
+    }
+    if (OBJ_BUILTIN_TYPE(lit) == T_NODE && nd_type(RNODE(lit)) == NODE_FILE && RB_TYPE_P(val, T_STRING)) {
+        return rb_str_hash_cmp(rb_node_file_path_val(RNODE(lit)), val);
+    }
+
     if ((OBJ_BUILTIN_TYPE(val) == T_NODE) && (OBJ_BUILTIN_TYPE(lit) == T_NODE)) {
         NODE *node_val = RNODE(val);
         NODE *node_lit = RNODE(lit);
@@ -187,10 +195,9 @@ node_cdhash_hash(VALUE a)
         enum node_type type = nd_type(RNODE(a));
         switch (type) {
           case NODE_LINE:
-            // fprintf(stderr, "LINE: %d\n", INT2FIX(RNODE(a)->nd_loc.beg_pos.lineno));
             return INT2FIX(RNODE(a)->nd_loc.beg_pos.lineno); /* Same with Integer in rb_iseq_cdhash_hash */ 
           case NODE_FILE:
-            return -1;
+            return rb_str_hash(rb_node_file_path_val(RNODE(a)));
           /* ruby_special_consts is greater than or equal to 0, then use -1, -2, -3, ... for other NODE */
           default:
             rb_bug("unexpected node: %s", ruby_node_name(type));
