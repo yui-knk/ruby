@@ -13744,9 +13744,9 @@ shareable_literal_constant(struct parser_params *p, enum rb_parser_shareability 
         return value;
 
       case NODE_FILE:
-        lit = rb_fstring(rb_node_file_path_val(value));
-        value = NEW_LIT(lit, loc);
-        RB_OBJ_WRITTEN(p->ast, Qnil, RNODE_LIT(value)->nd_lit);
+        // lit = rb_fstring(rb_node_file_path_val(value));
+        // value = NEW_LIT(lit, loc);
+        // RB_OBJ_WRITTEN(p->ast, Qnil, RNODE_LIT(value)->nd_lit);
         return value;
 
       case NODE_ZLIST:

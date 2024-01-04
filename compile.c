@@ -9822,7 +9822,13 @@ compile_shareable_literal_constant(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_pa
         return COMPILE_OK;
       }
 
-      case NODE_FILE:
+      case NODE_FILE:{
+        VALUE lit = rb_fstring(rb_node_file_path_val(value));
+        ADD_INSN1(ret, value, putobject, lit);
+        RB_OBJ_WRITTEN(iseq, Qundef, lit);
+
+        return COMPILE_OK;
+      }
       case NODE_ZLIST:
       case NODE_LIST:
       case NODE_HASH:
