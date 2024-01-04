@@ -13750,11 +13750,11 @@ shareable_literal_constant(struct parser_params *p, enum rb_parser_shareability 
         return value;
 
       case NODE_ZLIST:
-        lit = rb_ary_new();
-        OBJ_FREEZE_RAW(lit);
-        NODE *n = NEW_LIT(lit, loc);
-        RB_OBJ_WRITTEN(p->ast, Qnil, RNODE_LIT(n)->nd_lit);
-        return n;
+        // lit = rb_ary_new();
+        // OBJ_FREEZE_RAW(lit);
+        // NODE *n = NEW_LIT(lit, loc);
+        // RB_OBJ_WRITTEN(p->ast, Qnil, RNODE_LIT(n)->nd_lit);
+        return value;
 
       case NODE_LIST:
         lit = rb_ary_new();

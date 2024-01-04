@@ -9829,7 +9829,16 @@ compile_shareable_literal_constant(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_pa
 
         return COMPILE_OK;
       }
-      case NODE_ZLIST:
+
+      case NODE_ZLIST:{
+        VALUE lit = rb_ary_new();
+        OBJ_FREEZE_RAW(lit);
+        ADD_INSN1(ret, value, putobject, lit);
+        RB_OBJ_WRITTEN(iseq, Qundef, lit);
+
+        return COMPILE_OK;
+      }
+
       case NODE_LIST:
       case NODE_HASH:
 
