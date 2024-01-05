@@ -9863,6 +9863,7 @@ compile_ensure_shareable_node(rb_iseq_t *iseq, LINK_ANCHOR *ret, NODE **dest, co
     ADD_INSN1(ret, value, putobject, rb_mRubyVMFrozenCore);
     CHECK(COMPILE(ret, "compile_ensure_shareable_node", value));
     ADD_INSN1(ret, value, putobject, path);
+    RB_OBJ_WRITTEN(iseq, Qundef, path);
     ADD_SEND_WITH_FLAG(ret, value, rb_intern("ensure_shareable"), INT2FIX(2), INT2FIX(VM_CALL_ARGS_SIMPLE));
 
     return COMPILE_OK;
