@@ -13890,7 +13890,6 @@ node_assign(struct parser_params *p, NODE *lhs, NODE *rhs, struct lex_context ct
     switch (nd_type(lhs)) {
       case NODE_CDECL:
         RNODE_CDECL(lhs)->shareability = ctxt.shareable_constant_value;
-        // rhs = shareable_constant_value(p, ctxt.shareable_constant_value, lhs, rhs, loc);
         /* fallthru */
 
       case NODE_GASGN:
@@ -14831,6 +14830,7 @@ new_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct lex_c
             }
         }
         if (op == tOROP) {
+            // RNODE_CDECL(lhs)->shareability = ctxt.shareable_constant_value;
             rhs = shareable_constant_value(p, shareable, lhs, rhs, &rhs->nd_loc);
             set_nd_value(p, lhs, rhs);
             nd_set_loc(lhs, loc);
@@ -14838,6 +14838,7 @@ new_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct lex_c
         }
         else if (op == tANDOP) {
             if (shareable) {
+                // RNODE_CDECL(lhs)->shareability = ctxt.shareable_constant_value;
                 rhs = shareable_constant_value(p, shareable, lhs, rhs, &rhs->nd_loc);
             }
             set_nd_value(p, lhs, rhs);
@@ -14848,6 +14849,7 @@ new_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct lex_c
             asgn = lhs;
             rhs = NEW_CALL(gettable(p, vid, &lhs_loc), op, NEW_LIST(rhs, &rhs->nd_loc), loc);
             if (shareable) {
+                // RNODE_CDECL(lhs)->shareability = ctxt.shareable_constant_value;
                 rhs = shareable_constant_value(p, shareable, lhs, rhs, &rhs->nd_loc);
             }
             set_nd_value(p, asgn, rhs);
@@ -14889,8 +14891,9 @@ new_const_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct
     NODE *asgn;
 
     if (lhs) {
-        rhs = shareable_constant_value(p, ctxt.shareable_constant_value, lhs, rhs, loc);
+        // rhs = shareable_constant_value(p, ctxt.shareable_constant_value, lhs, rhs, loc);
         asgn = NEW_OP_CDECL(lhs, op, rhs, loc);
+        RNODE_OP_CDECL(asgn)->shareability = ctxt.shareable_constant_value;
     }
     else {
         asgn = NEW_ERROR(loc);

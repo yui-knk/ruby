@@ -9219,6 +9219,8 @@ compile_op_asgn2(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node
     return COMPILE_OK;
 }
 
+static int compile_shareable_constant_value(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_parser_shareability shareable, const NODE *lhs, const NODE *value);
+
 static int
 compile_op_cdecl(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, int popped)
 {
@@ -9262,7 +9264,8 @@ compile_op_cdecl(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node
         /* cref [obj] */
         if (!popped) ADD_INSN(ret, node, pop); /* cref */
         if (lassign) ADD_LABEL(ret, lassign);
-        CHECK(COMPILE(ret, "NODE_OP_CDECL#nd_value", RNODE_OP_CDECL(node)->nd_value));
+        // CHECK(COMPILE(ret, "NODE_OP_CDECL#nd_value", RNODE_OP_CDECL(node)->nd_value));
+        CHECK(compile_shareable_constant_value(iseq, ret, RNODE_OP_CDECL(node)->shareability, node, RNODE_OP_CDECL(node)->nd_value));
         /* cref value */
         if (popped)
             ADD_INSN1(ret, node, topn, INT2FIX(1)); /* cref value cref */
@@ -9276,7 +9279,8 @@ compile_op_cdecl(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node
         ADD_INSN(ret, node, pop); /* [value] */
     }
     else {
-        CHECK(COMPILE(ret, "NODE_OP_CDECL#nd_value", RNODE_OP_CDECL(node)->nd_value));
+        // CHECK(COMPILE(ret, "NODE_OP_CDECL#nd_value", RNODE_OP_CDECL(node)->nd_value));
+        CHECK(compile_shareable_constant_value(iseq, ret, RNODE_OP_CDECL(node)->shareability, node, RNODE_OP_CDECL(node)->nd_value));
         /* cref obj value */
         ADD_CALL(ret, node, RNODE_OP_CDECL(node)->nd_aid, INT2FIX(1));
         /* cref value */
@@ -10285,6 +10289,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
       }
       case NODE_CDECL:{
         if (RNODE_CDECL(node)->nd_vid) {
+            // CHECK(COMPILE(ret, "lvalue", RNODE_CDECL(node)->nd_value));
             CHECK(compile_shareable_constant_value(iseq, ret, RNODE_CDECL(node)->shareability, node, RNODE_CDECL(node)->nd_value));
 
             if (!popped) {

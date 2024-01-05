@@ -530,6 +530,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("example: A::B ||= 1");
         F_NODE(nd_head, RNODE_OP_CDECL, "constant");
         F_ID(nd_aid, RNODE_OP_CDECL, "operator");
+        F_SHAREABILITY(shareability, RNODE_CDECL, "shareability");
         LAST_NODE;
         F_NODE(nd_value, RNODE_OP_CDECL, "rvalue");
         return;

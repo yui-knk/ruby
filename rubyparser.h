@@ -457,6 +457,7 @@ typedef struct RNode_OP_CDECL {
     struct RNode *nd_head;
     struct RNode *nd_value;
     ID nd_aid;
+    enum rb_parser_shareability shareability;
 } rb_node_op_cdecl_t;
 
 typedef struct RNode_CALL {
