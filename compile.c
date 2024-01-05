@@ -10025,6 +10025,7 @@ compile_shareable_literal_constant(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_pa
             *shareable_literal_p = 1;
             return COMPILE_OK;
         }
+        CHECK(COMPILE(ret, "shareable_literal_constant", node));
         *value_p = Qundef;
         *shareable_literal_p = 0;
         return COMPILE_OK;
@@ -10032,6 +10033,13 @@ compile_shareable_literal_constant(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_pa
 
     /* Array or Hash */
     if (!lit) {
+        if (nd_type(node) == NODE_LIST) {
+            ADD_INSN1(anchor, node, newarray, INT2FIX(RNODE_LIST(node)->as.nd_alen));
+        }
+        else if (nd_type(node) == NODE_HASH) {
+            int len = (int)RNODE_LIST(RNODE_HASH(node)->nd_head)->as.nd_alen;
+            ADD_INSN1(anchor, node, newhash, INT2FIX(len));
+        }
         *value_p = Qundef;
         *shareable_literal_p = 0;
         ADD_SEQ(ret, anchor);
