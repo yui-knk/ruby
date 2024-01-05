@@ -10047,7 +10047,7 @@ compile_shareable_literal_constant(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_pa
             int len = (int)RNODE_LIST(RNODE_HASH(node)->nd_head)->as.nd_alen;
             ADD_INSN1(anchor, node, newhash, INT2FIX(len));
         }
-        compile_make_shareable_node(iseq, ret, anchor, node, false);
+        CHECK(compile_make_shareable_node(iseq, ret, anchor, node, false));
         *value_p = Qundef;
         *shareable_literal_p = 1;
     }
