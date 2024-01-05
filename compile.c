@@ -10049,7 +10049,7 @@ compile_shareable_literal_constant(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_pa
         }
         compile_make_shareable_node(iseq, ret, anchor, node, false);
         *value_p = Qundef;
-        *shareable_literal_p = 0;
+        *shareable_literal_p = 1;
     }
     else {
         VALUE val = rb_ractor_make_shareable(lit);
