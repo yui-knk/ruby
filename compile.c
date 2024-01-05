@@ -10302,8 +10302,8 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
         }
         else {
             compile_cpath(ret, iseq, RNODE_CDECL(node)->nd_else);
-            /* TODO */
-            CHECK(COMPILE(ret, "lvalue", RNODE_CDECL(node)->nd_value));
+            // CHECK(COMPILE(ret, "lvalue", RNODE_CDECL(node)->nd_value));
+            CHECK(compile_shareable_constant_value(iseq, ret, RNODE_CDECL(node)->shareability, node, RNODE_CDECL(node)->nd_value));
             ADD_INSN(ret, node, swap);
 
             if (!popped) {

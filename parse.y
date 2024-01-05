@@ -14821,8 +14821,11 @@ new_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct lex_c
         if (shareable) {
             switch (nd_type(lhs)) {
               case NODE_CDECL:
+                RNODE_CDECL(lhs)->shareability = shareable;
               case NODE_COLON2:
+                /* TODO */
               case NODE_COLON3:
+                /* TODO */
                 break;
               default:
                 shareable = 0;
@@ -14830,15 +14833,15 @@ new_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct lex_c
             }
         }
         if (op == tOROP) {
-            // RNODE_CDECL(lhs)->shareability = ctxt.shareable_constant_value;
-            rhs = shareable_constant_value(p, shareable, lhs, rhs, &rhs->nd_loc);
+            if (shareable) {
+                rhs = shareable_constant_value(p, shareable, lhs, rhs, &rhs->nd_loc);
+            }
             set_nd_value(p, lhs, rhs);
             nd_set_loc(lhs, loc);
             asgn = NEW_OP_ASGN_OR(gettable(p, vid, &lhs_loc), lhs, loc);
         }
         else if (op == tANDOP) {
             if (shareable) {
-                // RNODE_CDECL(lhs)->shareability = ctxt.shareable_constant_value;
                 rhs = shareable_constant_value(p, shareable, lhs, rhs, &rhs->nd_loc);
             }
             set_nd_value(p, lhs, rhs);
@@ -14849,7 +14852,6 @@ new_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct lex_c
             asgn = lhs;
             rhs = NEW_CALL(gettable(p, vid, &lhs_loc), op, NEW_LIST(rhs, &rhs->nd_loc), loc);
             if (shareable) {
-                // RNODE_CDECL(lhs)->shareability = ctxt.shareable_constant_value;
                 rhs = shareable_constant_value(p, shareable, lhs, rhs, &rhs->nd_loc);
             }
             set_nd_value(p, asgn, rhs);
