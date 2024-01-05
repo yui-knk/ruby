@@ -10022,7 +10022,7 @@ compile_shareable_literal_constant(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_pa
             (SHAREABLE_BARE_EXPRESSION || level > 0)) {
             CHECK(compile_ensure_shareable_node(iseq, ret, dest, node));
             *value_p = Qundef;
-            *shareable_literal_p = 0;
+            *shareable_literal_p = 1;
             return COMPILE_OK;
         }
         *value_p = Qundef;
