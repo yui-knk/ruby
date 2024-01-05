@@ -9264,7 +9264,6 @@ compile_op_cdecl(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node
         /* cref [obj] */
         if (!popped) ADD_INSN(ret, node, pop); /* cref */
         if (lassign) ADD_LABEL(ret, lassign);
-        // CHECK(COMPILE(ret, "NODE_OP_CDECL#nd_value", RNODE_OP_CDECL(node)->nd_value));
         CHECK(compile_shareable_constant_value(iseq, ret, RNODE_OP_CDECL(node)->shareability, RNODE_OP_CDECL(node)->nd_head, RNODE_OP_CDECL(node)->nd_value));
         /* cref value */
         if (popped)
@@ -9279,7 +9278,6 @@ compile_op_cdecl(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node
         ADD_INSN(ret, node, pop); /* [value] */
     }
     else {
-        // CHECK(COMPILE(ret, "NODE_OP_CDECL#nd_value", RNODE_OP_CDECL(node)->nd_value));
         CHECK(compile_shareable_constant_value(iseq, ret, RNODE_OP_CDECL(node)->shareability, RNODE_OP_CDECL(node)->nd_head, RNODE_OP_CDECL(node)->nd_value));
         /* cref obj value */
         ADD_CALL(ret, node, RNODE_OP_CDECL(node)->nd_aid, INT2FIX(1));
@@ -9825,6 +9823,7 @@ const_decl_path(NODE **dest)
     NODE *n = *dest;
 
     if (!nd_type_p(n, NODE_CALL)) {
+        // TODO: NODE_COLON2 case like "expr::G280 ||= Object.new"
         if (RNODE_CDECL(n)->nd_vid) {
              path = rb_id2str(RNODE_CDECL(n)->nd_vid);
         }
@@ -10290,7 +10289,6 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
       }
       case NODE_CDECL:{
         if (RNODE_CDECL(node)->nd_vid) {
-            // CHECK(COMPILE(ret, "lvalue", RNODE_CDECL(node)->nd_value));
             CHECK(compile_shareable_constant_value(iseq, ret, RNODE_CDECL(node)->shareability, node, RNODE_CDECL(node)->nd_value));
 
             if (!popped) {
@@ -10303,7 +10301,6 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
         }
         else {
             compile_cpath(ret, iseq, RNODE_CDECL(node)->nd_else);
-            // CHECK(COMPILE(ret, "lvalue", RNODE_CDECL(node)->nd_value));
             CHECK(compile_shareable_constant_value(iseq, ret, RNODE_CDECL(node)->shareability, node, RNODE_CDECL(node)->nd_value));
             ADD_INSN(ret, node, swap);
 
