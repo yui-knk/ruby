@@ -14833,7 +14833,9 @@ new_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct lex_c
             }
         }
         if (op == tOROP) {
-            rhs = shareable_constant_value(p, shareable, lhs, rhs, &rhs->nd_loc);
+            if (shareable) {
+                rhs = shareable_constant_value(p, shareable, lhs, rhs, &rhs->nd_loc);
+            }
             set_nd_value(p, lhs, rhs);
             nd_set_loc(lhs, loc);
             asgn = NEW_OP_ASGN_OR(gettable(p, vid, &lhs_loc), lhs, loc);
