@@ -9940,11 +9940,11 @@ compile_shareable_literal_constant(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_pa
       }
 
       case NODE_LIST:{
-        VALUE val;
-        int shareable_literal_p2;
         INIT_ANCHOR(anchor);
         lit = rb_ary_new();
         for (NODE *n = (NODE *)node; n; n = RNODE_LIST(n)->nd_next) {
+            VALUE val;
+            int shareable_literal_p2;
             NODE *elt = RNODE_LIST(n)->nd_head;
             if (elt) {
                 CHECK(compile_shareable_literal_constant_next(elt, anchor, &val, &shareable_literal_p2));
@@ -9968,7 +9968,54 @@ compile_shareable_literal_constant(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_pa
         }
         break;
       }
-      case NODE_HASH:
+      case NODE_HASH:{
+        if (!RNODE_HASH(node)->nd_brace) {
+            // TODO: NEED compile?
+            *value_p = Qundef;
+            *shareable_literal_p = 0;
+            return COMPILE_OK;
+        }
+
+        INIT_ANCHOR(anchor);
+        lit = rb_hash_new();
+        for (NODE *n = RNODE_HASH(node)->nd_head; n; n = RNODE_LIST(RNODE_LIST(n)->nd_next)->nd_next) {
+            VALUE key_val;
+            VALUE value_val;
+            int shareable_literal_p2;
+            NODE *key = RNODE_LIST(n)->nd_head;
+            NODE *val = RNODE_LIST(RNODE_LIST(n)->nd_next)->nd_head;
+            if (key) {
+                CHECK(compile_shareable_literal_constant_next(key, anchor, &key_val, &shareable_literal_p2));
+                if (shareable_literal_p2) {
+                    /* noop */
+                }
+                else if (RTEST(lit)) {
+                    rb_hash_clear(lit);
+                    lit = Qfalse;
+                }
+            }
+            if (val) {
+                CHECK(compile_shareable_literal_constant_next(val, anchor, &value_val, &shareable_literal_p2));
+                if (shareable_literal_p2) {
+                    /* noop */
+                }
+                else if (RTEST(lit)) {
+                    rb_hash_clear(lit);
+                    lit = Qfalse;
+                }
+            }
+            if (RTEST(lit)) {
+                if (!UNDEF_P(key_val) && !UNDEF_P(value_val)) {
+                    rb_hash_aset(lit, key_val, value_val);
+                }
+                else {
+                    rb_hash_clear(lit);
+                    lit = Qnil; /* make shareable at runtime */
+                }
+            }
+        }
+        break;
+      }
 
       default:
         if (shareable == rb_parser_shareable_literal &&
@@ -9997,7 +10044,8 @@ compile_shareable_literal_constant(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_pa
             ADD_INSN1(anchor, node, newarray, INT2FIX(RNODE_LIST(node)->as.nd_alen));
         }
         else if (nd_type(node) == NODE_HASH) {
-            // ADD_INSN1(anchor, node, newarray, INT2FIX(0));
+            int len = (int)RNODE_LIST(RNODE_HASH(node)->nd_head)->as.nd_alen;
+            ADD_INSN1(anchor, node, newhash, INT2FIX(len));
         }
         compile_make_shareable_node(iseq, ret, anchor, node, false);
         *value_p = Qundef;
