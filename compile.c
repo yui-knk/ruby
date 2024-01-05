@@ -9813,9 +9813,86 @@ compile_make_shareable_node(rb_iseq_t *iseq, LINK_ANCHOR *ret, const NODE *value
     return COMPILE_OK;
 }
 
+static VALUE
+const_decl_path(NODE **dest)
+{
+    VALUE path;
+    NODE *n = *dest;
+
+    if (!nd_type_p(n, NODE_CALL)) {
+        if (RNODE_CDECL(n)->nd_vid) {
+             path = rb_id2str(RNODE_CDECL(n)->nd_vid);
+        }
+        else {
+            n = RNODE_CDECL(n)->nd_else;
+            path = rb_ary_new();
+            for (; n && nd_type_p(n, NODE_COLON2); n = RNODE_COLON2(n)->nd_head) {
+                rb_ary_push(path, rb_id2str(RNODE_COLON2(n)->nd_mid));
+            }
+            if (n && nd_type_p(n, NODE_CONST)) {
+                // Const::Name
+                rb_ary_push(path, rb_id2str(RNODE_CONST(n)->nd_vid));
+            }
+            else if (n && nd_type_p(n, NODE_COLON3)) {
+                // ::Const::Name
+                rb_ary_push(path, rb_str_new(0, 0));
+            }
+            else {
+                // expression::Name
+                rb_ary_push(path, rb_str_new_cstr("..."));
+            }
+            path = rb_ary_join(rb_ary_reverse(path), rb_str_new_cstr("::"));
+            path = rb_fstring(path);
+        }
+    }
+    return path;
+}
+
+static int
+compile_ensure_shareable_node(rb_iseq_t *iseq, LINK_ANCHOR *ret, NODE **dest, NODE *value)
+{
+    /*
+     *. RubyVM::FrozenCore.ensure_shareable(value, const_decl_path(dest))
+     */
+    VALUE path = const_decl_path(dest);
+    ADD_INSN1(ret, value, putobject, rb_mRubyVMFrozenCore);
+    CHECK(COMPILE(ret, "compile_ensure_shareable_node", value));
+    ADD_INSN1(ret, value, putobject, path);
+
+    return COMPILE_OK;
+}
+
+static VALUE
+shareable_literal_value(NODE *node)
+{
+    if (!node) return Qnil;
+    enum node_type type = nd_type(node);
+    switch (type) {
+      case NODE_TRUE:
+        return Qtrue;
+      case NODE_FALSE:
+        return Qfalse;
+      case NODE_NIL:
+        return Qnil;
+      case NODE_LINE:
+        return rb_node_line_lineno_val(node);
+      case NODE_LIT:
+        return RNODE_LIT(node)->nd_lit;
+      default:
+        return Qundef;
+    }
+}
+
+#ifndef SHAREABLE_BARE_EXPRESSION
+#define SHAREABLE_BARE_EXPRESSION 1
+#endif
+
 static int
 compile_shareable_literal_constant(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_parser_shareability shareable, NODE **dest, NODE *value, size_t level, int *literal_p)
 {
+# define shareable_literal_constant_next(n) \
+    shareable_literal_constant(iseq, ret, shareable, dest, n, level+1, )
+    VALUE lit = Qnil;
     // if (!value) return 0;
     enum node_type type = nd_type(value);
     switch (type) {
@@ -9870,15 +9947,47 @@ compile_shareable_literal_constant(rb_iseq_t *iseq, LINK_ANCHOR *ret, enum rb_pa
       }
 
       case NODE_LIST:
+        lit = rb_ary_new();
+        for (NODE *n = value; n; n = RNODE_LIST(n)->nd_next) {
+            NODE *elt = RNODE_LIST(n)->nd_head;
+            if (elt) {
+                elt = shareable_literal_constant_next(elt);
+                if (elt) {
+                    RNODE_LIST(n)->nd_head = elt;
+                }
+                else if (RTEST(lit)) {
+                    rb_ary_clear(lit);
+                    lit = Qfalse;
+                }
+            }
+            if (RTEST(lit)) {
+                VALUE e = shareable_literal_value(p, elt);
+                if (!UNDEF_P(e)) {
+                    rb_ary_push(lit, e);
+                }
+                else {
+                    rb_ary_clear(lit);
+                    lit = Qnil; /* make shareable at runtime */
+                }
+            }
+        }
+        break;
+
       case NODE_HASH:
 
       default:
-        /* TODO */
+        if (shareable == rb_parser_shareable_literal &&
+            (SHAREABLE_BARE_EXPRESSION || level > 0)) {
+            CHECK(compile_ensure_shareable_node(iseq, ret, dest, value));
+            *literal_p = 1;
+            return COMPILE_OK;
+        }
         *literal_p = 0;
         return COMPILE_OK;
     }
 
     /* Array or Hash */
+    compile_make_shareable_node(iseq, ret, value, false);
 }
 
 static int

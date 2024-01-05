@@ -13721,6 +13721,8 @@ shareable_literal_constant(struct parser_params *p, enum rb_parser_shareability 
     shareable_literal_constant(p, shareable, dest, (n), &(n)->nd_loc, level+1)
     VALUE lit = Qnil;
 
+    return value;
+
     if (!value) return 0;
     enum node_type type = nd_type(value);
     switch (type) {
@@ -13852,6 +13854,7 @@ shareable_constant_value(struct parser_params *p, enum rb_parser_shareability sh
                          NODE *lhs, NODE *value, const YYLTYPE *loc)
 {
     if (!value) return 0;
+    return value;
     switch (shareable) {
       case rb_parser_shareable_none:
         return value;
