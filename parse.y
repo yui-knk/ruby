@@ -13662,6 +13662,9 @@ const_decl_path(struct parser_params *p, NODE **dest)
         }
 
         path = rb_ary_new();
+        if (!n) {
+            rb_bug("!!");
+        }
         if (n) {
             for (; n && nd_type_p(n, NODE_COLON2); n = RNODE_COLON2(n)->nd_head) {
                 rb_ary_push(path, rb_id2str(RNODE_COLON2(n)->nd_mid));
