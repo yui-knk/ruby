@@ -13639,12 +13639,30 @@ const_decl_path(struct parser_params *p, NODE **dest)
     if (!nd_type_p(n, NODE_CALL)) {
         const YYLTYPE *loc = &n->nd_loc;
         VALUE path;
-        if (RNODE_CDECL(n)->nd_vid) {
-             path = rb_id2str(RNODE_CDECL(n)->nd_vid);
+        switch (nd_type(n)) {
+          case NODE_CDECL:
+            if (RNODE_CDECL(n)->nd_vid) {
+                path = rb_id2str(RNODE_CDECL(n)->nd_vid);
+                goto end;
+            }
+            else {
+                n = RNODE_CDECL(n)->nd_else;
+            }
+            break;
+          case NODE_COLON2:
+            break;
+          case NODE_COLON3:
+            // ::Const
+            path = rb_str_new_cstr("::");
+            rb_str_append(path, rb_id2str(RNODE_COLON3(n)->nd_mid));
+            goto end;
+          default:
+            rb_bug("unexpected node: %s", ruby_node_name(nd_type(n)));
+            UNREACHABLE_RETURN(0);
         }
-        else {
-            n = RNODE_CDECL(n)->nd_else;
-            path = rb_ary_new();
+
+        path = rb_ary_new();
+        if (n) {
             for (; n && nd_type_p(n, NODE_COLON2); n = RNODE_COLON2(n)->nd_head) {
                 rb_ary_push(path, rb_id2str(RNODE_COLON2(n)->nd_mid));
             }
@@ -13662,8 +13680,9 @@ const_decl_path(struct parser_params *p, NODE **dest)
                 rb_ary_push(path, rb_str_new_cstr("..."));
             }
             path = rb_ary_join(rb_ary_reverse(path), rb_str_new_cstr("::"));
-            path = rb_fstring(path);
         }
+      end:
+        path = rb_fstring(path);
         *dest = n = NEW_LIT(path, loc);
         RB_OBJ_WRITTEN(p->ast, Qnil, RNODE_LIT(n)->nd_lit);
     }
