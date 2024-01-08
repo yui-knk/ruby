@@ -721,6 +721,10 @@ typedef struct RNode_REGX {
 
     struct rb_parser_string *string;
     int options;
+    bit field
+      i, x, m
+      o
+      enum n, e, s, u, ARG_ENCODING_FIXED
     struct rb_parser_string *sourcefile;
     int sourceline;
 } rb_node_regx_t;
