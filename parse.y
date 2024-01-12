@@ -551,8 +551,8 @@ struct parser_params {
         rb_strterm_t *strterm;
         VALUE (*gets)(struct parser_params*,VALUE);
         VALUE input;
-        VALUE lastline;
-        VALUE nextline;
+        rb_parser_string_t *lastline;
+        rb_parser_string_t *nextline;
         const char *pbeg;
         const char *pcur;
         const char *pend;
@@ -2058,9 +2058,7 @@ get_nd_args(struct parser_params *p, NODE *node)
         return 0;
     }
 }
-#endif
 
-#ifndef RIPPER
 static rb_parser_string_t *
 rb_parser_string_new(rb_parser_t *p, const char *ptr, long len)
 {
@@ -2073,12 +2071,13 @@ rb_parser_string_new(rb_parser_t *p, const char *ptr, long len)
 
     size = offsetof(rb_parser_string_t, ptr) + len + 1;
     str = xcalloc(1, size);
-
+    // fprintf(stderr, "allocate %p\n", str);
     if (ptr) {
         memcpy(str->ptr, ptr, len);
     }
     str->len = len;
     str->ptr[len] = '\0';
+    // fprintf(stderr, "allocate %s", str->ptr);
     return str;
 }
 
@@ -2089,6 +2088,29 @@ rb_parser_encoding_string_new(rb_parser_t *p, const char *ptr, long len, rb_enco
     str->enc = enc;
     return str;
 }
+
+static void
+rb_parser_string_free(rb_parser_t *p, rb_parser_string_t *str)
+{
+    // fprintf(stderr, "free     %p\n", str);
+    // if (str)
+    //     fprintf(stderr, "free     %s", str->ptr);
+    xfree(str);
+}
+
+static char *
+rb_parser_string_end(rb_parser_string_t *str)
+{
+    return &str->ptr[str->len];
+}
+
+/* Ref: rb_enc_associate */
+static void
+rb_parser_string_set_encoding(rb_parser_string_t *str, rb_encoding *enc)
+{
+    str->enc = enc;
+}
+#endif
 
 long
 rb_parser_string_length(rb_parser_string_t *str)
@@ -2102,6 +2124,13 @@ rb_parser_string_pointer(rb_parser_string_t *str)
     return str->ptr;
 }
 
+static rb_encoding *
+rb_parser_string_encoding(rb_parser_string_t *str)
+{
+    return str->enc;
+}
+
+#ifndef RIPPER
 #ifndef UNIVERSAL_PARSER
 # define PARSER_STRING_GETMEM(str, ptrvar, lenvar, encvar) \
     ((ptrvar) = str->ptr,                            \
@@ -2124,8 +2153,8 @@ rb_parser_string_hash_cmp(rb_parser_string_t *str1, rb_parser_string_t *str2)
 }
 #endif
 
-static rb_parser_string_t *
-rb_str_to_parser_encoding_string(rb_parser_t *p, VALUE str)
+rb_parser_string_t *
+rb_str_to_parser_string(rb_parser_t *p, VALUE str)
 {
     /* Type check */
     return rb_parser_encoding_string_new(p, RSTRING_PTR(str), RSTRING_LEN(str), rb_enc_get(str));
@@ -7304,12 +7333,12 @@ parser_precise_mbclen(struct parser_params *p, const char *ptr)
 }
 
 #ifndef RIPPER
-static void ruby_show_error_line(struct parser_params *p, VALUE errbuf, const YYLTYPE *yylloc, int lineno, VALUE str);
+static void ruby_show_error_line(struct parser_params *p, VALUE errbuf, const YYLTYPE *yylloc, int lineno, rb_parser_string_t *str);
 
 static inline void
 parser_show_error_line(struct parser_params *p, const YYLTYPE *yylloc)
 {
-    VALUE str;
+    rb_parser_string_t *str;
     int lineno = p->ruby_sourceline;
     if (!yylloc) {
         return;
@@ -7350,7 +7379,7 @@ parser_yyerror0(struct parser_params *p, const char *msg)
 }
 
 static void
-ruby_show_error_line(struct parser_params *p, VALUE errbuf, const YYLTYPE *yylloc, int lineno, VALUE str)
+ruby_show_error_line(struct parser_params *p, VALUE errbuf, const YYLTYPE *yylloc, int lineno, rb_parser_string_t *str)
 {
     VALUE mesg;
     const int max_line_margin = 30;
@@ -7358,13 +7387,13 @@ ruby_show_error_line(struct parser_params *p, VALUE errbuf, const YYLTYPE *yyllo
     const char *pre = "", *post = "", *pend;
     const char *code = "", *caret = "";
     const char *lim;
-    const char *const pbeg = RSTRING_PTR(str);
+    const char *const pbeg = rb_parser_string_pointer(str);
     char *buf;
     long len;
     int i;
 
     if (!yylloc) return;
-    pend = RSTRING_END(str);
+    pend = rb_parser_string_end(str);
     if (pend > pbeg && pend[-1] == '\n') {
         if (--pend > pbeg && pend[-1] == '\r') --pend;
     }
@@ -7385,11 +7414,11 @@ ruby_show_error_line(struct parser_params *p, VALUE errbuf, const YYLTYPE *yyllo
     len = ptr_end - ptr;
     if (len > 4) {
         if (ptr > pbeg) {
-            ptr = rb_enc_prev_char(pbeg, ptr, pt, rb_enc_get(str));
+            ptr = rb_enc_prev_char(pbeg, ptr, pt, rb_parser_string_encoding(str));
             if (ptr > pbeg) pre = "...";
         }
         if (ptr_end < pend) {
-            ptr_end = rb_enc_prev_char(pt, ptr_end, pend, rb_enc_get(str));
+            ptr_end = rb_enc_prev_char(pt, ptr_end, pend, rb_parser_string_encoding(str));
             if (ptr_end < pend) post = "...";
         }
     }
@@ -7408,7 +7437,7 @@ ruby_show_error_line(struct parser_params *p, VALUE errbuf, const YYLTYPE *yyllo
             rb_str_cat_cstr(mesg, "\n");
     }
     else {
-        mesg = rb_enc_str_new(0, 0, rb_enc_get(str));
+        mesg = rb_enc_str_new(0, 0, rb_parser_string_encoding(str));
     }
     if (!errbuf && rb_stderr_tty_p()) {
 #define CSI_BEGIN "\033["
@@ -7730,15 +7759,14 @@ lex_get_str(struct parser_params *p, VALUE s)
     return rb_str_subseq(s, beg - start, len);
 }
 
-static VALUE
+static rb_parser_string_t *
 lex_getline(struct parser_params *p)
 {
     VALUE line = (*p->lex.gets)(p, p->lex.input);
-    if (NIL_P(line)) return line;
+    if (NIL_P(line)) return 0;
     must_be_ascii_compatible(p, line);
-    if (RB_OBJ_FROZEN(line)) line = rb_str_dup(line); // needed for RubyVM::AST.of because script_lines in iseq is deep-frozen
     p->line_count++;
-    return line;
+    return rb_str_to_parser_string(p, line);
 }
 
 #ifndef RIPPER
@@ -7898,19 +7926,19 @@ add_delayed_token(struct parser_params *p, const char *tok, const char *end, int
 }
 
 static void
-set_lastline(struct parser_params *p, VALUE v)
+set_lastline(struct parser_params *p, rb_parser_string_t *str)
 {
-    p->lex.pbeg = p->lex.pcur = RSTRING_PTR(v);
-    p->lex.pend = p->lex.pcur + RSTRING_LEN(v);
-    p->lex.lastline = v;
+    p->lex.pbeg = p->lex.pcur = rb_parser_string_pointer(str);
+    p->lex.pend = p->lex.pcur + rb_parser_string_length(str);
+    p->lex.lastline = str;
 }
 
 static int
 nextline(struct parser_params *p, int set_encoding)
 {
-    VALUE v = p->lex.nextline;
+    rb_parser_string_t *str = p->lex.nextline;
     p->lex.nextline = 0;
-    if (!v) {
+    if (!str) {
         if (p->eofp)
             return -1;
 
@@ -7918,7 +7946,7 @@ nextline(struct parser_params *p, int set_encoding)
             goto end_of_input;
         }
 
-        if (!p->lex.input || NIL_P(v = lex_getline(p))) {
+        if (!p->lex.input || !(str = lex_getline(p))) {
           end_of_input:
             p->eofp = 1;
             lex_goto_eol(p);
@@ -7926,13 +7954,14 @@ nextline(struct parser_params *p, int set_encoding)
         }
 #ifndef RIPPER
         if (p->debug_lines) {
+            VALUE v = rb_str_new_parser_string(str);
             if (set_encoding) rb_enc_associate(v, p->enc);
             rb_ary_push(p->debug_lines, v);
         }
 #endif
         p->cr_seen = FALSE;
     }
-    else if (NIL_P(v)) {
+    else if (!str) {
         /* after here-document without terminator */
         goto end_of_input;
     }
@@ -7942,7 +7971,10 @@ nextline(struct parser_params *p, int set_encoding)
         p->heredoc_end = 0;
     }
     p->ruby_sourceline++;
-    set_lastline(p, v);
+    // if (p->lex.lastline)
+        // fprintf(stderr, "%s\n", p->lex.lastline->ptr);
+    rb_parser_string_free(p, p->lex.lastline);
+    set_lastline(p, str);
     token_flush(p);
     return 0;
 }
@@ -7962,14 +7994,14 @@ nextc0(struct parser_params *p, int set_encoding)
 {
     int c;
 
-    if (UNLIKELY(lex_eol_p(p) || p->eofp || RTEST(p->lex.nextline))) {
-        if (nextline(p, set_encoding)) return -1;
+    if (UNLIKELY(lex_eol_p(p) || p->eofp || p->lex.nextline)) {
+        int i = nextline(p, set_encoding);
+        if (i) return -1;
     }
     c = (unsigned char)*p->lex.pcur++;
     if (UNLIKELY(c == '\r')) {
         c = parser_cr(p, c);
     }
-
     return c;
 }
 #define nextc(p) nextc0(p, TRUE)
@@ -8983,7 +9015,7 @@ heredoc_identifier(struct parser_params *p)
     here->quote = quote;
     here->func = func;
     here->lastline = p->lex.lastline;
-    rb_ast_add_mark_object(p->ast, p->lex.lastline);
+    p->lex.lastline = 0;
 
     token_flush(p);
     p->heredoc_indent = indent;
@@ -8994,22 +9026,23 @@ heredoc_identifier(struct parser_params *p)
 static void
 heredoc_restore(struct parser_params *p, rb_strterm_heredoc_t *here)
 {
-    VALUE line;
+    rb_parser_string_t *line;
     rb_strterm_t *term = p->lex.strterm;
 
     p->lex.strterm = 0;
+    rb_parser_string_free(p, p->lex.lastline);
     line = here->lastline;
     p->lex.lastline = line;
-    p->lex.pbeg = RSTRING_PTR(line);
-    p->lex.pend = p->lex.pbeg + RSTRING_LEN(line);
+    p->lex.pbeg = rb_parser_string_pointer(line);
+    p->lex.pend = p->lex.pbeg + rb_parser_string_length(line);
     p->lex.pcur = p->lex.pbeg + here->offset + here->length + here->quote;
     p->lex.ptok = p->lex.pbeg + here->offset - here->quote;
     p->heredoc_end = p->ruby_sourceline;
     p->ruby_sourceline = (int)here->sourceline;
-    if (p->eofp) p->lex.nextline = Qnil;
+    if (p->eofp) p->lex.nextline = 0;
     p->eofp = 0;
     xfree(term);
-    rb_ast_delete_mark_object(p->ast, line);
+    // fprintf(stderr, "heredoc_restore: %s", p->lex.lastline->ptr);
 }
 
 static int
@@ -9256,7 +9289,7 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
     rb_encoding *base_enc = 0;
     int bol;
 
-    eos = RSTRING_PTR(here->lastline) + here->offset;
+    eos = rb_parser_string_pointer(here->lastline) + here->offset;
     len = here->length;
     indent = (func = here->func) & STR_FUNC_INDENT;
 
@@ -9312,7 +9345,7 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
 
     if (!(func & STR_FUNC_EXPAND)) {
         do {
-            ptr = RSTRING_PTR(p->lex.lastline);
+            ptr = rb_parser_string_pointer(p->lex.lastline);
             ptr_end = p->lex.pend;
             if (ptr_end > ptr) {
                 switch (ptr_end[-1]) {
@@ -9869,7 +9902,7 @@ parser_prepare(struct parser_params *p)
             p->lex.pcur += 2;
 #ifndef RIPPER
             if (p->debug_lines) {
-                rb_enc_associate(p->lex.lastline, p->enc);
+                rb_parser_string_set_encoding(p->lex.lastline, p->enc);
             }
 #endif
             p->lex.pbeg = p->lex.pcur;
@@ -9881,7 +9914,7 @@ parser_prepare(struct parser_params *p)
         return;
     }
     pushback(p, c);
-    p->enc = rb_enc_get(p->lex.lastline);
+    p->enc = rb_parser_string_encoding(p->lex.lastline);
 }
 
 #ifndef RIPPER
@@ -10714,7 +10747,7 @@ parser_yylex(struct parser_params *p)
       case '\004':		/* ^D */
       case '\032':		/* ^Z */
       case -1:			/* end of script. */
-        p->eofp  = 1;
+        p->eofp = 1;
 #ifndef RIPPER
         if (p->end_expect_token_locations) {
             pop_end_expect_token_locations(p);
@@ -10767,7 +10800,8 @@ parser_yylex(struct parser_params *p)
         /* fall through */
       case '\n':
         p->token_seen = token_seen;
-        VALUE prevline = p->lex.lastline;
+        rb_parser_string_t *prevline = p->lex.lastline;
+        p->lex.lastline = 0;
         c = (IS_lex_state(EXPR_BEG|EXPR_CLASS|EXPR_FNAME|EXPR_DOT) &&
              !IS_lex_state(EXPR_LABELED));
         if (c || IS_lex_state_all(EXPR_ARG|EXPR_LABELED)) {
@@ -12205,7 +12239,7 @@ static rb_node_sym_t *
 rb_node_sym_new(struct parser_params *p, VALUE str, const YYLTYPE *loc)
 {
     rb_node_sym_t *n = NODE_NEWNODE(NODE_SYM, rb_node_sym_t, loc);
-    n->string = rb_str_to_parser_encoding_string(p, str);
+    n->string = rb_str_to_parser_string(p, str);
 
     return n;
 }
@@ -12493,7 +12527,7 @@ static rb_node_file_t *
 rb_node_file_new(struct parser_params *p, VALUE str, const YYLTYPE *loc)
 {
     rb_node_file_t *n = NODE_NEWNODE(NODE_FILE, rb_node_file_t, loc);
-    n->path = rb_str_to_parser_encoding_string(p, str);
+    n->path = rb_str_to_parser_string(p, str);
 
     return n;
 }
@@ -15902,8 +15936,6 @@ rb_ruby_parser_mark(void *ptr)
     struct parser_params *p = (struct parser_params*)ptr;
 
     rb_gc_mark(p->lex.input);
-    rb_gc_mark(p->lex.lastline);
-    rb_gc_mark(p->lex.nextline);
     rb_gc_mark(p->ruby_sourcefile_string);
     rb_gc_mark((VALUE)p->ast);
     rb_gc_mark(p->case_labels);
@@ -15946,6 +15978,7 @@ rb_ruby_parser_free(void *ptr)
             xfree(ptinfo);
         }
     }
+    rb_parser_string_free(p, p->lex.lastline);
     xfree(ptr);
 }
 
@@ -16321,7 +16354,7 @@ rb_ruby_ripper_token_len(rb_parser_t *p)
     return p->lex.pcur - p->lex.ptok;
 }
 
-VALUE
+rb_parser_string_t *
 rb_ruby_ripper_lex_lastline(rb_parser_t *p)
 {
     return p->lex.lastline;
