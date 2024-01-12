@@ -69,7 +69,6 @@ rb_node_buffer_new(void)
     init_node_buffer_list(&nb->unmarkable, (node_buffer_elem_t*)&nb[1], ruby_xmalloc);
     init_node_buffer_list(&nb->markable, (node_buffer_elem_t*)((size_t)nb->unmarkable.head + bucket_size), ruby_xmalloc);
     nb->local_tables = 0;
-    nb->mark_hash = Qnil;
     nb->tokens = Qnil;
 #ifdef UNIVERSAL_PARSER
     nb->config = config;
@@ -415,7 +414,6 @@ void
 rb_ast_mark(rb_ast_t *ast)
 {
     if (ast->node_buffer) {
-        rb_gc_mark(ast->node_buffer->mark_hash);
         rb_gc_mark(ast->node_buffer->tokens);
         node_buffer_t *nb = ast->node_buffer;
         iterate_node_values(ast, &nb->markable, mark_ast_value, NULL);
@@ -462,22 +460,6 @@ void
 rb_ast_dispose(rb_ast_t *ast)
 {
     rb_ast_free(ast);
-}
-
-void
-rb_ast_add_mark_object(rb_ast_t *ast, VALUE obj)
-{
-    if (NIL_P(ast->node_buffer->mark_hash)) {
-        RB_OBJ_WRITE(ast, &ast->node_buffer->mark_hash, rb_ident_hash_new());
-    }
-    rb_hash_aset(ast->node_buffer->mark_hash, obj, Qtrue);
-}
-
-void
-rb_ast_delete_mark_object(rb_ast_t *ast, VALUE obj)
-{
-    if (NIL_P(ast->node_buffer->mark_hash)) return;
-    rb_hash_delete(ast->node_buffer->mark_hash, obj);
 }
 
 VALUE
