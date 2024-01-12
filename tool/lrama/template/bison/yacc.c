@@ -1752,6 +1752,7 @@ yybackup:
   *++yyvsp = yylval;
   YY_IGNORE_MAYBE_UNINITIALIZED_END
   *++yylsp = yylloc;
+<%= output.after_shift_code("/* %after-shift code. */") %>
 
   /* Discard the shifted token.  */
   yychar = YYEMPTY;
@@ -1784,6 +1785,7 @@ yyreduce:
      unconditionally makes the parser a bit smaller, and it avoids a
      GCC warning that YYVAL may be used uninitialized.  */
   yyval = yyvsp[1-yylen];
+<%= output.before_reduce_function("/* %before-reduce function. */") %>
 
   /* Default location. */
   YYLLOC_DEFAULT (yyloc, (yylsp - yylen), yylen);
@@ -1809,6 +1811,7 @@ yyreduce:
   YY_SYMBOL_PRINT ("-> $$ =", YY_CAST (yysymbol_kind_t, yyr1[yyn]), &yyval, &yyloc<%= output.user_args %>);
 
   YYPOPSTACK (yylen);
+<%= output.after_reduce_function("/* %after-reduce function. */") %>
   yylen = 0;
 
   *++yyvsp = yyval;

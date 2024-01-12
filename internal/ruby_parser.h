@@ -18,6 +18,14 @@ rb_parser_t *rb_parser_params_new(void);
 VALUE rb_parser_set_context(VALUE, const struct rb_iseq_struct *, int);
 VALUE rb_parser_new(void);
 rb_ast_t *rb_parser_compile_string_path(VALUE vparser, VALUE fname, VALUE src, int line);
+
+VALUE rb_node_sym_string_val(const NODE *);
+VALUE rb_node_line_lineno_val(const NODE *);
+VALUE rb_node_file_path_val(const NODE *);
+VALUE rb_node_integer_literal_val(const NODE *);
+VALUE rb_node_float_literal_val(const NODE *);
+VALUE rb_node_rational_literal_val(const NODE *);
+VALUE rb_node_imaginary_literal_val(const NODE *);
 RUBY_SYMBOL_EXPORT_END
 
 VALUE rb_parser_end_seen_p(VALUE);
@@ -71,14 +79,5 @@ enum lex_state_e {
     EXPR_END_ANY  =  (EXPR_END | EXPR_ENDARG | EXPR_ENDFN),
     EXPR_NONE = 0
 };
-
-VALUE rb_node_sym_string_val(const NODE *);
-VALUE rb_node_line_lineno_val(const NODE *);
-VALUE rb_node_file_path_val(const NODE *);
-
-VALUE rb_node_integer_literal_val(const NODE *);
-VALUE rb_node_float_literal_val(const NODE *);
-VALUE rb_node_rational_literal_val(const NODE *);
-VALUE rb_node_imaginary_literal_val(const NODE *);
 
 #endif /* INTERNAL_RUBY_PARSE_H */

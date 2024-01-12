@@ -28,7 +28,9 @@ int rb_is_local_name(VALUE name);
 PUREFUNC(int rb_is_const_sym(VALUE sym));
 PUREFUNC(int rb_is_attrset_sym(VALUE sym));
 ID rb_make_internal_id(void);
+RUBY_SYMBOL_EXPORT_BEGIN
 ID rb_make_temporary_id(size_t n);
+RUBY_SYMBOL_EXPORT_END
 void rb_gc_free_dsymbol(VALUE);
 int rb_static_id_valid_p(ID id);
 

@@ -112,7 +112,6 @@ struct RBignum {
 extern const char ruby_digitmap[];
 double rb_big_fdiv_double(VALUE x, VALUE y);
 VALUE rb_big_uminus(VALUE x);
-VALUE rb_big_hash(VALUE);
 VALUE rb_big_odd_p(VALUE);
 VALUE rb_big_even_p(VALUE);
 size_t rb_big_size(VALUE);
@@ -161,6 +160,7 @@ VALUE rb_big2str_gmp(VALUE x, int base);
 VALUE rb_str2big_gmp(VALUE arg, int base, int badcheck);
 #endif
 VALUE rb_int_parse_cstr(const char *str, ssize_t len, char **endp, size_t *ndigits, int base, int flags);
+VALUE rb_big_hash(VALUE);
 RUBY_SYMBOL_EXPORT_END
 
 #if defined(HAVE_INT128_T)

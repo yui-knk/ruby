@@ -1,7 +1,6 @@
 %{
 struct kwtable {short name, id[2], state;};
 const struct kwtable *rb_reserved_word(const char *, unsigned int);
-#ifndef RIPPER
 static const struct kwtable *reserved_word(register const char *str, register size_t len);
 #define rb_reserved_word(str, len) reserved_word(str, len)
 %}
@@ -50,4 +49,3 @@ when, {keyword_when, keyword_when}, EXPR_VALUE
 while, {keyword_while, modifier_while}, EXPR_VALUE
 yield, {keyword_yield, keyword_yield}, EXPR_ARG
 %%
-#endif

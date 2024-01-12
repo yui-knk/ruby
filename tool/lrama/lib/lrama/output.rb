@@ -162,6 +162,36 @@ module Lrama
       STR
     end
 
+    def after_shift_code(comment = "")
+      return "" unless @grammar.after_shift
+
+      <<-STR
+        #{comment}
+#line #{@grammar.after_shift.line} "#{@grammar_file_path}"
+        {#{@grammar.after_shift.translated_code}}
+      STR
+    end
+
+    def before_reduce_function(comment = "")
+      return "" unless @grammar.before_reduce
+
+      <<-STR
+        #{comment}
+#line #{@grammar.before_reduce.line} "#{@grammar_file_path}"
+        {#{@grammar.before_reduce.s_value}(yylen#{user_args});}
+      STR
+    end
+
+    def after_reduce_function(comment = "")
+      return "" unless @grammar.after_reduce
+
+      <<-STR
+        #{comment}
+#line #{@grammar.after_reduce.line} "#{@grammar_file_path}"
+        {#{@grammar.after_reduce.s_value}(yylen#{user_args});}
+      STR
+    end
+
     def symbol_actions_for_error_token
       str = ""
 
@@ -352,9 +382,9 @@ module Lrama
     # b4_percent_code_get
     def percent_code(name)
       @grammar.percent_codes.select do |percent_code|
-        percent_code.id.s_value == name
+        percent_code.name == name
       end.map do |percent_code|
-        percent_code.code.s_value
+        percent_code.code
       end.join
     end
 
