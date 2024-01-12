@@ -31,7 +31,6 @@ VALUE rb_rational_div(VALUE self, VALUE other);
 VALUE rb_lcm(VALUE x, VALUE y);
 VALUE rb_rational_reciprocal(VALUE x);
 VALUE rb_cstr_to_rat(const char *, int);
-VALUE rb_rational_hash(VALUE self);
 VALUE rb_rational_abs(VALUE self);
 VALUE rb_rational_cmp(VALUE self, VALUE other);
 VALUE rb_rational_pow(VALUE self, VALUE other);
@@ -51,6 +50,7 @@ VALUE rb_gcd_normal(VALUE self, VALUE other);
 #if defined(HAVE_LIBGMP) && defined(HAVE_GMP_H)
 VALUE rb_gcd_gmp(VALUE x, VALUE y);
 #endif
+VALUE rb_rational_hash(VALUE self);
 RUBY_SYMBOL_EXPORT_END
 
 static inline void

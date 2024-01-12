@@ -24,6 +24,8 @@ struct RComplex {
 
 /* complex.c */
 VALUE rb_dbl_complex_new_polar_pi(double abs, double ang);
+RUBY_SYMBOL_EXPORT_BEGIN
 st_index_t rb_complex_hash(VALUE comp);
+RUBY_SYMBOL_EXPORT_END
 
 #endif /* INTERNAL_COMPLEX_H */

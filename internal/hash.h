@@ -73,7 +73,6 @@ struct RHash {
 void rb_hash_st_table_set(VALUE hash, st_table *st);
 VALUE rb_hash_default_value(VALUE hash, VALUE key);
 VALUE rb_hash_set_default_proc(VALUE hash, VALUE proc);
-long rb_dbl_long_hash(double d);
 st_table *rb_init_identtable(void);
 st_index_t rb_any_hash(VALUE a);
 int rb_any_cmp(VALUE a, VALUE b);
@@ -105,6 +104,7 @@ RUBY_SYMBOL_EXPORT_BEGIN
 VALUE rb_hash_delete_entry(VALUE hash, VALUE key);
 VALUE rb_ident_hash_new(void);
 int rb_hash_stlike_foreach(VALUE hash, st_foreach_callback_func *func, st_data_t arg);
+long rb_dbl_long_hash(double d);
 RUBY_SYMBOL_EXPORT_END
 
 VALUE rb_hash_new_with_size(st_index_t size);

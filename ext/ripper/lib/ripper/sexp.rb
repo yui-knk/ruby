@@ -32,8 +32,9 @@ class Ripper
   #           [:paren, [:params, [[:@ident, "a", [1, 6]]], nil, nil, nil, nil, nil, nil]],
   #           [:bodystmt, [[:var_ref, [:@kw, "nil", [1, 9]]]], nil, nil, nil]]]]
   #
-  def Ripper.sexp(src, filename = '-', lineno = 1, raise_errors: false)
+  def Ripper.sexp(src, filename = '-', lineno = 1, raise_errors: false, yydebug: false)
     builder = SexpBuilderPP.new(src, filename, lineno)
+    builder.yydebug = yydebug
     sexp = builder.parse
     if builder.error?
       if raise_errors

@@ -1,11 +1,11 @@
 module Lrama
   class Grammar
     class Code
-      class InitialActionCode < Code
+      class AfterShiftCode < Code
         private
 
-        # * ($$) yylval
-        # * (@$) yylloc
+        # * ($$) error
+        # * (@$) error
         # * ($:$) error
         # * ($1) error
         # * (@1) error
@@ -13,17 +13,17 @@ module Lrama
         def reference_to_c(ref)
           case
           when ref.type == :dollar && ref.name == "$" # $$
-            "yylval"
+            raise "$#{ref.value} can not be used in after_shift."
           when ref.type == :at && ref.name == "$" # @$
-            "yylloc"
+            raise "@#{ref.value} can not be used in after_shift."
           when ref.type == :index && ref.name == "$" # $:$
-            raise "$:#{ref.value} can not be used in initial_action."
+            raise "$:#{ref.value} can not be used in after_shift."
           when ref.type == :dollar # $n
-            raise "$#{ref.value} can not be used in initial_action."
+            raise "$#{ref.value} can not be used in after_shift."
           when ref.type == :at # @n
-            raise "@#{ref.value} can not be used in initial_action."
+            raise "@#{ref.value} can not be used in after_shift."
           when ref.type == :index # $:n
-            raise "$:#{ref.value} can not be used in initial_action."
+            raise "$:#{ref.value} can not be used in after_shift."
           else
             raise "Unexpected. #{self}, #{ref}"
           end
