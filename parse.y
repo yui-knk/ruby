@@ -2059,6 +2059,18 @@ get_nd_args(struct parser_params *p, NODE *node)
     }
 }
 
+#if 1
+static void
+debug_parser_string(const char *header, rb_parser_string_t *str, bool newline)
+{
+    if (!str) return;
+    fprintf(stderr, "DBG> %s: %s", header, str->ptr);
+    if (newline)
+        fprintf(stderr, "\n");
+    fflush(stderr);
+}
+#endif
+
 static rb_parser_string_t *
 rb_parser_string_new(rb_parser_t *p, const char *ptr, long len)
 {
@@ -2071,13 +2083,12 @@ rb_parser_string_new(rb_parser_t *p, const char *ptr, long len)
 
     size = offsetof(rb_parser_string_t, ptr) + len + 1;
     str = xcalloc(1, size);
-    // fprintf(stderr, "allocate %p\n", str);
     if (ptr) {
         memcpy(str->ptr, ptr, len);
     }
     str->len = len;
     str->ptr[len] = '\0';
-    // fprintf(stderr, "allocate %s", str->ptr);
+    debug_parser_string("allocate", str, false);
     return str;
 }
 
@@ -2092,9 +2103,7 @@ rb_parser_encoding_string_new(rb_parser_t *p, const char *ptr, long len, rb_enco
 static void
 rb_parser_string_free(rb_parser_t *p, rb_parser_string_t *str)
 {
-    // fprintf(stderr, "free     %p\n", str);
-    // if (str)
-    //     fprintf(stderr, "free     %s", str->ptr);
+    debug_parser_string("free    ", str, false);
     xfree(str);
 }
 
@@ -7971,8 +7980,6 @@ nextline(struct parser_params *p, int set_encoding)
         p->heredoc_end = 0;
     }
     p->ruby_sourceline++;
-    // if (p->lex.lastline)
-        // fprintf(stderr, "%s\n", p->lex.lastline->ptr);
     rb_parser_string_free(p, p->lex.lastline);
     set_lastline(p, str);
     token_flush(p);
@@ -9042,7 +9049,6 @@ heredoc_restore(struct parser_params *p, rb_strterm_heredoc_t *here)
     if (p->eofp) p->lex.nextline = 0;
     p->eofp = 0;
     xfree(term);
-    // fprintf(stderr, "heredoc_restore: %s", p->lex.lastline->ptr);
 }
 
 static int
