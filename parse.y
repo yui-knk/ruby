@@ -2069,6 +2069,11 @@ debug_parser_string(const char *header, rb_parser_string_t *str, bool newline)
         fprintf(stderr, "\n");
     fflush(stderr);
 }
+#else
+static void
+debug_parser_string(const char *header, rb_parser_string_t *str, bool newline)
+{
+}
 #endif
 
 static rb_parser_string_t *
@@ -10727,6 +10732,7 @@ parser_yylex(struct parser_params *p)
     int cmd_state;
     int label;
     enum lex_state_e last_state;
+    rb_parser_string_t *prevline = NULL;
     int fallthru = FALSE;
     int token_seen = p->token_seen;
 
@@ -10806,7 +10812,10 @@ parser_yylex(struct parser_params *p)
         /* fall through */
       case '\n':
         p->token_seen = token_seen;
-        rb_parser_string_t *prevline = p->lex.lastline;
+        if (prevline) {
+            rb_parser_string_free(p, prevline);
+        }
+        prevline = p->lex.lastline;
         p->lex.lastline = 0;
         c = (IS_lex_state(EXPR_BEG|EXPR_CLASS|EXPR_FNAME|EXPR_DOT) &&
              !IS_lex_state(EXPR_LABELED));
