@@ -527,10 +527,12 @@ typedef struct token_info {
     struct token_info *next;
 } token_info;
 
+#ifndef RIPPER
 typedef struct end_expect_token_locations {
     const rb_code_position_t *pos;
     struct end_expect_token_locations *prev;
 } end_expect_token_locations_t;
+#endif
 
 /*
     Structure of Lexer Buffer:
@@ -15938,6 +15940,14 @@ rb_ruby_parser_free(void *ptr)
         prev = local->prev;
         local_free(p, local);
     }
+
+#ifndef RIPPER
+    end_expect_token_locations_t *loc, *prev_loc;
+    for (loc = p->end_expect_token_locations; loc; loc = prev_loc) {
+        prev_loc = loc->prev;
+        ruby_sized_xfree(loc, sizeof(end_expect_token_locations_t));
+    }
+#endif
 
     {
         token_info *ptinfo;
