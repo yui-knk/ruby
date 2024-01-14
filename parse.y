@@ -10904,8 +10904,8 @@ parser_yylex(struct parser_params *p)
             if (!c && p->ctxt.in_kwarg) {
                 goto normal_newline;
             }
-            rb_parser_string_free(p, prevline);
-            p->lex.lastline = 0;
+            // rb_parser_string_free(p, prevline);
+            // p->lex.lastline = 0;
             goto retry;
         }
         while (1) {
