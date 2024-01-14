@@ -89,7 +89,7 @@ rb_id_table_init(struct rb_id_table *tbl, int capa)
         tbl->capa = (int)capa;
         tbl->items = ZALLOC_N(item_t, capa);
     }
-    fprintf(stderr, "rb_id_table_init: %p\n", tbl);
+    fprintf(stderr, "rb_id_table_init: %p. %ld\n", tbl, sizeof(struct rb_id_table));
     return tbl;
 }
 
