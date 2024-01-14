@@ -2058,22 +2058,55 @@ get_nd_args(struct parser_params *p, NODE *node)
         return 0;
     }
 }
+#endif
 
-#if 1
+#if 0
+#define debug_parser_string(h, str, b) debug_parser_string0(h, str, b, __LINE__)
+
 static void
-debug_parser_string(const char *header, rb_parser_string_t *str, bool newline)
+debug_parser_string0(const char *header, rb_parser_string_t *str, bool newline, int line)
 {
-    if (!str) return;
-    fprintf(stderr, "DBG> %s: %s", header, str->ptr);
+    fprintf(stderr, "DBG L.%5d> %s", line, header);
+
+    if (str)
+        fprintf(stderr, " (%p): %s\n", str->ptr, str->ptr);
+    else
+        fprintf(stderr, "(NULL)\n");
+
     if (newline)
         fprintf(stderr, "\n");
+
+    fflush(stderr);
+}
+
+static void
+debug_parser_lines(const char *header, struct parser_params *p)
+{
+    fprintf(stderr, "DBG > %s\n", header);
+    fprintf(stderr, "    > lex_eol_p: %d\n", lex_eol_p(p));
+    fprintf(stderr, "    > eofp: %d\n", p->eofp);
+    fprintf(stderr, "    > ruby_sourceline: %d\n", p->ruby_sourceline);
+    fprintf(stderr, "    > first column: %ld\n", (long)(p->lex.ptok - p->lex.pbeg));
+    fprintf(stderr, "    > last column: %ld\n", (long)(p->lex.ptok - p->lex.pbeg));
+
+    fprintf(stderr, "    > lastline");
+    if (p->lex.lastline)
+        fprintf(stderr, ": %s", p->lex.lastline->ptr);
+    else
+        fprintf(stderr, "(NULL)\n");
+
+    fprintf(stderr, "    > nextline");
+    if (p->lex.nextline)
+        fprintf(stderr, ": %s", p->lex.nextline->ptr);
+    else
+        fprintf(stderr, "(NULL)\n");
+
+    fprintf(stderr, "\n");
     fflush(stderr);
 }
 #else
-static void
-debug_parser_string(const char *header, rb_parser_string_t *str, bool newline)
-{
-}
+#define debug_parser_string(h, str, b) ((void)0)
+#define debug_parser_lines(h, p) ((void)0)
 #endif
 
 static rb_parser_string_t *
@@ -2118,6 +2151,7 @@ rb_parser_string_end(rb_parser_string_t *str)
     return &str->ptr[str->len];
 }
 
+#ifndef RIPPER
 /* Ref: rb_enc_associate */
 static void
 rb_parser_string_set_encoding(rb_parser_string_t *str, rb_encoding *enc)
@@ -7945,6 +7979,7 @@ set_lastline(struct parser_params *p, rb_parser_string_t *str)
     p->lex.pbeg = p->lex.pcur = rb_parser_string_pointer(str);
     p->lex.pend = p->lex.pcur + rb_parser_string_length(str);
     p->lex.lastline = str;
+    debug_parser_string("set_lastline", str, false);
 }
 
 static int
@@ -7952,6 +7987,8 @@ nextline(struct parser_params *p, int set_encoding)
 {
     rb_parser_string_t *str = p->lex.nextline;
     p->lex.nextline = 0;
+    // fprintf(stderr, "nextline start ===\n");
+    debug_parser_lines("nextline", p);
     if (!str) {
         if (p->eofp)
             return -1;
@@ -7988,6 +8025,7 @@ nextline(struct parser_params *p, int set_encoding)
     rb_parser_string_free(p, p->lex.lastline);
     set_lastline(p, str);
     token_flush(p);
+    // fprintf(stderr, "nextline end ===\n");
     return 0;
 }
 
@@ -10754,6 +10792,10 @@ parser_yylex(struct parser_params *p)
 #endif
   retry:
     last_state = p->lex.state;
+    if (prevline) {
+        rb_parser_string_free(p, prevline);
+        prevline = NULL;
+    }
     switch (c = nextc(p)) {
       case '\0':		/* NUL */
       case '\004':		/* ^D */
@@ -10812,9 +10854,6 @@ parser_yylex(struct parser_params *p)
         /* fall through */
       case '\n':
         p->token_seen = token_seen;
-        if (prevline) {
-            rb_parser_string_free(p, prevline);
-        }
         prevline = p->lex.lastline;
         p->lex.lastline = 0;
         c = (IS_lex_state(EXPR_BEG|EXPR_CLASS|EXPR_FNAME|EXPR_DOT) &&
@@ -10854,7 +10893,9 @@ parser_yylex(struct parser_params *p)
               default:
                 p->ruby_sourceline--;
                 p->lex.nextline = p->lex.lastline;
+                debug_parser_string("set_nextline", p->lex.nextline, false);
                 set_lastline(p, prevline);
+                prevline = NULL;
               case -1:		/* EOF no decrement*/
                 lex_goto_eol(p);
                 if (c != -1) {
@@ -10866,6 +10907,7 @@ parser_yylex(struct parser_params *p)
         }
       normal_newline:
         p->command_start = TRUE;
+        rb_parser_string_free(p, prevline);
         SET_LEX_STATE(EXPR_BEG);
         return '\n';
 
@@ -11458,7 +11500,9 @@ yylex(YYSTYPE *lval, YYLTYPE *yylloc, struct parser_params *p)
     lval->val = Qundef;
     p->yylloc = yylloc;
 
+    debug_parser_lines("parser_yylex start ==============", p);
     t = parser_yylex(p);
+    debug_parser_lines("parser_yylex  end  ==============", p);
 
     if (has_delayed_token(p))
         dispatch_delayed_token(p, t);
@@ -15976,7 +16020,9 @@ rb_ruby_parser_free(void *ptr)
 {
     struct parser_params *p = (struct parser_params*)ptr;
     struct local_vars *local, *prev;
-
+    // fprintf(stderr, "rb_ruby_parser_free\n");
+    debug_parser_string("nextline", p->lex.nextline, false);
+    debug_parser_string("lastline", p->lex.lastline, false);
     if (p->tokenbuf) {
         ruby_sized_xfree(p->tokenbuf, p->toksiz);
     }
