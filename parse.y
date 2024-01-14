@@ -8049,6 +8049,7 @@ nextline(struct parser_params *p, int set_encoding)
         p->cr_seen = FALSE;
     }
     else if (str == -1) {
+        fprintf(stderr, "after here-document without terminator\n");
         /* after here-document without terminator */
         goto end_of_input;
     }
