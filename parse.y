@@ -9111,14 +9111,15 @@ heredoc_identifier(struct parser_params *p)
 }
 
 static void
-heredoc_restore(struct parser_params *p, rb_strterm_heredoc_t *here)
+heredoc_restore(struct parser_params *p, rb_strterm_heredoc_t *here, bool free_lastline)
 {
     rb_parser_string_t *line;
     rb_strterm_t *term = p->lex.strterm;
 
     p->lex.strterm = 0;
     line = here->lastline;
-    rb_parser_string_free(p, p->lex.lastline);
+    if (free_lastline) rb_parser_string_free(p, p->lex.lastline);
+    debug_parser_string("heredoc_restore", line, false);
     p->lex.lastline = line;
     p->lex.pbeg = rb_parser_string_pointer(line);
     p->lex.pend = p->lex.pbeg + rb_parser_string_length(line);
@@ -9402,7 +9403,8 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
         }
         lex_goto_eol(p);
 #endif
-        heredoc_restore(p, &p->lex.strterm->u.heredoc);
+        /* The last line of input should be kept */
+        heredoc_restore(p, &p->lex.strterm->u.heredoc, false);
         compile_error(p, "can't find string \"%.*s\" anywhere before EOF",
                       (int)len, eos);
         token_flush(p);
@@ -9423,7 +9425,7 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
     else if (whole_match_p(p, eos, len, indent)) {
         dispatch_heredoc_end(p);
       restore:
-        heredoc_restore(p, &p->lex.strterm->u.heredoc);
+        heredoc_restore(p, &p->lex.strterm->u.heredoc, true);
         token_flush(p);
         SET_LEX_STATE(EXPR_END);
         return tSTRING_END;
@@ -9518,7 +9520,8 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
     str = ripper_new_yylval(p, ripper_token2eventid(tSTRING_CONTENT),
                             yylval.val, str);
 #endif
-    heredoc_restore(p, &p->lex.strterm->u.heredoc);
+    /* TODO */
+    heredoc_restore(p, &p->lex.strterm->u.heredoc, false);
     token_flush(p);
     p->lex.strterm = NEW_STRTERM(func | STR_FUNC_TERM, 0, 0);
     set_yylval_str(str);
@@ -16052,7 +16055,6 @@ rb_ruby_parser_free(void *ptr)
 {
     struct parser_params *p = (struct parser_params*)ptr;
     struct local_vars *local, *prev;
-    // fprintf(stderr, "rb_ruby_parser_free\n");
     debug_parser_string("nextline", p->lex.nextline, false);
     debug_parser_string("lastline", p->lex.lastline, false);
     if (p->tokenbuf) {
