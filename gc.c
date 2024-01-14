@@ -7373,8 +7373,6 @@ gc_mark_children(rb_objspace_t *objspace, VALUE obj)
             gc_mark(objspace, RCLASS_SUPER(obj));
         }
 
-        fprintf(stderr, "gc mark: %p\n", obj);
-        ruby_debug_print_v(obj);
         mark_m_tbl(objspace, RCLASS_M_TBL(obj));
         mark_cvc_tbl(objspace, obj);
         cc_table_mark(objspace, obj);

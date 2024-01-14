@@ -89,7 +89,6 @@ rb_id_table_init(struct rb_id_table *tbl, int capa)
         tbl->capa = (int)capa;
         tbl->items = ZALLOC_N(item_t, capa);
     }
-    fprintf(stderr, "rb_id_table_init: %p. %ld\n", tbl, sizeof(struct rb_id_table));
     return tbl;
 }
 
@@ -103,7 +102,6 @@ rb_id_table_create(size_t capa)
 void
 rb_id_table_free(struct rb_id_table *tbl)
 {
-    fprintf(stderr, "rb_id_table_free: %p\n", tbl);
     xfree(tbl->items);
     xfree(tbl);
 }
@@ -292,8 +290,6 @@ void
 rb_id_table_foreach_values(struct rb_id_table *tbl, rb_id_table_foreach_values_func_t *func, void *data)
 {
     int i, capa = tbl->capa;
-    // if (tbl->capa && !tbl->items)
-        fprintf(stderr, "rb_id_table_foreach_values 0: %p. %d. %p\n", tbl, tbl->capa, tbl->items);
 
     for (i=0; i<capa; i++) {
         if (ITEM_KEY_ISSET(tbl, i)) {

@@ -257,7 +257,6 @@ static void
 RCLASS_M_TBL_INIT(VALUE c)
 {
     RCLASS_M_TBL(c) = rb_id_table_create(0);
-    fprintf(stderr, "RCLASS_M_TBL_INIT: %p. %p\n", RCLASS_M_TBL(c), c);
 }
 
 /*!

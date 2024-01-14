@@ -553,6 +553,7 @@ struct parser_params {
         VALUE input;
         rb_parser_string_t *lastline;
         rb_parser_string_t *nextline;
+        bool free_lastline;
         const char *pbeg;
         const char *pcur;
         const char *pend;
@@ -2060,7 +2061,7 @@ get_nd_args(struct parser_params *p, NODE *node)
 }
 #endif
 
-#if 1
+#if 0
 #define debug_parser_string(h, str, b) debug_parser_string0(h, str, b, __LINE__)
 
 static void
@@ -2151,7 +2152,7 @@ rb_parser_string_new(rb_parser_t *p, const char *ptr, long len)
     }
 
     size = offsetof(rb_parser_string_t, ptr) + len + 1;
-    fprintf(stderr, "rb_parser_string_new: %ld. %ld. %ld\n", offsetof(rb_parser_string_t, ptr), len, size);
+    // fprintf(stderr, "rb_parser_string_new: %ld. %ld. %ld\n", offsetof(rb_parser_string_t, ptr), len, size);
     str = xcalloc(1, size);
     if (ptr) {
         memcpy(str->ptr, ptr, len);
@@ -2177,7 +2178,8 @@ rb_parser_string_free0(rb_parser_t *p, rb_parser_string_t *str)
     xfree(str);
 }
 
-#define rb_parser_string_free(p, str) (fprintf(stderr, "%d\n", __LINE__), rb_parser_string_free0(p, str))
+// #define rb_parser_string_free(p, str) (fprintf(stderr, "%d\n", __LINE__), rb_parser_string_free0(p, str))
+#define rb_parser_string_free(p, str) (rb_parser_string_free0(p, str))
 
 static char *
 rb_parser_string_end(rb_parser_string_t *str)
@@ -8020,9 +8022,7 @@ static int
 nextline(struct parser_params *p, int set_encoding)
 {
     rb_parser_string_t *str = p->lex.nextline;
-    bool nextline_p = str ? true : false;
     p->lex.nextline = 0;
-    // fprintf(stderr, "nextline start ===\n");
     debug_parser_params("nextline", p);
 
     if (!str) {
@@ -8048,7 +8048,7 @@ nextline(struct parser_params *p, int set_encoding)
 #endif
         p->cr_seen = FALSE;
     }
-    else if (!str) {
+    else if (str == -1) {
         /* after here-document without terminator */
         goto end_of_input;
     }
@@ -8058,12 +8058,12 @@ nextline(struct parser_params *p, int set_encoding)
         p->heredoc_end = 0;
     }
     p->ruby_sourceline++;
-    if (nextline_p) {
+    if (p->lex.free_lastline) {
         rb_parser_string_free(p, p->lex.lastline);
     }
+    p->lex.free_lastline = false;
     set_lastline(p, str);
     token_flush(p);
-    // fprintf(stderr, "nextline end ===\n");
     return 0;
 }
 
@@ -9103,7 +9103,6 @@ heredoc_identifier(struct parser_params *p)
     here->quote = quote;
     here->func = func;
     here->lastline = p->lex.lastline;
-    // p->lex.lastline = 0;
 
     token_flush(p);
     p->heredoc_indent = indent;
@@ -9127,7 +9126,7 @@ heredoc_restore(struct parser_params *p, rb_strterm_heredoc_t *here)
     p->lex.ptok = p->lex.pbeg + here->offset - here->quote;
     p->heredoc_end = p->ruby_sourceline;
     p->ruby_sourceline = (int)here->sourceline;
-    if (p->eofp) p->lex.nextline = 0;
+    if (p->eofp) p->lex.nextline = -1;
     p->eofp = 0;
     xfree(term);
 }
@@ -10828,12 +10827,7 @@ parser_yylex(struct parser_params *p)
     token_flush(p);
 #endif
   retry:
-    // fprintf(stderr, "retry:\n");
     last_state = p->lex.state;
-    // if (prevline) {
-    //     rb_parser_string_free(p, prevline);
-    //     prevline = NULL;
-    // }
     switch (c = nextc(p)) {
       case '\0':		/* NUL */
       case '\004':		/* ^D */
@@ -10893,7 +10887,6 @@ parser_yylex(struct parser_params *p)
       case '\n':
         p->token_seen = token_seen;
         rb_parser_string_t *prevline = p->lex.lastline;
-        // p->lex.lastline = 0;
         c = (IS_lex_state(EXPR_BEG|EXPR_CLASS|EXPR_FNAME|EXPR_DOT) &&
              !IS_lex_state(EXPR_LABELED));
         if (c || IS_lex_state_all(EXPR_ARG|EXPR_LABELED)) {
@@ -10901,11 +10894,10 @@ parser_yylex(struct parser_params *p)
                 dispatch_scan_event(p, tIGNORED_NL);
             }
             fallthru = FALSE;
+            p->lex.free_lastline = true;
             if (!c && p->ctxt.in_kwarg) {
                 goto normal_newline;
             }
-            // rb_parser_string_free(p, prevline);
-            // p->lex.lastline = 0;
             goto retry;
         }
         while (1) {
@@ -10935,10 +10927,9 @@ parser_yylex(struct parser_params *p)
               default:
                 p->ruby_sourceline--;
                 p->lex.nextline = p->lex.lastline;
-                debug_parser_string("set_nextline", p->lex.nextline, false);
                 set_lastline(p, prevline);
+                p->lex.free_lastline = true;
               case -1:		/* EOF no decrement*/
-                // prevline = NULL;
                 lex_goto_eol(p);
                 if (c != -1) {
                     token_flush(p);
