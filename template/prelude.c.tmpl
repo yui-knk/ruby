@@ -149,6 +149,7 @@ prelude_ast(VALUE name, VALUE code, int line)
         if (ast) rb_ast_dispose(ast);
         rb_exc_raise(rb_errinfo());
     }
+    rb_io_write(rb_stderr, rb_parser_dump_tree(ast->body.root, false));
     return ast;
 }
 
