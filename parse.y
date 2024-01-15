@@ -2063,7 +2063,7 @@ get_nd_args(struct parser_params *p, NODE *node)
 }
 #endif
 
-#if 1
+#if 0
 #define debug_parser_string(h, str, b) debug_parser_string0(p, h, str, b, __LINE__)
 
 static void
@@ -2247,7 +2247,6 @@ rb_parser_string_t *
 rb_str_to_parser_string(rb_parser_t *p, VALUE str)
 {
     /* Type check */
-    if (p->debug) fprintf(stderr, "rb_str_to_parser_string\n");
     return rb_parser_encoding_string_new(p, RSTRING_PTR(str), RSTRING_LEN(str), rb_enc_get(str));
 }
 #endif
@@ -7836,12 +7835,6 @@ lex_get_str(struct parser_params *p, VALUE s)
     char *beg, *end, *start;
     long len;
 
-    if (p->debug) {
-        void ruby_debug_print_v(VALUE v);
-        ruby_debug_print_v(s);
-        fprintf(stderr, "p->lex.gets_.ptr: %ld\n", p->lex.gets_.ptr);
-    }
-
     beg = RSTRING_PTR(s);
     len = RSTRING_LEN(s);
     start = beg;
@@ -7853,7 +7846,6 @@ lex_get_str(struct parser_params *p, VALUE s)
     end = memchr(beg, '\n', len);
     if (end) len = ++end - beg;
     p->lex.gets_.ptr += len;
-    if (p->debug) fprintf(stderr, "lex_get_str: %s, %ld, %ld\n", end, len, p->lex.gets_.ptr);
     return rb_str_subseq(s, beg - start, len);
 }
 
@@ -7864,7 +7856,6 @@ lex_getline(struct parser_params *p)
     if (NIL_P(line)) return 0;
     must_be_ascii_compatible(p, line);
     p->line_count++;
-    if (p->debug) fprintf(stderr, "lex_getline\n");
     return rb_str_to_parser_string(p, line);
 }
 
@@ -8105,7 +8096,6 @@ nextc0(struct parser_params *p, int set_encoding)
     if (UNLIKELY(c == '\r')) {
         c = parser_cr(p, c);
     }
-    if (p->debug) fprintf(stderr, "nextc0 %d\n", c);
     return c;
 }
 #define nextc(p) nextc0(p, TRUE)
@@ -12350,7 +12340,6 @@ static rb_node_sym_t *
 rb_node_sym_new(struct parser_params *p, VALUE str, const YYLTYPE *loc)
 {
     rb_node_sym_t *n = NODE_NEWNODE(NODE_SYM, rb_node_sym_t, loc);
-    if (p->debug) fprintf(stderr, "rb_node_sym_new\n");
     n->string = rb_str_to_parser_string(p, str);
 
     return n;
@@ -12639,7 +12628,6 @@ static rb_node_file_t *
 rb_node_file_new(struct parser_params *p, VALUE str, const YYLTYPE *loc)
 {
     rb_node_file_t *n = NODE_NEWNODE(NODE_FILE, rb_node_file_t, loc);
-    if (p->debug) fprintf(stderr, "rb_node_file_new\n");
     n->path = rb_str_to_parser_string(p, str);
 
     return n;
