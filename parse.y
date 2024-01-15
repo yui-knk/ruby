@@ -532,6 +532,8 @@ typedef struct end_expect_token_locations {
     struct end_expect_token_locations *prev;
 } end_expect_token_locations_t;
 
+#define AFTER_HEREDOC_WITHOUT_TERMINTOR ((rb_parser_string_t *)1)
+
 /*
     Structure of Lexer Buffer:
 
@@ -2111,7 +2113,6 @@ print_parser_lex_state(struct parser_params *p)
 static void
 debug_parser_params(const char *header, struct parser_params *p)
 {
-    return;
     fprintf(stderr, "DBG > %s\n", header);
     fprintf(stderr, "    > lex_state: ");
     print_parser_lex_state(p);
@@ -2128,8 +2129,10 @@ debug_parser_params(const char *header, struct parser_params *p)
         fprintf(stderr, "(NULL)\n");
 
     fprintf(stderr, "    > nextline");
-    if (p->lex.nextline)
+    if (p->lex.nextline > (rb_parser_string_t *)1)
         fprintf(stderr, "(%p): %s", p->lex.nextline->ptr, p->lex.nextline->ptr);
+    else if (p->lex.nextline == AFTER_HEREDOC_WITHOUT_TERMINTOR)
+        fprintf(stderr, "(after here-document without terminator)\n");
     else
         fprintf(stderr, "(NULL)\n");
 
@@ -8048,8 +8051,7 @@ nextline(struct parser_params *p, int set_encoding)
 #endif
         p->cr_seen = FALSE;
     }
-    else if (str == -1) {
-        fprintf(stderr, "after here-document without terminator\n");
+    else if (str == AFTER_HEREDOC_WITHOUT_TERMINTOR) {
         /* after here-document without terminator */
         goto end_of_input;
     }
@@ -8083,14 +8085,14 @@ nextc0(struct parser_params *p, int set_encoding)
 {
     int c;
 
-    if (UNLIKELY(lex_eol_p(p) || p->eofp || p->lex.nextline)) {
-        int i = nextline(p, set_encoding);
-        if (i) return -1;
+    if (UNLIKELY(lex_eol_p(p) || p->eofp || p->lex.nextline > AFTER_HEREDOC_WITHOUT_TERMINTOR)) {
+        if (nextline(p, set_encoding)) return -1;
     }
     c = (unsigned char)*p->lex.pcur++;
     if (UNLIKELY(c == '\r')) {
         c = parser_cr(p, c);
     }
+
     return c;
 }
 #define nextc(p) nextc0(p, TRUE)
@@ -9128,7 +9130,7 @@ heredoc_restore(struct parser_params *p, rb_strterm_heredoc_t *here, bool free_l
     p->lex.ptok = p->lex.pbeg + here->offset - here->quote;
     p->heredoc_end = p->ruby_sourceline;
     p->ruby_sourceline = (int)here->sourceline;
-    if (p->eofp) p->lex.nextline = -1;
+    if (p->eofp) p->lex.nextline = AFTER_HEREDOC_WITHOUT_TERMINTOR;
     p->eofp = 0;
     xfree(term);
 }
