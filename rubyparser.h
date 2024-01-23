@@ -1168,8 +1168,7 @@ typedef struct node_buffer_struct node_buffer_t;
 typedef struct rb_ast_body_struct {
     const NODE *root;
     VALUE script_lines;
-    // script_lines is either:
-    // - a Fixnum that represents the line count of the original source, or
+    // script_lines is:
     // - an Array that contains the lines of the original source
     signed int frozen_string_literal:2; /* -1: not specified, 0: false, 1: true */
     signed int coverage_enabled:2; /* -1: not specified, 0: false, 1: true */
