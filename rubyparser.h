@@ -38,12 +38,16 @@
  * Parser String
  */
 typedef struct rb_parser_string {
-    rb_encoding *enc;
+    struct rb_parser_encoding *enc;
     /* Length of the string, not including terminating NUL character. */
     long len;
     /* Pointer to the contents of the string. */
     char ptr[FLEX_ARY_LEN];
 } rb_parser_string_t;
+
+typedef struct rb_parser_encoding {
+    rb_encoding *enc;
+} rb_parser_encoding_t;
 
 /*
  * AST Node

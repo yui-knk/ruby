@@ -849,7 +849,7 @@ rb_parser_set_yydebug(VALUE vparser, VALUE flag)
 VALUE
 rb_str_new_parser_string(rb_parser_string_t *str)
 {
-    return rb_enc_str_new(str->ptr, str->len, str->enc);
+    return rb_enc_str_new(str->ptr, str->len, str->enc->enc);
 }
 
 static VALUE
@@ -992,7 +992,7 @@ VALUE
 rb_node_sym_string_val(const NODE *node)
 {
     rb_parser_string_t *str = RNODE_SYM(node)->string;
-    return ID2SYM(rb_intern3(str->ptr, str->len, str->enc));
+    return ID2SYM(rb_intern3(str->ptr, str->len, str->enc->enc));
 }
 
 VALUE
@@ -1042,4 +1042,54 @@ rb_node_const_decl_val(const NODE *node)
         path = rb_fstring(path);
     }
     return path;
+}
+
+#define ENCODING_LIST_CAPA 256
+static struct parser_encoding_table {
+    rb_parser_encoding_t list[ENCODING_LIST_CAPA];
+} global_parser_encoding_table;
+
+static void
+parser_encoding_table_set(int idx, rb_encoding *enc)
+{
+    rb_parser_encoding_t *encoding = &global_parser_encoding_table.list[idx];
+
+    if (encoding->enc) return;
+    encoding->enc = enc;
+}
+
+rb_parser_encoding_t *
+rb_parser_encoding_find_name(const char *name, int *idxp, VALUE ruby_sourcefile_string, int ruby_sourceline)
+{
+    rb_encoding *enc;
+    VALUE excargs[3];
+    int idx = 0;
+
+    const char *wrong = 0;
+    switch (*name) {
+      case 'e': case 'E': wrong = "external"; break;
+      case 'i': case 'I': wrong = "internal"; break;
+      case 'f': case 'F': wrong = "filesystem"; break;
+      case 'l': case 'L': wrong = "locale"; break;
+    }
+    if (wrong && STRCASECMP(name, wrong) == 0) goto unknown;
+    idx = rb_enc_find_index(name);
+    if (idx < 0) {
+      unknown:
+        excargs[1] = rb_sprintf("unknown encoding name: %s", name);
+      error:
+        excargs[0] = rb_eArgError;
+        excargs[2] = rb_make_backtrace();
+        rb_ary_unshift(excargs[2], rb_sprintf("%"PRIsVALUE":%d", ruby_sourcefile_string, ruby_sourceline));
+        rb_exc_raise(rb_make_exception(3, excargs));
+    }
+    enc = rb_enc_from_index(idx);
+    if (!rb_enc_asciicompat(enc)) {
+        excargs[1] = rb_sprintf("%s is not ASCII compatible", rb_enc_name(enc));
+        goto error;
+    }
+
+    parser_encoding_table_set(idx, enc);
+    *idxp = idx;
+    return &global_parser_encoding_table.list[idx];
 }

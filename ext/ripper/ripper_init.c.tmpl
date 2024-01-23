@@ -335,6 +335,7 @@ ripper_initialize(int argc, VALUE *argv, VALUE self)
         gets = rb_ruby_ripper_lex_get_str;
     }
     input = src;
+    rb_ruby_ripper_parser_initialize(p);
     if (NIL_P(fname)) {
         fname = STR_NEW2("(ripper)");
         OBJ_FREEZE(fname);
@@ -343,7 +344,6 @@ ripper_initialize(int argc, VALUE *argv, VALUE self)
         StringValueCStr(fname);
         fname = rb_str_new_frozen(fname);
     }
-    rb_ruby_ripper_parser_initialize(p);
 
     sourcefile_string = fname;
     sourcefile = RSTRING_PTR(fname);

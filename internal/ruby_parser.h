@@ -74,6 +74,7 @@ enum lex_state_e {
 
 RUBY_SYMBOL_EXPORT_BEGIN
 VALUE rb_str_new_parser_string(rb_parser_string_t *str);
+rb_parser_encoding_t *rb_parser_encoding_find_name(const char *name, int *idxp, VALUE ruby_sourcefile_string, int ruby_sourceline);
 RUBY_SYMBOL_EXPORT_END
 
 VALUE rb_node_sym_string_val(const NODE *);
