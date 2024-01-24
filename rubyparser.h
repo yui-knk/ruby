@@ -47,6 +47,11 @@ typedef struct rb_parser_string {
 
 typedef struct rb_parser_encoding {
     rb_encoding *enc;
+    const char *name;
+    bool (*is_usascii_enc)(void *enc);
+    bool (*isalnum)(int c, void *enc);
+    bool (*isspace)(int c, void *enc);
+    int (*precise_mbclen)(const char *p, const char *e, void *enc);
 } rb_parser_encoding_t;
 
 /*

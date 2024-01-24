@@ -697,7 +697,7 @@ static void numparam_name(struct parser_params *p, ID id);
 #define STR_NEW(ptr,len) rb_enc_str_new((ptr),(len),p->enc->enc)
 #define STR_NEW0() rb_enc_str_new(0,0,p->enc->enc)
 #define STR_NEW2(ptr) rb_enc_str_new((ptr),strlen(ptr),p->enc->enc)
-#define STR_NEW3(ptr,len,e,func) parser_str_new(p, (ptr),(len),(e),(func),p->enc->enc)
+#define STR_NEW3(ptr,len,e,func) parser_str_new(p, (ptr),(len),(e),(func),p->enc)
 #define TOK_INTERN() intern_cstr(tok(p), toklen(p), p->enc->enc)
 #define VALID_SYMNAME_P(s, l, enc, type) (rb_enc_symname_type(s, l, enc, (1U<<(type))) == (int)(type))
 
@@ -7298,15 +7298,15 @@ ripper_dispatch_delayed_token(struct parser_params *p, enum yytokentype t)
 #endif /* RIPPER */
 
 static inline int
-is_identchar(struct parser_params *p, const char *ptr, const char *MAYBE_UNUSED(ptr_end), rb_encoding *enc)
+is_identchar(struct parser_params *p, const char *ptr, const char *MAYBE_UNUSED(ptr_end), rb_parser_encoding_t *enc)
 {
-    return rb_enc_isalnum((unsigned char)*ptr, enc) || *ptr == '_' || !ISASCII(*ptr);
+    return enc->isalnum((unsigned char)*ptr, enc) || *ptr == '_' || !ISASCII(*ptr);
 }
 
 static inline int
 parser_is_identchar(struct parser_params *p)
 {
-    return !(p)->eofp && is_identchar(p, p->lex.pcur-1, p->lex.pend, p->enc->enc);
+    return !(p)->eofp && is_identchar(p, p->lex.pcur-1, p->lex.pend, p->enc);
 }
 
 static inline int
@@ -7402,7 +7402,7 @@ parser_precise_mbclen(struct parser_params *p, const char *ptr)
 {
     int len = rb_enc_precise_mbclen(ptr, p->lex.pend, p->enc->enc);
     if (!MBCLEN_CHARFOUND_P(len)) {
-        compile_error(p, "invalid multibyte char (%s)", rb_enc_name(p->enc->enc));
+        compile_error(p, "invalid multibyte char (%s)", p->enc->name);
         return -1;
     }
     return len;
@@ -7930,7 +7930,7 @@ enum string_type {
 };
 
 static VALUE
-parser_str_new(struct parser_params *p, const char *ptr, long len, rb_encoding *enc, int func, rb_encoding *enc0)
+parser_str_new(struct parser_params *p, const char *ptr, long len, rb_encoding *enc, int func, rb_parser_encoding_t *enc0)
 {
     VALUE str;
 
@@ -7938,7 +7938,7 @@ parser_str_new(struct parser_params *p, const char *ptr, long len, rb_encoding *
     if (!(func & STR_FUNC_REGEXP) && rb_enc_asciicompat(enc)) {
         if (is_ascii_string(str)) {
         }
-        else if (rb_is_usascii_enc((void *)enc0) && enc != rb_utf8_encoding()) {
+        else if (enc0->is_usascii_enc(enc0) && enc != rb_utf8_encoding()) {
             rb_enc_associate(str, rb_ascii8bit_encoding());
         }
     }
@@ -10235,7 +10235,7 @@ parse_qmark(struct parser_params *p, int space_seen)
         compile_error(p, "incomplete character syntax");
         return 0;
     }
-    if (rb_enc_isspace(c, p->enc->enc)) {
+    if (p->enc->isspace(c, p->enc)) {
         if (!IS_ARG()) {
             int c2 = escaped_control_code(c);
             if (c2) {
@@ -10253,15 +10253,15 @@ parse_qmark(struct parser_params *p, int space_seen)
     if (!parser_isascii(p)) {
         if (tokadd_mbchar(p, c) == -1) return 0;
     }
-    else if ((rb_enc_isalnum(c, p->enc->enc) || c == '_') &&
-             !lex_eol_p(p) && is_identchar(p, p->lex.pcur, p->lex.pend, p->enc->enc)) {
+    else if ((p->enc->isalnum(c, p->enc) || c == '_') &&
+             !lex_eol_p(p) && is_identchar(p, p->lex.pcur, p->lex.pend, p->enc)) {
         if (space_seen) {
             const char *start = p->lex.pcur - 1, *ptr = start;
             do {
                 int n = parser_precise_mbclen(p, ptr);
                 if (n < 0) return -1;
                 ptr += n;
-            } while (!lex_eol_ptr_p(p, ptr) && is_identchar(p, ptr, p->lex.pend, p->enc->enc));
+            } while (!lex_eol_ptr_p(p, ptr) && is_identchar(p, ptr, p->lex.pend, p->enc));
             rb_warn2("`?' just followed by `%.*s' is interpreted as" \
                      " a conditional operator, put a space after `?'",
                      WARN_I((int)(ptr - start)), WARN_S_L(start, (ptr - start)));
@@ -10313,7 +10313,7 @@ parse_percent(struct parser_params *p, const int space_seen, const enum lex_stat
         }
         else {
             term = nextc(p);
-            if (rb_enc_isalnum(term, p->enc->enc) || !parser_isascii(p)) {
+            if (p->enc->isalnum(term, p->enc) || !parser_isascii(p)) {
               unknown:
                 pushback(p, term);
                 c = parser_precise_mbclen(p, p->lex.pcur);
@@ -11115,7 +11115,7 @@ parser_yylex(struct parser_params *p)
             if ((c != ':') ||
                 (c = peekc_n(p, 1)) == -1 ||
                 !(c == '\'' || c == '"' ||
-                  is_identchar(p, (p->lex.pcur+1), p->lex.pend, p->enc->enc))) {
+                  is_identchar(p, (p->lex.pcur+1), p->lex.pend, p->enc))) {
                 rb_warning0("`&' interpreted as argument prefix");
             }
             c = tAMPER;
@@ -15763,7 +15763,7 @@ rb_reg_fragment_setenc(struct parser_params* p, VALUE str, int options)
         }
         rb_enc_associate(str, rb_ascii8bit_encoding());
     }
-    else if (rb_is_usascii_enc(p->enc->enc)) {
+    else if (p->enc->is_usascii_enc(p->enc)) {
         if (!is_ascii_string(str)) {
             /* raise in re.c */
             rb_enc_associate(str, rb_usascii_encoding());

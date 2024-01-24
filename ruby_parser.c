@@ -4,6 +4,7 @@
 
 #include "node.h"
 #include "rubyparser.h"
+#include "internal/encoding.h"
 #include "internal/error.h"
 
 #ifdef UNIVERSAL_PARSER
@@ -13,7 +14,6 @@
 #include "internal/bignum.h"
 #include "internal/compile.h"
 #include "internal/complex.h"
-#include "internal/encoding.h"
 #include "internal/gc.h"
 #include "internal/hash.h"
 #include "internal/io.h"
@@ -1049,6 +1049,30 @@ static struct parser_encoding_table {
     rb_parser_encoding_t list[ENCODING_LIST_CAPA];
 } global_parser_encoding_table;
 
+static bool
+parser_encoding_is_usascii_enc(void *enc)
+{
+    return rb_is_usascii_enc(((rb_parser_encoding_t *)enc)->enc);
+}
+
+static bool
+parser_encoding_isalnum(int c, void *enc)
+{
+    return rb_enc_isalnum(c, ((rb_parser_encoding_t *)enc)->enc);
+}
+
+static bool
+parser_encoding_isspace(int c, void *enc)
+{
+    return rb_enc_isspace(c, ((rb_parser_encoding_t *)enc)->enc);
+}
+
+static int
+parser_encoding_precise_mbclen(const char *p, const char *e, void *enc)
+{
+    return rb_enc_precise_mbclen(p, e, ((rb_parser_encoding_t *)enc)->enc);
+}
+
 static void
 parser_encoding_table_set(int idx, rb_encoding *enc)
 {
@@ -1056,6 +1080,11 @@ parser_encoding_table_set(int idx, rb_encoding *enc)
 
     if (encoding->enc) return;
     encoding->enc = enc;
+    encoding->name = enc->name;
+    encoding->is_usascii_enc = parser_encoding_is_usascii_enc;
+    encoding->isalnum = parser_encoding_isalnum;
+    encoding->isspace = parser_encoding_isspace;
+    encoding->precise_mbclen = parser_encoding_precise_mbclen;
 }
 
 rb_parser_encoding_t *
