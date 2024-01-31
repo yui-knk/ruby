@@ -34,25 +34,18 @@
 #endif
 #endif
 
+typedef void rb_parser_encoding_t;
+
 /*
  * Parser String
  */
 typedef struct rb_parser_string {
-    struct rb_parser_encoding *enc;
+    rb_parser_encoding_t *enc;
     /* Length of the string, not including terminating NUL character. */
     long len;
     /* Pointer to the contents of the string. */
     char ptr[FLEX_ARY_LEN];
 } rb_parser_string_t;
-
-typedef struct rb_parser_encoding {
-    rb_encoding *enc;
-    const char *name;
-    bool (*is_usascii_enc)(void *enc);
-    bool (*isalnum)(int c, void *enc);
-    bool (*isspace)(int c, void *enc);
-    int (*precise_mbclen)(const char *p, const char *e, void *enc);
-} rb_parser_encoding_t;
 
 /*
  * AST Node
@@ -1207,8 +1200,15 @@ typedef struct parser_params rb_parser_t;
 typedef struct rb_imemo_tmpbuf_struct rb_imemo_tmpbuf_t;
 #endif
 
-#ifdef UNIVERSAL_PARSER
 typedef struct rb_parser_config_struct {
+#ifndef UNIVERSAL_PARSER
+    /* Encoding */
+    bool (*is_usascii_enc)(rb_parser_encoding_t *enc);
+    bool (*enc_isalnum)(OnigCodePoint c, rb_parser_encoding_t *enc);
+    bool (*enc_isspace)(OnigCodePoint c, rb_parser_encoding_t *enc);
+    int (*enc_precise_mbclen)(const char *p, const char *e, rb_parser_encoding_t *enc);
+    const char *(*enc_name)(rb_parser_encoding_t *enc);
+#else
     /* Memory */
     void *(*malloc)(size_t size);
     void *(*calloc)(size_t number, size_t size);
@@ -1441,11 +1441,13 @@ typedef struct rb_parser_config_struct {
     /* For Ripper */
     VALUE (*static_id2sym)(ID id);
     long (*str_coderange_scan_restartable)(const char *s, const char *e, rb_encoding *enc, int *cr);
+#endif /* UNIVERSAL_PARSER */
 } rb_parser_config_t;
 
+#ifdef UNIVERSAL_PARSER
 #undef rb_encoding
 #undef OnigCodePoint
-#endif /* UNIVERSAL_PARSER */
+#endif
 
 RUBY_SYMBOL_EXPORT_BEGIN
 void rb_ruby_parser_free(void *ptr);

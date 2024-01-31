@@ -844,12 +844,50 @@ rb_parser_set_yydebug(VALUE vparser, VALUE flag)
     rb_ruby_parser_set_yydebug(parser->parser_params, RTEST(flag));
     return flag;
 }
+#else
+static bool
+is_usascii_enc(rb_parser_encoding_t *enc)
+{
+    return rb_is_usascii_enc((rb_encoding *)enc);
+}
+
+static bool
+enc_isalnum(OnigCodePoint c, rb_parser_encoding_t *enc)
+{
+    return rb_enc_isalnum(c, (rb_encoding *)enc);
+}
+
+static bool
+enc_isspace(OnigCodePoint c, rb_parser_encoding_t *enc)
+{
+    return rb_enc_isspace(c, (rb_encoding *)enc);
+}
+
+static int
+enc_precise_mbclen(const char *p, const char *e, rb_parser_encoding_t *enc)
+{
+    return rb_enc_precise_mbclen(p, e, (rb_encoding *)enc);
+}
+
+static const char *
+enc_name(rb_parser_encoding_t *enc)
+{
+    return rb_enc_name((rb_encoding *)enc);
+}
+
+static const rb_parser_config_t rb_global_parser_config = {
+    .is_usascii_enc = is_usascii_enc,
+    .enc_isalnum = enc_isalnum,
+    .enc_isspace = enc_isspace,
+    .enc_precise_mbclen = enc_precise_mbclen,
+    .enc_name = enc_name,
+};
 #endif
 
 VALUE
 rb_str_new_parser_string(rb_parser_string_t *str)
 {
-    return rb_enc_str_new(str->ptr, str->len, str->enc->enc);
+    return rb_enc_str_new(str->ptr, str->len, str->enc);
 }
 
 static VALUE
@@ -992,7 +1030,7 @@ VALUE
 rb_node_sym_string_val(const NODE *node)
 {
     rb_parser_string_t *str = RNODE_SYM(node)->string;
-    return ID2SYM(rb_intern3(str->ptr, str->len, str->enc->enc));
+    return ID2SYM(rb_intern3(str->ptr, str->len, str->enc));
 }
 
 VALUE
@@ -1044,49 +1082,6 @@ rb_node_const_decl_val(const NODE *node)
     return path;
 }
 
-#define ENCODING_LIST_CAPA 256
-static struct parser_encoding_table {
-    rb_parser_encoding_t list[ENCODING_LIST_CAPA];
-} global_parser_encoding_table;
-
-static bool
-parser_encoding_is_usascii_enc(void *enc)
-{
-    return rb_is_usascii_enc(((rb_parser_encoding_t *)enc)->enc);
-}
-
-static bool
-parser_encoding_isalnum(int c, void *enc)
-{
-    return rb_enc_isalnum(c, ((rb_parser_encoding_t *)enc)->enc);
-}
-
-static bool
-parser_encoding_isspace(int c, void *enc)
-{
-    return rb_enc_isspace(c, ((rb_parser_encoding_t *)enc)->enc);
-}
-
-static int
-parser_encoding_precise_mbclen(const char *p, const char *e, void *enc)
-{
-    return rb_enc_precise_mbclen(p, e, ((rb_parser_encoding_t *)enc)->enc);
-}
-
-static void
-parser_encoding_table_set(int idx, rb_encoding *enc)
-{
-    rb_parser_encoding_t *encoding = &global_parser_encoding_table.list[idx];
-
-    if (encoding->enc) return;
-    encoding->enc = enc;
-    encoding->name = enc->name;
-    encoding->is_usascii_enc = parser_encoding_is_usascii_enc;
-    encoding->isalnum = parser_encoding_isalnum;
-    encoding->isspace = parser_encoding_isspace;
-    encoding->precise_mbclen = parser_encoding_precise_mbclen;
-}
-
 rb_parser_encoding_t *
 rb_parser_encoding_find_name(const char *name, int *idxp, VALUE ruby_sourcefile_string, int ruby_sourceline)
 {
@@ -1118,7 +1113,6 @@ rb_parser_encoding_find_name(const char *name, int *idxp, VALUE ruby_sourcefile_
         goto error;
     }
 
-    parser_encoding_table_set(idx, enc);
     *idxp = idx;
-    return &global_parser_encoding_table.list[idx];
+    return (rb_parser_encoding_t *)enc;
 }

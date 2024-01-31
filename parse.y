@@ -627,9 +627,8 @@ struct parser_params {
 
     struct lex_context ctxt;
 
-#ifdef UNIVERSAL_PARSER
     const rb_parser_config_t *config;
-#endif
+
     /* compile_option */
     signed int frozen_string_literal:2; /* -1: not specified, 0: false, 1: true */
 
@@ -694,11 +693,11 @@ static void numparam_name(struct parser_params *p, ID id);
 
 #define intern_cstr(n,l,en) rb_intern3(n,l,en)
 
-#define STR_NEW(ptr,len) rb_enc_str_new((ptr),(len),p->enc->enc)
-#define STR_NEW0() rb_enc_str_new(0,0,p->enc->enc)
-#define STR_NEW2(ptr) rb_enc_str_new((ptr),strlen(ptr),p->enc->enc)
+#define STR_NEW(ptr,len) rb_enc_str_new((ptr),(len),p->enc)
+#define STR_NEW0() rb_enc_str_new(0,0,p->enc)
+#define STR_NEW2(ptr) rb_enc_str_new((ptr),strlen(ptr),p->enc)
 #define STR_NEW3(ptr,len,e,func) parser_str_new(p, (ptr),(len),(e),(func),p->enc)
-#define TOK_INTERN() intern_cstr(tok(p), toklen(p), p->enc->enc)
+#define TOK_INTERN() intern_cstr(tok(p), toklen(p), p->enc)
 #define VALID_SYMNAME_P(s, l, enc, type) (rb_enc_symname_type(s, l, enc, (1U<<(type))) == (int)(type))
 
 static inline bool
@@ -7300,7 +7299,7 @@ ripper_dispatch_delayed_token(struct parser_params *p, enum yytokentype t)
 static inline int
 is_identchar(struct parser_params *p, const char *ptr, const char *MAYBE_UNUSED(ptr_end), rb_parser_encoding_t *enc)
 {
-    return enc->isalnum((unsigned char)*ptr, enc) || *ptr == '_' || !ISASCII(*ptr);
+    return p->config->enc_isalnum((unsigned char)*ptr, enc) || *ptr == '_' || !ISASCII(*ptr);
 }
 
 static inline int
@@ -7400,9 +7399,9 @@ token_info_warn(struct parser_params *p, const char *token, token_info *ptinfo_b
 static int
 parser_precise_mbclen(struct parser_params *p, const char *ptr)
 {
-    int len = rb_enc_precise_mbclen(ptr, p->lex.pend, p->enc->enc);
+    int len = rb_enc_precise_mbclen(ptr, p->lex.pend, p->enc);
     if (!MBCLEN_CHARFOUND_P(len)) {
-        compile_error(p, "invalid multibyte char (%s)", p->enc->name);
+        compile_error(p, "invalid multibyte char (%s)", p->config->enc_name(p->enc));
         return -1;
     }
     return len;
@@ -7490,11 +7489,11 @@ ruby_show_error_line(struct parser_params *p, VALUE errbuf, const YYLTYPE *yyllo
     len = ptr_end - ptr;
     if (len > 4) {
         if (ptr > pbeg) {
-            ptr = rb_enc_prev_char(pbeg, ptr, pt, rb_parser_string_encoding(str)->enc);
+            ptr = rb_enc_prev_char(pbeg, ptr, pt, rb_parser_string_encoding(str));
             if (ptr > pbeg) pre = "...";
         }
         if (ptr_end < pend) {
-            ptr_end = rb_enc_prev_char(pt, ptr_end, pend, rb_parser_string_encoding(str)->enc);
+            ptr_end = rb_enc_prev_char(pt, ptr_end, pend, rb_parser_string_encoding(str));
             if (ptr_end < pend) post = "...";
         }
     }
@@ -7513,7 +7512,7 @@ ruby_show_error_line(struct parser_params *p, VALUE errbuf, const YYLTYPE *yyllo
             rb_str_cat_cstr(mesg, "\n");
     }
     else {
-        mesg = rb_enc_str_new(0, 0, rb_parser_string_encoding(str)->enc);
+        mesg = rb_enc_str_new(0, 0, rb_parser_string_encoding(str));
     }
     if (!errbuf && rb_stderr_tty_p()) {
 #define CSI_BEGIN "\033["
@@ -7938,7 +7937,7 @@ parser_str_new(struct parser_params *p, const char *ptr, long len, rb_encoding *
     if (!(func & STR_FUNC_REGEXP) && rb_enc_asciicompat(enc)) {
         if (is_ascii_string(str)) {
         }
-        else if (enc0->is_usascii_enc(enc0) && enc != rb_utf8_encoding()) {
+        else if (p->config->is_usascii_enc(enc0) && enc != rb_utf8_encoding()) {
             rb_enc_associate(str, rb_ascii8bit_encoding());
         }
     }
@@ -7993,7 +7992,7 @@ add_delayed_token(struct parser_params *p, const char *tok, const char *end, int
         }
         if (!has_delayed_token(p)) {
             p->delayed.token = rb_str_buf_new(end - tok);
-            rb_enc_associate(p->delayed.token, p->enc->enc);
+            rb_enc_associate(p->delayed.token, p->enc);
             p->delayed.beg_line = p->ruby_sourceline;
             p->delayed.beg_col = rb_long2int(tok - p->lex.pbeg);
         }
@@ -8034,7 +8033,7 @@ nextline(struct parser_params *p, int set_encoding)
 #ifndef RIPPER
         if (p->debug_lines) {
             VALUE v = rb_str_new_parser_string(str);
-            if (set_encoding) rb_enc_associate(v, p->enc->enc);
+            if (set_encoding) rb_enc_associate(v, p->enc);
             rb_ary_push(p->debug_lines, v);
         }
 #endif
@@ -8938,7 +8937,7 @@ parse_string(struct parser_params *p, rb_strterm_literal_t *quote)
     int term = quote->term;
     int paren = quote->paren;
     int c, space = 0;
-    rb_encoding *enc = p->enc->enc;
+    rb_encoding *enc = p->enc;
     rb_encoding *base_enc = 0;
     VALUE lit;
 
@@ -9358,7 +9357,7 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
     const char *eos, *ptr, *ptr_end;
     long len;
     VALUE str = 0;
-    rb_encoding *enc = p->enc->enc;
+    rb_encoding *enc = p->enc;
     rb_encoding *base_enc = 0;
     int bol;
 
@@ -9378,7 +9377,7 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
                     int cr = ENC_CODERANGE_UNKNOWN;
                     rb_str_coderange_scan_restartable(p->lex.ptok, p->lex.pcur, enc, &cr);
                     if (cr != ENC_CODERANGE_7BIT &&
-                        rb_is_usascii_enc(p->enc->enc) &&
+                        rb_is_usascii_enc(p->enc) &&
                         enc != rb_utf8_encoding()) {
                         enc = rb_ascii8bit_encoding();
                     }
@@ -9473,7 +9472,7 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
         }
         do {
             pushback(p, c);
-            enc = p->enc->enc;
+            enc = p->enc;
             if ((c = tokadd_string(p, func, '\n', 0, NULL, &enc, &base_enc)) == -1) {
                 if (p->eofp) goto error;
                 goto restore;
@@ -10235,7 +10234,7 @@ parse_qmark(struct parser_params *p, int space_seen)
         compile_error(p, "incomplete character syntax");
         return 0;
     }
-    if (p->enc->isspace(c, p->enc)) {
+    if (p->config->enc_isspace(c, p->enc)) {
         if (!IS_ARG()) {
             int c2 = escaped_control_code(c);
             if (c2) {
@@ -10249,11 +10248,11 @@ parse_qmark(struct parser_params *p, int space_seen)
     }
     newtok(p);
     /* TODO */
-    enc = p->enc->enc;
+    enc = p->enc;
     if (!parser_isascii(p)) {
         if (tokadd_mbchar(p, c) == -1) return 0;
     }
-    else if ((p->enc->isalnum(c, p->enc) || c == '_') &&
+    else if ((p->config->enc_isalnum(c, p->enc) || c == '_') &&
              !lex_eol_p(p) && is_identchar(p, p->lex.pcur, p->lex.pend, p->enc)) {
         if (space_seen) {
             const char *start = p->lex.pcur - 1, *ptr = start;
@@ -10313,7 +10312,7 @@ parse_percent(struct parser_params *p, const int space_seen, const enum lex_stat
         }
         else {
             term = nextc(p);
-            if (p->enc->isalnum(term, p->enc) || !parser_isascii(p)) {
+            if (p->config->enc_isalnum(term, p->enc) || !parser_isascii(p)) {
               unknown:
                 pushback(p, term);
                 c = parser_precise_mbclen(p, p->lex.pcur);
@@ -10539,7 +10538,7 @@ parse_gvar(struct parser_params *p, const enum lex_state_e last_state)
 
     if (tokadd_ident(p, c)) return 0;
     SET_LEX_STATE(EXPR_END);
-    if (VALID_SYMNAME_P(tok(p), toklen(p), p->enc->enc, ID_GLOBAL)) {
+    if (VALID_SYMNAME_P(tok(p), toklen(p), p->enc, ID_GLOBAL)) {
         tokenize_ident(p);
     }
     else {
@@ -12580,7 +12579,7 @@ static rb_node_encoding_t *
 rb_node_encoding_new(struct parser_params *p, const YYLTYPE *loc)
 {
     rb_node_encoding_t *n = NODE_NEWNODE(NODE_ENCODING, rb_node_encoding_t, loc);
-    n->enc = p->enc->enc;
+    n->enc = p->enc;
 
     return n;
 }
@@ -15763,7 +15762,7 @@ rb_reg_fragment_setenc(struct parser_params* p, VALUE str, int options)
         }
         rb_enc_associate(str, rb_ascii8bit_encoding());
     }
-    else if (p->enc->is_usascii_enc(p->enc)) {
+    else if (p->config->is_usascii_enc(p->enc)) {
         if (!is_ascii_string(str)) {
             /* raise in re.c */
             rb_enc_associate(str, rb_usascii_encoding());
@@ -16279,7 +16278,7 @@ rb_parser_set_yydebug(VALUE self, VALUE flag)
 VALUE
 rb_ruby_parser_encoding(rb_parser_t *p)
 {
-    return rb_enc_from_encoding(p->enc->enc);
+    return rb_enc_from_encoding(p->enc);
 }
 
 int
@@ -16359,7 +16358,7 @@ rb_ruby_parser_result(rb_parser_t *p)
 rb_encoding *
 rb_ruby_parser_enc(rb_parser_t *p)
 {
-    return p->enc->enc;
+    return p->enc;
 }
 
 VALUE
@@ -16547,7 +16546,7 @@ parser_compile_error(struct parser_params *p, const rb_code_location_t *loc, con
         rb_syntax_error_append(p->error_buffer,
                                p->ruby_sourcefile_string,
                                lineno, column,
-                               p->enc->enc, fmt, ap);
+                               p->enc, fmt, ap);
     va_end(ap);
 }
 
