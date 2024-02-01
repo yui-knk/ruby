@@ -10,8 +10,68 @@ end
 
 class TestRipper::Ripper < Test::Unit::TestCase
 
+  class DebugParser < Ripper
+    def count
+      @count ||= 0
+      @count += 1
+      "count #{@count}"
+    end
+
+    PARSER_EVENTS.each  {|n| eval "def on_#{n}(*args) r = [:#{n}, *args]; c = count; p [r.inspect, Ripper.lex_state_name(state), c]; c end" }
+    SCANNER_EVENTS.each {|n| eval "def on_#{n}(*args) r = [:#{n}, *args]; c = count; p [r.inspect, Ripper.lex_state_name(state), c]; c end" }
+
+    def compile_error(*args)
+      p [:compile_error, args]
+    end
+
+    def compile_warning(*args)
+      p [:compile_warning, args]
+    end
+
+    def warn(*args)
+      p [:warn, args]
+    end
+
+    def warning(*args)
+      p [:warning, args]
+    end
+  end
+
   def setup
     @ripper = Ripper.new '1 + 1'
+  end
+
+  def test_parse_pattern_076_0
+    text = <<~'STR'
+    case {a: 1}
+    in {a: 1, **nil}
+      true
+    end
+    STR
+
+    p :test_parse_pattern_076_0
+    p DebugParser.new(text).tap {|p| p.yydebug = true}.parse
+  end
+
+  def test_parse_pattern_076_1
+    text = <<~'STR'
+    case {a: 1}
+    in {a: 1, **nil}
+      true
+    end
+
+
+    STR
+
+    p :test_parse_pattern_076_1
+    p DebugParser.new(text).tap {|p| p.yydebug = true}.parse
+  end
+
+  def test_parse_pattern_076_2
+    text = File.read(File.expand_path("../../../test/prism/fixtures/seattlerb/parse_pattern_076.txt", __FILE__))
+
+    p :test_parse_pattern_076_2
+    p DebugParser.new(text).tap {|p| p.yydebug = true}.parse
   end
 
   def test_new

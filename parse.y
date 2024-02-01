@@ -1116,7 +1116,7 @@ static void token_info_drop(struct parser_params *p, const char *token, rb_code_
 
 #define token_column		((int)(p->lex.ptok - p->lex.pbeg))
 
-#define CALL_Q_P(q) ((q) == TOKEN2VAL(tANDDOT))
+#define CALL_Q_P(q) ((q) == tANDDOT)
 #define NEW_QCALL(q,r,m,a,loc) (CALL_Q_P(q) ? NEW_QCALL0(r,m,a,loc) : NEW_CALL(r,m,a,loc))
 
 #define lambda_beginning_p() (p->lex.lpar_beg == p->lex.paren_nest)
@@ -1748,15 +1748,11 @@ ripper_new_find_pattern_tail(struct parser_params *p, VALUE pre_rest_arg, VALUE 
 {
     return rb_ary_new_from_args(3, pre_rest_arg, args, post_rest_arg);
 }
-
-#define ID2VAL(id) STATIC_ID2SYM(id)
-#define TOKEN2VAL(t) ID2VAL(TOKEN2ID(t))
-#define KWD2EID(t, v) keyword_##t
-#else
-#define ID2VAL(id) (id)
-#define TOKEN2VAL(t) ID2VAL(t)
-#define KWD2EID(t, v) keyword_##t
 #endif /* RIPPER */
+
+#define ID2VAL(id) (id)
+#define TOKEN2VAL(t) STATIC_ID2SYM(TOKEN2ID(t))
+#define KWD2EID(t, v) keyword_##t
 
 static NODE *
 new_scope_body(struct parser_params *p, rb_node_args_t *args, NODE *body, const YYLTYPE *loc)
@@ -4887,13 +4883,13 @@ method_call	: fcall paren_args
                     {
                         $$ = new_qcall(p, $2, $1, ID2VAL(idCall), $3, &@2, &@$);
                         nd_set_line($$, @2.end_pos.lineno);
-                    /*% ripper: method_add_arg!(call!($:1, $:2, ID2VAL(idCall)), $:3) %*/
+                    /*% ripper: method_add_arg!(call!($:1, $:2, STATIC_ID2SYM(idCall)), $:3) %*/
                     }
                 | primary_value tCOLON2 paren_args
                     {
                         $$ = new_qcall(p, ID2VAL(idCOLON2), $1, ID2VAL(idCall), $3, &@2, &@$);
                         nd_set_line($$, @2.end_pos.lineno);
-                    /*% ripper: method_add_arg!(call!($:1, $:2, ID2VAL(idCall)), $:3) %*/
+                    /*% ripper: method_add_arg!(call!($:1, $:2, STATIC_ID2SYM(idCall)), $:3) %*/
                     }
                 | keyword_super paren_args
                     {
@@ -5887,7 +5883,7 @@ numeric 	: simple_numeric
                     {
                         $$ = $2;
                         negate_lit(p, $$);
-                    /*% ripper: unary!(ID2VAL(idUMinus), $:2) %*/
+                    /*% ripper: unary!(STATIC_ID2SYM(idUMinus), $:2) %*/
                     }
                 ;
 

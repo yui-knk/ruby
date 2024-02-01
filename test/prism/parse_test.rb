@@ -139,6 +139,7 @@ module Prism
 
           # Make sure that it can be correctly parsed by Ripper. If it can't, then we have a fixture
           # that is invalid Ruby.
+          p [filepath, Ripper.sexp_raw(src)]
           refute_nil(Ripper.sexp_raw(src), "Ripper failed to parse")
         end
 
