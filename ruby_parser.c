@@ -1,9 +1,7 @@
 /* This is a wrapper for parse.y */
 
-#include "internal/encoding.h"
 #include "internal/re.h"
 #include "internal/ruby_parser.h"
-#include "internal/string.h"
 
 #include "node.h"
 #include "rubyparser.h"
@@ -17,13 +15,13 @@
 #include "internal/compile.h"
 #include "internal/complex.h"
 #include "internal/encoding.h"
-#include "internal/error.h"
 #include "internal/gc.h"
 #include "internal/hash.h"
 #include "internal/io.h"
 #include "internal/parse.h"
 #include "internal/rational.h"
 #include "internal/re.h"
+#include "internal/string.h"
 #include "internal/symbol.h"
 #include "internal/thread.h"
 
@@ -849,45 +847,6 @@ rb_parser_set_yydebug(VALUE vparser, VALUE flag)
 }
 #endif
 
-static int
-reg_fragment_setenc(VALUE str, int options, rb_encoding *enc)
-{
-    // int c = RE_OPTION_ENCODING_IDX(options);
-    int c = options;
-
-    if (c) {
-        int opt, idx;
-        rb_char_to_option_kcode(c, &opt, &idx);
-        if (idx != ENCODING_GET(str) &&
-            !is_ascii_string(str)) {
-            goto error;
-        }
-        ENCODING_SET(str, idx);
-    }
-    // else if (RE_OPTION_ENCODING_NONE(options)) {
-    else if (options) {
-        if (!ENCODING_IS_ASCII8BIT(str) &&
-            !is_ascii_string(str)) {
-            c = 'n';
-            goto error;
-        }
-        rb_enc_associate(str, rb_ascii8bit_encoding());
-    }
-    else if (rb_is_usascii_enc(enc)) {
-        if (!is_ascii_string(str)) {
-            /* raise in re.c */
-            rb_enc_associate(str, rb_usascii_encoding());
-        }
-        else {
-            rb_enc_associate(str, rb_ascii8bit_encoding());
-        }
-    }
-    return 0;
-
-  error:
-    return c;
-}
-
 VALUE
 rb_str_new_parser_string(rb_parser_string_t *str)
 {
@@ -1043,7 +1002,6 @@ rb_node_regx_string_val(const NODE *node)
     rb_node_regx_t *node_reg = RNODE_REGX(node);
     rb_parser_string_t *string = node_reg->string;
     VALUE str = rb_enc_str_new(string->ptr, string->len, string->enc);
-    reg_fragment_setenc(str, node_reg->options, string->enc);
 
     return rb_reg_compile(str, node_reg->options, node_reg->sourcefile->ptr, node_reg->sourceline);
 }
