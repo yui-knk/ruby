@@ -8547,30 +8547,53 @@ tokadd_escape(struct parser_params *p)
     return 0;
 }
 
+#define ARG_ENCODING_FIXED   16
+#define ARG_ENCODING_NONE    32
+#define ENCINDEX_EUC_JP      10
+#define ENCINDEX_Windows_31J 11
+
 static int
 regx_options(struct parser_params *p)
 {
     int kcode = 0;
     int kopt = 0;
     int options = 0;
-    int c, opt, kc;
+    int c;
 
     newtok(p);
     while (c = nextc(p), ISALPHA(c)) {
-        if (c == 'o') {
+        switch (c) {
+          case 'o':
             options |= RE_OPTION_ONCE;
-        }
-        else if (rb_char_to_option_kcode(c, &opt, &kc)) {
-            if (kc >= 0) {
-                if (kc != rb_ascii8bit_encindex()) kcode = c;
-                kopt = opt;
-            }
-            else {
-                options |= opt;
-            }
-        }
-        else {
+            break;
+          case 'n':
+            kcode = rb_ascii8bit_encindex();
+            kopt = ARG_ENCODING_NONE;
+            break;
+          case 'e':
+            kcode = ENCINDEX_EUC_JP;
+            kopt = ARG_ENCODING_FIXED;
+            break;
+          case 's':
+            kcode = ENCINDEX_Windows_31J;
+            kopt = ARG_ENCODING_FIXED;
+            break;
+          case 'u':
+            kcode = rb_utf8_encindex();
+            kopt = ARG_ENCODING_FIXED;
+            break;
+          case 'i':
+            options |= ONIG_OPTION_IGNORECASE;
+            break;
+          case 'x':
+            options |= ONIG_OPTION_EXTEND;
+            break;
+          case 'm':
+            options |= ONIG_OPTION_MULTILINE;
+            break;
+          default:
             tokadd(p, c);
+            break;
         }
     }
     options |= kopt;
@@ -13397,13 +13420,13 @@ new_regexp(struct parser_params *p, NODE *node, int options, const YYLTYPE *loc)
         nd_set_type(node, NODE_DREGX);
         nd_set_loc(node, loc);
         RNODE_DREGX(node)->nd_cflag = options & RE_OPTION_MASK;
-        if (!NIL_P(RNODE_DREGX(node)->nd_lit)) reg_fragment_check(p, RNODE_DREGX(node)->nd_lit, options);
+        if (!NIL_P(RNODE_DREGX(node)->nd_lit)) reg_fragment_check(p, RNODE_DREGX(node)->nd_lit, options & RE_OPTION_MASK);
         for (list = RNODE_DREGX(prev = node)->nd_next; list; list = RNODE_LIST(list->nd_next)) {
             NODE *frag = list->nd_head;
             enum node_type type = nd_type(frag);
             if (type == NODE_STR || (type == NODE_DSTR && !RNODE_DSTR(frag)->nd_next)) {
                 VALUE tail = RNODE_STR(frag)->nd_lit;
-                if (reg_fragment_check(p, tail, options) && prev && !NIL_P(RNODE_DREGX(prev)->nd_lit)) {
+                if (reg_fragment_check(p, tail, options & RE_OPTION_MASK) && prev && !NIL_P(RNODE_DREGX(prev)->nd_lit)) {
                     VALUE lit = prev == node ? RNODE_DREGX(prev)->nd_lit : RNODE_LIT(RNODE_LIST(prev)->nd_head)->nd_lit;
                     if (!literal_concat0(p, lit, tail)) {
                         return NEW_NIL(loc); /* dummy node on error */
