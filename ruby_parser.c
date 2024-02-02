@@ -6,6 +6,7 @@
 #include "rubyparser.h"
 #include "internal/encoding.h"
 #include "internal/error.h"
+#include "internal/parse.h"
 
 #ifdef UNIVERSAL_PARSER
 
@@ -17,7 +18,6 @@
 #include "internal/gc.h"
 #include "internal/hash.h"
 #include "internal/io.h"
-#include "internal/parse.h"
 #include "internal/rational.h"
 #include "internal/re.h"
 #include "internal/string.h"
@@ -30,41 +30,6 @@
 #include "internal.h"
 #include "vm_core.h"
 #include "symbol.h"
-
-struct ruby_parser {
-    rb_parser_t *parser_params;
-};
-
-static void
-parser_mark(void *ptr)
-{
-    struct ruby_parser *parser = (struct ruby_parser*)ptr;
-    rb_ruby_parser_mark(parser->parser_params);
-}
-
-static void
-parser_free(void *ptr)
-{
-    struct ruby_parser *parser = (struct ruby_parser*)ptr;
-    rb_ruby_parser_free(parser->parser_params);
-}
-
-static size_t
-parser_memsize(const void *ptr)
-{
-    struct ruby_parser *parser = (struct ruby_parser*)ptr;
-    return rb_ruby_parser_memsize(parser->parser_params);
-}
-
-static const rb_data_type_t ruby_parser_data_type = {
-    "parser",
-    {
-        parser_mark,
-        parser_free,
-        parser_memsize,
-    },
-    0, 0, RUBY_TYPED_FREE_IMMEDIATELY
-};
 
 static int
 is_ascii_string2(VALUE str)
@@ -688,6 +653,87 @@ static const rb_parser_config_t rb_global_parser_config = {
     .str_coderange_scan_restartable = str_coderange_scan_restartable,
 };
 
+#else
+
+static bool
+is_usascii_enc(rb_parser_encoding_t *enc)
+{
+    return rb_is_usascii_enc((rb_encoding *)enc);
+}
+
+static bool
+enc_isalnum(OnigCodePoint c, rb_parser_encoding_t *enc)
+{
+    return rb_enc_isalnum(c, (rb_encoding *)enc);
+}
+
+static bool
+enc_isspace(OnigCodePoint c, rb_parser_encoding_t *enc)
+{
+    return rb_enc_isspace(c, (rb_encoding *)enc);
+}
+
+static int
+enc_precise_mbclen(const char *p, const char *e, rb_parser_encoding_t *enc)
+{
+    return rb_enc_precise_mbclen(p, e, (rb_encoding *)enc);
+}
+
+static const char *
+enc_name(rb_parser_encoding_t *enc)
+{
+    return rb_enc_name((rb_encoding *)enc);
+}
+
+static const rb_parser_config_t rb_global_parser_config = {
+    .calloc = ruby_xcalloc,
+
+    .is_usascii_enc = is_usascii_enc,
+    .enc_isalnum = enc_isalnum,
+    .enc_isspace = enc_isspace,
+    .enc_precise_mbclen = enc_precise_mbclen,
+    .enc_name = enc_name,
+};
+
+#ifndef RIPPER
+#endif /* !RIPPER */
+#endif /* UNIVERSAL_PARSER */
+
+struct ruby_parser {
+    rb_parser_t *parser_params;
+};
+
+static void
+parser_mark(void *ptr)
+{
+    struct ruby_parser *parser = (struct ruby_parser*)ptr;
+    rb_ruby_parser_mark(parser->parser_params);
+}
+
+static void
+parser_free(void *ptr)
+{
+    struct ruby_parser *parser = (struct ruby_parser*)ptr;
+    rb_ruby_parser_free(parser->parser_params);
+}
+
+static size_t
+parser_memsize(const void *ptr)
+{
+    struct ruby_parser *parser = (struct ruby_parser*)ptr;
+    return rb_ruby_parser_memsize(parser->parser_params);
+}
+
+static const rb_data_type_t ruby_parser_data_type = {
+    "parser",
+    {
+        parser_mark,
+        parser_free,
+        parser_memsize,
+    },
+    0, 0, RUBY_TYPED_FREE_IMMEDIATELY
+};
+
 rb_parser_t *
 rb_parser_params_allocate(void)
 {
@@ -844,45 +890,6 @@ rb_parser_set_yydebug(VALUE vparser, VALUE flag)
     rb_ruby_parser_set_yydebug(parser->parser_params, RTEST(flag));
     return flag;
 }
-#else
-static bool
-is_usascii_enc(rb_parser_encoding_t *enc)
-{
-    return rb_is_usascii_enc((rb_encoding *)enc);
-}
-
-static bool
-enc_isalnum(OnigCodePoint c, rb_parser_encoding_t *enc)
-{
-    return rb_enc_isalnum(c, (rb_encoding *)enc);
-}
-
-static bool
-enc_isspace(OnigCodePoint c, rb_parser_encoding_t *enc)
-{
-    return rb_enc_isspace(c, (rb_encoding *)enc);
-}
-
-static int
-enc_precise_mbclen(const char *p, const char *e, rb_parser_encoding_t *enc)
-{
-    return rb_enc_precise_mbclen(p, e, (rb_encoding *)enc);
-}
-
-static const char *
-enc_name(rb_parser_encoding_t *enc)
-{
-    return rb_enc_name((rb_encoding *)enc);
-}
-
-static const rb_parser_config_t rb_global_parser_config = {
-    .is_usascii_enc = is_usascii_enc,
-    .enc_isalnum = enc_isalnum,
-    .enc_isspace = enc_isspace,
-    .enc_precise_mbclen = enc_precise_mbclen,
-    .enc_name = enc_name,
-};
-#endif
 
 VALUE
 rb_str_new_parser_string(rb_parser_string_t *str)

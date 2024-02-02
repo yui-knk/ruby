@@ -114,11 +114,7 @@ ripper_s_allocate(VALUE klass)
     VALUE self = TypedData_Make_Struct(klass, struct ripper,
                                        &parser_data_type, r);
 
-#ifdef UNIVERSAL_PARSER
     r->p = rb_parser_params_allocate();
-#else
-    r->p = rb_ruby_ripper_parser_allocate();
-#endif
     rb_ruby_parser_set_value(r->p, self);
     return self;
 }
@@ -237,7 +233,6 @@ ripper_parser_set_debug_output(VALUE self, VALUE output)
     return output;
 }
 
-#ifdef UNIVERSAL_PARSER
 struct dedent_string_arg {
     struct parser_params *p;
     VALUE input;
@@ -264,7 +259,6 @@ parser_free(VALUE a)
     rb_ruby_parser_free(p);
     return Qnil;
 }
-#endif
 
 /*
  *  call-seq:
@@ -275,7 +269,6 @@ parser_free(VALUE a)
  *  Strips up to +width+ leading whitespaces from +input+,
  *  and returns the stripped column width.
  */
-#ifdef UNIVERSAL_PARSER
 static VALUE
 parser_dedent_string(VALUE self, VALUE input, VALUE width)
 {
@@ -289,18 +282,6 @@ parser_dedent_string(VALUE self, VALUE input, VALUE width)
     args.width = width;
     return rb_ensure(parser_dedent_string0, (VALUE)&args, parser_free, (VALUE)p);
 }
-#else
-static VALUE
-parser_dedent_string(VALUE self, VALUE input, VALUE width)
-{
-    int wid, col;
-
-    StringValue(input);
-    wid = NUM2UINT(width);
-    col = rb_ruby_ripper_dedent_string(0, input, wid);
-    return INT2NUM(col);
-}
-#endif
 
 /*
  *  call-seq:
@@ -500,7 +481,6 @@ ripper_raw_value(VALUE self, VALUE obj)
 }
 #endif
 
-#ifdef UNIVERSAL_PARSER
 struct lex_state_name_arg {
     struct parser_params *p;
     VALUE state;
@@ -513,7 +493,6 @@ lex_state_name0(VALUE a)
 
     return rb_ruby_ripper_lex_state_name(arg->p, NUM2INT(arg->state));
 }
-#endif
 
 /*
  *  call-seq:
@@ -521,7 +500,6 @@ lex_state_name0(VALUE a)
  *
  *  Returns a string representation of lex_state.
  */
-#ifdef UNIVERSAL_PARSER
 static VALUE
 ripper_lex_state_name(VALUE self, VALUE state)
 {
@@ -535,13 +513,6 @@ ripper_lex_state_name(VALUE self, VALUE state)
 
     return rb_ensure(lex_state_name0, (VALUE)&args, parser_free, (VALUE)p);
 }
-#else
-static VALUE
-ripper_lex_state_name(VALUE self, VALUE state)
-{
-    return rb_ruby_ripper_lex_state_name(0, NUM2INT(state));
-}
-#endif
 
 void
 Init_ripper(void)

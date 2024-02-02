@@ -11,10 +11,8 @@
 #include "vm.h"
 
 RUBY_SYMBOL_EXPORT_BEGIN
-#ifdef UNIVERSAL_PARSER
 rb_parser_t *rb_parser_params_allocate(void);
 rb_parser_t *rb_parser_params_new(void);
-#endif
 VALUE rb_parser_set_context(VALUE, const struct rb_iseq_struct *, int);
 VALUE rb_parser_new(void);
 rb_ast_t *rb_parser_compile_string_path(VALUE vparser, VALUE fname, VALUE src, int line);

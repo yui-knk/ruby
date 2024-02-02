@@ -1202,6 +1202,9 @@ typedef struct rb_imemo_tmpbuf_struct rb_imemo_tmpbuf_t;
 
 typedef struct rb_parser_config_struct {
 #ifndef UNIVERSAL_PARSER
+    /* Memory */
+    void *(*calloc)(size_t number, size_t size);
+
     /* Encoding */
     bool (*is_usascii_enc)(rb_parser_encoding_t *enc);
     bool (*enc_isalnum)(OnigCodePoint c, rb_parser_encoding_t *enc);
@@ -1452,11 +1455,8 @@ typedef struct rb_parser_config_struct {
 RUBY_SYMBOL_EXPORT_BEGIN
 void rb_ruby_parser_free(void *ptr);
 rb_ast_t* rb_ruby_parser_compile_string(rb_parser_t *p, const char *f, VALUE s, int line);
-
-#ifdef UNIVERSAL_PARSER
 rb_parser_t *rb_ruby_parser_allocate(const rb_parser_config_t *config);
 rb_parser_t *rb_ruby_parser_new(const rb_parser_config_t *config);
-#endif
 
 long rb_parser_string_length(rb_parser_string_t *str);
 char *rb_parser_string_pointer(rb_parser_string_t *str);
