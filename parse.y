@@ -1130,6 +1130,7 @@ static rb_node_dstr_t *rb_node_dstr_new(struct parser_params *p, rb_parser_strin
 static rb_node_xstr_t *rb_node_xstr_new(struct parser_params *p, rb_parser_string_t *string, const YYLTYPE *loc);
 static rb_node_dxstr_t *rb_node_dxstr_new(struct parser_params *p, rb_parser_string_t *string, long nd_alen, NODE *nd_next, const YYLTYPE *loc);
 static rb_node_evstr_t *rb_node_evstr_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
+static rb_node_regx_t *rb_node_regx_new(struct parser_params *p, VALUE str, int options, const YYLTYPE *loc);
 static rb_node_once_t *rb_node_once_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
 static rb_node_args_t *rb_node_args_new(struct parser_params *p, const YYLTYPE *loc);
 static rb_node_args_aux_t *rb_node_args_aux_new(struct parser_params *p, ID nd_pid, long nd_plen, const YYLTYPE *loc);
@@ -1238,6 +1239,7 @@ static rb_node_error_t *rb_node_error_new(struct parser_params *p, const YYLTYPE
 #define NEW_XSTR(s,loc) (NODE *)rb_node_xstr_new(p,s,loc)
 #define NEW_DXSTR(s,l,n,loc) (NODE *)rb_node_dxstr_new(p,s,l,n,loc)
 #define NEW_EVSTR(n,loc) (NODE *)rb_node_evstr_new(p,n,loc)
+#define NEW_REGX(str,opts,loc) (NODE *)rb_node_regx_new(p,str,opts,loc)
 #define NEW_ONCE(b,loc) (NODE *)rb_node_once_new(p,b,loc)
 #define NEW_ARGS(loc) rb_node_args_new(p,loc)
 #define NEW_ARGS_AUX(r,b,loc) rb_node_args_aux_new(p,r,b,loc)
@@ -7293,6 +7295,7 @@ singleton	: var_ref
                           case NODE_DSTR:
                           case NODE_XSTR:
                           case NODE_DXSTR:
+                          case NODE_REGX:
                           case NODE_DREGX:
                           case NODE_LIT:
                           case NODE_SYM:
@@ -12689,6 +12692,16 @@ rb_node_evstr_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc)
     return n;
 }
 
+static rb_node_regx_t *
+rb_node_regx_new(struct parser_params *p, VALUE str, int options, const YYLTYPE *loc)
+{
+    rb_node_regx_t *n = NODE_NEWNODE(NODE_REGX, rb_node_regx_t, loc);
+    n->string = rb_str_to_parser_string(p, str);
+    n->options = options & RE_OPTION_MASK;
+
+    return n;
+}
+
 static rb_node_call_t *
 rb_node_call_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc)
 {
@@ -13360,6 +13373,18 @@ str2dstr(struct parser_params *p, NODE *node)
 }
 
 static NODE *
+str2regx(struct parser_params *p, NODE *node, int options)
+{
+    NODE *new_node = (NODE *)NODE_NEW_INTERNAL(NODE_REGX, rb_node_regx_t);
+    nd_copy_flag(new_node, node);
+    RNODE_REGX(new_node)->string = RNODE_STR(node)->string;
+    RNODE_REGX(new_node)->options = options;
+    RNODE_STR(node)->string = 0;
+
+    return new_node;
+}
+
+static NODE *
 evstr2dstr(struct parser_params *p, NODE *node)
 {
     if (nd_type_p(node, NODE_EVSTR)) {
@@ -13707,16 +13732,18 @@ new_regexp(struct parser_params *p, NODE *node, int options, const YYLTYPE *loc)
     NODE *prev;
 
     if (!node) {
-        node = NEW_LIT(reg_compile(p, STR_NEW0(), options), loc);
-        RB_OBJ_WRITTEN(p->ast, Qnil, RNODE_LIT(node)->nd_lit);
+        /* Check string is valid regex */
+        reg_compile(p, STR_NEW0(), options);
+        node = NEW_REGX(STR_NEW0(), options, loc);
         return node;
     }
     switch (nd_type(node)) {
       case NODE_STR:
         {
             VALUE src = rb_node_str_string_val(node);
-            node = NEW_LIT(reg_compile(p, src, options), loc);
-            RB_OBJ_WRITTEN(p->ast, Qnil, RNODE_LIT(node)->nd_lit);
+            /* Check string is valid regex */
+            reg_compile(p, src, options);
+            node = str2regx(p, node, options);
         }
         break;
       default:
@@ -14405,6 +14432,8 @@ shareable_literal_value(struct parser_params *p, NODE *node)
         return rb_node_imaginary_literal_val(node);
       case NODE_ENCODING:
         return rb_node_encoding_val(node);
+      case NODE_REGX:
+        return rb_node_regx_string_val(node);
       case NODE_LIT:
         return RNODE_LIT(node)->nd_lit;
       default:
@@ -14432,6 +14461,7 @@ shareable_literal_constant(struct parser_params *p, enum shareability shareable,
       case NODE_NIL:
       case NODE_LIT:
       case NODE_SYM:
+      case NODE_REGX:
       case NODE_LINE:
       case NODE_INTEGER:
       case NODE_FLOAT:
@@ -14794,6 +14824,7 @@ void_expr(struct parser_params *p, NODE *node)
       case NODE_IMAGINARY:
       case NODE_STR:
       case NODE_DSTR:
+      case NODE_REGX:
       case NODE_DREGX:
         useless = "a literal";
         break;
@@ -14930,6 +14961,7 @@ is_static_content(NODE *node)
         } while ((node = RNODE_LIST(node)->nd_next) != 0);
       case NODE_LIT:
       case NODE_SYM:
+      case NODE_REGX:
       case NODE_LINE:
       case NODE_FILE:
       case NODE_ENCODING:
@@ -15026,6 +15058,11 @@ cond0(struct parser_params *p, NODE *node, enum cond_type type, const YYLTYPE *l
         SWITCH_BY_COND_TYPE(type, warn, "string ");
         break;
 
+      case NODE_REGX:
+        if (!e_option_supplied(p)) SWITCH_BY_COND_TYPE(type, warning, "regex ");
+        nd_set_type(node, NODE_MATCH);
+        break;
+
       case NODE_DREGX:
         if (!e_option_supplied(p)) SWITCH_BY_COND_TYPE(type, warning, "regex ");
 
@@ -15062,12 +15099,8 @@ cond0(struct parser_params *p, NODE *node, enum cond_type type, const YYLTYPE *l
         break;
 
       case NODE_LIT:
-        if (RB_TYPE_P(RNODE_LIT(node)->nd_lit, T_REGEXP)) {
-            if (!e_option_supplied(p)) SWITCH_BY_COND_TYPE(type, warn, "regex ");
-            nd_set_type(node, NODE_MATCH);
-        }
-        else if (RNODE_LIT(node)->nd_lit == Qtrue ||
-                 RNODE_LIT(node)->nd_lit == Qfalse) {
+        if (RNODE_LIT(node)->nd_lit == Qtrue ||
+            RNODE_LIT(node)->nd_lit == Qfalse) {
             /* booleans are OK, e.g., while true */
         }
         else if (SYMBOL_P(RNODE_LIT(node)->nd_lit)) {
