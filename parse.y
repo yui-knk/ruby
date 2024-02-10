@@ -100,14 +100,15 @@ hash_literal_key_p(VALUE k)
     }
 }
 
+typedef struct rb_parser_bignum rb_parser_bignum_t;
 static int rb_parser_string_hash_cmp(rb_parser_string_t *str1, rb_parser_string_t *str2);
+static int parser_big_cmp(rb_parser_bignum_t *x, rb_parser_bignum_t *y);
 
 static int
 node_integer_cmp(rb_node_integer_t *n1, rb_node_integer_t *n2)
 {
     return (n1->minus != n2->minus ||
-            n1->base != n2->base ||
-            strcmp(n1->val, n2->val));
+            parser_big_cmp((rb_parser_bignum_t *)n1->hash.data, (rb_parser_bignum_t *)n2->hash.data));
 }
 
 static int
@@ -123,7 +124,7 @@ node_rational_cmp(rb_node_rational_t *n1, rb_node_rational_t *n2)
     return (n1->minus != n2->minus ||
             n1->base != n2->base ||
             n1->seen_point != n2->seen_point ||
-            strcmp(n1->val, n2->val));
+            strcmp(n1->val, n2->val)); /* TODO */
 }
 
 static int
@@ -133,15 +134,14 @@ node_imaginary_cmp(rb_node_imaginary_t *n1, rb_node_imaginary_t *n2)
             n1->base != n2->base ||
             n1->seen_point != n2->seen_point ||
             n1->type != n2->type ||
-            strcmp(n1->val, n2->val));
+            strcmp(n1->val, n2->val)); /* TODO */
 }
 
 static int
-node_integer_line_cmp(const NODE *node_i, const NODE *line)
+node_integer_line_cmp(const rb_node_integer_t *node_i, const rb_node_line_t *line)
 {
-    VALUE num = rb_node_integer_literal_val(node_i);
-
-    return !(FIXNUM_P(num) && line->nd_loc.beg_pos.lineno == FIX2INT(num));
+    return (node_i->minus != 0 ||
+            parser_big_cmp((rb_parser_bignum_t *)node_i->hash.data, (rb_parser_bignum_t *)line->hash.data));
 }
 
 static int
@@ -159,10 +159,10 @@ node_cdhash_cmp(VALUE val, VALUE lit)
 
         /* Special case for Integer and __LINE__ */
         if (type_val == NODE_INTEGER && type_lit == NODE_LINE) {
-            return node_integer_line_cmp(node_val, node_lit);
+            return node_integer_line_cmp(RNODE_INTEGER(node_val), RNODE_LINE(node_lit));
         }
         if (type_lit == NODE_INTEGER && type_val == NODE_LINE) {
-            return node_integer_line_cmp(node_lit, node_val);
+            return node_integer_line_cmp(RNODE_INTEGER(node_lit), RNODE_LINE(node_val));
         }
 
         /* Special case for String and __FILE__ */
@@ -220,16 +220,16 @@ node_cdhash_hash(VALUE a)
         enum node_type type = nd_type(node);
         switch (type) {
           case NODE_INTEGER:
-            val = rb_node_integer_literal_val(node);
-            if (!FIXNUM_P(val)) val = rb_big_hash(val);
-            return FIX2LONG(val);
+            return RNODE_INTEGER(node)->hash.hash;
           case NODE_FLOAT:
             val = rb_node_float_literal_val(node);
             return rb_dbl_long_hash(RFLOAT_VALUE(val));
           case NODE_RATIONAL:
+            /* TODO */
             val = rb_node_rational_literal_val(node);
             return rb_rational_hash(val);
           case NODE_IMAGINARY:
+            /* TODO */
             val = rb_node_imaginary_literal_val(node);
             return rb_complex_hash(val);
           case NODE_STR:
@@ -238,12 +238,12 @@ node_cdhash_hash(VALUE a)
             return rb_parser_str_hash(RNODE_SYM(node)->string);
           case NODE_LINE:
             /* Same with NODE_INTEGER FIXNUM case */
-            return (st_index_t)node->nd_loc.beg_pos.lineno;
+            return RNODE_LINE(node)->hash.hash;
           case NODE_FILE:
             /* Same with NODE_STR */
             return rb_parser_str_hash(RNODE_FILE(node)->path);
           case NODE_ENCODING:
-            return rb_node_encoding_val(node);
+            return (st_index_t)RNODE_ENCODING(node)->enc;
           default:
             rb_bug("unexpected node: %s", ruby_node_name(type));
         }
@@ -2140,6 +2140,7 @@ get_nd_args(struct parser_params *p, NODE *node)
         return 0;
     }
 }
+#endif
 
 static st_index_t
 djb2(const uint8_t *str, size_t len)
@@ -2158,7 +2159,6 @@ parser_memhash(const void *ptr, long len)
 {
     return djb2(ptr, len);
 }
-#endif
 
 #define PARSER_STRING_PTR(str) (str->ptr)
 #define PARSER_STRING_LEN(str) (str->len)
@@ -2614,6 +2614,551 @@ rb_str_to_parser_string(rb_parser_t *p, VALUE str)
     return rb_parser_encoding_string_new(p, RSTRING_PTR(str), RSTRING_LEN(str), rb_enc_get(str));
 }
 #endif
+
+#define PARSER_BDIGIT unsigned short
+#define PARSER_SIZEOF_BDIGIT (SIZEOF_LONG/2)
+#define PARSER_BDIGIT_DBL unsigned long
+
+typedef struct rb_parser_bignum {
+    size_t len;
+    PARSER_BDIGIT *digits;
+} rb_parser_bignum_t;
+
+static inline PARSER_BDIGIT *
+PARSER_BIGNUM_DIGITS(rb_parser_bignum_t *b)
+{
+    return b->digits;
+}
+
+static inline size_t
+PARSER_BIGNUM_LEN(rb_parser_bignum_t *b)
+{
+    return b->len;
+}
+
+#define BDIGITS(x) (PARSER_BIGNUM_DIGITS(x))
+#define BITSPERDIG (PARSER_SIZEOF_BDIGIT*CHAR_BIT)
+#define BIGRAD ((PARSER_BDIGIT_DBL)1 << BITSPERDIG)
+#define BIGDN(x) RSHIFT((x),BITSPERDIG)
+#define BIGLO(x) ((PARSER_BDIGIT)((x) & BDIGMAX))
+#define BDIGMAX ((PARSER_BDIGIT)(BIGRAD-1))
+
+#define bdigit_roomof(n) roomof(n, PARSER_SIZEOF_BDIGIT)
+
+#define BDIGITS_ZERO(ptr, n) do { \
+  PARSER_BDIGIT *bdigitz_zero_ptr = (ptr); \
+  size_t bdigitz_zero_n = (n); \
+  while (bdigitz_zero_n) { \
+    *bdigitz_zero_ptr++ = 0; \
+    bdigitz_zero_n--; \
+  } \
+} while (0)
+
+#define BARY_TRUNC(ds, n) do { \
+        while (0 < (n) && (ds)[(n)-1] == 0) \
+            (n)--; \
+    } while (0)
+
+static rb_parser_bignum_t *
+parser_bignew(struct parser_params *p, size_t len, int sign)
+{
+    rb_parser_bignum_t *big;
+
+    big = xcalloc(1, sizeof(rb_parser_bignum_t));
+    big->digits = ALLOC_N(PARSER_BDIGIT, len);
+    big->len = len;
+
+    return big;
+}
+
+static void
+parser_bigfree(struct parser_params *p, rb_parser_bignum_t *big)
+{
+    xfree(big->digits);
+    xfree(big);
+}
+
+#define BIGNUM_SET_LEN(b,l) \
+    (void)(b->len = (l))
+
+static void
+parser_big_realloc(struct parser_params *p, rb_parser_bignum_t *big, size_t len)
+{
+    REALLOC_N(big->digits, PARSER_BDIGIT, len);
+}
+
+static void
+parser_big_resize(struct parser_params *p, rb_parser_bignum_t *big, size_t len)
+{
+    parser_big_realloc(p, big, len);
+    BIGNUM_SET_LEN(big, len);
+}
+
+static rb_parser_bignum_t *
+parser_bigfixize(struct parser_params *p, rb_parser_bignum_t *x)
+{
+    size_t n = PARSER_BIGNUM_LEN(x);
+    PARSER_BDIGIT *ds = BDIGITS(x);
+
+    BARY_TRUNC(ds, n);
+
+  /* return_big: */
+    parser_big_resize(p, x, n);
+    return x;
+}
+
+static rb_parser_bignum_t *
+parser_bignorm(struct parser_params *p, rb_parser_bignum_t *big)
+{
+    return parser_bigfixize(p, big);
+}
+
+static rb_parser_bignum_t *
+parser_uint2big(struct parser_params *p, uintptr_t n)
+{
+    size_t i;
+    rb_parser_bignum_t *big = parser_bignew(p, bdigit_roomof(sizeof(uintptr_t)), 1);
+    PARSER_BDIGIT *digits = BDIGITS(big);
+
+    for (i = 0; i < bdigit_roomof(sizeof(uintptr_t)); i++) {
+        digits[i] = BIGLO(n);
+        n = BIGDN(n);
+    }
+
+    i = bdigit_roomof(sizeof(uintptr_t));
+    while (--i && !digits[i]) ;
+    BIGNUM_SET_LEN(big, i+1);
+    return big;
+}
+
+static st_index_t
+parser_big_hash(rb_parser_bignum_t *big)
+{
+    return parser_memhash(BDIGITS(big), sizeof(PARSER_BDIGIT)*PARSER_BIGNUM_LEN(big));
+}
+
+static int
+parser_bary_cmp(const PARSER_BDIGIT *xds, size_t xn, const PARSER_BDIGIT *yds, size_t yn)
+{
+    size_t i;
+    BARY_TRUNC(xds, xn);
+    BARY_TRUNC(yds, yn);
+
+    if (xn < yn)
+        return -1;
+    if (xn > yn)
+        return 1;
+
+    for (i = 0; i < xn; i++)
+        if (xds[xn - i - 1] != yds[yn - i - 1])
+            break;
+    if (i == xn)
+        return 0;
+    return xds[xn - i - 1] < yds[yn - i - 1] ? -1 : 1;
+}
+
+static int
+parser_big_cmp(rb_parser_bignum_t *x, rb_parser_bignum_t *y)
+{
+    return parser_bary_cmp(BDIGITS(x), PARSER_BIGNUM_LEN(x), BDIGITS(y), PARSER_BIGNUM_LEN(y));
+}
+
+static const signed char digit36_to_number_table[] = {
+    /*     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f */
+    /*0*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*1*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*2*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*3*/  0, 1, 2, 3, 4, 5, 6, 7, 8, 9,-1,-1,-1,-1,-1,-1,
+    /*4*/ -1,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,
+    /*5*/ 25,26,27,28,29,30,31,32,33,34,35,-1,-1,-1,-1,-1,
+    /*6*/ -1,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,
+    /*7*/ 25,26,27,28,29,30,31,32,33,34,35,-1,-1,-1,-1,-1,
+    /*8*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*9*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*a*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*b*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*c*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*d*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*e*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*f*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+};
+
+#define conv_digit(c) (digit36_to_number_table[(unsigned char)(c)])
+#define POW2_P(x) (((x)&((x)-1))==0)
+#define roomof(x, y) (((x) + (y) - 1) / (y))
+
+#define U16(a) ((uint16_t)(a))
+
+static const int maxpow16_exp[35] = {
+    15, 10, 7, 6, 6, 5, 5, 5, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+};
+static const uint16_t maxpow16_num[35] = {
+    U16(0x00008000), U16(0x0000e6a9), U16(0x00004000), U16(0x00003d09),
+    U16(0x0000b640), U16(0x000041a7), U16(0x00008000), U16(0x0000e6a9),
+    U16(0x00002710), U16(0x00003931), U16(0x00005100), U16(0x00006f91),
+    U16(0x00009610), U16(0x0000c5c1), U16(0x00001000), U16(0x00001331),
+    U16(0x000016c8), U16(0x00001acb), U16(0x00001f40), U16(0x0000242d),
+    U16(0x00002998), U16(0x00002f87), U16(0x00003600), U16(0x00003d09),
+    U16(0x000044a8), U16(0x00004ce3), U16(0x000055c0), U16(0x00005f45),
+    U16(0x00006978), U16(0x0000745f), U16(0x00008000), U16(0x00008c61),
+    U16(0x00009988), U16(0x0000a77b), U16(0x0000b640),
+};
+
+static PARSER_BDIGIT_DBL
+parser_maxpow_in_bdigit_dbl(int base, int *exp_ret)
+{
+    PARSER_BDIGIT_DBL maxpow;
+    int exponent;
+
+    assert(2 <= base && base <= 36);
+
+    {
+        maxpow = maxpow16_num[base-2];
+        exponent = maxpow16_exp[base-2];
+    }
+
+    *exp_ret = exponent;
+    return maxpow;
+}
+
+enum parser_rb_int_parse_flags {
+    PARSER_INT_PARSE_SIGN       = 0x01,
+    PARSER_INT_PARSE_UNDERSCORE = 0x02,
+    PARSER_INT_PARSE_PREFIX     = 0x04,
+    PARSER_INT_PARSE_ALL        = 0x07,
+    PARSER_INT_PARSE_DEFAULT    = 0x07,
+};
+
+static int
+parser_str2big_scan_digits(const char *s, const char *str, int base, int badcheck, size_t *num_digits_p, ssize_t *len_p)
+{
+    char nondigit = 0;
+    size_t num_digits = 0;
+    const char *digits_start = str;
+    const char *digits_end = str;
+    ssize_t len = *len_p;
+
+    int c;
+
+    if (!len) {
+        *num_digits_p = 0;
+        *len_p = 0;
+        return TRUE;
+    }
+
+    if (badcheck && *str == '_') return FALSE;
+
+    while ((c = *str++) != 0) {
+        if (c == '_') {
+            if (nondigit) {
+                if (badcheck) return FALSE;
+                break;
+            }
+            nondigit = (char) c;
+        }
+        else if ((c = conv_digit(c)) < 0 || c >= base) {
+            break;
+        }
+        else {
+            nondigit = 0;
+            num_digits++;
+            digits_end = str;
+        }
+        if (len > 0 && !--len) break;
+    }
+    if (badcheck && nondigit) return FALSE;
+    if (badcheck && len) {
+        str--;
+        while (*str && ISSPACE(*str)) {
+            str++;
+            if (len > 0 && !--len) break;
+        }
+        if (len && *str) {
+            return FALSE;
+        }
+    }
+    *num_digits_p = num_digits;
+    *len_p = digits_end - digits_start;
+    return TRUE;
+}
+
+static rb_parser_bignum_t *
+parser_str2big_poweroftwo(
+    struct parser_params *p,
+    int sign,
+    const char *digits_start,
+    const char *digits_end,
+    size_t num_digits,
+    int bits_per_digit)
+{
+    PARSER_BDIGIT *dp;
+    PARSER_BDIGIT_DBL dd;
+    int numbits;
+
+    size_t num_bdigits;
+    const char *ptr;
+    int c;
+    rb_parser_bignum_t *z;
+
+    num_bdigits = (num_digits / BITSPERDIG) * bits_per_digit + roomof((num_digits % BITSPERDIG) * bits_per_digit, BITSPERDIG);
+    z = parser_bignew(p, num_bdigits, sign);
+    dp = BDIGITS(z);
+    dd = 0;
+    numbits = 0;
+    for (ptr = digits_end; digits_start < ptr; ptr--) {
+        if ((c = conv_digit(ptr[-1])) < 0)
+            continue;
+        dd |= (PARSER_BDIGIT_DBL)c << numbits;
+        numbits += bits_per_digit;
+        if (BITSPERDIG <= numbits) {
+            *dp++ = BIGLO(dd);
+            dd = BIGDN(dd);
+            numbits -= BITSPERDIG;
+        }
+    }
+    if (numbits) {
+        *dp++ = BIGLO(dd);
+    }
+    assert((size_t)(dp - BDIGITS(z)) == num_bdigits);
+
+    return z;
+}
+
+static rb_parser_bignum_t *
+parser_str2big_normal(
+    struct parser_params *p,
+    int sign,
+    const char *digits_start,
+    const char *digits_end,
+    size_t num_bdigits,
+    int base)
+{
+    size_t blen = 1;
+    PARSER_BDIGIT *zds;
+    PARSER_BDIGIT_DBL num;
+
+    size_t i;
+    const char *ptr;
+    int c;
+    rb_parser_bignum_t *z;
+
+    z = parser_bignew(p, num_bdigits, sign);
+    zds = BDIGITS(z);
+    BDIGITS_ZERO(zds, num_bdigits);
+
+    for (ptr = digits_start; ptr < digits_end; ptr++) {
+        if ((c = conv_digit(*ptr)) < 0)
+            continue;
+        num = c;
+        i = 0;
+        for (;;) {
+            while (i<blen) {
+                num += (BDIGIT_DBL)zds[i]*base;
+                zds[i++] = BIGLO(num);
+                num = BIGDN(num);
+            }
+            if (num) {
+                blen++;
+                continue;
+            }
+            break;
+        }
+        assert(blen <= num_bdigits);
+    }
+
+    return z;
+}
+
+static rb_parser_bignum_t *
+rb_parser_int_parse_cstr(struct parser_params *p, const char *str, ssize_t len,
+                         char **endp, size_t *ndigits, int base, int flags)
+{
+    const char *const s = str;
+    char sign = 1;
+    int c;
+    rb_parser_bignum_t *z = NULL;
+
+    int ov;
+
+    const char *digits_start, *digits_end;
+    size_t num_digits = 0;
+    size_t num_bdigits;
+    const ssize_t len0 = len;
+    const int badcheck = !endp;
+
+#define ADV(n) do {\
+        if (len > 0 && len <= (n)) goto bad; \
+        str += (n); \
+        len -= (n); \
+    } while (0)
+#define ASSERT_LEN() do {\
+        assert(len != 0); \
+        if (len0 >= 0) assert(s + len0 == str + len); \
+    } while (0)
+
+    if (!str) {
+        goto bad;
+    }
+
+    if (len && (flags & PARSER_INT_PARSE_SIGN)) {
+        while (ISSPACE(*str)) ADV(1);
+
+        if (str[0] == '+') {
+            ADV(1);
+        }
+        else if (str[0] == '-') {
+            ADV(1);
+            sign = 0;
+        }
+        ASSERT_LEN();
+    }
+
+    if (base == 2) {
+        if (str[0] == '0' && (str[1] == 'b'||str[1] == 'B')) {
+            ADV(2);
+        }
+    }
+    else if (base == 8) {
+        if (str[0] == '0' && (str[1] == 'o'||str[1] == 'O')) {
+            ADV(2);
+        }
+    }
+    else if (base == 10) {
+        if (str[0] == '0' && (str[1] == 'd'||str[1] == 'D')) {
+            ADV(2);
+        }
+    }
+    else if (base == 16) {
+        if (str[0] == '0' && (str[1] == 'x'||str[1] == 'X')) {
+            ADV(2);
+        }
+    }
+    else {
+        rb_bug("invalid base %d", base);
+    }
+    if (!len) goto bad;
+    num_digits = str - s;
+    if (*str == '0' && len != 1) { /* squeeze preceding 0s */
+        int us = 0;
+        const char *end = len < 0 ? NULL : str + len;
+        ++num_digits;
+        while ((c = *++str) == '0' ||
+               ((flags & PARSER_INT_PARSE_UNDERSCORE) && c == '_')) {
+            if (c == '_') {
+                if (++us >= 2)
+                    break;
+            }
+            else {
+                ++num_digits;
+                us = 0;
+            }
+            if (str == end) break;
+        }
+        if (!c || ISSPACE(c)) --str;
+        if (end) len = end - str;
+    }
+    c = *str;
+    c = conv_digit(c);
+    if (c < 0 || c >= base) {
+        goto bad;
+    }
+
+    if (ndigits) *ndigits = num_digits;
+    ruby_scan_digits(str, len, base, &num_digits, &ov);
+
+  /* bigparse: */
+    digits_start = str;
+    if (!parser_str2big_scan_digits(s, str, base, badcheck, &num_digits, &len))
+        goto bad;
+    if (endp) *endp = (char *)(str + len);
+    if (ndigits) *ndigits += num_digits;
+    digits_end = digits_start + len;
+
+    if (POW2_P(base)) {
+        z = parser_str2big_poweroftwo(p, sign, digits_start, digits_end, num_digits,
+                               bit_length(base-1));
+    }
+    else {
+        int digits_per_bdigits_dbl;
+        parser_maxpow_in_bdigit_dbl(base, &digits_per_bdigits_dbl);
+        num_bdigits = roomof(num_digits, digits_per_bdigits_dbl)*2;
+
+        z = parser_str2big_normal(p, sign, digits_start, digits_end,
+                num_bdigits, base);
+    }
+
+    return parser_bignorm(p, z);
+
+  bad:
+    if (endp) *endp = (char *)str;
+    if (ndigits) *ndigits = num_digits;
+    return z;
+}
+
+static st_index_t
+node_integer_hash_set(struct parser_params *p, rb_node_integer_t *node)
+{
+    rb_parser_bignum_t *big;
+    st_index_t hash;
+
+    if (node->hash.hash) return node->hash.hash;
+
+    big = rb_parser_int_parse_cstr(p, node->val, strlen(node->val), NULL, NULL, node->base, PARSER_INT_PARSE_DEFAULT);
+    hash = parser_big_hash(big);
+    node->hash.data = big;
+    node->hash.hash = hash;
+
+    return hash;
+}
+
+static st_index_t
+node_rational_hash_set(struct parser_params *p, rb_node_rational_t *node)
+{
+    rb_parser_bignum_t *big;
+    st_index_t hash;
+
+    if (node->hash.hash) return node->hash.hash;
+
+    big = rb_parser_int_parse_cstr(p, node->val, strlen(node->val), NULL, NULL, node->base, PARSER_INT_PARSE_DEFAULT);
+    hash = parser_big_hash(big);
+    node->hash.data = big;
+    node->hash.hash = hash;
+
+    return hash;
+}
+
+static st_index_t
+node_imaginary_hash_set(struct parser_params *p, rb_node_imaginary_t *node)
+{
+    rb_parser_bignum_t *big;
+    st_index_t hash;
+
+    if (node->hash.hash) return node->hash.hash;
+
+    big = rb_parser_int_parse_cstr(p, node->val, strlen(node->val), NULL, NULL, node->base, PARSER_INT_PARSE_DEFAULT);
+    hash = parser_big_hash(big);
+    node->hash.data = big;
+    node->hash.hash = hash;
+
+    return hash;
+}
+
+static st_index_t
+node_line_hash_set(struct parser_params *p, rb_node_line_t *node)
+{
+    rb_parser_bignum_t *big;
+    st_index_t hash;
+
+    if (node->hash.hash) return node->hash.hash;
+
+    big = parser_uint2big(p, RNODE(node)->nd_loc.beg_pos.lineno);
+    hash = parser_big_hash(big);
+    node->hash.data = big;
+    node->hash.hash = hash;
+
+    return hash;
+}
 %}
 
 %expect 0
@@ -10534,6 +11079,7 @@ parse_numeric(struct parser_params *p, int c)
             tokadd(p, '0');
         }
         else {
+            tokadd(p, '0');
             pushback(p, c);
             tokfix(p);
             suffix = number_literal_suffix(p, NUM_SUFFIX_ALL);
@@ -11942,6 +12488,13 @@ node_newnode(struct parser_params *p, enum node_type type, size_t size, size_t a
     return n;
 }
 
+static void
+node_hash_data_initialize(rb_node_hash_data_t *hash)
+{
+    hash->hash = 0;
+    hash->data = 0;
+}
+
 #define NODE_NEWNODE(node_type, type, loc) (type *)(node_newnode(p, node_type, sizeof(type), RUBY_ALIGNOF(type), loc))
 
 #ifndef RIPPER
@@ -12605,6 +13158,7 @@ static rb_node_integer_t *
 rb_node_integer_new(struct parser_params *p, char* val, int base, const YYLTYPE *loc)
 {
     rb_node_integer_t *n = NODE_NEWNODE(NODE_INTEGER, rb_node_integer_t, loc);
+    node_hash_data_initialize(&n->hash);
     n->val = val;
     n->minus = FALSE;
     n->base = base;
@@ -12626,6 +13180,7 @@ static rb_node_rational_t *
 rb_node_rational_new(struct parser_params *p, char* val, int base, int seen_point, const YYLTYPE *loc)
 {
     rb_node_rational_t *n = NODE_NEWNODE(NODE_RATIONAL, rb_node_rational_t, loc);
+    node_hash_data_initialize(&n->hash);
     n->val = val;
     n->minus = FALSE;
     n->base = base;
@@ -12638,6 +13193,7 @@ static rb_node_imaginary_t *
 rb_node_imaginary_new(struct parser_params *p, char* val, int base, int seen_point, enum rb_numeric_type numeric_type, const YYLTYPE *loc)
 {
     rb_node_imaginary_t *n = NODE_NEWNODE(NODE_IMAGINARY, rb_node_imaginary_t, loc);
+    node_hash_data_initialize(&n->hash);
     n->val = val;
     n->minus = FALSE;
     n->base = base;
@@ -12978,6 +13534,7 @@ static rb_node_line_t *
 rb_node_line_new(struct parser_params *p, const YYLTYPE *loc)
 {
     rb_node_line_t *n = NODE_NEWNODE(NODE_LINE, rb_node_line_t, loc);
+    node_hash_data_initialize(&n->hash);
 
     return n;
 }
@@ -15503,15 +16060,25 @@ nd_st_key(struct parser_params *p, NODE *node)
     switch (nd_type(node)) {
       case NODE_LIT:
         return (NODE *)RNODE_LIT(node)->nd_lit;
-      case NODE_STR:
       case NODE_INTEGER:
+        node_integer_hash_set(p, RNODE_INTEGER(node));
+        goto end;
       case NODE_FLOAT:
+        goto end;
       case NODE_RATIONAL:
+        // node_rational_hash_set(p, RNODE_RATIONAL(node));
+        goto end;
       case NODE_IMAGINARY:
-      case NODE_SYM:
+        // node_imaginary_hash_set(p, RNODE_IMAGINARY(node));
+        goto end;
       case NODE_LINE:
+        node_line_hash_set(p, RNODE_LINE(node));
+        goto end;
+      case NODE_STR:
+      case NODE_SYM:
       case NODE_ENCODING:
       case NODE_FILE:
+      end:
         return node;
       default:
         rb_bug("unexpected node: %s", ruby_node_name(nd_type(node)));
