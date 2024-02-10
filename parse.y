@@ -2580,6 +2580,419 @@ rb_str_to_parser_string(rb_parser_t *p, VALUE str)
     return rb_parser_encoding_string_new(p, RSTRING_PTR(str), RSTRING_LEN(str), rb_enc_get(str));
 }
 #endif
+
+static uint64_t
+djb2(const uint8_t *str, size_t len)
+{
+    uint64_t hash = 5381;
+
+    for (size_t i = 0; i < len; i++) {
+        hash = ((hash << 5) + hash) + str[i];
+    }
+
+    return hash;
+}
+
+static st_index_t
+parser_memhash(const void *ptr, long len)
+{
+    return (st_index_t)djb2(ptr, len);
+}
+
+#define PARSER_BDIGIT unsigned short
+#define PARSER_SIZEOF_BDIGIT (SIZEOF_LONG/2)
+#define PARSER_BDIGIT_DBL unsigned long
+
+typedef struct rb_parser_bignum {
+    size_t len;
+    PARSER_BDIGIT *digits;
+} rb_parser_bignum_t;
+
+static rb_parser_bignum_t *
+parser_bignew(struct parser_params *p, size_t len, int sign)
+{
+    rb_parser_bignum_t *big;
+
+    big = xcalloc(1, sizeof(rb_parser_bignum_t));
+    big->digits = ALLOC_N(PARSER_BDIGIT, len);
+    big->len = len;
+
+    return big;
+}
+
+static void
+parser_bigfree(struct parser_params *p, rb_parser_bignum_t *big)
+{
+    xfree(big->digits);
+    xfree(big);
+}
+
+#define BDIGITS_ZERO(ptr, n) do { \
+  PARSER_BDIGIT *bdigitz_zero_ptr = (ptr); \
+  size_t bdigitz_zero_n = (n); \
+  while (bdigitz_zero_n) { \
+    *bdigitz_zero_ptr++ = 0; \
+    bdigitz_zero_n--; \
+  } \
+} while (0)
+
+static inline PARSER_BDIGIT *
+PARSER_BIGNUM_DIGITS(rb_parser_bignum_t *b)
+{
+    return b->digits;
+}
+
+static inline size_t
+PARSER_BIGNUM_LEN(rb_parser_bignum_t *b)
+{
+    return b->len;
+}
+
+#define BDIGITS(x) (PARSER_BIGNUM_DIGITS(x))
+#define BITSPERDIG (PARSER_SIZEOF_BDIGIT*CHAR_BIT)
+#define BIGRAD ((PARSER_BDIGIT_DBL)1 << BITSPERDIG)
+#define BIGDN(x) RSHIFT((x),BITSPERDIG)
+#define BIGLO(x) ((PARSER_BDIGIT)((x) & BDIGMAX))
+#define BDIGMAX ((PARSER_BDIGIT)(BIGRAD-1))
+
+static st_index_t
+parser_big_hash(rb_parser_bignum_t *big)
+{
+    return parser_memhash(BDIGITS(big), sizeof(PARSER_BDIGIT)*PARSER_BIGNUM_LEN(big));
+}
+
+const signed char digit36_to_number_table[] = {
+    /*     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f */
+    /*0*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*1*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*2*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*3*/  0, 1, 2, 3, 4, 5, 6, 7, 8, 9,-1,-1,-1,-1,-1,-1,
+    /*4*/ -1,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,
+    /*5*/ 25,26,27,28,29,30,31,32,33,34,35,-1,-1,-1,-1,-1,
+    /*6*/ -1,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,
+    /*7*/ 25,26,27,28,29,30,31,32,33,34,35,-1,-1,-1,-1,-1,
+    /*8*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*9*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*a*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*b*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*c*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*d*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*e*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+    /*f*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+};
+
+#define conv_digit(c) (digit36_to_number_table[(unsigned char)(c)])
+#define POW2_P(x) (((x)&((x)-1))==0)
+#define roomof(x, y) (((x) + (y) - 1) / (y))
+
+#define U16(a) ((uint16_t)(a))
+
+static const int maxpow16_exp[35] = {
+    15, 10, 7, 6, 6, 5, 5, 5, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+};
+static const uint16_t maxpow16_num[35] = {
+    U16(0x00008000), U16(0x0000e6a9), U16(0x00004000), U16(0x00003d09),
+    U16(0x0000b640), U16(0x000041a7), U16(0x00008000), U16(0x0000e6a9),
+    U16(0x00002710), U16(0x00003931), U16(0x00005100), U16(0x00006f91),
+    U16(0x00009610), U16(0x0000c5c1), U16(0x00001000), U16(0x00001331),
+    U16(0x000016c8), U16(0x00001acb), U16(0x00001f40), U16(0x0000242d),
+    U16(0x00002998), U16(0x00002f87), U16(0x00003600), U16(0x00003d09),
+    U16(0x000044a8), U16(0x00004ce3), U16(0x000055c0), U16(0x00005f45),
+    U16(0x00006978), U16(0x0000745f), U16(0x00008000), U16(0x00008c61),
+    U16(0x00009988), U16(0x0000a77b), U16(0x0000b640),
+};
+
+static PARSER_BDIGIT_DBL
+parser_maxpow_in_bdigit_dbl(int base, int *exp_ret)
+{
+    PARSER_BDIGIT_DBL maxpow;
+    int exponent;
+
+    assert(2 <= base && base <= 36);
+
+    {
+        maxpow = maxpow16_num[base-2];
+        exponent = maxpow16_exp[base-2];
+    }
+
+    *exp_ret = exponent;
+    return maxpow;
+}
+
+enum parser_rb_int_parse_flags {
+    PARSER_INT_PARSE_SIGN       = 0x01,
+    PARSER_INT_PARSE_UNDERSCORE = 0x02,
+    PARSER_INT_PARSE_PREFIX     = 0x04,
+    PARSER_INT_PARSE_ALL        = 0x07,
+    PARSER_INT_PARSE_DEFAULT    = 0x07,
+};
+
+static int
+parser_str2big_scan_digits(const char *s, const char *str, int base, int badcheck, size_t *num_digits_p, ssize_t *len_p)
+{
+    char nondigit = 0;
+    size_t num_digits = 0;
+    const char *digits_start = str;
+    const char *digits_end = str;
+    ssize_t len = *len_p;
+
+    int c;
+
+    if (!len) {
+        *num_digits_p = 0;
+        *len_p = 0;
+        return TRUE;
+    }
+
+    if (badcheck && *str == '_') return FALSE;
+
+    while ((c = *str++) != 0) {
+        if (c == '_') {
+            if (nondigit) {
+                if (badcheck) return FALSE;
+                break;
+            }
+            nondigit = (char) c;
+        }
+        else if ((c = conv_digit(c)) < 0 || c >= base) {
+            break;
+        }
+        else {
+            nondigit = 0;
+            num_digits++;
+            digits_end = str;
+        }
+        if (len > 0 && !--len) break;
+    }
+    if (badcheck && nondigit) return FALSE;
+    if (badcheck && len) {
+        str--;
+        while (*str && ISSPACE(*str)) {
+            str++;
+            if (len > 0 && !--len) break;
+        }
+        if (len && *str) {
+            return FALSE;
+        }
+    }
+    *num_digits_p = num_digits;
+    *len_p = digits_end - digits_start;
+    return TRUE;
+}
+
+static rb_parser_bignum_t *
+parser_str2big_poweroftwo(
+    struct parser_params *p,
+    int sign,
+    const char *digits_start,
+    const char *digits_end,
+    size_t num_digits,
+    int bits_per_digit)
+{
+    PARSER_BDIGIT *dp;
+    PARSER_BDIGIT_DBL dd;
+    int numbits;
+
+    size_t num_bdigits;
+    const char *ptr;
+    int c;
+    rb_parser_bignum_t *z;
+
+    num_bdigits = (num_digits / BITSPERDIG) * bits_per_digit + roomof((num_digits % BITSPERDIG) * bits_per_digit, BITSPERDIG);
+    z = parser_bignew(p, num_bdigits, sign);
+    dp = BDIGITS(z);
+    dd = 0;
+    numbits = 0;
+    for (ptr = digits_end; digits_start < ptr; ptr--) {
+        if ((c = conv_digit(ptr[-1])) < 0)
+            continue;
+        dd |= (PARSER_BDIGIT_DBL)c << numbits;
+        numbits += bits_per_digit;
+        if (BITSPERDIG <= numbits) {
+            *dp++ = BIGLO(dd);
+            dd = BIGDN(dd);
+            numbits -= BITSPERDIG;
+        }
+    }
+    if (numbits) {
+        *dp++ = BIGLO(dd);
+    }
+    assert((size_t)(dp - BDIGITS(z)) == num_bdigits);
+
+    return z;
+}
+
+static rb_parser_bignum_t *
+parser_str2big_normal(
+    struct parser_params *p,
+    int sign,
+    const char *digits_start,
+    const char *digits_end,
+    size_t num_bdigits,
+    int base)
+{
+    size_t blen = 1;
+    PARSER_BDIGIT *zds;
+    PARSER_BDIGIT_DBL num;
+
+    size_t i;
+    const char *ptr;
+    int c;
+    rb_parser_bignum_t *z;
+
+    z = parser_bignew(p, num_bdigits, sign);
+    zds = BDIGITS(z);
+    BDIGITS_ZERO(zds, num_bdigits);
+
+    for (ptr = digits_start; ptr < digits_end; ptr++) {
+        if ((c = conv_digit(*ptr)) < 0)
+            continue;
+        num = c;
+        i = 0;
+        for (;;) {
+            while (i<blen) {
+                num += (BDIGIT_DBL)zds[i]*base;
+                zds[i++] = BIGLO(num);
+                num = BIGDN(num);
+            }
+            if (num) {
+                blen++;
+                continue;
+            }
+            break;
+        }
+        assert(blen <= num_bdigits);
+    }
+
+    return z;
+}
+
+static rb_parser_bignum_t *
+rb_parser_int_parse_cstr(struct parser_params *p, const char *str, ssize_t len,
+                         char **endp, size_t *ndigits, int base, int flags)
+{
+    const char *const s = str;
+    char sign = 1;
+    int c;
+    rb_parser_bignum_t *z = NULL;
+
+    int ov;
+
+    const char *digits_start, *digits_end;
+    size_t num_digits = 0;
+    size_t num_bdigits;
+    const ssize_t len0 = len;
+    const int badcheck = !endp;
+
+#define ADV(n) do {\
+        if (len > 0 && len <= (n)) goto bad; \
+        str += (n); \
+        len -= (n); \
+    } while (0)
+#define ASSERT_LEN() do {\
+        assert(len != 0); \
+        if (len0 >= 0) assert(s + len0 == str + len); \
+    } while (0)
+
+    if (!str) {
+        goto bad;
+    }
+
+    if (len && (flags & PARSER_INT_PARSE_SIGN)) {
+        while (ISSPACE(*str)) ADV(1);
+
+        if (str[0] == '+') {
+            ADV(1);
+        }
+        else if (str[0] == '-') {
+            ADV(1);
+            sign = 0;
+        }
+        ASSERT_LEN();
+    }
+
+    if (base == 2) {
+        if (str[0] == '0' && (str[1] == 'b'||str[1] == 'B')) {
+            ADV(2);
+        }
+    }
+    else if (base == 8) {
+        if (str[0] == '0' && (str[1] == 'o'||str[1] == 'O')) {
+            ADV(2);
+        }
+    }
+    else if (base == 10) {
+        if (str[0] == '0' && (str[1] == 'd'||str[1] == 'D')) {
+            ADV(2);
+        }
+    }
+    else if (base == 16) {
+        if (str[0] == '0' && (str[1] == 'x'||str[1] == 'X')) {
+            ADV(2);
+        }
+    }
+    else {
+        rb_bug("invalid base %d", base);
+    }
+    if (!len) goto bad;
+    num_digits = str - s;
+    if (*str == '0' && len != 1) { /* squeeze preceding 0s */
+        int us = 0;
+        const char *end = len < 0 ? NULL : str + len;
+        ++num_digits;
+        while ((c = *++str) == '0' ||
+               ((flags & PARSER_INT_PARSE_UNDERSCORE) && c == '_')) {
+            if (c == '_') {
+                if (++us >= 2)
+                    break;
+            }
+            else {
+                ++num_digits;
+                us = 0;
+            }
+            if (str == end) break;
+        }
+        if (!c || ISSPACE(c)) --str;
+        if (end) len = end - str;
+    }
+    c = *str;
+    c = conv_digit(c);
+    if (c < 0 || c >= base) {
+        goto bad;
+    }
+
+    if (ndigits) *ndigits = num_digits;
+    ruby_scan_digits(str, len, base, &num_digits, &ov);
+
+  /* bigparse: */
+    digits_start = str;
+    if (!parser_str2big_scan_digits(s, str, base, badcheck, &num_digits, &len))
+        goto bad;
+    if (endp) *endp = (char *)(str + len);
+    if (ndigits) *ndigits += num_digits;
+    digits_end = digits_start + len;
+
+    if (POW2_P(base)) {
+        parser_str2big_poweroftwo(p, sign, digits_start, digits_end, num_digits,
+                               bit_length(base-1));
+    }
+    else {
+        int digits_per_bdigits_dbl;
+        parser_maxpow_in_bdigit_dbl(base, &digits_per_bdigits_dbl);
+        num_bdigits = roomof(num_digits, digits_per_bdigits_dbl)*2;
+
+        parser_str2big_normal(p, sign, digits_start, digits_end,
+                num_bdigits, base);
+    }
+
+    return z;
+
+  bad:
+    if (endp) *endp = (char *)str;
+    if (ndigits) *ndigits = num_digits;
+    return z;
+}
 %}
 
 %expect 0
