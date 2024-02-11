@@ -197,6 +197,14 @@ typedef struct RNode {
     int node_id;
 } NODE;
 
+typedef void rb_node_hash_data;
+
+/*  */
+typedef struct RNode_hash_data {
+	st_data_t hash;
+	rb_node_hash_data *data;
+} rb_node_hash_data_t;
+
 typedef struct RNode_SCOPE {
     NODE node;
 
@@ -644,6 +652,7 @@ typedef struct RNode_LIT {
 
 typedef struct RNode_INTEGER {
     NODE node;
+    struct RNode_hash_data hash;
 
     char* val;
     int minus;

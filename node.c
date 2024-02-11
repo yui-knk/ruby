@@ -177,6 +177,14 @@ parser_string_free(rb_ast_t *ast, rb_parser_string_t *str)
     xfree(str);
 }
 
+// static void
+// parser_bigfree(rb_ast_t *ast, rb_parser_bignum_t *big)
+// {
+//     if (!big) return;
+//     xfree(big->digits);
+//     xfree(big);
+// }
+
 static void
 free_ast_value(rb_ast_t *ast, void *ctx, NODE *node)
 {
@@ -206,6 +214,7 @@ free_ast_value(rb_ast_t *ast, void *ctx, NODE *node)
         parser_string_free(ast, RNODE_FILE(node)->path);
         break;
       case NODE_INTEGER:
+        // parser_bigfree(ast, RNODE_INTEGER(node)->hash.data);
         xfree(RNODE_INTEGER(node)->val);
         break;
       case NODE_FLOAT:
