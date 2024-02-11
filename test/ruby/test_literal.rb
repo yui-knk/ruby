@@ -502,6 +502,14 @@ class TestRubyLiteral < Test::Unit::TestCase
       assert_warning(/key #{Regexp.quote(eval(key).inspect)} is duplicated/) { eval("{#{key} => :bar, #{key} => :foo}") }
     end
 
+    assert_warning(/key 1 is duplicated/) { eval("{1 => :bar, 0x1 => :foo}") }
+    assert_warning(/key 1 is duplicated/) { eval("{1 => :bar, 0b1 => :foo}") }
+    assert_warning(/key 1 is duplicated/) { eval("{1 => :bar, 0d1 => :foo}") }
+    assert_warning(/key 1 is duplicated/) { eval("{1 => :bar, 0o1 => :foo}") }
+    assert_warning(/key -1 is duplicated/) { eval("{-1 => :bar, -0x1 => :foo}") }
+    assert_warning(/key -1 is duplicated/) { eval("{-1 => :bar, -0b1 => :foo}") }
+    assert_warning(/key -1 is duplicated/) { eval("{-1 => :bar, -0d1 => :foo}") }
+    assert_warning(/key -1 is duplicated/) { eval("{-1 => :bar, -0o1 => :foo}") }
     assert_warning(/key 1 is duplicated/) { eval("{__LINE__ => :bar, 1 => :foo}") }
     assert_warning(/key \"FILENAME\" is duplicated/) { eval("{__FILE__ => :bar, 'FILENAME' => :foo}", binding, "FILENAME") }
   end
