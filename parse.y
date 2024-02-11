@@ -3123,7 +3123,7 @@ node_cdhash_hash(VALUE a)
           case NODE_STR:
             return rb_parser_str_hash(RNODE_STR(node)->string);
           case NODE_SYM:
-            return rb_node_sym_string_val(node);
+            return rb_parser_str_hash(RNODE_SYM(node)->string);
           case NODE_LINE:
             /* Same with NODE_INTEGER FIXNUM case */
             return RNODE_LINE(node)->hash.hash;
@@ -16070,7 +16070,7 @@ nd_st_key(struct parser_params *p, NODE *node)
         // node_imaginary_hash_set(p, RNODE_IMAGINARY(node));
         return (VALUE)node;
       case NODE_SYM:
-        return rb_node_sym_string_val(node);
+        return (VALUE)node;
       case NODE_LINE:
         node_line_hash_set(p, RNODE_LINE(node));
         return (VALUE)node;
