@@ -652,8 +652,8 @@ typedef struct RNode_LIT {
 
 typedef struct RNode_INTEGER {
     NODE node;
-    struct RNode_hash_data hash;
 
+    struct RNode_hash_data hash;
     char *val;
     int minus;
     int base;
@@ -669,6 +669,7 @@ typedef struct RNode_FLOAT {
 typedef struct RNode_RATIONAL {
     NODE node;
 
+    struct RNode_hash_data hash;
     char *val;
     int minus;
     int base;
@@ -684,6 +685,7 @@ enum rb_numeric_type {
 typedef struct RNode_IMAGINARY {
     NODE node;
 
+    struct RNode_hash_data hash;
     char *val;
     int minus;
     int base;
@@ -1016,6 +1018,7 @@ typedef struct RNode_FNDPTN {
 
 typedef struct RNode_LINE {
     NODE node;
+
     struct RNode_hash_data hash;
 } rb_node_line_t;
 

@@ -221,9 +221,11 @@ free_ast_value(rb_ast_t *ast, void *ctx, NODE *node)
         xfree(RNODE_FLOAT(node)->val);
         break;
       case NODE_RATIONAL:
+        // parser_bigfree(ast, RNODE_RATIONAL(node)->hash.data);
         xfree(RNODE_RATIONAL(node)->val);
         break;
       case NODE_IMAGINARY:
+        // parser_bigfree(ast, RNODE_IMAGINARY(node)->hash.data);
         xfree(RNODE_IMAGINARY(node)->val);
         break;
       case NODE_LINE:

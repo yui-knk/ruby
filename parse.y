@@ -2942,7 +2942,7 @@ node_rational_cmp(rb_node_rational_t *n1, rb_node_rational_t *n2)
     return (n1->minus != n2->minus ||
             n1->base != n2->base ||
             n1->seen_point != n2->seen_point ||
-            strcmp(n1->val, n2->val));
+            parser_big_cmp((rb_parser_bignum_t *)n1->hash.data, (rb_parser_bignum_t *)n2->hash.data));
 }
 
 static int
@@ -2952,7 +2952,7 @@ node_imaginary_cmp(rb_node_imaginary_t *n1, rb_node_imaginary_t *n2)
             n1->base != n2->base ||
             n1->seen_point != n2->seen_point ||
             n1->type != n2->type ||
-            strcmp(n1->val, n2->val));
+            parser_big_cmp((rb_parser_bignum_t *)n1->hash.data, (rb_parser_bignum_t *)n2->hash.data));
 }
 
 static int
@@ -3039,6 +3039,38 @@ node_integer_hash_set(struct parser_params *p, rb_node_integer_t *node)
 }
 
 static st_index_t
+node_rational_hash_set(struct parser_params *p, rb_node_rational_t *node)
+{
+    rb_parser_bignum_t *big;
+    st_index_t hash;
+
+    if (node->hash.hash) return node->hash.hash;
+
+    big = rb_parser_int_parse_cstr(p, node->val, strlen(node->val), NULL, NULL, node->base, PARSER_INT_PARSE_DEFAULT);
+    hash = parser_big_hash(big);
+    node->hash.data = big;
+    node->hash.hash = hash;
+
+    return hash;
+}
+
+static st_index_t
+node_imaginary_hash_set(struct parser_params *p, rb_node_imaginary_t *node)
+{
+    rb_parser_bignum_t *big;
+    st_index_t hash;
+
+    if (node->hash.hash) return node->hash.hash;
+
+    big = rb_parser_int_parse_cstr(p, node->val, strlen(node->val), NULL, NULL, node->base, PARSER_INT_PARSE_DEFAULT);
+    hash = parser_big_hash(big);
+    node->hash.data = big;
+    node->hash.hash = hash;
+
+    return hash;
+}
+
+static st_index_t
 node_line_hash_set(struct parser_params *p, rb_node_line_t *node)
 {
     rb_parser_bignum_t *big;
@@ -3069,11 +3101,9 @@ node_cdhash_hash(VALUE a)
             val = rb_node_float_literal_val(node);
             return rb_dbl_long_hash(RFLOAT_VALUE(val));
           case NODE_RATIONAL:
-            val = rb_node_rational_literal_val(node);
-            return rb_rational_hash(val);
+            return RNODE_RATIONAL(node)->hash.hash;
           case NODE_IMAGINARY:
-            val = rb_node_imaginary_literal_val(node);
-            return rb_complex_hash(val);
+            return RNODE_IMAGINARY(node)->hash.hash;
           case NODE_SYM:
             return rb_node_sym_string_val(node);
           case NODE_LINE:
@@ -13128,6 +13158,7 @@ static rb_node_rational_t *
 rb_node_rational_new(struct parser_params *p, char* val, int base, int seen_point, const YYLTYPE *loc)
 {
     rb_node_rational_t *n = NODE_NEWNODE(NODE_RATIONAL, rb_node_rational_t, loc);
+    node_hash_data_initialize(&n->hash);
     n->val = val;
     n->minus = FALSE;
     n->base = base;
@@ -13140,6 +13171,7 @@ static rb_node_imaginary_t *
 rb_node_imaginary_new(struct parser_params *p, char* val, int base, int seen_point, enum rb_numeric_type numeric_type, const YYLTYPE *loc)
 {
     rb_node_imaginary_t *n = NODE_NEWNODE(NODE_IMAGINARY, rb_node_imaginary_t, loc);
+    node_hash_data_initialize(&n->hash);
     n->val = val;
     n->minus = FALSE;
     n->base = base;
@@ -16013,9 +16045,11 @@ nd_st_key(struct parser_params *p, NODE *node)
       case NODE_FLOAT:
         return rb_node_float_literal_val(node);
       case NODE_RATIONAL:
-        return rb_node_rational_literal_val(node);
+        node_rational_hash_set(p, RNODE_RATIONAL(node));
+        return (VALUE)node;
       case NODE_IMAGINARY:
-        return rb_node_imaginary_literal_val(node);
+        node_imaginary_hash_set(p, RNODE_IMAGINARY(node));
+        return (VALUE)node;
       case NODE_SYM:
         return rb_node_sym_string_val(node);
       case NODE_LINE:
