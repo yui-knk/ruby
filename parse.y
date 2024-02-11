@@ -2519,6 +2519,32 @@ parser_big_hash(rb_parser_bignum_t *big)
     return parser_memhash(BDIGITS(big), sizeof(PARSER_BDIGIT)*PARSER_BIGNUM_LEN(big));
 }
 
+static int
+parser_bary_cmp(const PARSER_BDIGIT *xds, size_t xn, const PARSER_BDIGIT *yds, size_t yn)
+{
+    size_t i;
+    BARY_TRUNC(xds, xn);
+    BARY_TRUNC(yds, yn);
+
+    if (xn < yn)
+        return -1;
+    if (xn > yn)
+        return 1;
+
+    for (i = 0; i < xn; i++)
+        if (xds[xn - i - 1] != yds[yn - i - 1])
+            break;
+    if (i == xn)
+        return 0;
+    return xds[xn - i - 1] < yds[yn - i - 1] ? -1 : 1;
+}
+
+static int
+parser_big_cmp(rb_parser_bignum_t *x, rb_parser_bignum_t *y)
+{
+    return parser_bary_cmp(BDIGITS(x), PARSER_BIGNUM_LEN(x), BDIGITS(y), PARSER_BIGNUM_LEN(y));
+}
+
 const signed char digit36_to_number_table[] = {
     /*     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f */
     /*0*/ -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
@@ -2880,8 +2906,7 @@ static int
 node_integer_cmp(rb_node_integer_t *n1, rb_node_integer_t *n2)
 {
     return (n1->minus != n2->minus ||
-            n1->base != n2->base ||
-            strcmp(n1->val, n2->val));
+            parser_big_cmp((rb_parser_bignum_t *)n1->hash.data, (rb_parser_bignum_t *)n2->hash.data));
 }
 
 static int
@@ -15946,7 +15971,38 @@ nd_st_key(struct parser_params *p, NODE *node)
       case NODE_STR:
         return rb_node_str_string_val(node);
       case NODE_INTEGER:
-        return (VALUE)node_integer_hash_set(p, RNODE_INTEGER(node));
+        node_integer_hash_set(p, RNODE_INTEGER(node));
+        return (VALUE)node;
+      case NODE_FLOAT:
+        return rb_node_float_literal_val(node);
+      case NODE_RATIONAL:
+        return rb_node_rational_literal_val(node);
+      case NODE_IMAGINARY:
+        return rb_node_imaginary_literal_val(node);
+      case NODE_SYM:
+        return rb_node_sym_string_val(node);
+      case NODE_LINE:
+        return rb_node_line_lineno_val(node);
+      case NODE_ENCODING:
+        return rb_node_encoding_val(node);
+      case NODE_FILE:
+        return rb_node_file_path_val(node);
+      default:
+        rb_bug("unexpected node: %s", ruby_node_name(nd_type(node)));
+        UNREACHABLE_RETURN(0);
+    }
+}
+
+static VALUE
+nd_value(struct parser_params *p, NODE *node)
+{
+    switch (nd_type(node)) {
+      case NODE_LIT:
+        return RNODE_LIT(node)->nd_lit;
+      case NODE_STR:
+        return rb_node_str_string_val(node);
+      case NODE_INTEGER:
+        return rb_node_integer_literal_val(node);
       case NODE_FLOAT:
         return rb_node_float_literal_val(node);
       case NODE_RATIONAL:
@@ -15989,7 +16045,7 @@ warn_duplicate_keys(struct parser_params *p, NODE *hash)
                  st_delete(literal_keys, (key = (st_data_t)nd_st_key(p, head), &key), &data)) {
             rb_compile_warn(p->ruby_sourcefile, nd_line((NODE *)data),
                             "key %+"PRIsVALUE" is duplicated and overwritten on line %d",
-                            nd_st_key(p, head), nd_line(head));
+                            nd_value(p, head), nd_line(head));
         }
         st_insert(literal_keys, (st_data_t)key, (st_data_t)hash);
         hash = next;
