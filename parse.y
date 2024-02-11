@@ -1950,6 +1950,24 @@ get_nd_args(struct parser_params *p, NODE *node)
 }
 #endif
 
+static uint64_t
+djb2(const uint8_t *str, size_t len)
+{
+    uint64_t hash = 5381;
+
+    for (size_t i = 0; i < len; i++) {
+        hash = ((hash << 5) + hash) + str[i];
+    }
+
+    return hash;
+}
+
+static st_index_t
+parser_memhash(const void *ptr, long len)
+{
+    return (st_index_t)djb2(ptr, len);
+}
+
 #define PARSER_STRING_PTR(str) (str->ptr)
 #define PARSER_STRING_LEN(str) (str->len)
 #define STRING_SIZE(str) ((size_t)str->len + 1)
@@ -2003,6 +2021,12 @@ rb_parser_string_free(rb_parser_t *p, rb_parser_string_t *str)
     if (!str) return;
     xfree(PARSER_STRING_PTR(str));
     xfree(str);
+}
+
+static st_index_t
+rb_parser_str_hash(rb_parser_string_t *str)
+{
+    return parser_memhash((const void *)PARSER_STRING_PTR(str), PARSER_STRING_LEN(str));
 }
 
 #ifndef RIPPER
@@ -2398,24 +2422,6 @@ rb_str_to_parser_string(rb_parser_t *p, VALUE str)
     return rb_parser_encoding_string_new(p, RSTRING_PTR(str), RSTRING_LEN(str), rb_enc_get(str));
 }
 #endif
-
-static uint64_t
-djb2(const uint8_t *str, size_t len)
-{
-    uint64_t hash = 5381;
-
-    for (size_t i = 0; i < len; i++) {
-        hash = ((hash << 5) + hash) + str[i];
-    }
-
-    return hash;
-}
-
-static st_index_t
-parser_memhash(const void *ptr, long len)
-{
-    return (st_index_t)djb2(ptr, len);
-}
 
 #define PARSER_BDIGIT unsigned short
 #define PARSER_SIZEOF_BDIGIT (SIZEOF_LONG/2)
@@ -2908,6 +2914,7 @@ hash_literal_key_p(VALUE k)
           case NODE_FLOAT:
           case NODE_RATIONAL:
           case NODE_IMAGINARY:
+          case NODE_STR:
           case NODE_SYM:
           case NODE_LINE:
           case NODE_FILE:
@@ -2970,14 +2977,6 @@ node_cdhash_cmp(VALUE val, VALUE lit)
         return 0;
     }
 
-    /* Special case for __FILE__ and String */
-    if (OBJ_BUILTIN_TYPE(val) == T_NODE && nd_type(RNODE(val)) == NODE_FILE && RB_TYPE_P(lit, T_STRING)) {
-        return rb_str_hash_cmp(rb_node_file_path_val(RNODE(val)), lit);
-    }
-    if (OBJ_BUILTIN_TYPE(lit) == T_NODE && nd_type(RNODE(lit)) == NODE_FILE && RB_TYPE_P(val, T_STRING)) {
-        return rb_str_hash_cmp(rb_node_file_path_val(RNODE(lit)), val);
-    }
-
     if ((OBJ_BUILTIN_TYPE(val) == T_NODE) && (OBJ_BUILTIN_TYPE(lit) == T_NODE)) {
         NODE *node_val = RNODE(val);
         NODE *node_lit = RNODE(lit);
@@ -2990,6 +2989,14 @@ node_cdhash_cmp(VALUE val, VALUE lit)
         }
         if (type_lit == NODE_INTEGER && type_val == NODE_LINE) {
             return node_integer_line_cmp(RNODE_INTEGER(node_lit), RNODE_LINE(node_val));
+        }
+
+        /* Special case for __FILE__ and String */
+        if (type_val == NODE_STR && type_lit == NODE_FILE) {
+            return rb_parser_string_hash_cmp(RNODE_STR(node_val)->string, RNODE_FILE(node_lit)->path);
+        }
+        if (type_lit == NODE_STR && type_val == NODE_FILE) {
+            return rb_parser_string_hash_cmp(RNODE_STR(node_lit)->string, RNODE_FILE(node_val)->path);
         }
 
         if (type_val != type_lit) {
@@ -3005,6 +3012,8 @@ node_cdhash_cmp(VALUE val, VALUE lit)
             return node_rational_cmp(RNODE_RATIONAL(node_val), RNODE_RATIONAL(node_lit));
           case NODE_IMAGINARY:
             return node_imaginary_cmp(RNODE_IMAGINARY(node_val), RNODE_IMAGINARY(node_lit));
+          case NODE_STR:
+            return rb_parser_string_hash_cmp(RNODE_STR(node_val)->string, RNODE_STR(node_lit)->string);
           case NODE_SYM:
             return rb_parser_string_hash_cmp(RNODE_SYM(node_val)->string, RNODE_SYM(node_lit)->string);
           case NODE_LINE:
@@ -3111,6 +3120,8 @@ node_cdhash_hash(VALUE a)
             /* TODO */
             val = rb_node_imaginary_literal_val(node);
             return rb_complex_hash(val);
+          case NODE_STR:
+            return rb_parser_str_hash(RNODE_STR(node)->string);
           case NODE_SYM:
             return rb_node_sym_string_val(node);
           case NODE_LINE:
@@ -3118,7 +3129,7 @@ node_cdhash_hash(VALUE a)
             return RNODE_LINE(node)->hash.hash;
           case NODE_FILE:
             /* Same with String in rb_iseq_cdhash_hash */
-            return rb_str_hash(rb_node_file_path_val(node));
+            return rb_parser_str_hash(RNODE_FILE(node)->path);
           case NODE_ENCODING:
             return (st_index_t)RNODE_ENCODING(node)->enc;
           default:
@@ -16046,7 +16057,7 @@ nd_st_key(struct parser_params *p, NODE *node)
       case NODE_LIT:
         return RNODE_LIT(node)->nd_lit;
       case NODE_STR:
-        return rb_node_str_string_val(node);
+        return (VALUE)node;
       case NODE_INTEGER:
         node_integer_hash_set(p, RNODE_INTEGER(node));
         return (VALUE)node;
@@ -16066,7 +16077,7 @@ nd_st_key(struct parser_params *p, NODE *node)
       case NODE_ENCODING:
         return (VALUE)node;
       case NODE_FILE:
-        return rb_node_file_path_val(node);
+        return (VALUE)node;
       default:
         rb_bug("unexpected node: %s", ruby_node_name(nd_type(node)));
         UNREACHABLE_RETURN(0);
