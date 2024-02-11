@@ -2991,7 +2991,7 @@ node_cdhash_cmp(VALUE val, VALUE lit)
             return node_integer_line_cmp(RNODE_INTEGER(node_lit), RNODE_LINE(node_val));
         }
 
-        /* Special case for __FILE__ and String */
+        /* Special case for String and __FILE__ */
         if (type_val == NODE_STR && type_lit == NODE_FILE) {
             return rb_parser_string_hash_cmp(RNODE_STR(node_val)->string, RNODE_FILE(node_lit)->path);
         }
