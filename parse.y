@@ -2911,6 +2911,7 @@ hash_literal_key_p(VALUE k)
           case NODE_SYM:
           case NODE_LINE:
           case NODE_FILE:
+          case NODE_ENCODING:
             return true;
           default:
             return false;
@@ -3010,6 +3011,8 @@ node_cdhash_cmp(VALUE val, VALUE lit)
             return node_val->nd_loc.beg_pos.lineno != node_lit->nd_loc.beg_pos.lineno;
           case NODE_FILE:
             return rb_parser_string_hash_cmp(RNODE_FILE(node_val)->path, RNODE_FILE(node_lit)->path);
+          case NODE_ENCODING:
+            return RNODE_ENCODING(node_val)->enc != RNODE_ENCODING(node_lit)->enc;
           default:
             rb_bug("unexpected node: %s, %s", ruby_node_name(type_val), ruby_node_name(type_lit));
         }
@@ -3117,7 +3120,7 @@ node_cdhash_hash(VALUE a)
             /* Same with String in rb_iseq_cdhash_hash */
             return rb_str_hash(rb_node_file_path_val(node));
           case NODE_ENCODING:
-            return rb_node_encoding_val(node);
+            return (st_index_t)RNODE_ENCODING(node)->enc;
           default:
             rb_bug("unexpected node: %s", ruby_node_name(type));
         }
@@ -16029,6 +16032,7 @@ nd_type_st_key_enable_p(NODE *node)
       case NODE_SYM:
       case NODE_LINE:
       case NODE_FILE:
+      case NODE_ENCODING:
         return true;
       default:
         return false;
@@ -16060,7 +16064,7 @@ nd_st_key(struct parser_params *p, NODE *node)
         node_line_hash_set(p, RNODE_LINE(node));
         return (VALUE)node;
       case NODE_ENCODING:
-        return rb_node_encoding_val(node);
+        return (VALUE)node;
       case NODE_FILE:
         return rb_node_file_path_val(node);
       default:
