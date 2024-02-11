@@ -10992,6 +10992,7 @@ parse_numeric(struct parser_params *p, int c)
             tokadd(p, '0');
         }
         else {
+            tokadd(p, '0');
             pushback(p, c);
             tokfix(p);
             suffix = number_literal_suffix(p, NUM_SUFFIX_ALL);
