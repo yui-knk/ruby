@@ -226,6 +226,9 @@ free_ast_value(rb_ast_t *ast, void *ctx, NODE *node)
       case NODE_IMAGINARY:
         xfree(RNODE_IMAGINARY(node)->val);
         break;
+      case NODE_LINE:
+        // parser_bigfree(ast, NODE_LINE(node)->hash.data);
+        break;
       default:
         break;
     }

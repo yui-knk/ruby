@@ -2445,6 +2445,8 @@ PARSER_BIGNUM_LEN(rb_parser_bignum_t *b)
 #define BIGLO(x) ((PARSER_BDIGIT)((x) & BDIGMAX))
 #define BDIGMAX ((PARSER_BDIGIT)(BIGRAD-1))
 
+#define bdigit_roomof(n) roomof(n, PARSER_SIZEOF_BDIGIT)
+
 #define BDIGITS_ZERO(ptr, n) do { \
   PARSER_BDIGIT *bdigitz_zero_ptr = (ptr); \
   size_t bdigitz_zero_n = (n); \
@@ -2511,6 +2513,24 @@ static rb_parser_bignum_t *
 parser_bignorm(struct parser_params *p, rb_parser_bignum_t *big)
 {
     return parser_bigfixize(p, big);
+}
+
+static rb_parser_bignum_t *
+parser_uint2big(struct parser_params *p, uintptr_t n)
+{
+    size_t i;
+    rb_parser_bignum_t *big = parser_bignew(p, bdigit_roomof(sizeof(uintptr_t)), 1);
+    PARSER_BDIGIT *digits = BDIGITS(big);
+
+    for (i = 0; i < bdigit_roomof(sizeof(uintptr_t)); i++) {
+        digits[i] = BIGLO(n);
+        n = BIGDN(n);
+    }
+
+    i = bdigit_roomof(sizeof(uintptr_t));
+    while (--i && !digits[i]) ;
+    BIGNUM_SET_LEN(big, i+1);
+    return big;
 }
 
 static st_index_t
@@ -2936,11 +2956,10 @@ node_imaginary_cmp(rb_node_imaginary_t *n1, rb_node_imaginary_t *n2)
 }
 
 static int
-node_integer_line_cmp(const NODE *node_i, const NODE *line)
+node_integer_line_cmp(const rb_node_integer_t *node_i, const rb_node_line_t *line)
 {
-    VALUE num = rb_node_integer_literal_val(node_i);
-
-    return !(FIXNUM_P(num) && line->nd_loc.beg_pos.lineno == FIX2INT(num));
+    return (node_i->minus != 0 ||
+            parser_big_cmp((rb_parser_bignum_t *)node_i->hash.data, (rb_parser_bignum_t *)line->hash.data));
 }
 
 static int
@@ -2966,10 +2985,10 @@ node_cdhash_cmp(VALUE val, VALUE lit)
 
         /* Special case for Integer and __LINE__ */
         if (type_val == NODE_INTEGER && type_lit == NODE_LINE) {
-            return node_integer_line_cmp(node_val, node_lit);
+            return node_integer_line_cmp(RNODE_INTEGER(node_val), RNODE_LINE(node_lit));
         }
         if (type_lit == NODE_INTEGER && type_val == NODE_LINE) {
-            return node_integer_line_cmp(node_lit, node_val);
+            return node_integer_line_cmp(RNODE_INTEGER(node_lit), RNODE_LINE(node_val));
         }
 
         if (type_val != type_lit) {
@@ -3020,6 +3039,22 @@ node_integer_hash_set(struct parser_params *p, rb_node_integer_t *node)
 }
 
 static st_index_t
+node_line_hash_set(struct parser_params *p, rb_node_line_t *node)
+{
+    rb_parser_bignum_t *big;
+    st_index_t hash;
+
+    if (node->hash.hash) return node->hash.hash;
+
+    big = parser_uint2big(p, RNODE(node)->nd_loc.beg_pos.lineno);
+    hash = parser_big_hash(big);
+    node->hash.data = big;
+    node->hash.hash = hash;
+
+    return hash;
+}
+
+static st_index_t
 node_cdhash_hash(VALUE a)
 {
     switch (OBJ_BUILTIN_TYPE(a)) {
@@ -3043,7 +3078,7 @@ node_cdhash_hash(VALUE a)
             return rb_node_sym_string_val(node);
           case NODE_LINE:
             /* Same with NODE_INTEGER FIXNUM case */
-            return (st_index_t)node->nd_loc.beg_pos.lineno;
+            return RNODE_LINE(node)->hash.hash;
           case NODE_FILE:
             /* Same with String in rb_iseq_cdhash_hash */
             return rb_str_hash(rb_node_file_path_val(node));
@@ -13445,6 +13480,7 @@ static rb_node_line_t *
 rb_node_line_new(struct parser_params *p, const YYLTYPE *loc)
 {
     rb_node_line_t *n = NODE_NEWNODE(NODE_LINE, rb_node_line_t, loc);
+    node_hash_data_initialize(&n->hash);
 
     return n;
 }
@@ -15983,7 +16019,8 @@ nd_st_key(struct parser_params *p, NODE *node)
       case NODE_SYM:
         return rb_node_sym_string_val(node);
       case NODE_LINE:
-        return rb_node_line_lineno_val(node);
+        node_line_hash_set(p, RNODE_LINE(node));
+        return (VALUE)node;
       case NODE_ENCODING:
         return rb_node_encoding_val(node);
       case NODE_FILE:
