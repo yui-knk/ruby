@@ -201,8 +201,8 @@ typedef void rb_node_hash_data;
 
 /*  */
 typedef struct RNode_hash_data {
-	st_data_t hash;
-	rb_node_hash_data *data;
+    st_data_t hash;
+    rb_node_hash_data *data;
 } rb_node_hash_data_t;
 
 typedef struct RNode_SCOPE {
