@@ -119,12 +119,42 @@ node_float_cmp(rb_node_float_t *n1, rb_node_float_t *n2)
 }
 
 static int
+node_rational_significant_len(rb_node_rational_t *node)
+{
+    int i, s = node->seen_point, len = (int)(strlen(node->val));
+    const char *str = node->val;
+
+    if (!s) return len;
+
+    for (i = len - 1; i > s; i--) {
+        if (str[i] != '0') break;
+    }
+
+    if (str[i] == '.') i--;
+    return s + i;
+}
+
+static int
+node_rational_cmp_later(rb_node_rational_t *n1, rb_node_rational_t *n2)
+{
+    int len1 = node_rational_significant_len(n1);
+    int len2 = node_rational_significant_len(n2);
+
+    return (len1 != len2 ||
+            strncmp(n1->val, n2->val, len1));
+}
+
+static int
 node_rational_cmp(rb_node_rational_t *n1, rb_node_rational_t *n2)
 {
+    if (n1->hash.data && n2->hash.data) {
+        return parser_big_cmp((rb_parser_bignum_t *)n1->hash.data, (rb_parser_bignum_t *)n2->hash.data);
+    }
+
     return (n1->minus != n2->minus ||
             n1->base != n2->base ||
             n1->seen_point != n2->seen_point ||
-            strcmp(n1->val, n2->val)); /* TODO */
+            node_rational_cmp_later(n1, n2));
 }
 
 static int
@@ -225,9 +255,7 @@ node_cdhash_hash(VALUE a)
             val = rb_node_float_literal_val(node);
             return rb_dbl_long_hash(RFLOAT_VALUE(val));
           case NODE_RATIONAL:
-            /* TODO */
-            val = rb_node_rational_literal_val(node);
-            return rb_rational_hash(val);
+            return RNODE_RATIONAL(node)->hash.hash;
           case NODE_IMAGINARY:
             /* TODO */
             val = rb_node_imaginary_literal_val(node);
@@ -2674,6 +2702,7 @@ parser_bignew(struct parser_params *p, size_t len, int sign)
 static void
 parser_bigfree(struct parser_params *p, rb_parser_bignum_t *big)
 {
+    if (!big) return;
     xfree(big->digits);
     xfree(big);
 }
@@ -3013,7 +3042,7 @@ rb_parser_int_parse_cstr(struct parser_params *p, const char *str, ssize_t len,
         }
         ASSERT_LEN();
     }
-
+    /* TODO */
     if (base == 2) {
         if (str[0] == '0' && (str[1] == 'b'||str[1] == 'B')) {
             ADV(2);
@@ -3112,21 +3141,37 @@ node_integer_hash_set(struct parser_params *p, rb_node_integer_t *node)
     return hash;
 }
 
+#ifndef RIPPER
 static st_index_t
 node_rational_hash_set(struct parser_params *p, rb_node_rational_t *node)
 {
-    rb_parser_bignum_t *big;
     st_index_t hash;
+    int s_len, base = node->base;
+    rb_parser_bignum_t *big;
 
     if (node->hash.hash) return node->hash.hash;
 
-    big = rb_parser_int_parse_cstr(p, node->val, strlen(node->val), NULL, NULL, node->base, PARSER_INT_PARSE_DEFAULT);
+    s_len = node_rational_significant_len(node);
+    if (node->seen_point > 0){
+        if (node->seen_point != s_len) {
+            hash = parser_memhash((const void *)node->val, s_len);
+            node->hash.hash = hash;
+            return hash;
+        }
+        else {
+            /* For example, '1.0r' */
+            base = 10;
+        }
+    }
+
+    big = rb_parser_int_parse_cstr(p, node->val, s_len, NULL, NULL, base, PARSER_INT_PARSE_DEFAULT);
     hash = parser_big_hash(big);
     node->hash.data = big;
     node->hash.hash = hash;
 
     return hash;
 }
+#endif
 
 static st_index_t
 node_imaginary_hash_set(struct parser_params *p, rb_node_imaginary_t *node)
@@ -16066,7 +16111,7 @@ nd_st_key(struct parser_params *p, NODE *node)
       case NODE_FLOAT:
         goto end;
       case NODE_RATIONAL:
-        // node_rational_hash_set(p, RNODE_RATIONAL(node));
+        node_rational_hash_set(p, RNODE_RATIONAL(node));
         goto end;
       case NODE_IMAGINARY:
         // node_imaginary_hash_set(p, RNODE_IMAGINARY(node));

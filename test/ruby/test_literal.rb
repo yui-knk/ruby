@@ -511,6 +511,11 @@ class TestRubyLiteral < Test::Unit::TestCase
     assert_warning(/key -1 is duplicated/) { eval("{-1 => :bar, -0b1 => :foo}") }
     assert_warning(/key -1 is duplicated/) { eval("{-1 => :bar, -0d1 => :foo}") }
     assert_warning(/key -1 is duplicated/) { eval("{-1 => :bar, -0o1 => :foo}") }
+
+    assert_warning(/key \(101\/100\) is duplicated/) { eval("{1.01r => :bar, 1.010r => :foo}") }
+    assert_warning(/key \(1\/1\) is duplicated/) { eval("{1.00r => :bar, 1.0r => :foo}") }
+    assert_warning(/key \(1\/1\) is duplicated/) { eval("{1.0r => :bar, 1r => :foo}") }
+
     assert_warning(/key 1 is duplicated/) { eval("{__LINE__ => :bar, 1 => :foo}") }
     assert_warning(/key \"FILENAME\" is duplicated/) { eval("{__FILE__ => :bar, 'FILENAME' => :foo}", binding, "FILENAME") }
   end
