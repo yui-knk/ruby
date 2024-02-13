@@ -103,6 +103,7 @@ hash_literal_key_p(VALUE k)
 typedef struct rb_parser_bignum rb_parser_bignum_t;
 static int rb_parser_string_hash_cmp(rb_parser_string_t *str1, rb_parser_string_t *str2);
 static int parser_big_cmp(rb_parser_bignum_t *x, rb_parser_bignum_t *y);
+static double rb_node_float_double(rb_node_float_t *n);
 
 static int
 node_integer_cmp(rb_node_integer_t *n1, rb_node_integer_t *n2)
@@ -115,7 +116,7 @@ static int
 node_float_cmp(rb_node_float_t *n1, rb_node_float_t *n2)
 {
     return (n1->minus != n2->minus ||
-            strcmp(n1->val, n2->val));
+            rb_node_float_double(n1) != rb_node_float_double(n2));
 }
 
 static int
@@ -239,6 +240,7 @@ node_cdhash_cmp(VALUE val, VALUE lit)
 }
 
 static st_index_t rb_parser_str_hash(rb_parser_string_t *str);
+static st_index_t rb_node_float_hash(rb_node_float_t *node);
 
 static st_index_t
 node_cdhash_hash(VALUE a)
@@ -252,8 +254,7 @@ node_cdhash_hash(VALUE a)
           case NODE_INTEGER:
             return RNODE_INTEGER(node)->hash.hash;
           case NODE_FLOAT:
-            val = rb_node_float_literal_val(node);
-            return rb_dbl_long_hash(RFLOAT_VALUE(val));
+            return rb_node_float_hash(RNODE_FLOAT(node));
           case NODE_RATIONAL:
             return RNODE_RATIONAL(node)->hash.hash;
           case NODE_IMAGINARY:
@@ -2186,6 +2187,27 @@ static st_index_t
 parser_memhash(const void *ptr, long len)
 {
     return djb2(ptr, len);
+}
+
+static double
+parser_double_hash(double d)
+{
+    return parser_memhash(&d, sizeof(d));
+}
+
+static double
+rb_node_float_double(rb_node_float_t *n)
+{
+    const rb_node_float_t *node = RNODE_FLOAT(n);
+    return strtod(node->val, 0);
+}
+
+static st_index_t
+rb_node_float_hash(rb_node_float_t *node)
+{
+    double d;
+    d = rb_node_float_double(node);
+    return parser_double_hash(d);
 }
 
 #define PARSER_STRING_PTR(str) (str->ptr)
