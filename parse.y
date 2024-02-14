@@ -3064,8 +3064,37 @@ rb_parser_int_parse_cstr(struct parser_params *p, const char *str, ssize_t len,
         }
         ASSERT_LEN();
     }
-    /* TODO */
-    if (base == 2) {
+    if (base <= 0) {
+        if (str[0] == '0' && len > 1) {
+            switch (str[1]) {
+              case 'x': case 'X':
+                base = 16;
+                ADV(2);
+                break;
+              case 'b': case 'B':
+                base = 2;
+                ADV(2);
+                break;
+              case 'o': case 'O':
+                base = 8;
+                ADV(2);
+                break;
+              case 'd': case 'D':
+                base = 10;
+                ADV(2);
+                break;
+              default:
+                base = 8;
+            }
+        }
+        else if (base < -1) {
+            base = -base;
+        }
+        else {
+            base = 10;
+        }
+    }
+    else if (base == 2) {
         if (str[0] == '0' && (str[1] == 'b'||str[1] == 'B')) {
             ADV(2);
         }
@@ -3168,28 +3197,22 @@ static st_index_t
 node_rational_hash_set(struct parser_params *p, rb_node_rational_t *node)
 {
     st_index_t hash;
-    int s_len, base = node->base;
-    rb_parser_bignum_t *big;
+    int s_len;
 
     if (node->hash.hash) return node->hash.hash;
 
     s_len = node_rational_significant_len(node);
-    if (node->seen_point > 0){
-        if (node->seen_point != s_len) {
-            hash = parser_memhash((const void *)node->val, s_len);
-            node->hash.hash = hash;
-            return hash;
-        }
-        else {
-            /* For example, '1.0r' */
-            base = 10;
-        }
+    if (node->seen_point > 0 && node->seen_point != s_len) {
+        hash = parser_memhash((const void *)node->val, s_len);
+        node->hash.hash = hash;
     }
-
-    big = rb_parser_int_parse_cstr(p, node->val, s_len, NULL, NULL, base, PARSER_INT_PARSE_DEFAULT);
-    hash = parser_big_hash(big);
-    node->hash.data = big;
-    node->hash.hash = hash;
+    else {
+        rb_parser_bignum_t *big;
+        big = rb_parser_int_parse_cstr(p, node->val, s_len, NULL, NULL, node->base, PARSER_INT_PARSE_DEFAULT);
+        hash = parser_big_hash(big);
+        node->hash.data = big;
+        node->hash.hash = hash;
+    }
 
     return hash;
 }
