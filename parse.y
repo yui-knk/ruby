@@ -9412,7 +9412,17 @@ formal_argument(struct parser_params *p, ID id)
 #undef ERR
     }
     shadowing_lvar(p, id);
+
+/*
+ * Workaround for Prism::ParseTest#test_filepath for "unparser/corpus/literal/def.txt"
+ *
+ * See the discussion on https://github.com/ruby/ruby/pull/9923
+ */
+#ifndef RIPPER
     return id;
+#else
+    return 0;
+#endif
 }
 
 #ifdef RIPPER
@@ -16289,6 +16299,8 @@ rb_ruby_ripper_parse0(rb_parser_t *p)
     ripper_yyparse((void*)p);
     rb_ast_dispose(p->ast);
     p->ast = 0;
+    p->eval_tree = 0;
+    p->eval_tree_begin = 0;
 }
 
 int
