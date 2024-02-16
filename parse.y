@@ -103,20 +103,19 @@ hash_literal_key_p(VALUE k)
 typedef struct rb_parser_bignum rb_parser_bignum_t;
 static int rb_parser_string_hash_cmp(rb_parser_string_t *str1, rb_parser_string_t *str2);
 static int parser_big_cmp(rb_parser_bignum_t *x, rb_parser_bignum_t *y);
-static double rb_node_float_double(rb_node_float_t *n);
 
 static int
 node_integer_cmp(rb_node_integer_t *n1, rb_node_integer_t *n2)
 {
     return (n1->minus != n2->minus ||
-            parser_big_cmp((rb_parser_bignum_t *)n1->hash.data, (rb_parser_bignum_t *)n2->hash.data));
+            parser_big_cmp((rb_parser_bignum_t *)n1->hash.data.ptr, (rb_parser_bignum_t *)n2->hash.data.ptr));
 }
 
 static int
 node_float_cmp(rb_node_float_t *n1, rb_node_float_t *n2)
 {
     return (n1->minus != n2->minus ||
-            rb_node_float_double(n1) != rb_node_float_double(n2));
+            n1->hash.data.d != n2->hash.data.d);
 }
 
 static int
@@ -148,9 +147,11 @@ node_rational_cmp_later(rb_node_rational_t *n1, rb_node_rational_t *n2)
 static int
 node_rational_cmp(rb_node_rational_t *n1, rb_node_rational_t *n2)
 {
-    if (n1->hash.data && n2->hash.data) {
-        return parser_big_cmp((rb_parser_bignum_t *)n1->hash.data, (rb_parser_bignum_t *)n2->hash.data);
+    if (n1->hash.data.ptr && n2->hash.data.ptr) {
+        return parser_big_cmp((rb_parser_bignum_t *)n1->hash.data.ptr, (rb_parser_bignum_t *)n2->hash.data.ptr);
     }
+
+    /* TODO */
 
     return (n1->minus != n2->minus ||
             n1->base != n2->base ||
@@ -172,7 +173,7 @@ static int
 node_integer_line_cmp(const rb_node_integer_t *node_i, const rb_node_line_t *line)
 {
     return (node_i->minus != 0 ||
-            parser_big_cmp((rb_parser_bignum_t *)node_i->hash.data, (rb_parser_bignum_t *)line->hash.data));
+            parser_big_cmp((rb_parser_bignum_t *)node_i->hash.data.ptr, (rb_parser_bignum_t *)line->hash.data.ptr));
 }
 
 static int
@@ -240,7 +241,6 @@ node_cdhash_cmp(VALUE val, VALUE lit)
 }
 
 static st_index_t rb_parser_str_hash(rb_parser_string_t *str);
-static st_index_t rb_node_float_hash(rb_node_float_t *node);
 
 static st_index_t
 node_cdhash_hash(VALUE a)
@@ -254,7 +254,7 @@ node_cdhash_hash(VALUE a)
           case NODE_INTEGER:
             return RNODE_INTEGER(node)->hash.hash;
           case NODE_FLOAT:
-            return rb_node_float_hash(RNODE_FLOAT(node));
+            return RNODE_FLOAT(node)->hash.hash;
           case NODE_RATIONAL:
             return RNODE_RATIONAL(node)->hash.hash;
           case NODE_IMAGINARY:
@@ -2195,21 +2195,6 @@ parser_double_hash(double d)
     return parser_memhash(&d, sizeof(d));
 }
 
-static double
-rb_node_float_double(rb_node_float_t *n)
-{
-    const rb_node_float_t *node = RNODE_FLOAT(n);
-    return strtod(node->val, 0);
-}
-
-static st_index_t
-rb_node_float_hash(rb_node_float_t *node)
-{
-    double d;
-    d = rb_node_float_double(node);
-    return parser_double_hash(d);
-}
-
 #define PARSER_STRING_PTR(str) (str->ptr)
 #define PARSER_STRING_LEN(str) (str->len)
 #define STRING_SIZE(str) ((size_t)str->len + 1)
@@ -3186,7 +3171,30 @@ node_integer_hash_set(struct parser_params *p, rb_node_integer_t *node)
 
     big = rb_parser_int_parse_cstr(p, node->val, strlen(node->val), NULL, NULL, node->base, PARSER_INT_PARSE_DEFAULT);
     hash = parser_big_hash(big);
-    node->hash.data = big;
+    node->hash.data.ptr = big;
+    node->hash.hash = hash;
+
+    return hash;
+}
+
+static double
+rb_node_float_double(rb_node_float_t *n)
+{
+    const rb_node_float_t *node = RNODE_FLOAT(n);
+    return strtod(node->val, 0);
+}
+
+static st_index_t
+node_float_hash_set(struct parser_params *p, rb_node_float_t *node)
+{
+    double d;
+    st_index_t hash;
+
+    if (node->hash.hash) return node->hash.hash;
+
+    d = rb_node_float_double(node);
+    hash = parser_double_hash(d);
+    node->hash.data.d = d;
     node->hash.hash = hash;
 
     return hash;
@@ -3210,7 +3218,7 @@ node_rational_hash_set(struct parser_params *p, rb_node_rational_t *node)
         rb_parser_bignum_t *big;
         big = rb_parser_int_parse_cstr(p, node->val, s_len, NULL, NULL, node->base, PARSER_INT_PARSE_DEFAULT);
         hash = parser_big_hash(big);
-        node->hash.data = big;
+        node->hash.data.ptr = big;
         node->hash.hash = hash;
     }
 
@@ -3228,7 +3236,7 @@ node_imaginary_hash_set(struct parser_params *p, rb_node_imaginary_t *node)
 
     big = rb_parser_int_parse_cstr(p, node->val, strlen(node->val), NULL, NULL, node->base, PARSER_INT_PARSE_DEFAULT);
     hash = parser_big_hash(big);
-    node->hash.data = big;
+    node->hash.data.ptr = big;
     node->hash.hash = hash;
 
     return hash;
@@ -3244,7 +3252,7 @@ node_line_hash_set(struct parser_params *p, rb_node_line_t *node)
 
     big = parser_uint2big(p, RNODE(node)->nd_loc.beg_pos.lineno);
     hash = parser_big_hash(big);
-    node->hash.data = big;
+    node->hash.data.ptr = big;
     node->hash.hash = hash;
 
     return hash;
@@ -12582,7 +12590,7 @@ static void
 node_hash_data_initialize(rb_node_hash_data_t *hash)
 {
     hash->hash = 0;
-    hash->data = 0;
+    hash->data.ptr = 0;
 }
 
 #define NODE_NEWNODE(node_type, type, loc) (type *)(node_newnode(p, node_type, sizeof(type), RUBY_ALIGNOF(type), loc))
@@ -13260,6 +13268,7 @@ static rb_node_float_t *
 rb_node_float_new(struct parser_params *p, char* val, const YYLTYPE *loc)
 {
     rb_node_float_t *n = NODE_NEWNODE(NODE_FLOAT, rb_node_float_t, loc);
+    node_hash_data_initialize(&n->hash);
     n->val = val;
     n->minus = FALSE;
 
@@ -16154,6 +16163,7 @@ nd_st_key(struct parser_params *p, NODE *node)
         node_integer_hash_set(p, RNODE_INTEGER(node));
         goto end;
       case NODE_FLOAT:
+        node_float_hash_set(p, RNODE_FLOAT(node));
         goto end;
       case NODE_RATIONAL:
         node_rational_hash_set(p, RNODE_RATIONAL(node));

@@ -11,6 +11,7 @@
 
 #define rb_encoding void
 #define OnigCodePoint unsigned int
+#define st_data_t parser_st_data_t
 #include "parser_st.h"
 #ifndef RUBY_RUBY_H
 #include "parser_value.h"
@@ -202,7 +203,10 @@ typedef void rb_node_hash_data;
 /*  */
 typedef struct RNode_hash_data {
     st_data_t hash;
-    rb_node_hash_data *data;
+    union {
+        rb_node_hash_data *ptr;
+        double d;
+    } data;
 } rb_node_hash_data_t;
 
 typedef struct RNode_SCOPE {
@@ -662,6 +666,7 @@ typedef struct RNode_INTEGER {
 typedef struct RNode_FLOAT {
     NODE node;
 
+    struct RNode_hash_data hash;
     char *val;
     int minus;
 } rb_node_float_t;
