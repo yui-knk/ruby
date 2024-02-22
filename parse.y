@@ -285,9 +285,7 @@ node_cdhash_hash(VALUE a)
           case NODE_RATIONAL:
             return RNODE_RATIONAL(node)->hash.hash;
           case NODE_IMAGINARY:
-            /* TODO */
-            val = rb_node_imaginary_literal_val(node);
-            return rb_complex_hash(val);
+            return RNODE_IMAGINARY(node)->hash.hash;
           case NODE_STR:
             return rb_parser_str_hash(RNODE_STR(node)->string);
           case NODE_SYM:
