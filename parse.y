@@ -105,17 +105,29 @@ static int rb_parser_string_hash_cmp(rb_parser_string_t *str1, rb_parser_string_
 static int parser_big_cmp(rb_parser_bignum_t *x, rb_parser_bignum_t *y);
 
 static int
+integer_cmp(int minus1, int minus2, rb_parser_bignum_t *big1, rb_parser_bignum_t *big2)
+{
+    return (minus1 != minus2 ||
+            parser_big_cmp(big1, big2));
+}
+
+static int
 node_integer_cmp(rb_node_integer_t *n1, rb_node_integer_t *n2)
 {
-    return (n1->minus != n2->minus ||
-            parser_big_cmp((rb_parser_bignum_t *)n1->hash.data.ptr, (rb_parser_bignum_t *)n2->hash.data.ptr));
+    return integer_cmp(n1->minus, n2->minus, (rb_parser_bignum_t *)n1->hash.data.ptr, (rb_parser_bignum_t *)n2->hash.data.ptr);
+}
+
+static int
+float_cmp(int minus1, int minus2, double d1, double d2)
+{
+    return (minus1 != minus2 ||
+            d1 != d2);
 }
 
 static int
 node_float_cmp(rb_node_float_t *n1, rb_node_float_t *n2)
 {
-    return (n1->minus != n2->minus ||
-            n1->hash.data.d != n2->hash.data.d);
+    return float_cmp(n1->minus, n2->minus, n1->hash.data.d, n2->hash.data.d);
 }
 
 static int
@@ -134,44 +146,54 @@ rational_significant_len(const char *str, ssize_t len, int seen_point)
 }
 
 static int
-node_rational_significant_len(rb_node_rational_t *node)
+rational_cmp_later(const char *str1, const char *str2, int seen_point1, int seen_point2)
 {
-    return rational_significant_len(node->val, strlen(node->val), node->seen_point);
+    int len1 = rational_significant_len(str1, strlen(str1), seen_point1);
+    int len2 = rational_significant_len(str2, strlen(str2), seen_point2);
+
+    return (len1 != len2 ||
+            strncmp(str1, str2, len1));
 }
 
 static int
-node_rational_cmp_later(rb_node_rational_t *n1, rb_node_rational_t *n2)
+rational_cmp(int minus1, int minus2, int base1, int base2, int seen_point1, int seen_point2,
+             const char *str1, const char *str2, rb_parser_bignum_t *big1, rb_parser_bignum_t *big2)
 {
-    int len1 = node_rational_significant_len(n1);
-    int len2 = node_rational_significant_len(n2);
+    if (big1 && big2) {
+        return parser_big_cmp(big1, big2);
+    }
 
-    return (len1 != len2 ||
-            strncmp(n1->val, n2->val, len1));
+    return (minus1 != minus2 ||
+            base1 != base2 ||
+            seen_point1 != seen_point2 ||
+            rational_cmp_later(str1, str2, seen_point1, seen_point2));
 }
 
 static int
 node_rational_cmp(rb_node_rational_t *n1, rb_node_rational_t *n2)
 {
-    if (n1->hash.data.ptr && n2->hash.data.ptr) {
-        return parser_big_cmp((rb_parser_bignum_t *)n1->hash.data.ptr, (rb_parser_bignum_t *)n2->hash.data.ptr);
-    }
-
-    /* TODO */
-
-    return (n1->minus != n2->minus ||
-            n1->base != n2->base ||
-            n1->seen_point != n2->seen_point ||
-            node_rational_cmp_later(n1, n2));
+    return rational_cmp(n1->minus, n2->minus,
+                        n1->base, n2->base,
+                        n1->seen_point, n2->seen_point,
+                        n1->val, n2->val,
+                        (rb_parser_bignum_t *)n1->hash.data.ptr, (rb_parser_bignum_t *)n2->hash.data.ptr);
 }
 
 static int
 node_imaginary_cmp(rb_node_imaginary_t *n1, rb_node_imaginary_t *n2)
 {
-    return (n1->minus != n2->minus ||
-            n1->base != n2->base ||
-            n1->seen_point != n2->seen_point ||
-            n1->type != n2->type ||
-            strcmp(n1->val, n2->val)); /* TODO */
+    switch (n1->type) {
+      case integer_literal:
+        return integer_cmp(n1->minus, n2->minus, (rb_parser_bignum_t *)n1->hash.data.ptr, (rb_parser_bignum_t *)n2->hash.data.ptr);
+      case float_literal:
+        return float_cmp(n1->minus, n2->minus, n1->hash.data.d, n2->hash.data.d);
+      case rational_literal:
+        return rational_cmp(n1->minus, n2->minus,
+                            n1->base, n2->base,
+                            n1->seen_point, n2->seen_point,
+                            n1->val, n2->val,
+                            (rb_parser_bignum_t *)n1->hash.data.ptr, (rb_parser_bignum_t *)n2->hash.data.ptr);
+    }
 }
 
 static int
