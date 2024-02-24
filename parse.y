@@ -14405,7 +14405,7 @@ void_expr(struct parser_params *p, NODE *node)
     }
 
     if (useless) {
-        rb_warn1L(nd_line(node), "possibly useless use of %s in void context", WARN_S(useless));
+        rb_warn1L(nd_line(node), "possibly useless use of %s in void context", useless);
     }
 }
 
