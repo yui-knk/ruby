@@ -2160,23 +2160,21 @@ rb_parser_string_new_cstr(rb_parser_t *p, const char *ptr)
     return rb_parser_string_new(p, ptr, strlen(ptr));
 }
 
-static rb_parser_string_t *
-rb_parser_string_new_id(rb_parser_t *p, ID id)
-{
-    const char *str = rb_id2name(id);
-
-    if (!str) return 0;
-    return rb_parser_string_new_cstr(p, str);
-}
-
-#ifndef RIPPER
 rb_parser_string_t *
 rb_str_to_parser_string(rb_parser_t *p, VALUE str)
 {
     /* Type check */
     return rb_parser_encoding_string_new(p, RSTRING_PTR(str), RSTRING_LEN(str), rb_enc_get(str));
 }
-#endif
+
+static rb_parser_string_t *
+rb_parser_string_new_id(rb_parser_t *p, ID id)
+{
+    VALUE str = rb_id2str(id);
+    if (!str) return 0;
+
+    return rb_str_to_parser_string(p, str);
+}
 
 static void
 rb_parser_string_free(rb_parser_t *p, rb_parser_string_t *str)
