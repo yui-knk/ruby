@@ -74,7 +74,7 @@
 #include "symbol.h"
 
 #ifndef RIPPER
-static int rb_parser_string_hash_cmp(rb_parser_string_t *str1, rb_parser_string_t *str2);
+static int rb_parser_str_hash_cmp(rb_parser_string_t *str1, rb_parser_string_t *str2);
 
 static int
 node_integer_cmp(rb_node_integer_t *n1, rb_node_integer_t *n2)
@@ -114,7 +114,7 @@ static int
 rb_parser_regx_hash_cmp(rb_node_regx_t *n1, rb_node_regx_t *n2)
 {
     return (n1->options != n2->options ||
-            rb_parser_string_hash_cmp(n1->string, n2->string));
+            rb_parser_str_hash_cmp(n1->string, n2->string));
 }
 
 static int
@@ -147,10 +147,10 @@ literal_cmp(st_data_t val, st_data_t lit)
 
     /* Special case for String and __FILE__ */
     if (type_val == NODE_STR && type_lit == NODE_FILE) {
-        return rb_parser_string_hash_cmp(RNODE_STR(node_val)->string, RNODE_FILE(node_lit)->path);
+        return rb_parser_str_hash_cmp(RNODE_STR(node_val)->string, RNODE_FILE(node_lit)->path);
     }
     if (type_lit == NODE_STR && type_val == NODE_FILE) {
-        return rb_parser_string_hash_cmp(RNODE_STR(node_lit)->string, RNODE_FILE(node_val)->path);
+        return rb_parser_str_hash_cmp(RNODE_STR(node_lit)->string, RNODE_FILE(node_val)->path);
     }
 
     if (type_val != type_lit) {
@@ -167,15 +167,15 @@ literal_cmp(st_data_t val, st_data_t lit)
       case NODE_IMAGINARY:
         return node_imaginary_cmp(RNODE_IMAGINARY(node_val), RNODE_IMAGINARY(node_lit));
       case NODE_STR:
-        return rb_parser_string_hash_cmp(RNODE_STR(node_val)->string, RNODE_STR(node_lit)->string);
+        return rb_parser_str_hash_cmp(RNODE_STR(node_val)->string, RNODE_STR(node_lit)->string);
       case NODE_SYM:
-        return rb_parser_string_hash_cmp(RNODE_SYM(node_val)->string, RNODE_SYM(node_lit)->string);
+        return rb_parser_str_hash_cmp(RNODE_SYM(node_val)->string, RNODE_SYM(node_lit)->string);
       case NODE_REGX:
         return rb_parser_regx_hash_cmp(RNODE_REGX(node_val), RNODE_REGX(node_lit));
       case NODE_LINE:
         return node_val->nd_loc.beg_pos.lineno != node_lit->nd_loc.beg_pos.lineno;
       case NODE_FILE:
-        return rb_parser_string_hash_cmp(RNODE_FILE(node_val)->path, RNODE_FILE(node_lit)->path);
+        return rb_parser_str_hash_cmp(RNODE_FILE(node_val)->path, RNODE_FILE(node_lit)->path);
       case NODE_ENCODING:
         return RNODE_ENCODING(node_val)->enc != RNODE_ENCODING(node_lit)->enc;
       default:
@@ -590,6 +590,8 @@ struct parser_params {
     ID it_id;
 
     struct lex_context ctxt;
+
+    st_table *string_pool;
 
     NODE *eval_tree_begin;
     NODE *eval_tree;
@@ -2573,7 +2575,7 @@ rb_parser_str_resize(struct parser_params *p, rb_parser_string_t *str, long len)
      (encvar) = str->enc)
 
 static int
-rb_parser_string_hash_cmp(rb_parser_string_t *str1, rb_parser_string_t *str2)
+rb_parser_str_hash_cmp(rb_parser_string_t *str1, rb_parser_string_t *str2)
 {
     long len1, len2;
     const char *ptr1, *ptr2;
@@ -15958,6 +15960,23 @@ internal_id(struct parser_params *p)
 }
 #endif /* !RIPPER */
 
+static int
+string_pool_hash_cmp(st_data_t str1, st_data_t str2)
+{
+    return rb_parser_str_hash_cmp((rb_parser_string_t *)str1, (rb_parser_string_t *)str2);
+}
+
+static st_index_t
+string_pool_hash(st_data_t str)
+{
+    return rb_parser_str_hash((rb_parser_string_t *)str);
+}
+
+static const struct st_hash_type string_pool_hash_type = {
+    string_pool_hash_cmp,
+    string_pool_hash,
+};
+
 static void
 parser_initialize(struct parser_params *p)
 {
@@ -15967,6 +15986,7 @@ parser_initialize(struct parser_params *p)
     p->lex.lpar_beg = -1; /* make lambda_beginning_p() == FALSE at first */
     string_buffer_init(p);
     p->node_id = 0;
+    p->string_pool = st_init_table_with_size(&string_pool_hash_type, 100);
     p->delayed.token = Qnil;
     p->frozen_string_literal = -1; /* not specified */
 #ifndef RIPPER
@@ -16022,6 +16042,20 @@ rb_ruby_parser_mark(void *ptr)
 #endif
 }
 
+static int
+string_pool_free_i(st_data_t str, st_data_t idx, st_data_t p)
+{
+    rb_parser_string_free((struct parser_params *)p, (rb_parser_string_t *)str);
+    return ST_DELETE;
+}
+
+static void
+string_pool_free(struct parser_params *p, st_table *string_pool)
+{
+    st_foreach(string_pool, string_pool_free_i, (st_data_t)p);
+    st_free_table(string_pool);
+}
+
 void
 rb_ruby_parser_free(void *ptr)
 {
@@ -16048,6 +16082,10 @@ rb_ruby_parser_free(void *ptr)
 
     if (p->pvtbl) {
         st_free_table(p->pvtbl);
+    }
+
+    if (p->string_pool) {
+        string_pool_free(p, p->string_pool);
     }
 
     xfree(ptr);
