@@ -744,6 +744,7 @@ after_pop_stack(int len, struct parser_params *p)
 #define intern_cstr(n,l,en) rb_intern3(n,l,en)
 
 #define STRING_NEW0() rb_parser_encoding_string_new(p,0,0,p->enc)
+#define TOK_STRING() rb_parser_encoding_string_new_pool(p, tok(p), toklen(p), p->enc)
 
 #define STR_NEW(ptr,len) rb_enc_str_new((ptr),(len),p->enc)
 #define STR_NEW0() rb_enc_str_new(0,0,p->enc)
@@ -1182,7 +1183,7 @@ static rb_node_block_pass_t *rb_node_block_pass_new(struct parser_params *p, NOD
 static rb_node_defn_t *rb_node_defn_new(struct parser_params *p, ID nd_mid, NODE *nd_defn, const YYLTYPE *loc);
 static rb_node_defs_t *rb_node_defs_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_defn, const YYLTYPE *loc);
 static rb_node_alias_t *rb_node_alias_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYPE *loc);
-static rb_node_valias_t *rb_node_valias_new(struct parser_params *p, ID nd_alias, ID nd_orig, const YYLTYPE *loc);
+static rb_node_valias_t *rb_node_valias_new(struct parser_params *p, rb_parser_string_t *nd_alias, rb_parser_string_t *nd_orig, const YYLTYPE *loc);
 static rb_node_undef_t *rb_node_undef_new(struct parser_params *p, NODE *nd_undef, const YYLTYPE *loc);
 static rb_node_class_t *rb_node_class_new(struct parser_params *p, NODE *nd_cpath, NODE *nd_body, NODE *nd_super, const YYLTYPE *loc);
 static rb_node_module_t *rb_node_module_new(struct parser_params *p, NODE *nd_cpath, NODE *nd_body, const YYLTYPE *loc);
@@ -2608,6 +2609,9 @@ rb_parser_str_hash_cmp(rb_parser_string_t *str1, rb_parser_string_t *str2)
     rb_parser_printf(p, "%"PRIsVALUE, rb_id2str($$));
 } <id>
 %printer {
+    rb_parser_printf(p, "%"PRIsVALUE, rb_str_new_parser_string($$));
+} <str>
+%printer {
     switch (nd_type(RNODE($$))) {
       case NODE_INTEGER:
         rb_parser_printf(p, "%+"PRIsVALUE, rb_node_integer_literal_val($$));
@@ -2660,6 +2664,7 @@ rb_parser_str_hash_cmp(rb_parser_string_t *str1, rb_parser_string_t *str2)
     rb_node_def_temp_t *node_def_temp;
     rb_node_exits_t *node_exits;
     ID id;
+    rb_parser_string_t *str;
     int num;
     st_table *tbl;
     const struct vtable *vars;
@@ -2720,7 +2725,7 @@ rb_parser_str_hash_cmp(rb_parser_string_t *str1, rb_parser_string_t *str2)
 
 %token <id>   tIDENTIFIER    "local variable or method"
 %token <id>   tFID           "method"
-%token <id>   tGVAR          "global variable"
+%token <str>  tGVAR          "global variable"
 %token <id>   tIVAR          "instance variable"
 %token <id>   tCONSTANT      "constant"
 %token <id>   tCVAR          "class variable"
@@ -7002,7 +7007,7 @@ static enum yytokentype here_document(struct parser_params*,rb_strterm_heredoc_t
   yylval.node = (x);					\
   set_parser_s_value(STR_NEW(p->lex.ptok, p->lex.pcur-p->lex.ptok)); \
 }
-# define set_yylval_str(x) \
+# define set_yylval_node_str(x) \
 do { \
   set_yylval_node(NEW_STR(rb_str_to_parser_string(p, x), &_cur_loc)); \
   set_parser_s_value(x); \
@@ -7016,6 +7021,11 @@ do { \
   (yylval.id = (x)); \
   set_parser_s_value(ID2SYM(x)); \
 }
+# define set_yylval_str(x) \
+do { \
+  (yylval.str = (x)); \
+  set_parser_s_value(rb_str_new_parser_string(x)); \
+} while(0)
 # define yylval_id() (yylval.id)
 
 #define set_yylval_noname() set_yylval_id(keyword_nil)
@@ -7542,6 +7552,24 @@ vtable_included(const struct vtable * tbl, ID id)
         }
     }
     return 0;
+}
+
+static rb_parser_string_t *
+rb_parser_encoding_string_new_pool(struct parser_params *p, const char *ptr, long len, rb_encoding *enc)
+{
+    st_data_t str_data;
+    // TODO: Is it better to mark parser_string to be managed by string pool for debug?
+    rb_parser_string_t *str = rb_parser_string_new(p, ptr, len);
+
+    if (st_lookup(p->string_pool, (st_data_t)str, &str_data)) {
+        rb_parser_string_free(p, str);
+        str = (rb_parser_string_t *)str_data;
+    }
+    else {
+        st_insert(p->string_pool, (st_data_t)str, (st_data_t)str);
+    }
+
+    return str;
 }
 
 static void parser_prepare(struct parser_params *p);
@@ -8889,7 +8917,7 @@ parse_string(struct parser_params *p, rb_strterm_literal_t *quote)
 
     tokfix(p);
     lit = STR_NEW3(tok(p), toklen(p), enc, func);
-    set_yylval_str(lit);
+    set_yylval_node_str(lit);
     flush_string_content(p, enc);
 
     return tSTRING_CONTENT;
@@ -9378,7 +9406,7 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
               flush:
                 str = STR_NEW3(tok(p), toklen(p), enc, func);
               flush_str:
-                set_yylval_str(str);
+                set_yylval_node_str(str);
 #ifndef RIPPER
                 if (bol) nd_set_fl_newline(yylval.node);
 #endif
@@ -9400,10 +9428,10 @@ here_document(struct parser_params *p, rb_strterm_heredoc_t *here)
     token_flush(p);
     p->lex.strterm = NEW_STRTERM(func | STR_FUNC_TERM, 0, 0);
 #ifdef RIPPER
-    /* Preserve s_value for set_yylval_str */
+    /* Preserve s_value for set_yylval_node_str */
     s_value = p->s_value;
 #endif
-    set_yylval_str(str);
+    set_yylval_node_str(str);
 #ifdef RIPPER
     set_parser_s_value(s_value);
 #endif
@@ -10245,7 +10273,7 @@ parse_qmark(struct parser_params *p, int space_seen)
     }
     tokfix(p);
     lit = STR_NEW3(tok(p), toklen(p), enc, 0);
-    set_yylval_str(lit);
+    set_yylval_node_str(lit);
     SET_LEX_STATE(EXPR_END);
     return tCHAR;
 }
@@ -10370,6 +10398,17 @@ tokenize_ident(struct parser_params *p)
     return ident;
 }
 
+// TODO: Rename tokenize_ident2 to tokenize_ident once tokenize_ident is not used
+static rb_parser_string_t *
+tokenize_ident2(struct parser_params *p)
+{
+    rb_parser_string_t *str = TOK_STRING();
+
+    set_yylval_str(str);
+
+    return str;
+}
+
 static int
 parse_numvar(struct parser_params *p)
 {
@@ -10445,7 +10484,7 @@ parse_gvar(struct parser_params *p, const enum lex_state_e last_state)
             return '$';
         }
       gvar:
-        set_yylval_name(TOK_INTERN());
+        set_yylval_str(TOK_STRING());
         return tGVAR;
 
       case '&': 	/* $&: last match */
@@ -10497,7 +10536,7 @@ parse_gvar(struct parser_params *p, const enum lex_state_e last_state)
     if (tokadd_ident(p, c)) return 0;
     SET_LEX_STATE(EXPR_END);
     if (VALID_SYMNAME_P(tok(p), toklen(p), p->enc, ID_GLOBAL)) {
-        tokenize_ident(p);
+        tokenize_ident2(p);
     }
     else {
         compile_error(p, "'%.*s' is not allowed as a global variable name", toklen(p), tok(p));
@@ -12434,7 +12473,7 @@ rb_node_alias_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYL
 }
 
 static rb_node_valias_t *
-rb_node_valias_new(struct parser_params *p, ID nd_alias, ID nd_orig, const YYLTYPE *loc)
+rb_node_valias_new(struct parser_params *p, rb_parser_string_t *nd_alias, rb_parser_string_t *nd_orig, const YYLTYPE *loc)
 {
     rb_node_valias_t *n = NODE_NEWNODE(NODE_VALIAS, rb_node_valias_t, loc);
     n->nd_alias = nd_alias;

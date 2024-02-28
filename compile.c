@@ -725,6 +725,12 @@ validate_labels(rb_iseq_t *iseq, st_table *labels_table)
     st_free_table(labels_table);
 }
 
+static VALUE
+parser_string_to_sym(rb_parser_string_t *str)
+{
+    return ID2SYM(rb_intern3(str->ptr, str->len, str->enc));
+}
+
 static NODE *
 get_nd_recv(const NODE *node)
 {
@@ -10521,8 +10527,8 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
       }
       case NODE_VALIAS:{
         ADD_INSN1(ret, node, putspecialobject, INT2FIX(VM_SPECIAL_OBJECT_VMCORE));
-        ADD_INSN1(ret, node, putobject, ID2SYM(RNODE_VALIAS(node)->nd_alias));
-        ADD_INSN1(ret, node, putobject, ID2SYM(RNODE_VALIAS(node)->nd_orig));
+        ADD_INSN1(ret, node, putobject, parser_string_to_sym(RNODE_VALIAS(node)->nd_alias));
+        ADD_INSN1(ret, node, putobject, parser_string_to_sym(RNODE_VALIAS(node)->nd_orig));
         ADD_SEND(ret, node, id_core_set_variable_alias, INT2FIX(2));
 
         if (popped) {

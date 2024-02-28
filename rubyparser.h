@@ -850,8 +850,8 @@ typedef struct RNode_ALIAS {
 typedef struct RNode_VALIAS {
     NODE node;
 
-    ID nd_alias;
-    ID nd_orig;
+    rb_parser_string_t *nd_alias; // This is managed by string pool.
+    rb_parser_string_t *nd_orig;  // This is managed by string pool.
 } rb_node_valias_t;
 
 typedef struct RNode_UNDEF {

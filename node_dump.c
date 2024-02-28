@@ -26,6 +26,7 @@
 #define A_INT(val) rb_str_catf(buf, "%d", (val))
 #define A_LONG(val) rb_str_catf(buf, "%ld", (val))
 #define A_LIT(lit) AR(rb_dump_literal(lit))
+#define A_STR(str) AR(dump_parser_string(str))
 #define A_NODE_HEADER(node, term) \
     rb_str_catf(buf, "@ %s (id: %d, line: %d, location: (%d,%d)-(%d,%d))%s"term, \
                 ruby_node_name(nd_type(node)), nd_node_id(node), nd_line(node), \
@@ -65,6 +66,7 @@
 #define F_INT(name, type, ann)	    SIMPLE_FIELD1(#name, ann) A_INT(type(node)->name)
 #define F_LONG(name, type, ann)	    SIMPLE_FIELD1(#name, ann) A_LONG(type(node)->name)
 #define F_LIT(name, type, ann)	    SIMPLE_FIELD1(#name, ann) A_LIT(type(node)->name)
+#define F_STR(name, type, ann)      SIMPLE_FIELD1(#name, ann) A_STR(type(node)->name)
 #define F_VALUE(name, val, ann)     SIMPLE_FIELD1(#name, ann) A_LIT(val)
 #define F_MSG(name, ann, desc)	    SIMPLE_FIELD1(#name, ann) A(desc)
 
@@ -98,6 +100,12 @@ rb_dump_literal(VALUE lit)
         }
     }
     return rb_inspect(lit);
+}
+
+static VALUE
+dump_parser_string(rb_parser_string_t *str)
+{
+    return rb_str_new_parser_string(str);
 }
 
 static void
@@ -876,8 +884,8 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("global variable alias statement");
         ANN("format: alias [nd_alias](gvar) [nd_orig](gvar)");
         ANN("example: alias $y $x");
-        F_ID(nd_alias, RNODE_VALIAS, "new name");
-        F_ID(nd_orig, RNODE_VALIAS, "old name");
+        F_STR(nd_alias, RNODE_VALIAS, "new name");
+        F_STR(nd_orig, RNODE_VALIAS, "old name");
         return;
 
       case NODE_UNDEF:
