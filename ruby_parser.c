@@ -824,16 +824,16 @@ rb_str_new_parser_string(rb_parser_string_t *str)
     return rb_enc_str_new(str->ptr, str->len, str->enc);
 }
 
-VALUE
-parser_string_to_sym(rb_parser_string_t *str)
-{
-    return ID2SYM(rb_intern3(str->ptr, str->len, str->enc));
-}
-
 ID
-parser_string_to_id(rb_parser_string_t *str)
+rb_parser_string_to_id(rb_parser_string_t *str)
 {
     return rb_intern3(str->ptr, str->len, str->enc);
+}
+
+VALUE
+rb_parser_string_to_sym(rb_parser_string_t *str)
+{
+    return ID2SYM(rb_parser_string_to_id(str));
 }
 
 static VALUE

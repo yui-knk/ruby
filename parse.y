@@ -2032,7 +2032,7 @@ set_nd_value(struct parser_params *p, NODE *node, NODE *rhs)
     }
 }
 
-static ID
+static rb_parser_string_t *
 get_nd_vid(struct parser_params *p, NODE *node)
 {
     switch (nd_type(node)) {
@@ -15236,7 +15236,7 @@ new_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct lex_c
     NODE *asgn;
 
     if (lhs) {
-        ID vid = get_nd_vid(p, lhs);
+        rb_parser_string_t *vid = get_nd_vid(p, lhs);
         YYLTYPE lhs_loc = lhs->nd_loc;
         int shareable = ctxt.shareable_constant_value;
         if (shareable) {

@@ -97,7 +97,7 @@ RUBY_SYMBOL_EXPORT_END
 #define NODE_REQUIRED_KEYWORD_P(node) ((node) == NODE_SPECIAL_REQUIRED_KEYWORD)
 #define NODE_SPECIAL_NO_NAME_REST     ((NODE *)-1)
 #define NODE_NAMED_REST_P(node) ((node) != NODE_SPECIAL_NO_NAME_REST)
-#define NODE_SPECIAL_EXCESSIVE_COMMA   ((ID)1)
+#define NODE_SPECIAL_EXCESSIVE_COMMA   ((rb_parser_string_t *)1)
 #define NODE_SPECIAL_NO_REST_KEYWORD   ((NODE *)-1)
 
 #define nd_first_column(n) ((int)(RNODE(n)->nd_loc.beg_pos.column))
