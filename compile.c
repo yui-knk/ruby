@@ -725,12 +725,6 @@ validate_labels(rb_iseq_t *iseq, st_table *labels_table)
     st_free_table(labels_table);
 }
 
-static VALUE
-parser_string_to_sym(rb_parser_string_t *str)
-{
-    return ID2SYM(rb_intern3(str->ptr, str->len, str->enc));
-}
-
 static NODE *
 get_nd_recv(const NODE *node)
 {
@@ -759,22 +753,33 @@ get_nd_recv(const NODE *node)
 static ID
 get_node_call_nd_mid(const NODE *node)
 {
+    rb_parser_string_t *str;
+
     switch (nd_type(node)) {
       case NODE_CALL:
-        return RNODE_CALL(node)->nd_mid;
+        str = RNODE_CALL(node)->nd_mid;
+        break;
       case NODE_OPCALL:
-        return RNODE_OPCALL(node)->nd_mid;
+        str = RNODE_OPCALL(node)->nd_mid;
+        break;
       case NODE_FCALL:
-        return RNODE_FCALL(node)->nd_mid;
+        str = RNODE_FCALL(node)->nd_mid;
+        break;
       case NODE_QCALL:
-        return RNODE_QCALL(node)->nd_mid;
+        str = RNODE_QCALL(node)->nd_mid;
+        break;
       case NODE_VCALL:
-        return RNODE_VCALL(node)->nd_mid;
+        str = RNODE_VCALL(node)->nd_mid;
+        break;
       case NODE_ATTRASGN:
-        return RNODE_ATTRASGN(node)->nd_mid;
+        str = RNODE_ATTRASGN(node)->nd_mid;
+        break;
       default:
         rb_bug("unexpected node: %s", ruby_node_name(nd_type(node)));
+        UNREACHABLE_RETURN(0);
     }
+
+    return parser_string_to_id(str);
 }
 
 static NODE *
@@ -801,31 +806,47 @@ get_nd_args(const NODE *node)
 static ID
 get_node_colon_nd_mid(const NODE *node)
 {
+    rb_parser_string_t *str;
+
     switch (nd_type(node)) {
       case NODE_COLON2:
-        return RNODE_COLON2(node)->nd_mid;
+        str = RNODE_COLON2(node)->nd_mid;
+        break;
       case NODE_COLON3:
-        return RNODE_COLON3(node)->nd_mid;
+        str = RNODE_COLON3(node)->nd_mid;
+        break;
       default:
         rb_bug("unexpected node: %s", ruby_node_name(nd_type(node)));
+        UNREACHABLE_RETURN(0);
     }
+
+    return parser_string_to_id(str);
 }
 
 static ID
 get_nd_vid(const NODE *node)
 {
+    rb_parser_string_t *str;
+
     switch (nd_type(node)) {
       case NODE_LASGN:
-        return RNODE_LASGN(node)->nd_vid;
+        str = RNODE_LASGN(node)->nd_vid;
+        break;
       case NODE_DASGN:
-        return RNODE_DASGN(node)->nd_vid;
+        str = RNODE_DASGN(node)->nd_vid;
+        break;
       case NODE_IASGN:
-        return RNODE_IASGN(node)->nd_vid;
+        str = RNODE_IASGN(node)->nd_vid;
+        break;
       case NODE_CVASGN:
-        return RNODE_CVASGN(node)->nd_vid;
+        str = RNODE_CVASGN(node)->nd_vid;
+        break;
       default:
         rb_bug("unexpected node: %s", ruby_node_name(nd_type(node)));
+        UNREACHABLE_RETURN(0);
     }
+
+    return parser_string_to_id(str);
 }
 
 static NODE *
@@ -5672,14 +5693,14 @@ collect_const_segments(rb_iseq_t *iseq, const NODE *node)
     for (;;) {
         switch (nd_type(node)) {
           case NODE_CONST:
-            rb_ary_unshift(arr, ID2SYM(RNODE_CONST(node)->nd_vid));
+            rb_ary_unshift(arr, parser_string_to_sym(RNODE_CONST(node)->nd_vid));
             return arr;
           case NODE_COLON3:
-            rb_ary_unshift(arr, ID2SYM(RNODE_COLON3(node)->nd_mid));
+            rb_ary_unshift(arr, parser_string_to_sym(RNODE_COLON3(node)->nd_mid));
             rb_ary_unshift(arr, ID2SYM(idNULL));
             return arr;
           case NODE_COLON2:
-            rb_ary_unshift(arr, ID2SYM(RNODE_COLON2(node)->nd_mid));
+            rb_ary_unshift(arr, parser_string_to_sym(RNODE_COLON2(node)->nd_mid));
             node = RNODE_COLON2(node)->nd_head;
             break;
           default:
@@ -5696,20 +5717,20 @@ compile_const_prefix(rb_iseq_t *iseq, const NODE *const node,
       case NODE_CONST:
         debugi("compile_const_prefix - colon", RNODE_CONST(node)->nd_vid);
         ADD_INSN1(body, node, putobject, Qtrue);
-        ADD_INSN1(body, node, getconstant, ID2SYM(RNODE_CONST(node)->nd_vid));
+        ADD_INSN1(body, node, getconstant, parser_string_to_sym(RNODE_CONST(node)->nd_vid));
         break;
       case NODE_COLON3:
         debugi("compile_const_prefix - colon3", RNODE_COLON3(node)->nd_mid);
         ADD_INSN(body, node, pop);
         ADD_INSN1(body, node, putobject, rb_cObject);
         ADD_INSN1(body, node, putobject, Qtrue);
-        ADD_INSN1(body, node, getconstant, ID2SYM(RNODE_COLON3(node)->nd_mid));
+        ADD_INSN1(body, node, getconstant, parser_string_to_sym(RNODE_COLON3(node)->nd_mid));
         break;
       case NODE_COLON2:
         CHECK(compile_const_prefix(iseq, RNODE_COLON2(node)->nd_head, pref, body));
         debugi("compile_const_prefix - colon2", RNODE_COLON2(node)->nd_mid);
         ADD_INSN1(body, node, putobject, Qfalse);
-        ADD_INSN1(body, node, getconstant, ID2SYM(RNODE_COLON2(node)->nd_mid));
+        ADD_INSN1(body, node, getconstant, parser_string_to_sym(RNODE_COLON2(node)->nd_mid));
         break;
       default:
         CHECK(COMPILE(pref, "const colon2 prefix", node));
@@ -5822,25 +5843,25 @@ defined_expr0(rb_iseq_t *iseq, LINK_ANCHOR *const ret,
 #define PUSH_VAL(type) (needstr == Qfalse ? Qtrue : rb_iseq_defined_string(type))
       case NODE_IVAR:
         ADD_INSN3(ret, line_node, definedivar,
-                  ID2SYM(RNODE_IVAR(node)->nd_vid), get_ivar_ic_value(iseq,RNODE_IVAR(node)->nd_vid), PUSH_VAL(DEFINED_IVAR));
+                  parser_string_to_sym(RNODE_IVAR(node)->nd_vid), get_ivar_ic_value(iseq, RNODE_IVAR(node)->nd_vid), PUSH_VAL(DEFINED_IVAR));
         return;
 
       case NODE_GVAR:
         ADD_INSN(ret, line_node, putnil);
         ADD_INSN3(ret, line_node, defined, INT2FIX(DEFINED_GVAR),
-                  ID2SYM(RNODE_GVAR(node)->nd_vid), PUSH_VAL(DEFINED_GVAR));
+                  parser_string_to_sym(RNODE_GVAR(node)->nd_vid), PUSH_VAL(DEFINED_GVAR));
         return;
 
       case NODE_CVAR:
         ADD_INSN(ret, line_node, putnil);
         ADD_INSN3(ret, line_node, defined, INT2FIX(DEFINED_CVAR),
-                  ID2SYM(RNODE_CVAR(node)->nd_vid), PUSH_VAL(DEFINED_CVAR));
+                  parser_string_to_sym(RNODE_CVAR(node)->nd_vid), PUSH_VAL(DEFINED_CVAR));
         return;
 
       case NODE_CONST:
         ADD_INSN(ret, line_node, putnil);
         ADD_INSN3(ret, line_node, defined, INT2FIX(DEFINED_CONST),
-                  ID2SYM(RNODE_CONST(node)->nd_vid), PUSH_VAL(DEFINED_CONST));
+                  parser_string_to_sym(RNODE_CONST(node)->nd_vid), PUSH_VAL(DEFINED_CONST));
         return;
       case NODE_COLON2:
         if (!lfinish[1]) {
@@ -5850,19 +5871,19 @@ defined_expr0(rb_iseq_t *iseq, LINK_ANCHOR *const ret,
         ADD_INSNL(ret, line_node, branchunless, lfinish[1]);
         NO_CHECK(COMPILE(ret, "defined/colon2#nd_head", RNODE_COLON2(node)->nd_head));
 
-        if (rb_is_const_id(RNODE_COLON2(node)->nd_mid)) {
+        if (rb_is_const_id(parser_string_to_id(RNODE_COLON2(node)->nd_mid))) {
             ADD_INSN3(ret, line_node, defined, INT2FIX(DEFINED_CONST_FROM),
-                    ID2SYM(RNODE_COLON2(node)->nd_mid), PUSH_VAL(DEFINED_CONST));
+                    parser_string_to_sym(RNODE_COLON2(node)->nd_mid), PUSH_VAL(DEFINED_CONST));
         }
         else {
             ADD_INSN3(ret, line_node, defined, INT2FIX(DEFINED_METHOD),
-                    ID2SYM(RNODE_COLON2(node)->nd_mid), PUSH_VAL(DEFINED_METHOD));
+                    parser_string_to_sym(RNODE_COLON2(node)->nd_mid), PUSH_VAL(DEFINED_METHOD));
         }
         return;
       case NODE_COLON3:
         ADD_INSN1(ret, line_node, putobject, rb_cObject);
         ADD_INSN3(ret, line_node, defined,
-                  INT2FIX(DEFINED_CONST_FROM), ID2SYM(RNODE_COLON3(node)->nd_mid), PUSH_VAL(DEFINED_CONST));
+                  INT2FIX(DEFINED_CONST_FROM), parser_string_to_sym(RNODE_COLON3(node)->nd_mid), PUSH_VAL(DEFINED_CONST));
         return;
 
         /* method dispatch */
@@ -9683,7 +9704,7 @@ compile_match(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, i
 static int
 compile_colon2(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, int popped)
 {
-    if (rb_is_const_id(RNODE_COLON2(node)->nd_mid)) {
+    if (rb_is_const_id(parser_string_to_id(RNODE_COLON2(node)->nd_mid))) {
         /* constant */
         VALUE segments;
         if (ISEQ_COMPILE_DATA(iseq)->option->inline_const_cache &&
@@ -9730,14 +9751,14 @@ compile_colon3(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, 
     /* add cache insn */
     if (ISEQ_COMPILE_DATA(iseq)->option->inline_const_cache) {
         ISEQ_BODY(iseq)->ic_size++;
-        VALUE segments = rb_ary_new_from_args(2, ID2SYM(idNULL), ID2SYM(RNODE_COLON3(node)->nd_mid));
+        VALUE segments = rb_ary_new_from_args(2, ID2SYM(idNULL), parser_string_to_sym(RNODE_COLON3(node)->nd_mid));
         ADD_INSN1(ret, node, opt_getconstant_path, segments);
         RB_OBJ_WRITTEN(iseq, Qundef, segments);
     }
     else {
         ADD_INSN1(ret, node, putobject, rb_cObject);
         ADD_INSN1(ret, node, putobject, Qtrue);
-        ADD_INSN1(ret, node, getconstant, ID2SYM(RNODE_COLON3(node)->nd_mid));
+        ADD_INSN1(ret, node, getconstant, parser_string_to_sym(RNODE_COLON3(node)->nd_mid));
     }
 
     if (popped) {
@@ -10096,7 +10117,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
         if (!popped) {
             ADD_INSN(ret, node, dup);
         }
-        ADD_INSN1(ret, node, setglobal, ID2SYM(RNODE_GASGN(node)->nd_vid));
+        ADD_INSN1(ret, node, setglobal, parser_string_to_sym(RNODE_GASGN(node)->nd_vid));
         break;
       }
       case NODE_IASGN:{
@@ -10105,8 +10126,8 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
             ADD_INSN(ret, node, dup);
         }
         ADD_INSN2(ret, node, setinstancevariable,
-                  ID2SYM(RNODE_IASGN(node)->nd_vid),
-                  get_ivar_ic_value(iseq,RNODE_IASGN(node)->nd_vid));
+                  parser_string_to_sym(RNODE_IASGN(node)->nd_vid),
+                  get_ivar_ic_value(iseq, RNODE_IASGN(node)->nd_vid));
         break;
       }
       case NODE_CDECL:{
@@ -10119,7 +10140,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
 
             ADD_INSN1(ret, node, putspecialobject,
                       INT2FIX(VM_SPECIAL_OBJECT_CONST_BASE));
-            ADD_INSN1(ret, node, setconstant, ID2SYM(RNODE_CDECL(node)->nd_vid));
+            ADD_INSN1(ret, node, setconstant, parser_string_to_sym(RNODE_CDECL(node)->nd_vid));
         }
         else {
             compile_cpath(ret, iseq, RNODE_CDECL(node)->nd_else);
@@ -10141,7 +10162,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
             ADD_INSN(ret, node, dup);
         }
         ADD_INSN2(ret, node, setclassvariable,
-                  ID2SYM(RNODE_CVASGN(node)->nd_vid),
+                  parser_string_to_sym(RNODE_CVASGN(node)->nd_vid),
                   get_cvar_ic_value(iseq, RNODE_CVASGN(node)->nd_vid));
         break;
       }
@@ -10214,7 +10235,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
         break;
       }
       case NODE_GVAR:{
-        ADD_INSN1(ret, node, getglobal, ID2SYM(RNODE_GVAR(node)->nd_vid));
+        ADD_INSN1(ret, node, getglobal, parser_string_to_sym(RNODE_GVAR(node)->nd_vid));
         if (popped) {
             ADD_INSN(ret, node, pop);
         }
@@ -10224,7 +10245,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
         debugi("nd_vid", RNODE_IVAR(node)->nd_vid);
         if (!popped) {
             ADD_INSN2(ret, node, getinstancevariable,
-                      ID2SYM(RNODE_IVAR(node)->nd_vid),
+                      parser_string_to_sym(RNODE_IVAR(node)->nd_vid),
                       get_ivar_ic_value(iseq, RNODE_IVAR(node)->nd_vid));
         }
         break;
@@ -10234,14 +10255,14 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
 
         if (ISEQ_COMPILE_DATA(iseq)->option->inline_const_cache) {
             body->ic_size++;
-            VALUE segments = rb_ary_new_from_args(1, ID2SYM(RNODE_CONST(node)->nd_vid));
+            VALUE segments = rb_ary_new_from_args(1, parser_string_to_sym(RNODE_CONST(node)->nd_vid));
             ADD_INSN1(ret, node, opt_getconstant_path, segments);
             RB_OBJ_WRITTEN(iseq, Qundef, segments);
         }
         else {
             ADD_INSN(ret, node, putnil);
             ADD_INSN1(ret, node, putobject, Qtrue);
-            ADD_INSN1(ret, node, getconstant, ID2SYM(RNODE_CONST(node)->nd_vid));
+            ADD_INSN1(ret, node, getconstant, parser_string_to_sym(RNODE_CONST(node)->nd_vid));
         }
 
         if (popped) {
@@ -10252,7 +10273,7 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
       case NODE_CVAR:{
         if (!popped) {
             ADD_INSN2(ret, node, getclassvariable,
-                      ID2SYM(RNODE_CVAR(node)->nd_vid),
+                      parser_string_to_sym(RNODE_CVAR(node)->nd_vid),
                       get_cvar_ic_value(iseq, RNODE_CVAR(node)->nd_vid));
         }
         break;

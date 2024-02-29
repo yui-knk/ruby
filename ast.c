@@ -366,11 +366,11 @@ dump_array(rb_ast_t *ast, const struct RNode_LIST *node)
 }
 
 static VALUE
-var_name(ID id)
+var_name(rb_parser_string_t *id)
 {
     if (!id) return Qnil;
-    if (!rb_id2str(id)) return Qnil;
-    return ID2SYM(id);
+    // if (!rb_id2str(id)) return Qnil;
+    return parser_string_to_sym(id);
 }
 
 static VALUE
@@ -478,19 +478,19 @@ node_children(rb_ast_t *ast, const NODE *node)
         return rb_ary_new_from_args(2, var_name(RNODE_GASGN(node)->nd_vid), NEW_CHILD(ast, RNODE_GASGN(node)->nd_value));
       case NODE_CDECL:
         if (RNODE_CDECL(node)->nd_vid) {
-            return rb_ary_new_from_args(2, ID2SYM(RNODE_CDECL(node)->nd_vid), NEW_CHILD(ast, RNODE_CDECL(node)->nd_value));
+            return rb_ary_new_from_args(2, parser_string_to_sym(RNODE_CDECL(node)->nd_vid), NEW_CHILD(ast, RNODE_CDECL(node)->nd_value));
         }
-        return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_CDECL(node)->nd_else), ID2SYM(RNODE_COLON2(RNODE_CDECL(node)->nd_else)->nd_mid), NEW_CHILD(ast, RNODE_CDECL(node)->nd_value));
+        return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_CDECL(node)->nd_else), parser_string_to_sym(RNODE_COLON2(RNODE_CDECL(node)->nd_else)->nd_mid), NEW_CHILD(ast, RNODE_CDECL(node)->nd_value));
       case NODE_OP_ASGN1:
         return rb_ary_new_from_args(4, NEW_CHILD(ast, RNODE_OP_ASGN1(node)->nd_recv),
-                                    ID2SYM(RNODE_OP_ASGN1(node)->nd_mid),
+                                    parser_string_to_sym(RNODE_OP_ASGN1(node)->nd_mid),
                                     NEW_CHILD(ast, RNODE_OP_ASGN1(node)->nd_index),
                                     NEW_CHILD(ast, RNODE_OP_ASGN1(node)->nd_rvalue));
       case NODE_OP_ASGN2:
         return rb_ary_new_from_args(5, NEW_CHILD(ast, RNODE_OP_ASGN2(node)->nd_recv),
                                     RBOOL(RNODE_OP_ASGN2(node)->nd_aid),
-                                    ID2SYM(RNODE_OP_ASGN2(node)->nd_vid),
-                                    ID2SYM(RNODE_OP_ASGN2(node)->nd_mid),
+                                    parser_string_to_sym(RNODE_OP_ASGN2(node)->nd_vid),
+                                    parser_string_to_sym(RNODE_OP_ASGN2(node)->nd_mid),
                                     NEW_CHILD(ast, RNODE_OP_ASGN2(node)->nd_value));
       case NODE_OP_ASGN_AND:
         return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_OP_ASGN_AND(node)->nd_head), ID2SYM(idANDOP),
@@ -500,25 +500,25 @@ node_children(rb_ast_t *ast, const NODE *node)
                                     NEW_CHILD(ast, RNODE_OP_ASGN_OR(node)->nd_value));
       case NODE_OP_CDECL:
         return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_OP_CDECL(node)->nd_head),
-                                    ID2SYM(RNODE_OP_CDECL(node)->nd_aid),
+                                    parser_string_to_sym(RNODE_OP_CDECL(node)->nd_aid),
                                     NEW_CHILD(ast, RNODE_OP_CDECL(node)->nd_value));
       case NODE_CALL:
         return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_CALL(node)->nd_recv),
-                                    ID2SYM(RNODE_CALL(node)->nd_mid),
+                                    parser_string_to_sym(RNODE_CALL(node)->nd_mid),
                                     NEW_CHILD(ast, RNODE_CALL(node)->nd_args));
       case NODE_OPCALL:
         return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_OPCALL(node)->nd_recv),
-                                    ID2SYM(RNODE_OPCALL(node)->nd_mid),
+                                    parser_string_to_sym(RNODE_OPCALL(node)->nd_mid),
                                     NEW_CHILD(ast, RNODE_OPCALL(node)->nd_args));
       case NODE_QCALL:
         return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_QCALL(node)->nd_recv),
-                                    ID2SYM(RNODE_QCALL(node)->nd_mid),
+                                    parser_string_to_sym(RNODE_QCALL(node)->nd_mid),
                                     NEW_CHILD(ast, RNODE_QCALL(node)->nd_args));
       case NODE_FCALL:
-        return rb_ary_new_from_args(2, ID2SYM(RNODE_FCALL(node)->nd_mid),
+        return rb_ary_new_from_args(2, parser_string_to_sym(RNODE_FCALL(node)->nd_mid),
                                     NEW_CHILD(ast, RNODE_FCALL(node)->nd_args));
       case NODE_VCALL:
-        return rb_ary_new_from_args(1, ID2SYM(RNODE_VCALL(node)->nd_mid));
+        return rb_ary_new_from_args(1, parser_string_to_sym(RNODE_VCALL(node)->nd_mid));
       case NODE_SUPER:
         return rb_ary_new_from_node_args(ast, 1, RNODE_SUPER(node)->nd_args);
       case NODE_ZSUPER:
@@ -536,13 +536,13 @@ node_children(rb_ast_t *ast, const NODE *node)
       case NODE_DVAR:
         return rb_ary_new_from_args(1, var_name(RNODE_DVAR(node)->nd_vid));
       case NODE_IVAR:
-        return rb_ary_new_from_args(1, ID2SYM(RNODE_IVAR(node)->nd_vid));
+        return rb_ary_new_from_args(1, parser_string_to_sym(RNODE_IVAR(node)->nd_vid));
       case NODE_CONST:
-        return rb_ary_new_from_args(1, ID2SYM(RNODE_CONST(node)->nd_vid));
+        return rb_ary_new_from_args(1, parser_string_to_sym(RNODE_CONST(node)->nd_vid));
       case NODE_CVAR:
-        return rb_ary_new_from_args(1, ID2SYM(RNODE_CVAR(node)->nd_vid));
+        return rb_ary_new_from_args(1, parser_string_to_sym(RNODE_CVAR(node)->nd_vid));
       case NODE_GVAR:
-        return rb_ary_new_from_args(1, ID2SYM(RNODE_GVAR(node)->nd_vid));
+        return rb_ary_new_from_args(1, parser_string_to_sym(RNODE_GVAR(node)->nd_vid));
       case NODE_NTH_REF:
         snprintf(name, sizeof(name), "$%ld", RNODE_NTH_REF(node)->nd_nth);
         return rb_ary_new_from_args(1, ID2SYM(rb_intern(name)));
@@ -602,13 +602,13 @@ node_children(rb_ast_t *ast, const NODE *node)
       case NODE_BLOCK_PASS:
         return rb_ary_new_from_node_args(ast, 2, RNODE_BLOCK_PASS(node)->nd_head, RNODE_BLOCK_PASS(node)->nd_body);
       case NODE_DEFN:
-        return rb_ary_new_from_args(2, ID2SYM(RNODE_DEFN(node)->nd_mid), NEW_CHILD(ast, RNODE_DEFN(node)->nd_defn));
+        return rb_ary_new_from_args(2, parser_string_to_sym(RNODE_DEFN(node)->nd_mid), NEW_CHILD(ast, RNODE_DEFN(node)->nd_defn));
       case NODE_DEFS:
-        return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_DEFS(node)->nd_recv), ID2SYM(RNODE_DEFS(node)->nd_mid), NEW_CHILD(ast, RNODE_DEFS(node)->nd_defn));
+        return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_DEFS(node)->nd_recv), parser_string_to_sym(RNODE_DEFS(node)->nd_mid), NEW_CHILD(ast, RNODE_DEFS(node)->nd_defn));
       case NODE_ALIAS:
         return rb_ary_new_from_node_args(ast, 2, RNODE_ALIAS(node)->nd_1st, RNODE_ALIAS(node)->nd_2nd);
       case NODE_VALIAS:
-        return rb_ary_new_from_args(2, ID2SYM(RNODE_VALIAS(node)->nd_alias), ID2SYM(RNODE_VALIAS(node)->nd_orig));
+        return rb_ary_new_from_args(2, rb_str_new_parser_string(RNODE_VALIAS(node)->nd_alias), rb_str_new_parser_string(RNODE_VALIAS(node)->nd_orig));
       case NODE_UNDEF:
         return rb_ary_new_from_node_args(ast, 1, RNODE_UNDEF(node)->nd_undef);
       case NODE_CLASS:
@@ -618,9 +618,9 @@ node_children(rb_ast_t *ast, const NODE *node)
       case NODE_SCLASS:
         return rb_ary_new_from_node_args(ast, 2, RNODE_SCLASS(node)->nd_recv, RNODE_SCLASS(node)->nd_body);
       case NODE_COLON2:
-        return rb_ary_new_from_args(2, NEW_CHILD(ast, RNODE_COLON2(node)->nd_head), ID2SYM(RNODE_COLON2(node)->nd_mid));
+        return rb_ary_new_from_args(2, NEW_CHILD(ast, RNODE_COLON2(node)->nd_head), parser_string_to_sym(RNODE_COLON2(node)->nd_mid));
       case NODE_COLON3:
-        return rb_ary_new_from_args(1, ID2SYM(RNODE_COLON3(node)->nd_mid));
+        return rb_ary_new_from_args(1, parser_string_to_sym(RNODE_COLON3(node)->nd_mid));
       case NODE_DOT2:
       case NODE_DOT3:
       case NODE_FLIP2:
@@ -641,7 +641,7 @@ node_children(rb_ast_t *ast, const NODE *node)
       case NODE_POSTEXE:
         return rb_ary_new_from_node_args(ast, 1, RNODE_POSTEXE(node)->nd_body);
       case NODE_ATTRASGN:
-        return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_ATTRASGN(node)->nd_recv), ID2SYM(RNODE_ATTRASGN(node)->nd_mid), NEW_CHILD(ast, RNODE_ATTRASGN(node)->nd_args));
+        return rb_ary_new_from_args(3, NEW_CHILD(ast, RNODE_ATTRASGN(node)->nd_recv), parser_string_to_sym(RNODE_ATTRASGN(node)->nd_mid), NEW_CHILD(ast, RNODE_ATTRASGN(node)->nd_args));
       case NODE_LAMBDA:
         return rb_ary_new_from_node_args(ast, 1, RNODE_LAMBDA(node)->nd_body);
       case NODE_OPT_ARG:

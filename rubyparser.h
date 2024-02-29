@@ -45,8 +45,18 @@ enum rb_parser_string_coderange_type {
     RB_PARSER_ENC_CODERANGE_BROKEN   = 3
 };
 
+enum rb_parser_string_id_type {
+    RB_PARSER_ID_NONE     = 0,
+    RB_PARSER_ID_LOCAL    = 1,
+    RB_PARSER_ID_INSTANCE = 2,
+    RB_PARSER_ID_GLOBAL   = 3,
+    RB_PARSER_ID_CONST    = 4,
+    RB_PARSER_ID_CLASS    = 5
+};
+
 typedef struct rb_parser_string {
     enum rb_parser_string_coderange_type coderange;
+    enum rb_parser_string_id_type id_type;
     rb_encoding *enc;
     /* Length of the string, not including terminating NUL character. */
     long len;
@@ -176,7 +186,7 @@ enum node_type {
 
 typedef struct rb_ast_id_table {
     int size;
-    ID ids[FLEX_ARY_LEN];
+    rb_parser_string_t *ids[FLEX_ARY_LEN];
 } rb_ast_id_table_t;
 
 typedef struct rb_code_position_struct {
@@ -383,35 +393,35 @@ typedef struct RNode_MASGN {
 typedef struct RNode_LASGN {
     NODE node;
 
-    ID nd_vid;
+    rb_parser_string_t *nd_vid;
     struct RNode *nd_value;
 } rb_node_lasgn_t;
 
 typedef struct RNode_DASGN {
     NODE node;
 
-    ID nd_vid;
+    rb_parser_string_t *nd_vid;
     struct RNode *nd_value;
 } rb_node_dasgn_t;
 
 typedef struct RNode_GASGN {
     NODE node;
 
-    ID nd_vid;
+    rb_parser_string_t *nd_vid;
     struct RNode *nd_value;
 } rb_node_gasgn_t;
 
 typedef struct RNode_IASGN {
     NODE node;
 
-    ID nd_vid;
+    rb_parser_string_t *nd_vid;
     struct RNode *nd_value;
 } rb_node_iasgn_t;
 
 typedef struct RNode_CDECL {
     NODE node;
 
-    ID nd_vid;
+    rb_parser_string_t *nd_vid;
     struct RNode *nd_value;
     struct RNode *nd_else;
 } rb_node_cdecl_t;
@@ -419,7 +429,7 @@ typedef struct RNode_CDECL {
 typedef struct RNode_CVASGN {
     NODE node;
 
-    ID nd_vid;
+    rb_parser_string_t *nd_vid;
     struct RNode *nd_value;
 } rb_node_cvasgn_t;
 
@@ -427,7 +437,7 @@ typedef struct RNode_OP_ASGN1 {
     NODE node;
 
     struct RNode *nd_recv;
-    ID nd_mid;
+    rb_parser_string_t *nd_mid;
     struct RNode *nd_index;
     struct RNode *nd_rvalue;
 } rb_node_op_asgn1_t;
@@ -437,8 +447,8 @@ typedef struct RNode_OP_ASGN2 {
 
     struct RNode *nd_recv;
     struct RNode *nd_value;
-    ID nd_vid;
-    ID nd_mid;
+    rb_parser_string_t *nd_vid;
+    rb_parser_string_t *nd_mid;
     bool nd_aid;
 } rb_node_op_asgn2_t;
 
@@ -461,14 +471,14 @@ typedef struct RNode_OP_CDECL {
 
     struct RNode *nd_head;
     struct RNode *nd_value;
-    ID nd_aid;
+    rb_parser_string_t *nd_aid;
 } rb_node_op_cdecl_t;
 
 typedef struct RNode_CALL {
     NODE node;
 
     struct RNode *nd_recv;
-    ID nd_mid;
+    rb_parser_string_t *nd_mid;
     struct RNode *nd_args;
 } rb_node_call_t;
 
@@ -476,28 +486,28 @@ typedef struct RNode_OPCALL {
     NODE node;
 
     struct RNode *nd_recv;
-    ID nd_mid;
+    rb_parser_string_t *nd_mid;
     struct RNode *nd_args;
 } rb_node_opcall_t;
 
 typedef struct RNode_FCALL {
     NODE node;
 
-    ID nd_mid;
+    rb_parser_string_t *nd_mid;
     struct RNode *nd_args;
 } rb_node_fcall_t;
 
 typedef struct RNode_VCALL {
     NODE node;
 
-    ID nd_mid;
+    rb_parser_string_t *nd_mid;
 } rb_node_vcall_t;
 
 typedef struct RNode_QCALL {
     NODE node;
 
     struct RNode *nd_recv;
-    ID nd_mid;
+    rb_parser_string_t *nd_mid;
     struct RNode *nd_args;
 } rb_node_qcall_t;
 
@@ -568,37 +578,37 @@ typedef struct RNode_YIELD {
 typedef struct RNode_LVAR {
     NODE node;
 
-    ID nd_vid;
+    rb_parser_string_t *nd_vid;
 } rb_node_lvar_t;
 
 typedef struct RNode_DVAR {
     NODE node;
 
-    ID nd_vid;
+    rb_parser_string_t *nd_vid;
 } rb_node_dvar_t;
 
 typedef struct RNode_GVAR {
     NODE node;
 
-    ID nd_vid;
+    rb_parser_string_t *nd_vid;
 } rb_node_gvar_t;
 
 typedef struct RNode_IVAR {
     NODE node;
 
-    ID nd_vid;
+    rb_parser_string_t *nd_vid;
 } rb_node_ivar_t;
 
 typedef struct RNode_CONST {
     NODE node;
 
-    ID nd_vid;
+    rb_parser_string_t *nd_vid;
 } rb_node_const_t;
 
 typedef struct RNode_CVAR {
     NODE node;
 
-    ID nd_vid;
+    rb_parser_string_t *nd_vid;
 } rb_node_cvar_t;
 
 typedef struct RNode_NTH_REF {
@@ -617,7 +627,7 @@ typedef struct RNode_BACK_REF {
 typedef struct RNode_MATCH {
     NODE node;
 
-    struct rb_parser_string *string;
+    rb_parser_string_t *string;
     int options;
 } rb_node_match_t;
 
@@ -686,14 +696,14 @@ typedef struct RNode_IMAGINARY {
 typedef struct RNode_STR {
     NODE node;
 
-    struct rb_parser_string *string;
+    rb_parser_string_t *string;
 } rb_node_str_t;
 
 /* RNode_DSTR, RNode_DXSTR and RNode_DSYM should be same structure */
 typedef struct RNode_DSTR {
     NODE node;
 
-    struct rb_parser_string *string;
+    rb_parser_string_t *string;
     union {
         long nd_alen;
         struct RNode *nd_end; /* Second dstr node has this structure. See also RNode_LIST */
@@ -704,13 +714,13 @@ typedef struct RNode_DSTR {
 typedef struct RNode_XSTR {
     NODE node;
 
-    struct rb_parser_string *string;
+    rb_parser_string_t *string;
 } rb_node_xstr_t;
 
 typedef struct RNode_DXSTR {
     NODE node;
 
-    struct rb_parser_string *string;
+    rb_parser_string_t *string;
     long nd_alen;
     struct RNode_LIST *nd_next;
 } rb_node_dxstr_t;
@@ -724,14 +734,14 @@ typedef struct RNode_EVSTR {
 typedef struct RNode_REGX {
     NODE node;
 
-    struct rb_parser_string *string;
+    rb_parser_string_t *string;
     int options;
 } rb_node_regx_t;
 
 typedef struct RNode_DREGX {
     NODE node;
 
-    struct rb_parser_string *string;
+    rb_parser_string_t *string;
     ID nd_cflag;
     struct RNode_LIST *nd_next;
 } rb_node_dregx_t;
@@ -749,10 +759,10 @@ struct rb_args_info {
     int pre_args_num;  /* count of mandatory pre-arguments */
     int post_args_num; /* count of mandatory post-arguments */
 
-    ID first_post_arg;
+    rb_parser_string_t *first_post_arg;
 
-    ID rest_arg;
-    ID block_arg;
+    rb_parser_string_t *rest_arg;
+    rb_parser_string_t *block_arg;
 
     struct RNode_KW_ARG *kw_args;
     NODE *kw_rest_arg;
@@ -828,7 +838,7 @@ typedef struct RNode_BLOCK_PASS {
 typedef struct RNode_DEFN {
     NODE node;
 
-    ID nd_mid;
+    rb_parser_string_t *nd_mid;
     struct RNode *nd_defn;
 } rb_node_defn_t;
 
@@ -836,7 +846,7 @@ typedef struct RNode_DEFS {
     NODE node;
 
     struct RNode *nd_recv;
-    ID nd_mid;
+    rb_parser_string_t *nd_mid;
     struct RNode *nd_defn;
 } rb_node_defs_t;
 
@@ -886,13 +896,13 @@ typedef struct RNode_COLON2 {
     NODE node;
 
     struct RNode *nd_head;
-    ID nd_mid;
+    rb_parser_string_t *nd_mid;
 } rb_node_colon2_t;
 
 typedef struct RNode_COLON3 {
     NODE node;
 
-    ID nd_mid;
+    rb_parser_string_t *nd_mid;
 } rb_node_colon3_t;
 
 /* RNode_DOT2, RNode_DOT3, RNode_FLIP2 and RNode_FLIP3 should be same structure */
@@ -961,13 +971,13 @@ typedef struct RNode_POSTEXE {
 typedef struct RNode_SYM {
     NODE node;
 
-    struct rb_parser_string *string;
+    rb_parser_string_t *string;
 } rb_node_sym_t;
 
 typedef struct RNode_DSYM {
     NODE node;
 
-    struct rb_parser_string *string;
+    rb_parser_string_t *string;
     long nd_alen;
     struct RNode_LIST *nd_next;
 } rb_node_dsym_t;
@@ -976,7 +986,7 @@ typedef struct RNode_ATTRASGN {
     NODE node;
 
     struct RNode *nd_recv;
-    ID nd_mid;
+    rb_parser_string_t *nd_mid;
     struct RNode *nd_args;
 } rb_node_attrasgn_t;
 
@@ -1019,7 +1029,7 @@ typedef struct RNode_LINE {
 typedef struct RNode_FILE {
     NODE node;
 
-    struct rb_parser_string *path;
+    rb_parser_string_t *path;
 } rb_node_file_t;
 
 typedef struct RNode_ENCODING {
@@ -1340,6 +1350,7 @@ typedef struct rb_parser_config_struct {
     void (*encoding_set)(VALUE obj, int encindex);
     int (*encoding_is_ascii8bit)(VALUE obj);
     rb_encoding *(*usascii_encoding)(void);
+    // int (*enc_constant_char_p)()const char *name, long nlen, rb_encoding *enc;
 
     /* Ractor */
     VALUE (*ractor_make_shareable)(VALUE obj);
