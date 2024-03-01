@@ -744,7 +744,7 @@ after_pop_stack(int len, struct parser_params *p)
 #define intern_cstr(n,l,en) rb_intern3(n,l,en)
 
 #define STRING_NEW0() rb_parser_encoding_string_new(p,0,0,p->enc)
-#define TOK_STRING() rb_parser_encoding_string_new_pool3(p, tok(p), toklen(p), p->enc)
+#define TOK_STRING() intern3(tok(p), toklen(p), p->enc)
 
 #define STR_NEW(ptr,len) rb_enc_str_new((ptr),(len),p->enc)
 #define STR_NEW0() rb_enc_str_new(0,0,p->enc)
@@ -1088,7 +1088,7 @@ static void token_info_drop(struct parser_params *p, const char *token, rb_code_
 
 #define token_column		((int)(p->lex.ptok - p->lex.pbeg))
 
-#define CALL_Q_P(q) ((q) == tANDDOT)
+#define CALL_Q_P(q) ((q) == intern("&."))
 #define NEW_QCALL(q,r,m,a,loc) (CALL_Q_P(q) ? NEW_QCALL0(r,m,a,loc) : NEW_CALL(r,m,a,loc))
 
 #define lambda_beginning_p() (p->lex.lpar_beg == p->lex.paren_nest)
@@ -1386,7 +1386,7 @@ parser_get_node_id(struct parser_params *p)
 }
 
 static void
-anddot_multiple_assignment_check(struct parser_params* p, const YYLTYPE *loc, ID id)
+anddot_multiple_assignment_check(struct parser_params* p, const YYLTYPE *loc, rb_parser_string_t *id)
 {
     if (id == tANDDOT) {
         yyerror1(loc, "&. inside multiple assignment destination");
@@ -1468,7 +1468,7 @@ static void mark_lvar_used(struct parser_params *p, NODE *rhs);
 static NODE *call_bin_op(struct parser_params*,NODE*,ID,NODE*,const YYLTYPE*,const YYLTYPE*);
 static NODE *call_uni_op(struct parser_params*,NODE*,ID,const YYLTYPE*,const YYLTYPE*);
 static NODE *new_qcall(struct parser_params* p, rb_parser_string_t *atype, NODE *recv, rb_parser_string_t *mid, NODE *args, const YYLTYPE *op_loc, const YYLTYPE *loc);
-static NODE *new_command_qcall(struct parser_params* p, ID atype, NODE *recv, rb_parser_string_t *mid, NODE *args, NODE *block, const YYLTYPE *op_loc, const YYLTYPE *loc);
+static NODE *new_command_qcall(struct parser_params* p, rb_parser_string_t *atype, NODE *recv, rb_parser_string_t *mid, NODE *args, NODE *block, const YYLTYPE *op_loc, const YYLTYPE *loc);
 static NODE *method_add_block(struct parser_params*p, NODE *m, NODE *b, const YYLTYPE *loc) {RNODE_ITER(b)->nd_iter = m; b->nd_loc = *loc; return b;}
 
 static bool args_info_empty_p(struct rb_args_info *args);
@@ -1494,7 +1494,7 @@ static NODE *gettable(struct parser_params*,rb_parser_string_t*,const YYLTYPE*);
 static NODE *assignable(struct parser_params*,rb_parser_string_t*,NODE*,const YYLTYPE*);
 
 static NODE *aryset(struct parser_params*,NODE*,NODE*,const YYLTYPE*);
-static NODE *attrset(struct parser_params*,NODE*,ID,rb_parser_string_t*,const YYLTYPE*);
+static NODE *attrset(struct parser_params*,NODE*,rb_parser_string_t*,rb_parser_string_t*,const YYLTYPE*);
 
 static void rb_backref_error(struct parser_params*,NODE*);
 static NODE *node_assign(struct parser_params*,NODE*,NODE*,struct lex_context,const YYLTYPE*);
@@ -1734,7 +1734,7 @@ ripper_new_find_pattern_tail(struct parser_params *p, VALUE pre_rest_arg, VALUE 
 #define TOKEN2VAL(t) ID2VAL(TOKEN2ID(t))
 #endif /* RIPPER */
 
-#define KWD2EID(t, v) keyword_##t
+#define KWD2EID(t) keyword_##t
 
 static NODE *
 new_scope_body(struct parser_params *p, rb_node_args_t *args, NODE *body, const YYLTYPE *loc)
@@ -2615,6 +2615,16 @@ rb_parser_encoding_string_new_pool2(struct parser_params *p, const char *ptr, lo
 {
     return rb_parser_encoding_string_new_pool3(p, ptr, len, rb_usascii_encoding());
 }
+
+static rb_parser_string_t *
+rb_parser_encoding_string_new_pool(struct parser_params *p, const char *ptr)
+{
+    return rb_parser_encoding_string_new_pool2(p, ptr, strlen(ptr));
+}
+
+#define intern3(ptr,len,enc) rb_parser_encoding_string_new_pool3(p,ptr,len,enc)
+#define intern2(ptr,len)     rb_parser_encoding_string_new_pool2(p,ptr,len)
+#define intern(ptr)          rb_parser_encoding_string_new_pool(p,ptr)
 %}
 
 %expect 0
@@ -3072,7 +3082,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
                         char buf[2];
                         buf[0] = '$';
                         buf[1] = (char)RNODE_BACK_REF($3)->nd_nth;
-                        $$ = NEW_VALIAS($2, rb_parser_encoding_string_new_pool2(p, buf, 2), &@$);
+                        $$ = NEW_VALIAS($2, intern2(buf, 2), &@$);
                     /*% ripper: var_alias!($:2, $:3) %*/
                     }
                 | keyword_alias tGVAR tNTH_REF
@@ -3215,7 +3225,7 @@ command_asgn	: lhs '=' lex_ctxt command_rhs
                     }
                 | primary_value tCOLON2 tIDENTIFIER tOP_ASGN lex_ctxt command_rhs
                     {
-                        $$ = new_attr_op_assign(p, $1, idCOLON2, $3, $4, $6, &@$);
+                        $$ = new_attr_op_assign(p, $1, intern("::"), $3, $4, $6, &@$);
                     /*% ripper: opassign!(field!($:1, $:2, $:3), $:4, $:6) %*/
                     }
                 | defn_head[head] f_opt_paren_args[args] '=' endless_command[bodystmt]
@@ -3450,18 +3460,18 @@ command		: fcall command_args       %prec tLOWEST
                     }
                 | primary_value tCOLON2 operation2 command_args	%prec tLOWEST
                     {
-                        $$ = new_command_qcall(p, idCOLON2, $1, $3, $4, Qnull, &@3, &@$);
+                        $$ = new_command_qcall(p, intern("::"), $1, $3, $4, Qnull, &@3, &@$);
                     /*% ripper: command_call!($:1, $:2, $:3, $:4) %*/
                     }
                 | primary_value tCOLON2 operation2 command_args cmd_brace_block
                     {
-                        $$ = new_command_qcall(p, idCOLON2, $1, $3, $4, $5, &@3, &@$);
+                        $$ = new_command_qcall(p, intern("::"), $1, $3, $4, $5, &@3, &@$);
                     /*% ripper: method_add_block!(command_call!($:1, $:2, $:3, $:4), $:5) %*/
                    }
                 | primary_value tCOLON2 tCONSTANT '{' brace_body '}'
                     {
                         set_embraced_location($5, &@4, &@6);
-                        $$ = new_command_qcall(p, idCOLON2, $1, $3, Qnull, $5, &@3, &@$);
+                        $$ = new_command_qcall(p, intern("::"), $1, $3, Qnull, $5, &@3, &@$);
                     /*% ripper: method_add_block!(command_call!($:1, $:2, $:3, Qundef), $:5) %*/
                    }
                 | keyword_super command_args
@@ -3620,7 +3630,7 @@ mlhs_node	: user_variable
                     }
                 | primary_value tCOLON2 tIDENTIFIER
                     {
-                        $$ = attrset(p, $1, idCOLON2, $3, &@$);
+                        $$ = attrset(p, $1, intern("::"), $3, &@$);
                     /*% ripper: const_path_field!($:1, $:3) %*/
                     }
                 | primary_value call_op tCONSTANT
@@ -3671,7 +3681,7 @@ lhs		: user_variable
                     }
                 | primary_value tCOLON2 tIDENTIFIER
                     {
-                        $$ = attrset(p, $1, idCOLON2, $3, &@$);
+                        $$ = attrset(p, $1, intern("::"), $3, &@$);
                     /*% ripper: field!($:1, $:2, $:3) %*/
                     }
                 | primary_value call_op tCONSTANT
@@ -3832,7 +3842,7 @@ arg		: lhs '=' lex_ctxt arg_rhs
                     }
                 | primary_value tCOLON2 tIDENTIFIER tOP_ASGN lex_ctxt arg_rhs
                     {
-                        $$ = new_attr_op_assign(p, $1, idCOLON2, $3, $4, $6, &@$);
+                        $$ = new_attr_op_assign(p, $1, intern("::"), $3, $4, $6, &@$);
                     /*% ripper: opassign!(field!($:1, $:2, $:3), $:4, $:6) %*/
                     }
                 | primary_value tCOLON2 tCONSTANT tOP_ASGN lex_ctxt arg_rhs
@@ -5292,13 +5302,13 @@ method_call	: fcall paren_args
                     }
                 | primary_value tCOLON2 operation2 paren_args
                     {
-                        $$ = new_qcall(p, idCOLON2, $1, $3, $4, &@3, &@$);
+                        $$ = new_qcall(p, intern("::"), $1, $3, $4, &@3, &@$);
                         nd_set_line($$, @3.end_pos.lineno);
                     /*% ripper: method_add_arg!(call!($:1, $:2, $:3), $:4) %*/
                     }
                 | primary_value tCOLON2 operation3
                     {
-                        $$ = new_qcall(p, idCOLON2, $1, $3, Qnull, &@3, &@$);
+                        $$ = new_qcall(p, intern("::"), $1, $3, Qnull, &@3, &@$);
                     /*% ripper: call!($:1, $:2, $:3) %*/
                     }
                 | primary_value call_op paren_args
@@ -5309,7 +5319,7 @@ method_call	: fcall paren_args
                     }
                 | primary_value tCOLON2 paren_args
                     {
-                        $$ = new_qcall(p, idCOLON2, $1, idCall, $3, &@2, &@$);
+                        $$ = new_qcall(p, intern("::"), $1, idCall, $3, &@2, &@$);
                         nd_set_line($$, @2.end_pos.lineno);
                     /*% ripper: method_add_arg!(call!($:1, $:2, ID2VAL(idCall)), $:3) %*/
                     }
@@ -6324,13 +6334,13 @@ user_variable	: tIDENTIFIER
                 | nonlocal_var
                 ;
 
-keyword_variable: keyword_nil {$$ = KWD2EID(nil, $1);}
-                | keyword_self {$$ = KWD2EID(self, $1);}
-                | keyword_true {$$ = KWD2EID(true, $1);}
-                | keyword_false {$$ = KWD2EID(false, $1);}
-                | keyword__FILE__ {$$ = KWD2EID(_FILE__, $1);}
-                | keyword__LINE__ {$$ = KWD2EID(_LINE__, $1);}
-                | keyword__ENCODING__ {$$ = KWD2EID(_ENCODING__, $1);}
+keyword_variable: keyword_nil {$$ = KWD2EID(nil);}
+                | keyword_self {$$ = KWD2EID(self);}
+                | keyword_true {$$ = KWD2EID(true);}
+                | keyword_false {$$ = KWD2EID(false);}
+                | keyword__FILE__ {$$ = KWD2EID(_FILE__);}
+                | keyword__LINE__ {$$ = KWD2EID(_LINE__);}
+                | keyword__ENCODING__ {$$ = KWD2EID(_ENCODING__);}
                 ;
 
 var_ref		: user_variable
@@ -13054,7 +13064,7 @@ new_qcall(struct parser_params* p, rb_parser_string_t *atype, NODE *recv, rb_par
 }
 
 static NODE*
-new_command_qcall(struct parser_params* p, ID atype, NODE *recv, rb_parser_string_t *mid, NODE *args, NODE *block, const YYLTYPE *op_loc, const YYLTYPE *loc)
+new_command_qcall(struct parser_params* p, rb_parser_string_t *atype, NODE *recv, rb_parser_string_t *mid, NODE *args, NODE *block, const YYLTYPE *op_loc, const YYLTYPE *loc)
 {
     NODE *ret;
     if (block) block_dup_check(p, args, block);
@@ -13841,7 +13851,7 @@ block_dup_check(struct parser_params *p, NODE *node1, NODE *node2)
 }
 
 static NODE *
-attrset(struct parser_params *p, NODE *recv, ID atype, rb_parser_string_t *id, const YYLTYPE *loc)
+attrset(struct parser_params *p, NODE *recv, rb_parser_string_t *atype, rb_parser_string_t *id, const YYLTYPE *loc)
 {
     if (!CALL_Q_P(atype)) id = rb_id_attrset(id);
     return NEW_ATTRASGN(recv, id, 0, loc);
