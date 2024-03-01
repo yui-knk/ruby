@@ -21,6 +21,7 @@ rb_ast_t *rb_parser_compile_string_path(VALUE vparser, VALUE fname, VALUE src, i
 VALUE rb_str_new_parser_string(rb_parser_string_t *str);
 VALUE rb_parser_string_to_sym(rb_parser_string_t *str);
 ID rb_parser_string_to_id(rb_parser_string_t *str);
+const char *rb_parser_string_to_name(rb_parser_string_t *str);
 
 VALUE rb_node_str_string_val(const NODE *);
 VALUE rb_node_sym_string_val(const NODE *);

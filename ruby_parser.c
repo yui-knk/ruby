@@ -836,6 +836,12 @@ rb_parser_string_to_sym(rb_parser_string_t *str)
     return ID2SYM(rb_parser_string_to_id(str));
 }
 
+const char *
+rb_parser_string_to_name(rb_parser_string_t *str)
+{
+    return str->ptr;
+}
+
 static VALUE
 negative_numeric(VALUE val)
 {
@@ -1057,15 +1063,15 @@ rb_node_const_decl_val(const NODE *node)
     path = rb_ary_new();
     if (node) {
         for (; node && nd_type_p(node, NODE_COLON2); node = RNODE_COLON2(node)->nd_head) {
-            rb_ary_push(path, rb_id2str(RNODE_COLON2(node)->nd_mid));
+            rb_ary_push(path, rb_str_new_parser_string(RNODE_COLON2(node)->nd_mid));
         }
         if (node && nd_type_p(node, NODE_CONST)) {
             // Const::Name
-            rb_ary_push(path, rb_id2str(RNODE_CONST(node)->nd_vid));
+            rb_ary_push(path, rb_str_new_parser_string(RNODE_CONST(node)->nd_vid));
         }
         else if (node && nd_type_p(node, NODE_COLON3)) {
             // ::Const::Name
-            rb_ary_push(path, rb_id2str(RNODE_COLON3(node)->nd_mid));
+            rb_ary_push(path, rb_str_new_parser_string(RNODE_COLON3(node)->nd_mid));
             rb_ary_push(path, rb_str_new(0, 0));
         }
         else {
