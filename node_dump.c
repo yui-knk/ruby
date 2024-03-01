@@ -22,7 +22,6 @@
 #define A_INDENT add_indent(buf, indent)
 #define D_INDENT rb_str_cat2(indent, next_indent)
 #define D_DEDENT rb_str_resize(indent, RSTRING_LEN(indent) - 4)
-#define A_ID(id) add_id(buf, (id))
 #define A_INT(val) rb_str_catf(buf, "%d", (val))
 #define A_LONG(val) rb_str_catf(buf, "%ld", (val))
 #define A_LIT(lit) AR(rb_dump_literal(lit))
@@ -62,7 +61,6 @@
 
 #define SIMPLE_FIELD1(name, ann)    SIMPLE_FIELD(FIELD_NAME_LEN(name, ann), FIELD_NAME_DESC(name, ann))
 #define F_CUSTOM1(name, ann)	    SIMPLE_FIELD1(#name, ann)
-#define F_ID(name, type, ann) 	    SIMPLE_FIELD1(#name, ann) A_ID(type(node)->name)
 #define F_INT(name, type, ann)	    SIMPLE_FIELD1(#name, ann) A_INT(type(node)->name)
 #define F_LONG(name, type, ann)	    SIMPLE_FIELD1(#name, ann) A_LONG(type(node)->name)
 #define F_LIT(name, type, ann)	    SIMPLE_FIELD1(#name, ann) A_LIT(type(node)->name)
@@ -112,23 +110,6 @@ static void
 add_indent(VALUE buf, VALUE indent)
 {
     AR(indent);
-}
-
-static void
-add_id(VALUE buf, ID id)
-{
-    if (id == 0) {
-        A("(null)");
-    }
-    else {
-        VALUE str = rb_id2str(id);
-        if (str) {
-            A(":"); AR(str);
-        }
-        else {
-            rb_str_catf(buf, "(internal variable: 0x%"PRIsVALUE")", id);
-        }
-    }
 }
 
 struct add_option_arg {
@@ -410,7 +391,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("local variable assignment");
         ANN("format: [nd_vid](lvar) = [nd_value]");
         ANN("example: x = foo");
-        F_ID(nd_vid, RNODE_LASGN, "local variable");
+        F_STR(nd_vid, RNODE_LASGN, "local variable");
         if (NODE_REQUIRED_KEYWORD_P(RNODE_LASGN(node)->nd_value)) {
             F_MSG(nd_value, "rvalue", "NODE_SPECIAL_REQUIRED_KEYWORD (required keyword argument)");
         }
@@ -424,7 +405,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("format: [nd_vid](dvar) = [nd_value]");
         ANN("example: x = nil; 1.times { x = foo }");
         ANN("example: 1.times { x = foo }");
-        F_ID(nd_vid, RNODE_DASGN, "local variable");
+        F_STR(nd_vid, RNODE_DASGN, "local variable");
         if (NODE_REQUIRED_KEYWORD_P(RNODE_DASGN(node)->nd_value)) {
             F_MSG(nd_value, "rvalue", "NODE_SPECIAL_REQUIRED_KEYWORD (required keyword argument)");
         }
@@ -437,7 +418,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("instance variable assignment");
         ANN("format: [nd_vid](ivar) = [nd_value]");
         ANN("example: @x = foo");
-        F_ID(nd_vid, RNODE_IASGN, "instance variable");
+        F_STR(nd_vid, RNODE_IASGN, "instance variable");
         LAST_NODE;
         F_NODE(nd_value, RNODE_IASGN, "rvalue");
         return;
@@ -445,7 +426,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("class variable assignment");
         ANN("format: [nd_vid](cvar) = [nd_value]");
         ANN("example: @@x = foo");
-        F_ID(nd_vid, RNODE_CVASGN, "class variable");
+        F_STR(nd_vid, RNODE_CVASGN, "class variable");
         LAST_NODE;
         F_NODE(nd_value, RNODE_CVASGN, "rvalue");
         return;
@@ -453,7 +434,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("global variable assignment");
         ANN("format: [nd_vid](gvar) = [nd_value]");
         ANN("example: $x = foo");
-        F_ID(nd_vid, RNODE_GASGN, "global variable");
+        F_STR(nd_vid, RNODE_GASGN, "global variable");
         LAST_NODE;
         F_NODE(nd_value, RNODE_GASGN, "rvalue");
         return;
@@ -463,7 +444,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("format: [nd_else]::[nd_vid](constant) = [nd_value]");
         ANN("example: X = foo");
         if (RNODE_CDECL(node)->nd_vid) {
-            F_ID(nd_vid, RNODE_CDECL, "constant");
+            F_STR(nd_vid, RNODE_CDECL, "constant");
             F_MSG(nd_else, "extension", "not used");
         }
         else {
@@ -479,7 +460,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("format: [nd_recv] [ [nd_index] ] [nd_mid]= [nd_rvalue]");
         ANN("example: ary[1] += foo");
         F_NODE(nd_recv, RNODE_OP_ASGN1, "receiver");
-        F_ID(nd_mid, RNODE_OP_ASGN1, "operator");
+        F_STR(nd_mid, RNODE_OP_ASGN1, "operator");
         F_NODE(nd_index, RNODE_OP_ASGN1, "index");
         LAST_NODE;
         F_NODE(nd_rvalue, RNODE_OP_ASGN1, "rvalue");
@@ -492,9 +473,9 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         F_NODE(nd_recv, RNODE_OP_ASGN2, "receiver");
         F_CUSTOM1(nd_vid, "attr") {
             if (RNODE_OP_ASGN2(node)->nd_aid) A("? ");
-            A_ID(RNODE_OP_ASGN2(node)->nd_vid);
+            A_STR(RNODE_OP_ASGN2(node)->nd_vid);
         }
-        F_ID(nd_mid, RNODE_OP_ASGN2, "operator");
+        F_STR(nd_mid, RNODE_OP_ASGN2, "operator");
         LAST_NODE;
         F_NODE(nd_value, RNODE_OP_ASGN2, "rvalue");
         return;
@@ -519,7 +500,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("format: [nd_head](constant) [nd_aid]= [nd_value]");
         ANN("example: A::B ||= 1");
         F_NODE(nd_head, RNODE_OP_CDECL, "constant");
-        F_ID(nd_aid, RNODE_OP_CDECL, "operator");
+        F_STR(nd_aid, RNODE_OP_CDECL, "operator");
         LAST_NODE;
         F_NODE(nd_value, RNODE_OP_CDECL, "rvalue");
         return;
@@ -528,7 +509,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("method invocation");
         ANN("format: [nd_recv].[nd_mid]([nd_args])");
         ANN("example: obj.foo(1)");
-        F_ID(nd_mid, RNODE_CALL, "method id");
+        F_STR(nd_mid, RNODE_CALL, "method id");
         F_NODE(nd_recv, RNODE_CALL, "receiver");
         LAST_NODE;
         F_NODE(nd_args, RNODE_CALL, "arguments");
@@ -538,7 +519,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("method invocation");
         ANN("format: [nd_recv] [nd_mid] [nd_args]");
         ANN("example: foo + bar");
-        F_ID(nd_mid, RNODE_OPCALL, "method id");
+        F_STR(nd_mid, RNODE_OPCALL, "method id");
         F_NODE(nd_recv, RNODE_OPCALL, "receiver");
         LAST_NODE;
         F_NODE(nd_args, RNODE_OPCALL, "arguments");
@@ -548,7 +529,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("function call");
         ANN("format: [nd_mid]([nd_args])");
         ANN("example: foo(1)");
-        F_ID(nd_mid, RNODE_FCALL, "method id");
+        F_STR(nd_mid, RNODE_FCALL, "method id");
         LAST_NODE;
         F_NODE(nd_args, RNODE_FCALL, "arguments");
         return;
@@ -557,14 +538,14 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("function call with no argument");
         ANN("format: [nd_mid]");
         ANN("example: foo");
-        F_ID(nd_mid, RNODE_VCALL, "method id");
+        F_STR(nd_mid, RNODE_VCALL, "method id");
         return;
 
       case NODE_QCALL:
         ANN("safe method invocation");
         ANN("format: [nd_recv]&.[nd_mid]([nd_args])");
         ANN("example: obj&.foo(1)");
-        F_ID(nd_mid, RNODE_QCALL, "method id");
+        F_STR(nd_mid, RNODE_QCALL, "method id");
         F_NODE(nd_recv, RNODE_QCALL, "receiver");
         LAST_NODE;
         F_NODE(nd_args, RNODE_QCALL, "arguments");
@@ -630,38 +611,38 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("local variable reference");
         ANN("format: [nd_vid](lvar)");
         ANN("example: x");
-        F_ID(nd_vid, RNODE_LVAR, "local variable");
+        F_STR(nd_vid, RNODE_LVAR, "local variable");
         return;
       case NODE_DVAR:
         ANN("dynamic variable reference");
         ANN("format: [nd_vid](dvar)");
         ANN("example: 1.times { x = 1; x }");
-        F_ID(nd_vid, RNODE_DVAR, "local variable");
+        F_STR(nd_vid, RNODE_DVAR, "local variable");
         return;
       case NODE_IVAR:
         ANN("instance variable reference");
         ANN("format: [nd_vid](ivar)");
         ANN("example: @x");
-        F_ID(nd_vid, RNODE_IVAR, "instance variable");
+        F_STR(nd_vid, RNODE_IVAR, "instance variable");
         return;
       case NODE_CONST:
         ANN("constant reference");
         ANN("format: [nd_vid](constant)");
         ANN("example: X");
-        F_ID(nd_vid, RNODE_CONST, "constant");
+        F_STR(nd_vid, RNODE_CONST, "constant");
         return;
       case NODE_CVAR:
         ANN("class variable reference");
         ANN("format: [nd_vid](cvar)");
         ANN("example: @@x");
-        F_ID(nd_vid, RNODE_CVAR, "class variable");
+        F_STR(nd_vid, RNODE_CVAR, "class variable");
         return;
 
       case NODE_GVAR:
         ANN("global variable reference");
         ANN("format: [nd_vid](gvar)");
         ANN("example: $x");
-        F_ID(nd_vid, RNODE_GVAR, "global variable");
+        F_STR(nd_vid, RNODE_GVAR, "global variable");
         return;
 
       case NODE_NTH_REF:
@@ -856,7 +837,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("method definition");
         ANN("format: def [nd_mid] [nd_defn]; end");
         ANN("example: def foo; bar; end");
-        F_ID(nd_mid, RNODE_DEFN, "method name");
+        F_STR(nd_mid, RNODE_DEFN, "method name");
         LAST_NODE;
         F_NODE(nd_defn, RNODE_DEFN, "method definition");
         return;
@@ -866,7 +847,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("format: def [nd_recv].[nd_mid] [nd_defn]; end");
         ANN("example: def obj.foo; bar; end");
         F_NODE(nd_recv, RNODE_DEFS, "receiver");
-        F_ID(nd_mid, RNODE_DEFS, "method name");
+        F_STR(nd_mid, RNODE_DEFS, "method name");
         LAST_NODE;
         F_NODE(nd_defn, RNODE_DEFS, "method definition");
         return;
@@ -928,7 +909,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("scoped constant reference");
         ANN("format: [nd_head]::[nd_mid]");
         ANN("example: M::C");
-        F_ID(nd_mid, RNODE_COLON2, "constant name");
+        F_STR(nd_mid, RNODE_COLON2, "constant name");
         LAST_NODE;
         F_NODE(nd_head, RNODE_COLON2, "receiver");
         return;
@@ -937,7 +918,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("top-level constant reference");
         ANN("format: ::[nd_mid]");
         ANN("example: ::Object");
-        F_ID(nd_mid, RNODE_COLON3, "constant name");
+        F_STR(nd_mid, RNODE_COLON3, "constant name");
         return;
 
       case NODE_DOT2:
@@ -1018,7 +999,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("format: [nd_recv].[nd_mid] = [nd_args]");
         ANN("example: struct.field = foo");
         F_NODE(nd_recv, RNODE_ATTRASGN, "receiver");
-        F_ID(nd_mid, RNODE_ATTRASGN, "method name");
+        F_STR(nd_mid, RNODE_ATTRASGN, "method name");
         LAST_NODE;
         F_NODE(nd_args, RNODE_ATTRASGN, "arguments");
         return;
@@ -1071,16 +1052,16 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         F_NODE(nd_ainfo.pre_init, RNODE_ARGS, "initialization of (pre-)arguments");
         F_INT(nd_ainfo.post_args_num, RNODE_ARGS, "count of mandatory post-arguments");
         F_NODE(nd_ainfo.post_init, RNODE_ARGS, "initialization of post-arguments");
-        F_ID(nd_ainfo.first_post_arg, RNODE_ARGS, "first post argument");
+        F_STR(nd_ainfo.first_post_arg, RNODE_ARGS, "first post argument");
         F_CUSTOM1(nd_ainfo.rest_arg, "rest argument") {
             if (RNODE_ARGS(node)->nd_ainfo.rest_arg == NODE_SPECIAL_EXCESSIVE_COMMA) {
                 A("1 (excessed comma)");
             }
             else {
-                A_ID(RNODE_ARGS(node)->nd_ainfo.rest_arg);
+                A_STR(RNODE_ARGS(node)->nd_ainfo.rest_arg);
             }
         }
-        F_ID(nd_ainfo.block_arg, RNODE_ARGS, "block argument");
+        F_STR(nd_ainfo.block_arg, RNODE_ARGS, "block argument");
         F_NODE(nd_ainfo.opt_args, RNODE_ARGS, "optional arguments");
         F_NODE(nd_ainfo.kw_args, RNODE_ARGS, "keyword arguments");
         LAST_NODE;
@@ -1096,7 +1077,7 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
             int size = tbl ? tbl->size : 0;
             if (size == 0) A("(empty)");
             for (i = 0; i < size; i++) {
-                A_ID(tbl->ids[i]); if (i < size - 1) A(",");
+                A_STR(tbl->ids[i]); if (i < size - 1) A(",");
             }
         }
         F_NODE(nd_args, RNODE_SCOPE, "arguments");
