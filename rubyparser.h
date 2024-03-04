@@ -782,7 +782,7 @@ typedef struct RNode_ARGS {
 typedef struct RNode_ARGS_AUX {
     NODE node;
 
-    ID nd_pid;
+    rb_parser_string_t *nd_pid;
     long nd_plen;
     struct RNode *nd_next;
 } rb_node_args_aux_t;
