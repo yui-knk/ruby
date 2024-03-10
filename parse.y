@@ -7535,7 +7535,7 @@ vtable_alloc_gen(struct parser_params *p, int line, struct vtable *prev)
     struct vtable *tbl = ALLOC(struct vtable);
     tbl->pos = 0;
     tbl->capa = 8;
-    tbl->tbl = ALLOC_N(rb_parser_string_t*, tbl->capa);
+    tbl->tbl = ALLOC_N(rb_parser_string_t *, tbl->capa);
     tbl->prev = prev;
 #ifndef RIPPER
     if (p->debug) {
@@ -7580,7 +7580,7 @@ vtable_add_gen(struct parser_params *p, int line, const char *name,
     }
     if (tbl->pos == tbl->capa) {
         tbl->capa = tbl->capa * 2;
-        SIZED_REALLOC_N(tbl->tbl, ID, tbl->capa, tbl->pos);
+        SIZED_REALLOC_N(tbl->tbl, rb_parser_string_t *, tbl->capa, tbl->pos);
     }
     tbl->tbl[tbl->pos++] = id;
 }
