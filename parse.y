@@ -38,21 +38,17 @@
 #ifdef RIPPER
 #define STATIC_ID2SYM p->config->static_id2sym
 #define rb_str_coderange_scan_restartable p->config->str_coderange_scan_restartable
-#endif
+#endif /* RIPPER */
 
-#else
+#else /* !UNIVERSAL_PARSER */
 
 #include "internal.h"
 #include "internal/compile.h"
 #include "internal/compilers.h"
-#include "internal/complex.h"
 #include "internal/encoding.h"
 #include "internal/error.h"
-#include "internal/hash.h"
 #include "internal/io.h"
-#include "internal/numeric.h"
 #include "internal/parse.h"
-#include "internal/rational.h"
 #include "internal/re.h"
 #include "internal/ruby_parser.h"
 #include "internal/symbol.h"
@@ -64,7 +60,6 @@
 #include "regenc.h"
 #include "ruby/encoding.h"
 #include "ruby/regex.h"
-#include "ruby/ruby.h"
 #include "ruby/st.h"
 #include "ruby/util.h"
 #include "ruby/ractor.h"
