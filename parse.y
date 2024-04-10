@@ -14873,30 +14873,30 @@ nd_type_st_key_enable_p(NODE *node)
 }
 
 #ifndef RIPPER
-static VALUE
+static const char *
 nd_value(struct parser_params *p, NODE *node)
 {
     switch (nd_type(node)) {
       case NODE_STR:
-        return rb_node_str_string_val(node);
+        return RNODE_STR(node)->string;
       case NODE_INTEGER:
-        return rb_node_integer_literal_val(node);
+        return RNODE_INTEGER(node)->val;
       case NODE_FLOAT:
-        return rb_node_float_literal_val(node);
+        return RNODE_FLOAT(node)->val;
       case NODE_RATIONAL:
-        return rb_node_rational_literal_val(node);
+        return RNODE_RATIONAL(node)->val;
       case NODE_IMAGINARY:
-        return rb_node_imaginary_literal_val(node);
+        return RNODE_IMAGINARY(node)->val;
       case NODE_SYM:
-        return rb_node_sym_string_val(node);
+        return RNODE_SYM(node)->string;
       case NODE_REGX:
-        return rb_node_regx_string_val(node);
+        return RNODE_REGX(node)->string;
       case NODE_LINE:
-        return rb_node_line_lineno_val(node);
+        return RNODE_LINE(node);
       case NODE_ENCODING:
-        return rb_node_encoding_val(node);
+        return RNODE_ENCODING(node);
       case NODE_FILE:
-        return rb_node_file_path_val(node);
+        return RNODE_FILE(node)->path;
       default:
         rb_bug("unexpected node: %s", ruby_node_name(nd_type(node)));
         UNREACHABLE_RETURN(0);
@@ -14925,7 +14925,7 @@ rb_parser_warn_duplicate_keys(struct parser_params *p, NODE *hash)
 
             if (st_delete(literal_keys, &key, &data)) {
                 rb_compile_warn(p->ruby_sourcefile, nd_line((NODE *)data),
-                                "key %+"PRIsVALUE" is duplicated and overwritten on line %d",
+                                "key %s is duplicated and overwritten on line %d",
                                 nd_value(p, head), nd_line(head));
             }
             st_insert(literal_keys, (st_data_t)key, (st_data_t)hash);
