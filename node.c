@@ -41,13 +41,8 @@ init_node_buffer_list(node_buffer_list_t *nb, node_buffer_elem_t *head, void *xm
 #define ruby_xmalloc config->malloc
 #endif
 
-#ifdef UNIVERSAL_PARSER
 static node_buffer_t *
 rb_node_buffer_new(const rb_parser_config_t *config)
-#else
-static node_buffer_t *
-rb_node_buffer_new(void)
-#endif
 {
     const size_t bucket_size = offsetof(node_buffer_elem_t, buf) + NODE_BUF_DEFAULT_SIZE;
     const size_t alloc_size = sizeof(node_buffer_t) + (bucket_size);
@@ -59,9 +54,7 @@ rb_node_buffer_new(void)
     init_node_buffer_list(&nb->buffer_list, (node_buffer_elem_t*)&nb[1], ruby_xmalloc);
     nb->local_tables = 0;
     nb->tokens = 0;
-#ifdef UNIVERSAL_PARSER
     nb->config = config;
-#endif
     return nb;
 }
 
@@ -299,21 +292,12 @@ rb_ast_delete_node(rb_ast_t *ast, NODE *n)
     /* should we implement freelist? */
 }
 
-#ifdef UNIVERSAL_PARSER
 rb_ast_t *
 rb_ast_new(const rb_parser_config_t *config)
 {
     node_buffer_t *nb = rb_node_buffer_new(config);
     return config->ast_new((VALUE)nb);
 }
-#else
-rb_ast_t *
-rb_ast_new(void)
-{
-    node_buffer_t *nb = rb_node_buffer_new();
-    return IMEMO_NEW(rb_ast_t, imemo_ast, (VALUE)nb);
-}
-#endif
 
 static void
 iterate_buffer_elements(rb_ast_t *ast, node_buffer_elem_t *nbe, long len, node_itr_t *func, void *ctx)

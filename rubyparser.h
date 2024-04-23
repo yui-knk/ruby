@@ -1236,7 +1236,6 @@ typedef struct parser_params rb_parser_t;
 typedef struct rb_imemo_tmpbuf_struct rb_imemo_tmpbuf_t;
 #endif
 
-#ifdef UNIVERSAL_PARSER
 typedef struct rb_parser_config_struct {
     /* Memory */
     void *(*malloc)(size_t size);
@@ -1411,18 +1410,15 @@ typedef struct rb_parser_config_struct {
     long (*str_coderange_scan_restartable)(const char *s, const char *e, rb_encoding *enc, int *cr);
 } rb_parser_config_t;
 
+#ifdef UNIVERSAL_PARSER
 #undef rb_encoding
 #undef OnigCodePoint
 #endif /* UNIVERSAL_PARSER */
 
 RUBY_SYMBOL_EXPORT_BEGIN
 void rb_ruby_parser_free(void *ptr);
-
-#ifdef UNIVERSAL_PARSER
 rb_parser_t *rb_ruby_parser_allocate(const rb_parser_config_t *config);
 rb_parser_t *rb_ruby_parser_new(const rb_parser_config_t *config);
-#endif
-
 long rb_parser_string_length(rb_parser_string_t *str);
 char *rb_parser_string_pointer(rb_parser_string_t *str);
 

@@ -1,14 +1,7 @@
 /* This is a wrapper for parse.y */
 
-#include "internal/parse.h"
-#include "internal/re.h"
-#include "internal/ruby_parser.h"
-
 #include "node.h"
 #include "rubyparser.h"
-#include "internal/error.h"
-
-#ifdef UNIVERSAL_PARSER
 
 #include "internal.h"
 #include "internal/array.h"
@@ -16,11 +9,14 @@
 #include "internal/compile.h"
 #include "internal/complex.h"
 #include "internal/encoding.h"
+#include "internal/error.h"
 #include "internal/gc.h"
 #include "internal/hash.h"
 #include "internal/io.h"
+#include "internal/parse.h"
 #include "internal/rational.h"
 #include "internal/re.h"
+#include "internal/ruby_parser.h"
 #include "internal/string.h"
 #include "internal/symbol.h"
 #include "internal/thread.h"
@@ -497,7 +493,6 @@ static const rb_parser_config_t rb_global_parser_config = {
     .static_id2sym = static_id2sym,
     .str_coderange_scan_restartable = str_coderange_scan_restartable,
 };
-#endif
 
 enum lex_type {
     lex_type_str,
@@ -566,7 +561,6 @@ static const rb_data_type_t ruby_parser_data_type = {
     0, 0, RUBY_TYPED_FREE_IMMEDIATELY
 };
 
-#ifdef UNIVERSAL_PARSER
 const rb_parser_config_t *
 rb_ruby_parser_config(void)
 {
@@ -578,13 +572,6 @@ rb_parser_params_new(void)
 {
     return rb_ruby_parser_new(&rb_global_parser_config);
 }
-#else
-rb_parser_t *
-rb_parser_params_new(void)
-{
-    return rb_ruby_parser_new();
-}
-#endif /* UNIVERSAL_PARSER */
 
 VALUE
 rb_parser_new(void)

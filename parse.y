@@ -550,10 +550,8 @@ struct parser_params {
     NODE *eval_tree_begin;
     NODE *eval_tree;
     const struct rb_iseq_struct *parent_iseq;
-
-#ifdef UNIVERSAL_PARSER
     const rb_parser_config_t *config;
-#endif
+
     /* compile_option */
     signed int frozen_string_literal:2; /* -1: not specified, 0: false, 1: true */
 
@@ -7776,7 +7774,7 @@ yycompile(struct parser_params *p, VALUE fname, int line)
 
     p->lvtbl = NULL;
 
-    p->ast = ast = rb_ast_new();
+    p->ast = ast = rb_ast_new(p->config);
     compile_callback(yycompile0, (VALUE)p);
     p->ast = 0;
 
@@ -15889,7 +15887,6 @@ rb_reserved_word(const char *str, unsigned int len)
     return reserved_word(str, len);
 }
 
-#ifdef UNIVERSAL_PARSER
 rb_parser_t *
 rb_ruby_parser_allocate(const rb_parser_config_t *config)
 {
@@ -15907,24 +15904,6 @@ rb_ruby_parser_new(const rb_parser_config_t *config)
     parser_initialize(p);
     return p;
 }
-#else
-rb_parser_t *
-rb_ruby_parser_allocate(void)
-{
-    /* parser_initialize expects fields to be set to 0 */
-    rb_parser_t *p = (rb_parser_t *)ruby_xcalloc(1, sizeof(rb_parser_t));
-    return p;
-}
-
-rb_parser_t *
-rb_ruby_parser_new(void)
-{
-    /* parser_initialize expects fields to be set to 0 */
-    rb_parser_t *p = rb_ruby_parser_allocate();
-    parser_initialize(p);
-    return p;
-}
-#endif
 
 rb_parser_t *
 rb_ruby_parser_set_context(rb_parser_t *p, const struct rb_iseq_struct *base, int main)
@@ -16061,7 +16040,7 @@ void
 rb_ruby_ripper_parse0(rb_parser_t *p)
 {
     parser_prepare(p);
-    p->ast = rb_ast_new();
+    p->ast = rb_ast_new(p->config);
     ripper_yyparse((void*)p);
     rb_ast_dispose(p->ast);
     p->ast = 0;
@@ -16125,7 +16104,6 @@ rb_ruby_ripper_lex_state_name(struct parser_params *p, int state)
     return rb_parser_lex_state_name(p, (enum lex_state_e)state);
 }
 
-#ifdef UNIVERSAL_PARSER
 rb_parser_t *
 rb_ripper_parser_params_allocate(const rb_parser_config_t *config)
 {
@@ -16133,7 +16111,6 @@ rb_ripper_parser_params_allocate(const rb_parser_config_t *config)
     p->config = config;
     return p;
 }
-#endif
 
 struct parser_params*
 rb_ruby_ripper_parser_allocate(void)
