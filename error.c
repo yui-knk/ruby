@@ -134,8 +134,6 @@ err_vcatf(VALUE str, const char *pre, const char *file, int line,
     return str;
 }
 
-static VALUE syntax_error_with_path(VALUE, VALUE, VALUE*, rb_encoding*);
-
 VALUE
 rb_syntax_error_append(VALUE exc, VALUE file, int line, int column,
                        rb_encoding *enc, const char *fmt, va_list args)
@@ -149,7 +147,7 @@ rb_syntax_error_append(VALUE exc, VALUE file, int line, int column,
     }
     else {
         VALUE mesg;
-        exc = syntax_error_with_path(exc, file, &mesg, enc);
+        exc = rb_syntax_error_with_path(exc, file, &mesg, enc);
         err_vcatf(mesg, NULL, fn, line, fmt, args);
     }
 
@@ -2689,8 +2687,8 @@ syntax_error_initialize(int argc, VALUE *argv, VALUE self)
     return rb_call_super(argc, argv);
 }
 
-static VALUE
-syntax_error_with_path(VALUE exc, VALUE path, VALUE *mesg, rb_encoding *enc)
+VALUE
+rb_syntax_error_with_path(VALUE exc, VALUE path, VALUE *mesg, rb_encoding *enc)
 {
     if (NIL_P(exc)) {
         *mesg = rb_enc_str_new(0, 0, enc);

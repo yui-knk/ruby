@@ -218,6 +218,14 @@ typedef struct rb_parser_ast_token {
     rb_code_location_t loc;
 } rb_parser_ast_token_t;
 
+typedef struct rb_parser_error {
+	int lineno;
+	int column;
+	rb_code_location_t loc;
+	rb_parser_string_t *message;
+	rb_parser_string_t *lastline;
+} rb_parser_error_t;
+
 /*
  * Array-like object for parser
  */
@@ -225,7 +233,8 @@ typedef void* rb_parser_ary_data;
 
 enum rb_parser_ary_data_type {
     PARSER_ARY_DATA_AST_TOKEN,
-    PARSER_ARY_DATA_SCRIPT_LINE
+    PARSER_ARY_DATA_SCRIPT_LINE,
+    PARSER_ARY_DATA_ERROR,
 };
 
 typedef struct rb_parser_ary {

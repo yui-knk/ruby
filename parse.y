@@ -579,8 +579,9 @@ struct parser_params {
     unsigned int do_split: 1;
     unsigned int error_tolerant: 1;
     unsigned int keep_tokens: 1;
+    unsigned int main_context: 1;
 
-    VALUE error_buffer;
+    rb_parser_ary_t *errors;
     rb_parser_ary_t *debug_lines;
     /*
      * Store specific keyword locations to generate dummy end token.
@@ -1516,7 +1517,7 @@ YYLTYPE *rb_parser_set_location_of_heredoc_end(struct parser_params *p, YYLTYPE 
 YYLTYPE *rb_parser_set_location_of_dummy_end(struct parser_params *p, YYLTYPE *yylloc);
 YYLTYPE *rb_parser_set_location_of_none(struct parser_params *p, YYLTYPE *yylloc);
 YYLTYPE *rb_parser_set_location(struct parser_params *p, YYLTYPE *yylloc);
-void ruby_show_error_line(struct parser_params *p, VALUE errbuf, const YYLTYPE *yylloc, int lineno, rb_parser_string_t *str);
+void ruby_show_error_line(struct parser_params *p, VALUE errbuf, VALUE mesg, const YYLTYPE *yylloc, int lineno, rb_parser_string_t *str);
 RUBY_SYMBOL_EXPORT_END
 
 static void error_duplicate_pattern_variable(struct parser_params *p, ID id, const YYLTYPE *loc);
@@ -1820,6 +1821,7 @@ extern const ID id_warn, id_warning, id_gets, id_assoc;
 # define WARNING_CALL rb_funcall
 # endif
 # define compile_error ripper_compile_error
+# define compile_error_with_loc(p, loc, ...) ((void)loc, ripper_compile_error(p, __VA_ARGS__))
 #else
 # define WARN_S_L(s,l) s
 # define WARN_S(s) s
@@ -1835,6 +1837,7 @@ extern const ID id_warn, id_warning, id_gets, id_assoc;
 # define WARNING_CALL rb_compile_warning
 PRINTF_ARGS(static void parser_compile_error(struct parser_params*, const rb_code_location_t *loc, const char *fmt, ...), 3, 4);
 # define compile_error(p, ...) parser_compile_error(p, NULL, __VA_ARGS__)
+# define compile_error_with_loc parser_compile_error
 #endif
 
 struct RNode_EXITS {
@@ -2564,7 +2567,7 @@ rb_parser_ary_extend(rb_parser_t *p, rb_parser_ary_t *ary, long len)
 
 /*
  * Do not call this directly.
- * Use rb_parser_ary_new_capa_for_script_line() or rb_parser_ary_new_capa_for_ast_token() instead.
+ * Use rb_parser_ary_new_capa_for_XXX() instead.
  */
 static rb_parser_ary_t *
 parser_ary_new_capa(rb_parser_t *p, long len)
@@ -2593,6 +2596,14 @@ rb_parser_ary_new_capa_for_script_line(rb_parser_t *p, long len)
 }
 
 static rb_parser_ary_t *
+rb_parser_ary_new_capa_for_error(rb_parser_t *p, long len)
+{
+    rb_parser_ary_t *ary = parser_ary_new_capa(p, len);
+    ary->data_type = PARSER_ARY_DATA_ERROR;
+    return ary;
+}
+
+static rb_parser_ary_t *
 rb_parser_ary_new_capa_for_ast_token(rb_parser_t *p, long len)
 {
     rb_parser_ary_t *ary = parser_ary_new_capa(p, len);
@@ -2602,7 +2613,7 @@ rb_parser_ary_new_capa_for_ast_token(rb_parser_t *p, long len)
 
 /*
  * Do not call this directly.
- * Use rb_parser_ary_push_script_line() or rb_parser_ary_push_ast_token() instead.
+ * Use rb_parser_ary_push_script_XXX() instead.
  */
 static rb_parser_ary_t *
 parser_ary_push(rb_parser_t *p, rb_parser_ary_t *ary, rb_parser_ary_data val)
@@ -2632,6 +2643,15 @@ rb_parser_ary_push_script_line(rb_parser_t *p, rb_parser_ary_t *ary, rb_parser_s
     return parser_ary_push(p, ary, val);
 }
 
+static rb_parser_ary_t *
+rb_parser_ary_push_error(rb_parser_t *p, rb_parser_ary_t *ary, rb_parser_error_t *val)
+{
+    if (ary->data_type != PARSER_ARY_DATA_ERROR) {
+        rb_bug("unexpected rb_parser_ary_data_type: %d", ary->data_type);
+    }
+    return parser_ary_push(p, ary, val);
+}
+
 static void
 rb_parser_ast_token_free(rb_parser_t *p, rb_parser_ast_token_t *token)
 {
@@ -2641,15 +2661,32 @@ rb_parser_ast_token_free(rb_parser_t *p, rb_parser_ast_token_t *token)
 }
 
 static void
+rb_parser_error_free(rb_parser_t *p, rb_parser_error_t *error)
+{
+    if (!error) return;
+    rb_parser_string_free(p, error->message);
+    /*
+     * error->lastline is managed by parser_params string_buffer
+     * therefore no need to free here.
+     */
+    xfree(error);
+}
+
+typedef void (rb_parser_ary_free_func)(rb_parser_t *, rb_parser_ary_data);
+
+static void
 rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 {
-    void (*free_func)(rb_parser_t *, rb_parser_ary_data) = NULL;
+    rb_parser_ary_free_func *free_func = NULL;
     switch (ary->data_type) {
       case PARSER_ARY_DATA_AST_TOKEN:
-        free_func = (void (*)(rb_parser_t *, rb_parser_ary_data))rb_parser_ast_token_free;
+        free_func = (rb_parser_ary_free_func *)rb_parser_ast_token_free;
         break;
       case PARSER_ARY_DATA_SCRIPT_LINE:
-        free_func = (void (*)(rb_parser_t *, rb_parser_ary_data))rb_parser_string_free;
+        free_func = (rb_parser_ary_free_func *)rb_parser_string_free;
+        break;
+      case PARSER_ARY_DATA_ERROR:
+        free_func = (rb_parser_ary_free_func *)rb_parser_error_free;
         break;
       default:
         rb_bug("unexpected rb_parser_ary_data_type: %d", ary->data_type);
@@ -7401,23 +7438,6 @@ parser_precise_mbclen(struct parser_params *p, const char *ptr)
 }
 
 #ifndef RIPPER
-static inline void
-parser_show_error_line(struct parser_params *p, const YYLTYPE *yylloc)
-{
-    rb_parser_string_t *str;
-    int lineno = p->ruby_sourceline;
-    if (!yylloc) {
-        return;
-    }
-    else if (yylloc->beg_pos.lineno == lineno) {
-        str = p->lex.lastline;
-    }
-    else {
-        return;
-    }
-    ruby_show_error_line(p, p->error_buffer, yylloc, lineno, str);
-}
-
 static int
 parser_yyerror(struct parser_params *p, const rb_code_location_t *yylloc, const char *msg)
 {
@@ -7432,8 +7452,7 @@ parser_yyerror(struct parser_params *p, const rb_code_location_t *yylloc, const 
         yylloc = 0;
     }
 #endif
-    parser_compile_error(p, yylloc, "%s", msg);
-    parser_show_error_line(p, yylloc);
+    compile_error_with_loc(p, yylloc, "%s", msg);
     return 0;
 }
 
@@ -7445,9 +7464,8 @@ parser_yyerror0(struct parser_params *p, const char *msg)
 }
 
 void
-ruby_show_error_line(struct parser_params *p, VALUE errbuf, const YYLTYPE *yylloc, int lineno, rb_parser_string_t *str)
+ruby_show_error_line(struct parser_params *p, VALUE errbuf, VALUE mesg, const YYLTYPE *yylloc, int lineno, rb_parser_string_t *str)
 {
-    VALUE mesg;
     const int max_line_margin = 30;
     const char *ptr, *ptr_end, *pt, *pb;
     const char *pre = "", *post = "", *pend;
@@ -7498,7 +7516,6 @@ ruby_show_error_line(struct parser_params *p, VALUE errbuf, const YYLTYPE *yyllo
         return;
     }
     if (RTEST(errbuf)) {
-        mesg = rb_attr_get(errbuf, idMesg);
         if (RSTRING_LEN(mesg) > 0 && *(RSTRING_END(mesg)-1) != '\n')
             rb_str_cat_cstr(mesg, "\n");
     }
@@ -7575,11 +7592,6 @@ parser_yyerror0(struct parser_params *p, const char *msg)
     dispatch1(parse_error, STR_NEW2(msg));
     ripper_error(p);
     return 0;
-}
-
-static inline void
-parser_show_error_line(struct parser_params *p, const YYLTYPE *yylloc)
-{
 }
 #endif /* !RIPPER */
 
@@ -7693,6 +7705,40 @@ e_option_supplied(struct parser_params *p)
 #ifndef RIPPER
 static NODE *parser_append_options(struct parser_params *p, NODE *node);
 
+static void
+append_error_message_to_str(struct parser_params *p, VALUE str, const char *file, rb_parser_error_t *error)
+{
+    /* Ref: err_vcatf and rb_syntax_error_with_path */
+    rb_parser_string_t *msg = error->message;
+
+    if (RSTRING_LEN(str) > 0 && *(RSTRING_END(str)-1) != '\n')
+        rb_str_cat_cstr(str, "\n");
+
+    if (file) {
+        int line = error->lineno;
+
+        rb_str_cat2(str, file);
+        if (line) rb_str_catf(str, ":%d", line);
+        rb_str_cat2(str, ": ");
+    }
+    rb_str_cat(str, PARSER_STRING_PTR(msg), PARSER_STRING_LEN(msg));
+}
+
+static void
+append_error_message(struct parser_params *p, rb_parser_ary_t *errors, VALUE str)
+{
+    const char *fn = NIL_P(p->ruby_sourcefile_string) ? NULL : RSTRING_PTR(p->ruby_sourcefile_string);
+
+    for (long i = 0; i < errors->len; i++) {
+        rb_parser_error_t *error = errors->data[i];
+
+        append_error_message_to_str(p, str, fn, error);
+        if (error->lastline) {
+            ruby_show_error_line(p, Qtrue, str, &error->loc, error->lineno, error->lastline);
+        }
+    }
+}
+
 static VALUE
 yycompile0(VALUE arg)
 {
@@ -7724,12 +7770,17 @@ yycompile0(VALUE arg)
     p->lex.strterm = 0;
     p->lex.pcur = p->lex.pbeg = p->lex.pend = 0;
     if (n || p->error_p) {
-        VALUE mesg = p->error_buffer;
-        if (!mesg) {
-            mesg = syntax_error_new();
+        VALUE exc;
+        if (p->main_context) {
+            exc = syntax_error_new();
+        }
+        else {
+            VALUE mesg;
+            exc = rb_syntax_error_with_path(Qnil, p->ruby_sourcefile_string, &mesg, p->enc);
+            append_error_message(p, p->errors, mesg);
         }
         if (!p->error_tolerant) {
-            rb_set_errinfo(mesg);
+            rb_set_errinfo(exc);
             return FALSE;
         }
     }
@@ -8141,8 +8192,7 @@ tokadd_codepoint(struct parser_params *p, rb_encoding **encp,
         rb_encoding *utf8 = rb_utf8_encoding();
         if (*encp && utf8 != *encp) {
             YYLTYPE loc = RUBY_INIT_YYLLOC();
-            compile_error(p, "UTF-8 mixed within %s source", rb_enc_name(*encp));
-            parser_show_error_line(p, &loc);
+            compile_error_with_loc(p, &loc, "UTF-8 mixed within %s source", rb_enc_name(*encp));
             return wide;
         }
         *encp = utf8;
@@ -8527,9 +8577,8 @@ regx_options(struct parser_params *p)
     if (toklen(p)) {
         YYLTYPE loc = RUBY_INIT_YYLLOC();
         tokfix(p);
-        compile_error(p, "unknown regexp option%s - %*s",
-                      toklen(p) > 1 ? "s" : "", toklen(p), tok(p));
-        parser_show_error_line(p, &loc);
+        compile_error_with_loc(p, &loc, "unknown regexp option%s - %*s",
+                             toklen(p) > 1 ? "s" : "", toklen(p), tok(p));
     }
     return options | RE_OPTION_ENCODING(kcode);
 }
@@ -8589,8 +8638,7 @@ parser_mixed_error(struct parser_params *p, rb_encoding *enc1, rb_encoding *enc2
 {
     YYLTYPE loc = RUBY_INIT_YYLLOC();
     const char *n1 = rb_enc_name(enc1), *n2 = rb_enc_name(enc2);
-    compile_error(p, "%s mixed within %s source", n1, n2);
-    parser_show_error_line(p, &loc);
+    compile_error_with_loc(p, &loc, "%s mixed within %s source", n1, n2);
 }
 
 static void
@@ -9611,7 +9659,7 @@ parser_set_encode(struct parser_params *p, const char *name)
         excargs[2] = rb_make_backtrace();
         rb_ary_unshift(excargs[2], rb_sprintf("%"PRIsVALUE":%d", p->ruby_sourcefile_string, p->ruby_sourceline));
         VALUE exc = rb_make_exception(3, excargs);
-        ruby_show_error_line(p, exc, &(YYLTYPE)RUBY_INIT_YYLLOC(), p->ruby_sourceline, p->lex.lastline);
+        ruby_show_error_line(p, exc, rb_attr_get(exc, idMesg), &(YYLTYPE)RUBY_INIT_YYLLOC(), p->ruby_sourceline, p->lex.lastline);
         rb_exc_raise(exc);
     }
     enc = rb_enc_from_index(idx);
@@ -10215,8 +10263,7 @@ parse_numeric(struct parser_params *p, int c)
       trailing_uc:
         literal_flush(p, p->lex.pcur - 1);
         YYLTYPE loc = RUBY_INIT_YYLLOC();
-        compile_error(p, "trailing '%c' in number", nondigit);
-        parser_show_error_line(p, &loc);
+        compile_error_with_loc(p, &loc, "trailing '%c' in number", nondigit);
     }
     tokfix(p);
     if (is_float) {
@@ -10541,13 +10588,12 @@ parse_gvar(struct parser_params *p, const enum lex_state_e last_state)
         if (!parser_is_identchar(p)) {
             YYLTYPE loc = RUBY_INIT_YYLLOC();
             if (c == -1 || ISSPACE(c)) {
-                compile_error(p, "'$' without identifiers is not allowed as a global variable name");
+                compile_error_with_loc(p, &loc, "'$' without identifiers is not allowed as a global variable name");
             }
             else {
                 pushback(p, c);
-                compile_error(p, "'$%c' is not allowed as a global variable name", c);
+                compile_error_with_loc(p, &loc, "'$%c' is not allowed as a global variable name", c);
             }
-            parser_show_error_line(p, &loc);
             set_yylval_noname();
             return tGVAR;
         }
@@ -10611,12 +10657,11 @@ parse_atmark(struct parser_params *p, const enum lex_state_e last_state)
         pushback(p, c);
         RUBY_SET_YYLLOC(loc);
         if (result == tIVAR) {
-            compile_error(p, "'@' without identifiers is not allowed as an instance variable name");
+            compile_error_with_loc(p, &loc, "'@' without identifiers is not allowed as an instance variable name");
         }
         else {
-            compile_error(p, "'@@' without identifiers is not allowed as a class variable name");
+            compile_error_with_loc(p, &loc, "'@@' without identifiers is not allowed as a class variable name");
         }
-        parser_show_error_line(p, &loc);
         set_yylval_noname();
         SET_LEX_STATE(EXPR_END);
         return result;
@@ -10625,12 +10670,11 @@ parse_atmark(struct parser_params *p, const enum lex_state_e last_state)
         pushback(p, c);
         RUBY_SET_YYLLOC(loc);
         if (result == tIVAR) {
-            compile_error(p, "'@%c' is not allowed as an instance variable name", c);
+            compile_error_with_loc(p, &loc, "'@%c' is not allowed as an instance variable name", c);
         }
         else {
-            compile_error(p, "'@@%c' is not allowed as a class variable name", c);
+            compile_error_with_loc(p, &loc, "'@@%c' is not allowed as a class variable name", c);
         }
-        parser_show_error_line(p, &loc);
         set_yylval_noname();
         SET_LEX_STATE(EXPR_END);
         return result;
@@ -13129,11 +13173,10 @@ numparam_nested_p(struct parser_params *p)
     NODE *inner = local->numparam.inner;
     if (outer || inner) {
         NODE *used = outer ? outer : inner;
-        compile_error(p, "numbered parameter is already used in\n"
-                      "%s:%d: %s block here",
-                      p->ruby_sourcefile, nd_line(used),
-                      outer ? "outer" : "inner");
-        parser_show_error_line(p, &used->nd_loc);
+        compile_error_with_loc(p, &used->nd_loc, "numbered parameter is already used in\n"
+                             "%s:%d: %s block here",
+                             p->ruby_sourcefile, nd_line(used),
+                             outer ? "outer" : "inner");
         return 1;
     }
     return 0;
@@ -13144,10 +13187,9 @@ numparam_used_p(struct parser_params *p)
 {
     NODE *numparam = p->lvtbl->numparam.current;
     if (numparam) {
-        compile_error(p, "numbered parameter is already used in\n"
-                      "%s:%d: current block here",
-                      p->ruby_sourcefile, nd_line(numparam));
-        parser_show_error_line(p, &numparam->nd_loc);
+        compile_error_with_loc(p, &numparam->nd_loc, "numbered parameter is already used in\n"
+                             "%s:%d: current block here",
+                             p->ruby_sourcefile, nd_line(numparam));
         return 1;
     }
     return 0;
@@ -13158,10 +13200,9 @@ it_used_p(struct parser_params *p)
 {
     NODE *it = p->lvtbl->it;
     if (it) {
-        compile_error(p, "'it' is already used in\n"
-                      "%s:%d: current block here",
-                      p->ruby_sourcefile, nd_line(it));
-        parser_show_error_line(p, &it->nd_loc);
+        compile_error_with_loc(p, &it->nd_loc, "'it' is already used in\n"
+                             "%s:%d: current block here",
+                             p->ruby_sourcefile, nd_line(it));
         return 1;
     }
     return 0;
@@ -15775,7 +15816,7 @@ parser_initialize(struct parser_params *p)
     p->delayed.token = NULL;
     p->frozen_string_literal = -1; /* not specified */
 #ifndef RIPPER
-    p->error_buffer = Qfalse;
+    p->errors = rb_parser_ary_new_capa_for_error(p, 10);
     p->end_expect_token_locations = NULL;
     p->token_id = 0;
     p->tokens = NULL;
@@ -15804,9 +15845,7 @@ rb_ruby_parser_mark(void *ptr)
     struct parser_params *p = (struct parser_params*)ptr;
 
     rb_gc_mark(p->ruby_sourcefile_string);
-#ifndef RIPPER
-    rb_gc_mark(p->error_buffer);
-#else
+#ifdef RIPPER
     rb_gc_mark(p->value);
     rb_gc_mark(p->result);
     rb_gc_mark(p->parsing_thread);
@@ -15827,6 +15866,10 @@ rb_ruby_parser_free(void *ptr)
 #ifndef RIPPER
     if (p->tokens) {
         rb_parser_ary_free(p, p->tokens);
+    }
+
+    if (p->errors) {
+        rb_parser_ary_free(p, p->errors);
     }
 #endif
 
@@ -15923,7 +15966,7 @@ rb_ruby_parser_new(void)
 rb_parser_t *
 rb_ruby_parser_set_context(rb_parser_t *p, const struct rb_iseq_struct *base, int main)
 {
-    p->error_buffer = main ? Qfalse : Qnil;
+    p->main_context = main;
     p->parent_iseq = base;
     return p;
 }
@@ -16154,28 +16197,54 @@ rb_parser_printf(struct parser_params *p, const char *fmt, ...)
 }
 
 static void
+parser_append_error(struct parser_params *p, int lineno, int column, rb_code_location_t loc,
+                    rb_parser_string_t *message, rb_parser_string_t *lastline)
+{
+    rb_parser_error_t *error = xcalloc(1, sizeof(rb_parser_error_t));
+    error->lineno = lineno;
+    error->column = column;
+    error->loc = loc;
+    error->message = message;
+    error->lastline = lastline;
+    rb_parser_ary_push_error(p, p->errors, error);
+}
+
+static void
 parser_compile_error(struct parser_params *p, const rb_code_location_t *loc, const char *fmt, ...)
 {
     va_list ap;
     int lineno, column;
+    rb_parser_string_t *lastline = NULL;
 
     if (loc) {
         lineno = loc->end_pos.lineno;
         column = loc->end_pos.column;
+        if (loc->beg_pos.lineno == p->ruby_sourceline) lastline = p->lex.lastline;
     }
     else {
         lineno = p->ruby_sourceline;
         column = rb_long2int(p->lex.pcur - p->lex.pbeg);
+        loc = &NULL_LOC;
     }
 
     rb_io_flush(p->debug_output);
     p->error_p = 1;
     va_start(ap, fmt);
-    p->error_buffer =
-        rb_syntax_error_append(p->error_buffer,
+    if (p->main_context) {
+        rb_syntax_error_append(Qfalse,
                                p->ruby_sourcefile_string,
                                lineno, column,
                                p->enc, fmt, ap);
+        if (lastline) {
+            ruby_show_error_line(p, Qfalse, Qnil, loc, lineno, lastline);
+        }
+    }
+    else {
+        VALUE str = rb_enc_str_new(0, 0, p->enc);
+        rb_str_vcatf(str, fmt, ap);
+        parser_append_error(p, lineno, column, *loc, rb_str_to_parser_string(p, str), lastline);
+    }
+
     va_end(ap);
 }
 
