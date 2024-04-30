@@ -1133,19 +1133,14 @@ parser_aset_script_lines_for(VALUE path, rb_parser_ary_t *lines)
     rb_hash_aset(hash, path, script_lines);
 }
 
-VALUE
-rb_ruby_ast_new(const NODE *const root)
+void
+rb_ast_body_initialize(rb_ast_body_t *body, const NODE *const root)
 {
-    rb_ast_t *ast = ruby_xcalloc(1, sizeof(rb_ast_t));
-    VALUE vast = ast_alloc(ast);
-    ast->body = (rb_ast_body_t){
-        .root = root,
-        .frozen_string_literal = -1,
-        .coverage_enabled = -1,
-        .script_lines = NULL,
-        .line_count = 0,
-    };
-    return vast;
+    body->root = root;
+    body->frozen_string_literal = -1;
+    body->coverage_enabled = -1;
+    body->script_lines = NULL;
+    body->line_count = 0;
 }
 
 rb_ast_t *

@@ -2557,7 +2557,7 @@ process_options(int argc, char **argv, ruby_cmdline_options_t *opt)
         }
         else {
             rb_ast_t *ast = result.ast;
-            iseq = rb_iseq_new_main(vast, opt->script_name, path, parent, optimize);
+            iseq = rb_iseq_new_main(&ast->body, opt->script_name, path, parent, optimize);
             rb_ast_dispose(ast);
         }
     }

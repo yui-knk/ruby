@@ -1797,7 +1797,7 @@ eval_make_iseq(VALUE src, VALUE fname, int line,
 
     if (ast->body.root) {
         ast->body.coverage_enabled = coverage_enabled;
-        iseq = rb_iseq_new_eval(vast,
+        iseq = rb_iseq_new_eval(&ast->body,
                                 ISEQ_BODY(parent)->location.label,
                                 fname, Qnil, line,
                                 parent, isolated_depth);

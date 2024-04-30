@@ -41,7 +41,7 @@ builtin_iseq_load(const char *feature_name, const struct rb_builtin_function *ta
         .debug_level = 0,
     };
     ast = rb_ruby_ast_data_get(vast);
-    const rb_iseq_t *iseq = rb_iseq_new_with_opt(vast, name_str, name_str, Qnil, 0, NULL, 0, ISEQ_TYPE_TOP, &optimization, Qnil);
+    const rb_iseq_t *iseq = rb_iseq_new_with_opt(&ast->body, name_str, name_str, Qnil, 0, NULL, 0, ISEQ_TYPE_TOP, &optimization, Qnil);
     GET_VM()->builtin_function_table = NULL;
 
     rb_ast_dispose(ast);

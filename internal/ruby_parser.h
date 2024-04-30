@@ -96,7 +96,7 @@ enum lex_state_e {
     EXPR_NONE = 0
 };
 
-VALUE rb_ruby_ast_new(const NODE *const root);
+void rb_ast_body_initialize(rb_ast_body_t *body, const NODE *const root);
 rb_ast_t *rb_ruby_ast_data_get(VALUE vast);
 
 #endif /* INTERNAL_RUBY_PARSE_H */
