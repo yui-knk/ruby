@@ -630,8 +630,8 @@ rb_parser_keep_tokens(VALUE vparser)
     rb_ruby_parser_keep_tokens(parser->parser_params);
 }
 
-rb_parser_string_t *
-rb_parser_lex_get_str(struct parser_params *p, struct lex_pointer_string *ptr_str)
+void
+rb_parser_lex_get_str(struct parser_params *p, struct lex_pointer_string *ptr_str, struct rb_parser_string_source *source)
 {
     char *beg, *end, *start;
     long len;
@@ -641,20 +641,23 @@ rb_parser_lex_get_str(struct parser_params *p, struct lex_pointer_string *ptr_st
     len = RSTRING_LEN(s);
     start = beg;
     if (ptr_str->ptr) {
-        if (len == ptr_str->ptr) return 0;
+        if (len == ptr_str->ptr) return;
         beg += ptr_str->ptr;
         len -= ptr_str->ptr;
     }
     end = memchr(beg, '\n', len);
     if (end) len = ++end - beg;
     ptr_str->ptr += len;
-    return rb_str_to_parser_string(p, rb_str_subseq(s, beg - start, len));
+
+    source->ptr = RSTRING_PTR(s) + (beg - start);
+    source->len = len;
+    source->enc = rb_enc_get(s);
 }
 
-static rb_parser_string_t *
-lex_get_str(struct parser_params *p, rb_parser_input_data input, int line_count)
+static void
+lex_get_str(struct parser_params *p, rb_parser_input_data input, int line_count, struct rb_parser_string_source *source)
 {
-    return rb_parser_lex_get_str(p, (struct lex_pointer_string *)input);
+    return rb_parser_lex_get_str(p, (struct lex_pointer_string *)input, source);
 }
 
 static void parser_aset_script_lines_for(VALUE path, rb_parser_ary_t *lines);
@@ -716,8 +719,8 @@ parser_compile_string(struct ruby_parser *parser, const char *f, VALUE s, int li
 
 VALUE rb_io_gets_internal(VALUE io);
 
-static rb_parser_string_t *
-lex_io_gets(struct parser_params *p, rb_parser_input_data input, int line_count)
+static void
+lex_io_gets(struct parser_params *p, rb_parser_input_data input, int line_count, struct rb_parser_string_source *source)
 {
     VALUE io = (VALUE)input;
     VALUE line = rb_io_gets_internal(io);

@@ -7795,8 +7795,12 @@ must_be_ascii_compatible(struct parser_params *p, rb_parser_string_t *s)
 static rb_parser_string_t *
 lex_getline(struct parser_params *p)
 {
-    rb_parser_string_t *line = (*p->lex.gets)(p, p->lex.input, p->line_count);
-    if (!line) return 0;
+    rb_parser_string_t *line;
+    rb_parser_string_source_t source = {0};
+
+    (*p->lex.gets)(p, p->lex.input, p->line_count, &source);
+    if (!source.ptr) return 0;
+    line = rb_parser_encoding_string_new(p, source.ptr, source.len, source.enc);
     p->line_count++;
     string_buffer_append(p, line);
     must_be_ascii_compatible(p, line);

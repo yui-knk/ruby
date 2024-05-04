@@ -66,6 +66,12 @@ typedef struct rb_parser_string {
     char *ptr;
 } rb_parser_string_t;
 
+typedef struct rb_parser_string_source {
+	rb_encoding *enc;
+	long len;
+	const char *ptr;
+} rb_parser_string_source_t;
+
 enum rb_parser_shareability {
     rb_parser_shareable_none,
     rb_parser_shareable_literal,
