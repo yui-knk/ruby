@@ -994,8 +994,8 @@ rb_iseq_new_with_opt(const VALUE ast_value, VALUE name, VALUE path, VALUE realpa
     }
     else if (body && body->script_lines) {
         if (body->script_lines->data_type != PARSER_ARY_DATA_SCRIPT_LINE) {
-            fprintf(stderr, "rb_iseq_new_with_opt. ast_value: %ld, ast: %p, root: %p, line_count: %d, data_type: %d, script_lines->len: %ld\n",
-                ast_value, ast, body->root, body->line_count, body->script_lines->data_type, body->script_lines->len);
+            fprintf(stderr, "rb_iseq_new_with_opt. ast_value: %ld, ast: %p, root: %p, line_count: %d, data_type: %d, script_lines->len: %ld, ruby_vm_keep_script_lines: %d\n",
+                ast_value, ast, body->root, body->line_count, body->script_lines->data_type, body->script_lines->len, ruby_vm_keep_script_lines);
         }
 
         script_lines = rb_parser_build_script_lines_from(body->script_lines);
