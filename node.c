@@ -214,6 +214,12 @@ free_ast_value(rb_ast_t *ast, void *ctx, NODE *node)
       case NODE_IMAGINARY:
         xfree(RNODE_IMAGINARY(node)->val);
         break;
+      case NODE_ARRAY:
+        parser_nodes_free(ast, RNODE_ARRAY(node)->elements);
+        break;
+      case NODE_ARGUMENTS:
+        if (RNODE_ARGUMENTS(node)->arguments) parser_nodes_free(ast, RNODE_ARGUMENTS(node)->arguments);
+        break;
       case NODE_UNDEF:
         parser_nodes_free(ast, RNODE_UNDEF(node)->nd_undefs);
         break;

@@ -497,7 +497,7 @@ node_children(VALUE ast_value, const NODE *node)
       case NODE_OP_ASGN1:
         return rb_ary_new_from_args(4, NEW_CHILD(ast_value, RNODE_OP_ASGN1(node)->nd_recv),
                                     ID2SYM(RNODE_OP_ASGN1(node)->nd_mid),
-                                    NEW_CHILD(ast_value, RNODE_OP_ASGN1(node)->nd_index),
+                                    NEW_CHILD(ast_value, (NODE *)RNODE_OP_ASGN1(node)->nd_index),
                                     NEW_CHILD(ast_value, RNODE_OP_ASGN1(node)->nd_rvalue));
       case NODE_OP_ASGN2:
         return rb_ary_new_from_args(5, NEW_CHILD(ast_value, RNODE_OP_ASGN2(node)->nd_recv),
@@ -518,18 +518,18 @@ node_children(VALUE ast_value, const NODE *node)
       case NODE_CALL:
         return rb_ary_new_from_args(3, NEW_CHILD(ast_value, RNODE_CALL(node)->nd_recv),
                                     ID2SYM(RNODE_CALL(node)->nd_mid),
-                                    NEW_CHILD(ast_value, RNODE_CALL(node)->nd_args));
+                                    NEW_CHILD(ast_value, (NODE *)RNODE_CALL(node)->nd_args));
       case NODE_OPCALL:
         return rb_ary_new_from_args(3, NEW_CHILD(ast_value, RNODE_OPCALL(node)->nd_recv),
                                     ID2SYM(RNODE_OPCALL(node)->nd_mid),
-                                    NEW_CHILD(ast_value, RNODE_OPCALL(node)->nd_args));
+                                    NEW_CHILD(ast_value, (NODE *)RNODE_OPCALL(node)->nd_args));
       case NODE_QCALL:
         return rb_ary_new_from_args(3, NEW_CHILD(ast_value, RNODE_QCALL(node)->nd_recv),
                                     ID2SYM(RNODE_QCALL(node)->nd_mid),
-                                    NEW_CHILD(ast_value, RNODE_QCALL(node)->nd_args));
+                                    NEW_CHILD(ast_value, (NODE *)RNODE_QCALL(node)->nd_args));
       case NODE_FCALL:
         return rb_ary_new_from_args(2, ID2SYM(RNODE_FCALL(node)->nd_mid),
-                                    NEW_CHILD(ast_value, RNODE_FCALL(node)->nd_args));
+                                    NEW_CHILD(ast_value, (NODE *)RNODE_FCALL(node)->nd_args));
       case NODE_VCALL:
         return rb_ary_new_from_args(1, ID2SYM(RNODE_VCALL(node)->nd_mid));
       case NODE_SUPER:
@@ -540,6 +540,8 @@ node_children(VALUE ast_value, const NODE *node)
         return dump_array(ast_value, RNODE_LIST(node));
       case NODE_ZLIST:
         return rb_ary_new_from_node_args(ast_value, 0);
+      case NODE_ARRAY:
+        return dump_parser_array(ast_value, RNODE_ARRAY(node)->elements);
       case NODE_HASH:
         return rb_ary_new_from_node_args(ast_value, 1, RNODE_HASH(node)->nd_head);
       case NODE_YIELD:
@@ -605,6 +607,8 @@ node_children(VALUE ast_value, const NODE *node)
         return rb_ary_new_from_args(1, rb_node_sym_string_val(node));
       case NODE_EVSTR:
         return rb_ary_new_from_node_args(ast_value, 1, RNODE_EVSTR(node)->nd_body);
+      case NODE_ARGUMENTS:
+        return dump_parser_array(ast_value, RNODE_ARGUMENTS(node)->arguments);
       case NODE_ARGSCAT:
         return rb_ary_new_from_node_args(ast_value, 2, RNODE_ARGSCAT(node)->nd_head, RNODE_ARGSCAT(node)->nd_body);
       case NODE_ARGSPUSH:
@@ -653,7 +657,7 @@ node_children(VALUE ast_value, const NODE *node)
       case NODE_POSTEXE:
         return rb_ary_new_from_node_args(ast_value, 1, RNODE_POSTEXE(node)->nd_body);
       case NODE_ATTRASGN:
-        return rb_ary_new_from_args(3, NEW_CHILD(ast_value, RNODE_ATTRASGN(node)->nd_recv), ID2SYM(RNODE_ATTRASGN(node)->nd_mid), NEW_CHILD(ast_value, RNODE_ATTRASGN(node)->nd_args));
+        return rb_ary_new_from_args(3, NEW_CHILD(ast_value, RNODE_ATTRASGN(node)->nd_recv), ID2SYM(RNODE_ATTRASGN(node)->nd_mid), NEW_CHILD(ast_value, (NODE *)RNODE_ATTRASGN(node)->nd_args));
       case NODE_LAMBDA:
         return rb_ary_new_from_node_args(ast_value, 1, RNODE_LAMBDA(node)->nd_body);
       case NODE_OPT_ARG:
@@ -747,19 +751,13 @@ ast_node_children(rb_execution_context_t *ec, VALUE self)
     return node_children(data->ast_value, data->node);
 }
 
-static int
-null_loc_p(rb_code_location_t *loc)
-{
-    return (loc->beg_pos.lineno == 0 && loc->beg_pos.column == -1 && loc->end_pos.lineno == 0 && loc->end_pos.column == -1);
-}
-
 static VALUE
 location_new(rb_code_location_t *loc)
 {
     VALUE obj;
     struct ASTLocationData *data;
 
-    if (null_loc_p(loc)) return Qnil;
+    if (nd_null_loc_p(loc)) return Qnil;
 
     obj = TypedData_Make_Struct(rb_cLocation, struct ASTLocationData, &rb_location_type, data);
     data->first_lineno = loc->beg_pos.lineno;

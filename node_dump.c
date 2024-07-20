@@ -643,6 +643,14 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("example: []");
         return;
 
+      case NODE_ARRAY:
+        ANN("array");
+        ANN("format: []");
+        ANN("example: []");
+        LAST_NODE;
+        F_ARRAY(elements, RNODE_ARRAY, "elements");
+        return;
+
       case NODE_HASH:
         if (!RNODE_HASH(node)->nd_brace) {
             ANN("keyword arguments");
@@ -855,6 +863,14 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("example: \"foo#{ bar }baz\"");
         LAST_NODE;
         F_NODE(nd_body, RNODE_EVSTR, "body");
+        return;
+
+      case NODE_ARGUMENTS:
+        ANN("arguments");
+        ANN("format: ..([arguments])");
+        ANN("example: foo(arg1, ...)");
+        LAST_NODE;
+        F_ARRAY(arguments, RNODE_ARGUMENTS, "arguments");
         return;
 
       case NODE_ARGSCAT:

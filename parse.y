@@ -83,7 +83,7 @@ static NODE *reg_named_capture_assign(struct parser_params* p, VALUE regexp, con
 #define compile_callback rb_suppress_tracing
 #endif /* !UNIVERSAL_PARSER */
 
-#define NODE_SPECIAL_EMPTY_ARGS ((NODE *)-1)
+#define NODE_SPECIAL_EMPTY_ARGS ((rb_node_arguments_t *)-1)
 #define NODE_EMPTY_ARGS_P(node) ((node) == NODE_SPECIAL_EMPTY_ARGS)
 
 static int rb_parser_string_hash_cmp(rb_parser_string_t *str1, rb_parser_string_t *str2);
@@ -1075,7 +1075,7 @@ static rb_node_for_masgn_t *rb_node_for_masgn_new(struct parser_params *p, NODE 
 static rb_node_retry_t *rb_node_retry_new(struct parser_params *p, const YYLTYPE *loc);
 static rb_node_begin_t *rb_node_begin_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
 static rb_node_rescue_t *rb_node_rescue_new(struct parser_params *p, NODE *nd_head, NODE *nd_resq, NODE *nd_else, const YYLTYPE *loc);
-static rb_node_resbody_t *rb_node_resbody_new(struct parser_params *p, NODE *nd_args, NODE *nd_exc_var, NODE *nd_body, NODE *nd_next, const YYLTYPE *loc);
+static rb_node_resbody_t *rb_node_resbody_new(struct parser_params *p, rb_node_arguments_t *nd_args, NODE *nd_exc_var, NODE *nd_body, NODE *nd_next, const YYLTYPE *loc);
 static rb_node_ensure_t *rb_node_ensure_new(struct parser_params *p, NODE *nd_head, NODE *nd_ensr, const YYLTYPE *loc);
 static rb_node_and_t *rb_node_and_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYPE *loc);
 static rb_node_or_t *rb_node_or_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYPE *loc);
@@ -1086,24 +1086,25 @@ static rb_node_gasgn_t *rb_node_gasgn_new(struct parser_params *p, ID nd_vid, NO
 static rb_node_iasgn_t *rb_node_iasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLTYPE *loc);
 static rb_node_cdecl_t *rb_node_cdecl_new(struct parser_params *p, ID nd_vid, NODE *nd_value, NODE *nd_else, enum rb_parser_shareability shareability, const YYLTYPE *loc);
 static rb_node_cvasgn_t *rb_node_cvasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYLTYPE *loc);
-static rb_node_op_asgn1_t *rb_node_op_asgn1_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *index, NODE *rvalue, const YYLTYPE *loc);
+static rb_node_op_asgn1_t *rb_node_op_asgn1_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, rb_node_arguments_t *index, NODE *rvalue, const YYLTYPE *loc);
 static rb_node_op_asgn2_t *rb_node_op_asgn2_new(struct parser_params *p, NODE *nd_recv, NODE *nd_value, ID nd_vid, ID nd_mid, bool nd_aid, const YYLTYPE *loc);
 static rb_node_op_asgn_or_t *rb_node_op_asgn_or_new(struct parser_params *p, NODE *nd_head, NODE *nd_value, const YYLTYPE *loc);
 static rb_node_op_asgn_and_t *rb_node_op_asgn_and_new(struct parser_params *p, NODE *nd_head, NODE *nd_value, const YYLTYPE *loc);
 static rb_node_op_cdecl_t *rb_node_op_cdecl_new(struct parser_params *p, NODE *nd_head, NODE *nd_value, ID nd_aid, enum rb_parser_shareability shareability, const YYLTYPE *loc);
-static rb_node_call_t *rb_node_call_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc);
-static rb_node_opcall_t *rb_node_opcall_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc);
-static rb_node_fcall_t *rb_node_fcall_new(struct parser_params *p, ID nd_mid, NODE *nd_args, const YYLTYPE *loc);
+static rb_node_call_t *rb_node_call_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, rb_node_arguments_t *nd_args, const YYLTYPE *loc);
+static rb_node_opcall_t *rb_node_opcall_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, rb_node_arguments_t *nd_args, const YYLTYPE *loc);
+static rb_node_fcall_t *rb_node_fcall_new(struct parser_params *p, ID nd_mid, rb_node_arguments_t *nd_args, const YYLTYPE *loc);
 static rb_node_vcall_t *rb_node_vcall_new(struct parser_params *p, ID nd_mid, const YYLTYPE *loc);
-static rb_node_qcall_t *rb_node_qcall_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc);
-static rb_node_super_t *rb_node_super_new(struct parser_params *p, NODE *nd_args, const YYLTYPE *loc);
+static rb_node_qcall_t *rb_node_qcall_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, rb_node_arguments_t *nd_args, const YYLTYPE *loc);
+static rb_node_super_t *rb_node_super_new(struct parser_params *p, rb_node_arguments_t *nd_args, const YYLTYPE *loc);
 static rb_node_zsuper_t * rb_node_zsuper_new(struct parser_params *p, const YYLTYPE *loc);
 static rb_node_list_t *rb_node_list_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc);
 static rb_node_list_t *rb_node_list_new2(struct parser_params *p, NODE *nd_head, long nd_alen, NODE *nd_next, const YYLTYPE *loc);
-static rb_node_zlist_t *rb_node_zlist_new(struct parser_params *p, const YYLTYPE *loc);
+static rb_node_array_t *rb_node_array_new0(struct parser_params *p, const YYLTYPE *loc);
+static rb_node_array_t *rb_node_array_new(struct parser_params *p, rb_parser_ary_t *elements, const YYLTYPE *loc);
 static rb_node_hash_t *rb_node_hash_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc);
-static rb_node_return_t *rb_node_return_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc);
-static rb_node_yield_t *rb_node_yield_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc);
+static rb_node_return_t *rb_node_return_new(struct parser_params *p, rb_node_arguments_t *nd_stts, const YYLTYPE *loc);
+static rb_node_yield_t *rb_node_yield_new(struct parser_params *p, rb_node_arguments_t *nd_head, const YYLTYPE *loc);
 static rb_node_lvar_t *rb_node_lvar_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc);
 static rb_node_dvar_t *rb_node_dvar_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc);
 static rb_node_gvar_t *rb_node_gvar_new(struct parser_params *p, ID nd_vid, const YYLTYPE *loc);
@@ -1131,6 +1132,8 @@ static rb_node_args_aux_t *rb_node_args_aux_new(struct parser_params *p, ID nd_p
 static rb_node_opt_arg_t *rb_node_opt_arg_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
 static rb_node_kw_arg_t *rb_node_kw_arg_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
 static rb_node_postarg_t *rb_node_postarg_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYPE *loc);
+static rb_node_arguments_t *rb_node_arguments_new0(struct parser_params *p, const YYLTYPE *loc);
+static rb_node_arguments_t *rb_node_arguments_new(struct parser_params *p, NODE *nd_arg, const YYLTYPE *loc);
 static rb_node_argscat_t *rb_node_argscat_new(struct parser_params *p, NODE *nd_head, NODE *nd_body, const YYLTYPE *loc);
 static rb_node_argspush_t *rb_node_argspush_new(struct parser_params *p, NODE *nd_head, NODE *nd_body, const YYLTYPE *loc);
 static rb_node_splat_t *rb_node_splat_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc);
@@ -1156,7 +1159,7 @@ static rb_node_defined_t *rb_node_defined_new(struct parser_params *p, NODE *nd_
 static rb_node_postexe_t *rb_node_postexe_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
 static rb_node_sym_t *rb_node_sym_new(struct parser_params *p, VALUE str, const YYLTYPE *loc);
 static rb_node_dsym_t *rb_node_dsym_new(struct parser_params *p, rb_parser_string_t *string, long nd_alen, NODE *nd_next, const YYLTYPE *loc);
-static rb_node_attrasgn_t *rb_node_attrasgn_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc);
+static rb_node_attrasgn_t *rb_node_attrasgn_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, rb_node_arguments_t *nd_args, const YYLTYPE *loc);
 static rb_node_lambda_t *rb_node_lambda_new(struct parser_params *p, rb_node_args_t *nd_args, NODE *nd_body, const YYLTYPE *loc);
 static rb_node_aryptn_t *rb_node_aryptn_new(struct parser_params *p, NODE *pre_args, NODE *rest_arg, NODE *post_args, const YYLTYPE *loc);
 static rb_node_hshptn_t *rb_node_hshptn_new(struct parser_params *p, NODE *nd_pconst, NODE *nd_pkwargs, NODE *nd_pkwrestarg, const YYLTYPE *loc);
@@ -1208,7 +1211,8 @@ static rb_node_error_t *rb_node_error_new(struct parser_params *p, const YYLTYPE
 #define NEW_ZSUPER(loc) (NODE *)rb_node_zsuper_new(p,loc)
 #define NEW_LIST(a,loc) (NODE *)rb_node_list_new(p,a,loc)
 #define NEW_LIST2(h,l,n,loc) (NODE *)rb_node_list_new2(p,h,l,n,loc)
-#define NEW_ZLIST(loc) (NODE *)rb_node_zlist_new(p,loc)
+#define NEW_ARRAY0(loc) rb_node_array_new0(p,loc)
+#define NEW_ARRAY(el,loc) (NODE *)rb_node_array_new(p,el,loc)
 #define NEW_HASH(a,loc) (NODE *)rb_node_hash_new(p,a,loc)
 #define NEW_RETURN(s,loc) (NODE *)rb_node_return_new(p,s,loc)
 #define NEW_YIELD(a,loc) (NODE *)rb_node_yield_new(p,a,loc)
@@ -1239,6 +1243,8 @@ static rb_node_error_t *rb_node_error_new(struct parser_params *p, const YYLTYPE
 #define NEW_OPT_ARG(v,loc) rb_node_opt_arg_new(p,v,loc)
 #define NEW_KW_ARG(v,loc) rb_node_kw_arg_new(p,v,loc)
 #define NEW_POSTARG(i,v,loc) (NODE *)rb_node_postarg_new(p,i,v,loc)
+#define NEW_ARGUMENTS0(loc) rb_node_arguments_new0(p,loc)
+#define NEW_ARGUMENTS(a,loc) rb_node_arguments_new(p,a,loc)
 #define NEW_ARGSCAT(a,b,loc) (NODE *)rb_node_argscat_new(p,a,b,loc)
 #define NEW_ARGSPUSH(a,b,loc) (NODE *)rb_node_argspush_new(p,a,b,loc)
 #define NEW_SPLAT(a,loc) (NODE *)rb_node_splat_new(p,a,loc)
@@ -1312,8 +1318,8 @@ struct RNode_DEF_TEMP {
 
 #define RNODE_DEF_TEMP(node) ((struct RNode_DEF_TEMP *)(node))
 
-static rb_node_break_t *rb_node_break_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc);
-static rb_node_next_t *rb_node_next_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc);
+static rb_node_break_t *rb_node_break_new(struct parser_params *p, rb_node_arguments_t *nd_stts, const YYLTYPE *loc);
+static rb_node_next_t *rb_node_next_new(struct parser_params *p, rb_node_arguments_t *nd_stts, const YYLTYPE *loc);
 static rb_node_redo_t *rb_node_redo_new(struct parser_params *p, const YYLTYPE *loc);
 static rb_node_def_temp_t *rb_node_def_temp_new(struct parser_params *p, const YYLTYPE *loc);
 static rb_node_def_temp_t *def_head_save(struct parser_params *p, rb_node_def_temp_t *n);
@@ -1402,7 +1408,7 @@ static NODE *remove_begin(NODE*);
 #define value_expr(node) value_expr_gen(p, (node))
 static NODE *void_stmts(struct parser_params*,NODE*);
 static void reduce_nodes(struct parser_params*,NODE**);
-static void block_dup_check(struct parser_params*,NODE*,NODE*);
+static void block_dup_check(struct parser_params*,rb_node_arguments_t*,NODE*);
 
 static NODE *block_append(struct parser_params*,NODE*,NODE*);
 static NODE *list_append(struct parser_params*,NODE*,NODE*);
@@ -1416,12 +1422,14 @@ static NODE *new_dstr(struct parser_params*,NODE*,const YYLTYPE*);
 static NODE *str2dstr(struct parser_params*,NODE*);
 static NODE *evstr2dstr(struct parser_params*,NODE*);
 static NODE *splat_array(NODE*);
+static rb_node_arguments_t *arguments_append_arg(struct parser_params *p, rb_node_arguments_t *args, NODE *arg);
+static rb_node_array_t *array_append(struct parser_params *p, rb_node_array_t *ary, NODE *node);
 static void mark_lvar_used(struct parser_params *p, NODE *rhs);
 
 static NODE *call_bin_op(struct parser_params*,NODE*,ID,NODE*,const YYLTYPE*,const YYLTYPE*);
 static NODE *call_uni_op(struct parser_params*,NODE*,ID,const YYLTYPE*,const YYLTYPE*);
-static NODE *new_qcall(struct parser_params* p, ID atype, NODE *recv, ID mid, NODE *args, const YYLTYPE *op_loc, const YYLTYPE *loc);
-static NODE *new_command_qcall(struct parser_params* p, ID atype, NODE *recv, ID mid, NODE *args, NODE *block, const YYLTYPE *op_loc, const YYLTYPE *loc);
+static NODE *new_qcall(struct parser_params* p, ID atype, NODE *recv, ID mid, rb_node_arguments_t *args, const YYLTYPE *op_loc, const YYLTYPE *loc);
+static NODE *new_command_qcall(struct parser_params* p, ID atype, NODE *recv, ID mid, rb_node_arguments_t *args, NODE *block, const YYLTYPE *op_loc, const YYLTYPE *loc);
 static NODE *method_add_block(struct parser_params*p, NODE *m, NODE *b, const YYLTYPE *loc) {RNODE_ITER(b)->nd_iter = m; b->nd_loc = *loc; return b;}
 
 static bool args_info_empty_p(struct rb_args_info *args);
@@ -1438,22 +1446,22 @@ static rb_node_kw_arg_t *new_kw_arg(struct parser_params *p, NODE *k, const YYLT
 static rb_node_args_t *args_with_numbered(struct parser_params*,rb_node_args_t*,int,ID);
 
 static NODE* negate_lit(struct parser_params*, NODE*);
-static NODE *ret_args(struct parser_params*,NODE*);
-static NODE *arg_blk_pass(NODE*,rb_node_block_pass_t*);
-static NODE *new_yield(struct parser_params*,NODE*,const YYLTYPE*);
+static rb_node_arguments_t *ret_args(struct parser_params*,rb_node_arguments_t*);
+static rb_node_arguments_t *arg_blk_pass(struct parser_params*,rb_node_arguments_t*,rb_node_block_pass_t*);
+static NODE *new_yield(struct parser_params*,rb_node_arguments_t*,const YYLTYPE*);
 static NODE *dsym_node(struct parser_params*,NODE*,const YYLTYPE*);
 
 static NODE *gettable(struct parser_params*,ID,const YYLTYPE*);
 static NODE *assignable(struct parser_params*,ID,NODE*,const YYLTYPE*);
 
-static NODE *aryset(struct parser_params*,NODE*,NODE*,const YYLTYPE*);
+static NODE *aryset(struct parser_params*,NODE*,rb_node_arguments_t*,const YYLTYPE*);
 static NODE *attrset(struct parser_params*,NODE*,ID,ID,const YYLTYPE*);
 
 static VALUE rb_backref_error(struct parser_params*,NODE*);
 static NODE *node_assign(struct parser_params*,NODE*,NODE*,struct lex_context,const YYLTYPE*);
 
 static NODE *new_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct lex_context, const YYLTYPE *loc);
-static NODE *new_ary_op_assign(struct parser_params *p, NODE *ary, NODE *args, ID op, NODE *rhs, const YYLTYPE *args_loc, const YYLTYPE *loc);
+static NODE *new_ary_op_assign(struct parser_params *p, NODE *ary, rb_node_arguments_t *args, ID op, NODE *rhs, const YYLTYPE *args_loc, const YYLTYPE *loc);
 static NODE *new_attr_op_assign(struct parser_params *p, NODE *lhs, ID atype, ID attr, ID op, NODE *rhs, const YYLTYPE *loc);
 static NODE *new_const_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct lex_context, const YYLTYPE *loc);
 static NODE *new_bodystmt(struct parser_params *p, NODE *head, NODE *rescue, NODE *rescue_else, NODE *ensure, const YYLTYPE *loc);
@@ -1467,14 +1475,15 @@ static NODE *new_hash(struct parser_params *p, NODE *hash, const YYLTYPE *loc);
 static NODE *new_unique_key_hash(struct parser_params *p, NODE *hash, const YYLTYPE *loc);
 
 static NODE *new_defined(struct parser_params *p, NODE *expr, const YYLTYPE *loc);
+static NODE *arguments_to_array_node(struct parser_params *p, rb_node_arguments_t *args);
 
 static NODE *new_regexp(struct parser_params *, NODE *, int, const YYLTYPE *);
 
-#define make_list(list, loc) ((list) ? (nd_set_loc(list, loc), list) : NEW_ZLIST(loc))
+static NODE *make_array(struct parser_params *p, rb_node_arguments_t *args, const YYLTYPE *loc);
 
 static NODE *new_xstring(struct parser_params *, NODE *, const YYLTYPE *loc);
 
-static NODE *symbol_append(struct parser_params *p, NODE *symbols, NODE *symbol);
+static rb_node_array_t *symbol_append(struct parser_params *p, rb_node_array_t *symbols, NODE *symbol);
 
 static NODE *match_op(struct parser_params*,NODE*,NODE*,const YYLTYPE*,const YYLTYPE*);
 
@@ -1528,7 +1537,7 @@ static int  local_id(struct parser_params *p, ID id);
 static int  local_id_ref(struct parser_params*, ID, ID **);
 #define internal_id rb_parser_internal_id
 ID internal_id(struct parser_params*);
-static NODE *new_args_forward_call(struct parser_params*, NODE*, const YYLTYPE*, const YYLTYPE*);
+static rb_node_arguments_t *new_args_forward_call(struct parser_params*, rb_node_arguments_t*, const YYLTYPE*, const YYLTYPE*);
 static int check_forwarding_args(struct parser_params*);
 static void add_forwarding_args(struct parser_params *p);
 static void forwarding_arg_check(struct parser_params *p, ID arg, ID all, const char *var);
@@ -1948,7 +1957,7 @@ get_nd_vid(struct parser_params *p, NODE *node)
     }
 }
 
-static NODE *
+static rb_node_arguments_t *
 get_nd_args(struct parser_params *p, NODE *node)
 {
     switch (nd_type(node)) {
@@ -2645,8 +2654,8 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
     else if ($$) {
         rb_parser_printf(p, "%s", parser_node_name(nd_type(RNODE($$))));
     }
-} <node> <node_fcall> <node_args> <node_args_aux> <node_opt_arg>
-  <node_kw_arg> <node_block_pass> <node_masgn> <node_def_temp> <node_exits>
+} <node> <node_array> <node_fcall> <node_args> <node_args_aux> <node_opt_arg>
+  <node_kw_arg> <node_block_pass> <node_arguments> <node_masgn> <node_def_temp> <node_exits>
 %printer {
     rb_parser_printf(p, "%"PRIsVALUE, rb_id2str($$));
 } <id>
@@ -2693,12 +2702,14 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 
 %union {
     NODE *node;
+    rb_node_array_t *node_array;
     rb_node_fcall_t *node_fcall;
     rb_node_args_t *node_args;
     rb_node_args_aux_t *node_args_aux;
     rb_node_opt_arg_t *node_opt_arg;
     rb_node_kw_arg_t *node_kw_arg;
     rb_node_block_pass_t *node_block_pass;
+    rb_node_arguments_t *node_arguments;
     rb_node_masgn_t *node_masgn;
     rb_node_def_temp_t *node_def_temp;
     rb_node_exits_t *node_exits;
@@ -2783,7 +2794,8 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 
 %type <node> singleton strings string string1 xstring regexp
 %type <node> string_contents xstring_contents regexp_contents string_content
-%type <node> words symbols symbol_list qwords qsymbols word_list qword_list qsym_list word
+%type <node> word
+%type <node_array> symbol_list word_list qword_list qsym_list
 %type <node> literal numeric simple_numeric ssym dsym symbol cpath
 %type <node_def_temp> defn_head defs_head k_def
 %type <node_exits> block_open k_while k_until k_for allow_exits
@@ -2791,15 +2803,19 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %type <node> bodystmt compstmt stmts stmt_or_begin stmt expr arg primary command command_call method_call
 %type <node> expr_value expr_value_do arg_value primary_value rel_expr
 %type <node_fcall> fcall
-%type <node> if_tail opt_else case_body case_args cases opt_rescue exc_list exc_var opt_ensure
-%type <node> args arg_splat call_args opt_call_args
-%type <node> paren_args opt_paren_args
+%type <node> if_tail opt_else case_body case_args cases opt_rescue exc_var opt_ensure
+%type <node_arguments> exc_list
+%type <node_arguments> args opt_call_args paren_args opt_paren_args command_args call_args
+%type <node_arguments> aref_args
+%type <node> arg_splat
 %type <node_args> args_tail block_args_tail
-%type <node> command_args aref_args
 %type <node_block_pass> opt_block_arg block_arg
 %type <node> var_ref var_lhs
 %type <node> command_rhs arg_rhs
-%type <node> command_asgn mrhs mrhs_arg superclass block_call block_command
+%type <node> command_asgn
+%type <node> mrhs_array
+%type <node_arguments> mrhs
+%type <node> mrhs_arg superclass block_call block_command
 %type <node_args> f_arglist f_opt_paren_args f_paren_args f_args
 %type <node_args_aux> f_arg f_arg_item
 %type <node> f_marg f_marg_list f_rest_marg
@@ -2977,7 +2993,8 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 
 %rule words(begin, word_list): begin ' '+ word_list tSTRING_END
                                 {
-                                    $$ = make_list($3, &@$);
+                                    nd_set_loc((NODE *)$3, &@$);
+                                    $$ = $3;
                                 /*% ripper: array!($:3) %*/
                                 }
                             ;
@@ -3228,9 +3245,9 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
                         $$ = node_assign(p, (NODE *)$1, $4, $3, &@$);
                     /*% ripper: massign!($:1, $:4) %*/
                     }
-                | lhs '=' lex_ctxt mrhs
+                | lhs '=' lex_ctxt mrhs_array
                     {
-                        $$ = node_assign(p, $1, $4, $3, &@$);
+                        $$ = node_assign(p, $1, (NODE *)$4, $3, &@$);
                     /*% ripper: assign!($:1, $:4) %*/
                     }
                 | mlhs '=' lex_ctxt mrhs_arg modifier_rescue
@@ -3525,13 +3542,13 @@ command		: fcall command_args       %prec tLOWEST
                 | keyword_super command_args
                     {
                         $$ = NEW_SUPER($2, &@$);
-                        fixpos($$, $2);
+                        fixpos($$, RNODE($2));
                     /*% ripper: super!($:2) %*/
                     }
                 | k_yield command_args
                     {
                         $$ = new_yield(p, $2, &@$);
-                        fixpos($$, $2);
+                        fixpos($$, RNODE($2));
                     /*% ripper: yield!($:2) %*/
                     }
                 | k_return call_args
@@ -3541,14 +3558,14 @@ command		: fcall command_args       %prec tLOWEST
                     }
                 | keyword_break call_args
                     {
-                        NODE *args = 0;
+                        rb_node_arguments_t *args = 0;
                         args = ret_args(p, $2);
                         $$ = add_block_exit(p, NEW_BREAK(args, &@$));
                     /*% ripper: break!($:2) %*/
                     }
                 | keyword_next call_args
                     {
-                        NODE *args = 0;
+                        rb_node_arguments_t *args = 0;
                         args = ret_args(p, $2);
                         $$ = add_block_exit(p, NEW_NEXT(args, &@$));
                     /*% ripper: next!($:2) %*/
@@ -4173,12 +4190,13 @@ aref_args	: none
                     }
                 | args ',' assocs trailer
                     {
-                        $$ = $3 ? arg_append(p, $1, new_hash(p, $3, &@3), &@$) : $1;
+                        $$ = $3 ? arguments_append_arg(p, $1, new_hash(p, $3, &@3)) : $1;
+                        nd_set_last_loc($1, @4.end_pos);
                     /*% ripper: args_add!($:1, bare_assoc_hash!($:3)) %*/
                     }
                 | assocs trailer
                     {
-                        $$ = $1 ? NEW_LIST(new_hash(p, $1, &@1), &@$) : 0;
+                        $$ = $1 ? NEW_ARGUMENTS(new_hash(p, $1, &@1), &@$) : 0;
                     /*% ripper: args_add!(args_new!, bare_assoc_hash!($:1)) %*/
                     }
                 ;
@@ -4239,12 +4257,13 @@ opt_call_args	: none
                     }
                 | args ',' assocs ','
                     {
-                        $$ = $3 ? arg_append(p, $1, new_hash(p, $3, &@3), &@$) : $1;
+                        $$ = $3 ? arguments_append_arg(p, $1, new_hash(p, $3, &@3)) : $1;
+                        nd_set_last_loc($1, @4.end_pos);
                     /*% ripper: args_add!($:1, bare_assoc_hash!($:3)) %*/
                     }
                 | assocs ','
                     {
-                        $$ = $1 ? NEW_LIST(new_hash(p, $1, &@1), &@1) : 0;
+                        $$ = $1 ? NEW_ARGUMENTS(new_hash(p, $1, &@1), &@1) : 0;
                     /*% ripper: args_add!(args_new!, bare_assoc_hash!($:1)) %*/
                     }
                 ;
@@ -4252,28 +4271,31 @@ opt_call_args	: none
 call_args	: command
                     {
                         value_expr($1);
-                        $$ = NEW_LIST($1, &@$);
+                        $$ = NEW_ARGUMENTS($1, &@$);
                     /*% ripper: args_add!(args_new!, $:1) %*/
                     }
                 | args opt_block_arg
                     {
-                        $$ = arg_blk_pass($1, $2);
+                        $$ = arg_blk_pass(p, $1, $2);
                     /*% ripper: args_add_block!($:1, $:2) %*/
                     }
                 | assocs opt_block_arg
                     {
-                        $$ = $1 ? NEW_LIST(new_hash(p, $1, &@1), &@1) : 0;
-                        $$ = arg_blk_pass($$, $2);
+                        $$ = $1 ? NEW_ARGUMENTS(new_hash(p, $1, &@1), &@1) : 0;
+                        $$ = arg_blk_pass(p, $$, $2);
                     /*% ripper: args_add_block!(args_add!(args_new!, bare_assoc_hash!($:1)), $:2) %*/
                     }
                 | args ',' assocs opt_block_arg
                     {
-                        $$ = $3 ? arg_append(p, $1, new_hash(p, $3, &@3), &@$) : $1;
-                        $$ = arg_blk_pass($$, $4);
+                        $$ = $3 ? arguments_append_arg(p, $1, new_hash(p, $3, &@3)) : $1;
+                        $$ = arg_blk_pass(p, $$, $4);
                     /*% ripper: args_add_block!(args_add!($:1, bare_assoc_hash!($:3)), $:4) %*/
                     }
                 | block_arg
+                    {
+                        $$ = NEW_ARGUMENTS(RNODE($1), &@1);
                     /*% ripper: args_add_block!(args_new!, $:1) %*/
+                    }
                 ;
 
 command_args	:   {
@@ -4342,22 +4364,22 @@ opt_block_arg	: ',' block_arg
 /* value */
 args		: arg_value
                     {
-                        $$ = NEW_LIST($1, &@$);
+                        $$ = NEW_ARGUMENTS($1, &@$);
                     /*% ripper: args_add!(args_new!, $:1) %*/
                     }
                 | arg_splat
                     {
-                        $$ = NEW_SPLAT($arg_splat, &@$);
+                        $$ = NEW_ARGUMENTS(NEW_SPLAT($arg_splat, &@$), &@$);
                     /*% ripper: args_add_star!(args_new!, $:arg_splat) %*/
                     }
                 | args ',' arg_value
                     {
-                        $$ = last_arg_append(p, $1, $3, &@$);
+                        $$ = arguments_append_arg(p, $1, $3);
                     /*% ripper: args_add!($:1, $:3) %*/
                     }
                 | args ',' arg_splat
                     {
-                        $$ = rest_arg_append(p, $1, $3, &@$);
+                        $$ = arguments_append_arg(p, $1, NEW_SPLAT($3, &@3));
                     /*% ripper: args_add_star!($:1, $:3) %*/
                     }
                 ;
@@ -4377,24 +4399,32 @@ arg_splat	: tSTAR arg_value
                 ;
 
 /* value */
-mrhs_arg	: mrhs
+mrhs_arg	: mrhs_array
                 | arg_value
+                ;
+
+/* value */
+mrhs_array  : mrhs
+                    {
+                        $$ = arguments_to_array_node(p, $1);
+                    }
                 ;
 
 /* value */
 mrhs		: args ',' arg_value
                     {
-                        $$ = last_arg_append(p, $1, $3, &@$);
+                        $$ = arguments_append_arg(p, $1, $3);
                     /*% ripper: mrhs_add!(mrhs_new_from_args!($:1), $:3) %*/
                     }
                 | args ',' tSTAR arg_value
                     {
-                        $$ = rest_arg_append(p, $1, $4, &@$);
+                        YYLTYPE loc = code_loc_gen(&@3, &@4);
+                        $$ = arguments_append_arg(p, $1, NEW_SPLAT($4, &loc));
                     /*% ripper: mrhs_add_star!(mrhs_new_from_args!($:1), $:4) %*/
                     }
                 | tSTAR arg_value
                     {
-                        $$ = NEW_SPLAT($2, &@$);
+                        $$ = NEW_ARGUMENTS(NEW_SPLAT($2, &@$), &@$);
                     /*% ripper: mrhs_add_star!(mrhs_new!, $:2) %*/
                     }
                 ;
@@ -4451,7 +4481,7 @@ primary		: literal
                     }
                 | tLBRACK aref_args ']'
                     {
-                        $$ = make_list($2, &@$);
+                        $$ = make_array(p, $2, &@$);
                     /*% ripper: array!($:2) %*/
                     }
                 | tLBRACE assoc_list '}'
@@ -5967,7 +5997,7 @@ opt_rescue	: k_rescue exc_list exc_var then
                         }
                         $$ = NEW_RESBODY($2, $3, $5, $6, &@$);
                         if ($2) {
-                            fixpos($$, $2);
+                            fixpos($$, (NODE *)$2);
                         }
                         else if ($3) {
                             fixpos($$, $3);
@@ -5982,13 +6012,10 @@ opt_rescue	: k_rescue exc_list exc_var then
 
 exc_list	: arg_value
                     {
-                        $$ = NEW_LIST($1, &@$);
+                        $$ = NEW_ARGUMENTS($1, &@$);
                     /*% ripper: rb_ary_new3(1, $:1) %*/
                     }
                 | mrhs
-                    {
-                        if (!($$ = splat_array($1))) $$ = $1;
-                    }
                 | none
                 ;
 
@@ -6068,17 +6095,17 @@ regexp		: tREGEXP_BEG regexp_contents tREGEXP_END
                     }
                 ;
 
-words		: words(tWORDS_BEG, word_list) <node>
+words		: words(tWORDS_BEG, word_list) <node_array>
                 ;
 
 word_list	: /* none */
                     {
-                        $$ = 0;
+                        $$ = NEW_ARRAY0(&@$);
                     /*% ripper: words_new! %*/
                     }
                 | word_list word ' '+
                     {
-                        $$ = list_append(p, $1, evstr2dstr(p, $2));
+                        $$ = array_append(p, $1, evstr2dstr(p, $2));
                     /*% ripper: words_add!($:1, $:2) %*/
                     }
                 ;
@@ -6092,12 +6119,12 @@ word		: string_content
                     }
                 ;
 
-symbols 	: words(tSYMBOLS_BEG, symbol_list) <node>
+symbols 	: words(tSYMBOLS_BEG, symbol_list) <node_array>
                 ;
 
 symbol_list	: /* none */
                     {
-                        $$ = 0;
+                        $$ = NEW_ARRAY0(&@$);
                     /*% ripper: symbols_new! %*/
                     }
                 | symbol_list word ' '+
@@ -6107,27 +6134,27 @@ symbol_list	: /* none */
                     }
                 ;
 
-qwords		: words(tQWORDS_BEG, qword_list) <node>
+qwords		: words(tQWORDS_BEG, qword_list) <node_array>
                 ;
 
-qsymbols	: words(tQSYMBOLS_BEG, qsym_list) <node>
+qsymbols	: words(tQSYMBOLS_BEG, qsym_list) <node_array>
                 ;
 
 qword_list	: /* none */
                     {
-                        $$ = 0;
+                        $$ = NEW_ARRAY0(&@$);
                     /*% ripper: qwords_new! %*/
                     }
                 | qword_list tSTRING_CONTENT ' '+
                     {
-                        $$ = list_append(p, $1, $2);
+                        $$ = array_append(p, $1, $2);
                     /*% ripper: qwords_add!($:1, $:2) %*/
                     }
                 ;
 
 qsym_list	: /* none */
                     {
-                        $$ = 0;
+                        $$ = NEW_ARRAY0(&@$);
                     /*% ripper: qsymbols_new! %*/
                     }
                 | qsym_list tSTRING_CONTENT ' '+
@@ -6761,6 +6788,7 @@ singleton	: var_ref
                           case NODE_RATIONAL:
                           case NODE_IMAGINARY:
                           case NODE_DSYM:
+                          case NODE_ARRAY:
                           case NODE_LIST:
                           case NODE_ZLIST:
                             yyerror1(&expr->nd_loc, "can't define singleton method for literals");
@@ -11474,10 +11502,15 @@ rb_node_rescue_new(struct parser_params *p, NODE *nd_head, NODE *nd_resq, NODE *
 }
 
 static rb_node_resbody_t *
-rb_node_resbody_new(struct parser_params *p, NODE *nd_args, NODE *nd_exc_var, NODE *nd_body, NODE *nd_next, const YYLTYPE *loc)
+rb_node_resbody_new(struct parser_params *p, rb_node_arguments_t *nd_args, NODE *nd_exc_var, NODE *nd_body, NODE *nd_next, const YYLTYPE *loc)
 {
     rb_node_resbody_t *n = NODE_NEWNODE(NODE_RESBODY, rb_node_resbody_t, loc);
-    n->nd_args = nd_args;
+    if (nd_args) {
+        n->nd_args = nd_args;
+    }
+    else {
+        n->nd_args = NEW_ARGUMENTS0(loc);
+    }
     n->nd_exc_var = nd_exc_var;
     n->nd_body = nd_body;
     n->nd_next = nd_next;
@@ -11516,7 +11549,7 @@ rb_node_or_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYP
 }
 
 static rb_node_return_t *
-rb_node_return_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc)
+rb_node_return_new(struct parser_params *p, rb_node_arguments_t *nd_stts, const YYLTYPE *loc)
 {
     rb_node_return_t *n = NODE_NEWNODE(NODE_RETURN, rb_node_return_t, loc);
     n->nd_stts = nd_stts;
@@ -11524,7 +11557,7 @@ rb_node_return_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc)
 }
 
 static rb_node_yield_t *
-rb_node_yield_new(struct parser_params *p, NODE *nd_head, const YYLTYPE *loc)
+rb_node_yield_new(struct parser_params *p, rb_node_arguments_t *nd_head, const YYLTYPE *loc)
 {
     rb_node_yield_t *n = NODE_NEWNODE(NODE_YIELD, rb_node_yield_t, loc);
     n->nd_head = nd_head;
@@ -11764,7 +11797,7 @@ rb_node_false_new(struct parser_params *p, const YYLTYPE *loc)
 }
 
 static rb_node_super_t *
-rb_node_super_new(struct parser_params *p, NODE *nd_args, const YYLTYPE *loc)
+rb_node_super_new(struct parser_params *p, rb_node_arguments_t *nd_args, const YYLTYPE *loc)
 {
     rb_node_super_t *n = NODE_NEWNODE(NODE_SUPER, rb_node_super_t, loc);
     n->nd_args = nd_args;
@@ -11824,10 +11857,20 @@ rb_node_list_new2(struct parser_params *p, NODE *nd_head, long nd_alen, NODE *nd
     return n;
 }
 
-static rb_node_zlist_t *
-rb_node_zlist_new(struct parser_params *p, const YYLTYPE *loc)
+static rb_node_array_t *
+rb_node_array_new0(struct parser_params *p, const YYLTYPE *loc)
 {
-    rb_node_zlist_t *n = NODE_NEWNODE(NODE_ZLIST, rb_node_zlist_t, loc);
+    rb_node_array_t *n = NODE_NEWNODE(NODE_ARRAY, rb_node_array_t, loc);
+    n->elements = rb_parser_ary_new_capa_for_node(p, 0);
+
+    return n;
+}
+
+static rb_node_array_t *
+rb_node_array_new(struct parser_params *p, rb_parser_ary_t *elements, const YYLTYPE *loc)
+{
+    rb_node_array_t *n = NODE_NEWNODE(NODE_ARRAY, rb_node_array_t, loc);
+    n->elements = elements;
 
     return n;
 }
@@ -11904,7 +11947,7 @@ rb_node_cvasgn_new(struct parser_params *p, ID nd_vid, NODE *nd_value, const YYL
 }
 
 static rb_node_op_asgn1_t *
-rb_node_op_asgn1_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *index, NODE *rvalue, const YYLTYPE *loc)
+rb_node_op_asgn1_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, rb_node_arguments_t *index, NODE *rvalue, const YYLTYPE *loc)
 {
     rb_node_op_asgn1_t *n = NODE_NEWNODE(NODE_OP_ASGN1, rb_node_op_asgn1_t, loc);
     n->nd_recv = nd_recv;
@@ -12153,7 +12196,7 @@ rb_node_regx_new(struct parser_params *p, rb_parser_string_t *string, int option
 }
 
 static rb_node_call_t *
-rb_node_call_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc)
+rb_node_call_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, rb_node_arguments_t *nd_args, const YYLTYPE *loc)
 {
     rb_node_call_t *n = NODE_NEWNODE(NODE_CALL, rb_node_call_t, loc);
     n->nd_recv = nd_recv;
@@ -12164,7 +12207,7 @@ rb_node_call_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_arg
 }
 
 static rb_node_opcall_t *
-rb_node_opcall_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc)
+rb_node_opcall_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, rb_node_arguments_t *nd_args, const YYLTYPE *loc)
 {
     rb_node_opcall_t *n = NODE_NEWNODE(NODE_OPCALL, rb_node_opcall_t, loc);
     n->nd_recv = nd_recv;
@@ -12175,7 +12218,7 @@ rb_node_opcall_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_a
 }
 
 static rb_node_fcall_t *
-rb_node_fcall_new(struct parser_params *p, ID nd_mid, NODE *nd_args, const YYLTYPE *loc)
+rb_node_fcall_new(struct parser_params *p, ID nd_mid, rb_node_arguments_t *nd_args, const YYLTYPE *loc)
 {
     rb_node_fcall_t *n = NODE_NEWNODE(NODE_FCALL, rb_node_fcall_t, loc);
     n->nd_mid = nd_mid;
@@ -12185,7 +12228,7 @@ rb_node_fcall_new(struct parser_params *p, ID nd_mid, NODE *nd_args, const YYLTY
 }
 
 static rb_node_qcall_t *
-rb_node_qcall_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc)
+rb_node_qcall_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, rb_node_arguments_t *nd_args, const YYLTYPE *loc)
 {
     rb_node_qcall_t *n = NODE_NEWNODE(NODE_QCALL, rb_node_qcall_t, loc);
     n->nd_recv = nd_recv;
@@ -12259,6 +12302,25 @@ rb_node_postarg_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const Y
     rb_node_postarg_t *n = NODE_NEWNODE(NODE_POSTARG, rb_node_postarg_t, loc);
     n->nd_1st = nd_1st;
     n->nd_2nd = nd_2nd;
+
+    return n;
+}
+
+static rb_node_arguments_t *
+rb_node_arguments_new0(struct parser_params *p, const YYLTYPE *loc)
+{
+    rb_node_arguments_t *n = NODE_NEWNODE(NODE_ARGUMENTS, rb_node_arguments_t, loc);
+    n->arguments = rb_parser_ary_new_capa_for_node(p, 0);
+
+    return n;
+}
+
+static rb_node_arguments_t *
+rb_node_arguments_new(struct parser_params *p, NODE *nd_arg, const YYLTYPE *loc)
+{
+    rb_node_arguments_t *n = NODE_NEWNODE(NODE_ARGUMENTS, rb_node_arguments_t, loc);
+    n->arguments = rb_parser_ary_new_capa_for_node(p, 1);
+    rb_parser_ary_push_node(p, n->arguments, nd_arg);
 
     return n;
 }
@@ -12360,12 +12422,12 @@ rb_node_postexe_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc)
 }
 
 static rb_node_attrasgn_t *
-rb_node_attrasgn_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, NODE *nd_args, const YYLTYPE *loc)
+rb_node_attrasgn_new(struct parser_params *p, NODE *nd_recv, ID nd_mid, rb_node_arguments_t *nd_args, const YYLTYPE *loc)
 {
     rb_node_attrasgn_t *n = NODE_NEWNODE(NODE_ATTRASGN, rb_node_attrasgn_t, loc);
     n->nd_recv = nd_recv;
     n->nd_mid = nd_mid;
-    n->nd_args = nd_args;
+    n->nd_args = nd_args; // nd_args can be NULL for attrset
 
     return n;
 }
@@ -12464,7 +12526,7 @@ rb_node_error_new(struct parser_params *p, const YYLTYPE *loc)
 }
 
 static rb_node_break_t *
-rb_node_break_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc)
+rb_node_break_new(struct parser_params *p, rb_node_arguments_t *nd_stts, const YYLTYPE *loc)
 {
     rb_node_break_t *n = NODE_NEWNODE(NODE_BREAK, rb_node_break_t, loc);
     n->nd_stts = nd_stts;
@@ -12474,7 +12536,7 @@ rb_node_break_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc)
 }
 
 static rb_node_next_t *
-rb_node_next_new(struct parser_params *p, NODE *nd_stts, const YYLTYPE *loc)
+rb_node_next_new(struct parser_params *p, rb_node_arguments_t *nd_stts, const YYLTYPE *loc)
 {
     rb_node_next_t *n = NODE_NEWNODE(NODE_NEXT, rb_node_next_t, loc);
     n->nd_stts = nd_stts;
@@ -12846,7 +12908,7 @@ call_bin_op(struct parser_params *p, NODE *recv, ID id, NODE *arg1,
     NODE *expr;
     value_expr(recv);
     value_expr(arg1);
-    expr = NEW_OPCALL(recv, id, NEW_LIST(arg1, &arg1->nd_loc), loc);
+    expr = NEW_OPCALL(recv, id, NEW_ARGUMENTS(arg1, &arg1->nd_loc), loc);
     nd_set_line(expr, op_loc->beg_pos.lineno);
     return expr;
 }
@@ -12862,7 +12924,7 @@ call_uni_op(struct parser_params *p, NODE *recv, ID id, const YYLTYPE *op_loc, c
 }
 
 static NODE *
-new_qcall(struct parser_params* p, ID atype, NODE *recv, ID mid, NODE *args, const YYLTYPE *op_loc, const YYLTYPE *loc)
+new_qcall(struct parser_params* p, ID atype, NODE *recv, ID mid, rb_node_arguments_t *args, const YYLTYPE *op_loc, const YYLTYPE *loc)
 {
     NODE *qcall = NEW_QCALL(atype, recv, mid, args, loc);
     nd_set_line(qcall, op_loc->beg_pos.lineno);
@@ -12870,7 +12932,7 @@ new_qcall(struct parser_params* p, ID atype, NODE *recv, ID mid, NODE *args, con
 }
 
 static NODE*
-new_command_qcall(struct parser_params* p, ID atype, NODE *recv, ID mid, NODE *args, NODE *block, const YYLTYPE *op_loc, const YYLTYPE *loc)
+new_command_qcall(struct parser_params* p, ID atype, NODE *recv, ID mid, rb_node_arguments_t *args, NODE *block, const YYLTYPE *op_loc, const YYLTYPE *loc)
 {
     NODE *ret;
     if (block) block_dup_check(p, args, block);
@@ -12930,7 +12992,7 @@ match_op(struct parser_params *p, NODE *node1, NODE *node2, const YYLTYPE *op_lo
         }
     }
 
-    n = NEW_CALL(node1, tMATCH, NEW_LIST(node2, &node2->nd_loc), loc);
+    n = NEW_CALL(node1, tMATCH, NEW_ARGUMENTS(node2, &node2->nd_loc), loc);
     nd_set_line(n, line);
     return n;
 }
@@ -13120,6 +13182,28 @@ new_defined(struct parser_params *p, NODE *expr, const YYLTYPE *loc)
     return NEW_DEFINED(n, loc);
 }
 
+static NODE *
+make_array(struct parser_params *p, rb_node_arguments_t *args, const YYLTYPE *loc)
+{
+    if (args) {
+        NODE* node = arguments_to_array_node(p, args);
+        nd_set_loc(node, loc);
+        return node;
+    }
+    else {
+        return (NODE *)rb_node_array_new0(p, loc);
+    }
+}
+
+static NODE*
+arguments_to_array_node(struct parser_params *p, rb_node_arguments_t *args)
+{
+    NODE *ary = (NODE *)rb_node_array_new(p, args->arguments, &RNODE(args)->nd_loc);
+    args->arguments = NULL;
+
+    return ary;
+}
+
 static NODE*
 str_to_sym_node(struct parser_params *p, NODE *node, const YYLTYPE *loc)
 {
@@ -13135,8 +13219,8 @@ str_to_sym_node(struct parser_params *p, NODE *node, const YYLTYPE *loc)
     return NEW_SYM(lit, loc);
 }
 
-static NODE*
-symbol_append(struct parser_params *p, NODE *symbols, NODE *symbol)
+static rb_node_array_t *
+symbol_append(struct parser_params *p, rb_node_array_t *symbols, NODE *symbol)
 {
     enum node_type type = nd_type(symbol);
     switch (type) {
@@ -13149,7 +13233,7 @@ symbol_append(struct parser_params *p, NODE *symbols, NODE *symbol)
       default:
         compile_error(p, "unexpected node as symbol: %s", parser_node_name(type));
     }
-    return list_append(p, symbols, symbol);
+    return array_append(p, symbols, symbol);
 }
 
 static NODE *
@@ -13631,25 +13715,29 @@ new_bv(struct parser_params *p, ID name)
 }
 
 static void
-aryset_check(struct parser_params *p, NODE *args)
+aryset_check(struct parser_params *p, rb_node_arguments_t *args)
 {
     NODE *block = 0, *kwds = 0;
-    if (args && nd_type_p(args, NODE_BLOCK_PASS)) {
-        block = RNODE_BLOCK_PASS(args)->nd_body;
-        args = RNODE_BLOCK_PASS(args)->nd_head;
-    }
-    if (args && nd_type_p(args, NODE_ARGSCAT)) {
-        args = RNODE_ARGSCAT(args)->nd_body;
-    }
-    if (args && nd_type_p(args, NODE_ARGSPUSH)) {
-        kwds = RNODE_ARGSPUSH(args)->nd_body;
-    }
-    else {
-        for (NODE *next = args; next && nd_type_p(next, NODE_LIST);
-             next = RNODE_LIST(next)->nd_next) {
-            kwds = RNODE_LIST(next)->nd_head;
+    rb_parser_ary_t *ary;
+
+    if (!args) return;
+    ary = args->arguments;
+
+    for (long i = 0; i < ary->len; i++) {
+        NODE *node = ary->data[i];
+
+        switch (nd_type(node)) {
+          case NODE_BLOCK_PASS:
+            block = node;
+            break;
+          case NODE_HASH:
+            kwds = node;
+            break;
+          default:
+            break;
         }
     }
+
     if (kwds && nd_type_p(kwds, NODE_HASH) && !RNODE_HASH(kwds)->nd_brace) {
         yyerror1(&kwds->nd_loc, "keyword arg given in index assignment");
     }
@@ -13659,16 +13747,23 @@ aryset_check(struct parser_params *p, NODE *args)
 }
 
 static NODE *
-aryset(struct parser_params *p, NODE *recv, NODE *idx, const YYLTYPE *loc)
+aryset(struct parser_params *p, NODE *recv, rb_node_arguments_t *idx, const YYLTYPE *loc)
 {
     aryset_check(p, idx);
     return NEW_ATTRASGN(recv, tASET, idx, loc);
 }
 
-static void
-block_dup_check(struct parser_params *p, NODE *node1, NODE *node2)
+static bool
+arguments_has_block_p(rb_node_arguments_t *args)
 {
-    if (node2 && node1 && nd_type_p(node1, NODE_BLOCK_PASS)) {
+    rb_parser_ary_t *ary = args->arguments;
+    return (ary->len > 0) && (nd_type_p(ary->data[ary->len - 1], NODE_BLOCK_PASS));
+}
+
+static void
+block_dup_check(struct parser_params *p, rb_node_arguments_t *node1, NODE *node2)
+{
+    if (node2 && node1 && arguments_has_block_p(node1)) {
         compile_error(p, "both block arg and actual block given");
     }
 }
@@ -13776,6 +13871,23 @@ splat_array(NODE* node)
     return 0;
 }
 
+static rb_node_arguments_t *
+arguments_append_arg(struct parser_params *p, rb_node_arguments_t *args, NODE *arg)
+{
+    rb_parser_ary_push_node(p, args->arguments, arg);
+    if (nd_null_loc_p(&RNODE(args)->nd_loc)) nd_set_first_loc(args, nd_first_loc(arg));
+    nd_set_last_loc(args, nd_last_loc(arg));
+    return args;
+}
+
+static rb_node_array_t *
+array_append(struct parser_params *p, rb_node_array_t *ary, NODE *node)
+{
+    rb_parser_ary_push_node(p, ary->elements, node);
+    nd_set_last_loc(ary, nd_last_loc(node));
+    return ary;
+}
+
 static void
 mark_lvar_used(struct parser_params *p, NODE *rhs)
 {
@@ -13822,7 +13934,12 @@ node_assign(struct parser_params *p, NODE *lhs, NODE *rhs, struct lex_context ct
         break;
 
       case NODE_ATTRASGN:
-        RNODE_ATTRASGN(lhs)->nd_args = arg_append(p, RNODE_ATTRASGN(lhs)->nd_args, rhs, loc);
+        if (RNODE_ATTRASGN(lhs)->nd_args) {
+            arguments_append_arg(p, RNODE_ATTRASGN(lhs)->nd_args, rhs);
+        }
+        else {
+            RNODE_ATTRASGN(lhs)->nd_args = NEW_ARGUMENTS(rhs, nd_code_loc(rhs));
+        }
         nd_set_loc(lhs, loc);
         break;
 
@@ -14153,6 +14270,13 @@ is_static_content(NODE *node)
       case NODE_FALSE:
       case NODE_ZLIST:
         break;
+      case NODE_ARRAY:{
+        rb_parser_ary_t *ary = RNODE_ARRAY(node)->elements;
+        for (long i = 0; i < ary->len; i++) {
+            if (!is_static_content(ary->data[i])) return 0;
+        }
+        break;
+      }
       default:
         return 0;
     }
@@ -14212,7 +14336,7 @@ range_op(struct parser_params *p, NODE *node, const YYLTYPE *loc)
     if (type == NODE_INTEGER) {
         if (!e_option_supplied(p)) rb_warn0L(nd_line(node), "integer literal in flip-flop");
         ID lineno = rb_intern("$.");
-        return NEW_CALL(node, tEQ, NEW_LIST(NEW_GVAR(lineno, loc), loc), loc);
+        return NEW_CALL(node, tEQ, NEW_ARGUMENTS(NEW_GVAR(lineno, loc), loc), loc);
     }
     return cond0(p, node, COND_IN_FF, loc, true);
 }
@@ -14370,27 +14494,24 @@ logop(struct parser_params *p, ID id, NODE *left, NODE *right,
 #undef NEW_AND_OR
 
 static void
-no_blockarg(struct parser_params *p, NODE *node)
+no_blockarg(struct parser_params *p, rb_node_arguments_t *node)
 {
-    if (nd_type_p(node, NODE_BLOCK_PASS)) {
+    if (arguments_has_block_p(node)) {
         compile_error(p, "block argument should not be given");
     }
 }
 
-static NODE *
-ret_args(struct parser_params *p, NODE *node)
+static rb_node_arguments_t *
+ret_args(struct parser_params *p, rb_node_arguments_t *node)
 {
     if (node) {
         no_blockarg(p, node);
-        if (nd_type_p(node, NODE_LIST) && !RNODE_LIST(node)->nd_next) {
-            node = RNODE_LIST(node)->nd_head;
-        }
     }
     return node;
 }
 
 static NODE *
-new_yield(struct parser_params *p, NODE *node, const YYLTYPE *loc)
+new_yield(struct parser_params *p, rb_node_arguments_t *node, const YYLTYPE *loc)
 {
     if (node) no_blockarg(p, node);
 
@@ -14417,17 +14538,15 @@ negate_lit(struct parser_params *p, NODE* node)
     return node;
 }
 
-static NODE *
-arg_blk_pass(NODE *node1, rb_node_block_pass_t *node2)
+static rb_node_arguments_t *
+arg_blk_pass(struct parser_params *p, rb_node_arguments_t *node1, rb_node_block_pass_t *node2)
 {
-    if (node2) {
-        if (!node1) return (NODE *)node2;
-        node2->nd_head = node1;
-        nd_set_first_lineno(node2, nd_first_lineno(node1));
-        nd_set_first_column(node2, nd_first_column(node1));
-        return (NODE *)node2;
+    if (node1) {
+        if (node2) arguments_append_arg(p, node1, (NODE *)node2);
+        return node1;
     }
-    return node1;
+
+    return NEW_ARGUMENTS((NODE *)node2, nd_code_loc(node2));
 }
 
 static bool
@@ -14789,7 +14908,7 @@ new_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct lex_c
         }
         else {
             asgn = lhs;
-            rhs = NEW_CALL(gettable(p, vid, &lhs_loc), op, NEW_LIST(rhs, &rhs->nd_loc), loc);
+            rhs = NEW_CALL(gettable(p, vid, &lhs_loc), op, NEW_ARGUMENTS(rhs, &rhs->nd_loc), loc);
             set_nd_value(p, asgn, rhs);
             nd_set_loc(asgn, loc);
         }
@@ -14802,12 +14921,18 @@ new_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct lex_c
 
 static NODE *
 new_ary_op_assign(struct parser_params *p, NODE *ary,
-                  NODE *args, ID op, NODE *rhs, const YYLTYPE *args_loc, const YYLTYPE *loc)
+                  rb_node_arguments_t *args, ID op, NODE *rhs, const YYLTYPE *args_loc, const YYLTYPE *loc)
 {
     NODE *asgn;
 
     aryset_check(p, args);
-    args = make_list(args, args_loc);
+
+    if (args) {
+        nd_set_loc((NODE *)args, args_loc);
+    }
+    else {
+        args = NEW_ARGUMENTS0(args_loc);
+    }
     asgn = NEW_OP_ASGN1(ary, op, args, rhs, loc);
     fixpos(asgn, ary);
     return asgn;
@@ -15116,20 +15241,20 @@ forwarding_arg_check(struct parser_params *p, ID arg, ID all, const char *var)
     }
 }
 
-static NODE *
-new_args_forward_call(struct parser_params *p, NODE *leading, const YYLTYPE *loc, const YYLTYPE *argsloc)
+static rb_node_arguments_t *
+new_args_forward_call(struct parser_params *p, rb_node_arguments_t *leading, const YYLTYPE *loc, const YYLTYPE *argsloc)
 {
-    NODE *rest = NEW_LVAR(idFWD_REST, loc);
+    NODE *rest = NEW_SPLAT(NEW_LVAR(idFWD_REST, loc), loc);
 #ifndef FORWARD_ARGS_WITH_RUBY2_KEYWORDS
     NODE *kwrest = list_append(p, NEW_LIST(0, loc), NEW_LVAR(idFWD_KWREST, loc));
 #endif
     rb_node_block_pass_t *block = NEW_BLOCK_PASS(NEW_LVAR(idFWD_BLOCK, loc), loc);
-    NODE *args = leading ? rest_arg_append(p, leading, rest, argsloc) : NEW_SPLAT(rest, loc);
+    rb_node_arguments_t *args = leading ? arguments_append_arg(p, leading, rest) : NEW_ARGUMENTS(rest, loc);
     block->forwarding = TRUE;
 #ifndef FORWARD_ARGS_WITH_RUBY2_KEYWORDS
-    args = arg_append(p, args, new_hash(p, kwrest, loc), loc);
+    args = arguments_append_arg(p, args, new_hash(p, kwrest, loc));
 #endif
-    return arg_blk_pass(args, block);
+    return arg_blk_pass(p, args, block);
 }
 
 static NODE *
@@ -15502,18 +15627,18 @@ parser_append_options(struct parser_params *p, NODE *node)
 
     if (p->do_print) {
         NODE *print = (NODE *)NEW_FCALL(rb_intern("print"),
-                                NEW_LIST(NEW_GVAR(idLASTLINE, LOC), LOC),
+                                NEW_ARGUMENTS(NEW_GVAR(idLASTLINE, LOC), LOC),
                                 LOC);
         node = block_append(p, node, print);
     }
 
     if (p->do_loop) {
-        NODE *irs = NEW_LIST(NEW_GVAR(rb_intern("$/"), LOC), LOC);
+        rb_node_arguments_t *irs = NEW_ARGUMENTS(NEW_GVAR(rb_intern("$/"), LOC), LOC);
 
         if (p->do_split) {
             ID ifs = rb_intern("$;");
             ID fields = rb_intern("$F");
-            NODE *args = NEW_LIST(NEW_GVAR(ifs, LOC), LOC);
+            rb_node_arguments_t *args = NEW_ARGUMENTS(NEW_GVAR(ifs, LOC), LOC);
             NODE *split = NEW_GASGN(fields,
                                     NEW_CALL(NEW_GVAR(idLASTLINE, LOC),
                                              rb_intern("split"), args, LOC),
@@ -15523,7 +15648,7 @@ parser_append_options(struct parser_params *p, NODE *node)
         if (p->do_chomp) {
             NODE *chomp = NEW_SYM(rb_str_new_cstr("chomp"), LOC);
             chomp = list_append(p, NEW_LIST(chomp, LOC), NEW_TRUE(LOC));
-            irs = list_append(p, irs, NEW_HASH(chomp, LOC));
+            irs = arguments_append_arg(p, irs, NEW_HASH(chomp, LOC));
         }
 
         node = NEW_WHILE((NODE *)NEW_FCALL(idGets, irs, LOC), node, 1, LOC);

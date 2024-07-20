@@ -736,7 +736,7 @@ class TestAst < Test::Unit::TestCase
                 kw: nil
                 kwrest: nil
                 block: nil)
-             body: (RETURN@2:2-2:10 (LVAR@2:9-2:10 :a)))))
+             body: (RETURN@2:2-2:10 (ARGUMENTS@2:9-2:10 (LVAR@2:9-2:10 :a))))))
     EXP
   end
 
@@ -1057,7 +1057,7 @@ dummy
             (WHEN@2:0-2:11
                (LIST@2:5-2:11
                   (OPCALL@2:5-2:11 (VCALL@2:5-2:6 :a) :==
-                     (LIST@2:10-2:11 (INTEGER@2:10-2:11 1) nil)) nil)
+                     (ARGUMENTS@2:10-2:11 (INTEGER@2:10-2:11 1))) nil)
                (BEGIN@2:11-2:11 nil) nil)))
     EXP
 
@@ -1158,7 +1158,7 @@ dummy
        tbl: []
        args: nil
        body:
-         (ITER@1:0-2:3 (FCALL@1:0-1:3 :m (LIST@1:2-1:3 (INTEGER@1:2-1:3 1) nil))
+         (ITER@1:0-2:3 (FCALL@1:0-1:3 :m (ARGUMENTS@1:2-1:3 (INTEGER@1:2-1:3 1)))
             (SCOPE@1:4-2:3 tbl: [] args: nil body: (VCALL@2:2-2:3 :a))))
     EXP
   end

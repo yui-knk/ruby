@@ -103,6 +103,12 @@ RUBY_SYMBOL_EXPORT_END
 #define nd_set_node_id(n,id) (RNODE(n)->node_id = (id))
 
 static inline bool
+nd_null_loc_p(rb_code_location_t *loc)
+{
+	return (loc->beg_pos.lineno == 0 && loc->beg_pos.column == -1 && loc->end_pos.lineno == 0 && loc->end_pos.column == -1);
+}
+
+static inline bool
 nd_type_p(const NODE *n, enum node_type t)
 {
     return (enum node_type)nd_type(n) == t;
