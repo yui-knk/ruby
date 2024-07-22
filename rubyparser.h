@@ -382,7 +382,7 @@ typedef struct RNode_BODYSTMT {
     struct RNode *nd_body;
     struct RNode *nd_rescue;
     struct RNode *nd_else;
-    struct RNode *nd_ensure;
+    struct RNode_ENSURE *nd_ensure;
 } rb_node_bodystmt_t;
 
 typedef struct RNode_BEGIN {
@@ -410,6 +410,7 @@ typedef struct RNode_RESBODY {
 typedef struct RNode_ENSURE {
     NODE node;
 
+    // TODO: Remove nd_head
     struct RNode *nd_head;
     struct RNode *nd_ensr;
 } rb_node_ensure_t;

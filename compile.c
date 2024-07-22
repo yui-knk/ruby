@@ -8352,10 +8352,10 @@ compile_bodystmt_rescue(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_b
 static int
 compile_bodystmt_ensure(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_bodystmt_t *const node, int popped)
 {
-    const int line = nd_line(node->nd_ensure);
-    const NODE *line_node = node->nd_ensure;
+    const int line = nd_line(RNODE(node->nd_ensure));
+    const NODE *line_node = RNODE(node->nd_ensure);
     DECL_ANCHOR(ensr);
-    const rb_iseq_t *ensure = NEW_CHILD_ISEQ(node->nd_ensure,
+    const rb_iseq_t *ensure = NEW_CHILD_ISEQ(node->nd_ensure->nd_ensr,
                                              rb_str_concat(rb_str_new2 ("ensure in "), ISEQ_BODY(iseq)->location.label),
                                              ISEQ_TYPE_ENSURE, line);
     LABEL *lstart = NEW_LABEL(line);
@@ -8368,14 +8368,14 @@ compile_bodystmt_ensure(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_b
     struct ensure_range *erange;
 
     INIT_ANCHOR(ensr);
-    CHECK(COMPILE_POPPED(ensr, "ensure ensr", node->nd_ensure));
+    CHECK(COMPILE_POPPED(ensr, "ensure ensr", node->nd_ensure->nd_ensr));
     last = ensr->last;
     last_leave = last && IS_INSN(last) && IS_INSN_ID(last, leave);
 
     er.begin = lstart;
     er.end = lend;
     er.next = 0;
-    push_ensure_entry(iseq, &enl, &er, node->nd_ensure);
+    push_ensure_entry(iseq, &enl, &er, node->nd_ensure->nd_ensr);
 
     ADD_LABEL(ret, lstart);
     if (node->nd_rescue) {

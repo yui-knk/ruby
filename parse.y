@@ -1072,10 +1072,11 @@ static rb_node_iter_t *rb_node_iter_new(struct parser_params *p, rb_node_args_t 
 static rb_node_for_t *rb_node_for_new(struct parser_params *p, NODE *nd_iter, NODE *nd_body, const YYLTYPE *loc);
 static rb_node_for_masgn_t *rb_node_for_masgn_new(struct parser_params *p, NODE *nd_var, const YYLTYPE *loc);
 static rb_node_retry_t *rb_node_retry_new(struct parser_params *p, const YYLTYPE *loc);
-static rb_node_bodystmt_t *rb_node_bodystmt_new(struct parser_params *p, NODE *nd_body, NODE *nd_rescue, NODE *nd_else, NODE *nd_ensure, const YYLTYPE *loc);
+static rb_node_bodystmt_t *rb_node_bodystmt_new(struct parser_params *p, NODE *nd_body, NODE *nd_rescue, NODE *nd_else, rb_node_ensure_t *nd_ensure, const YYLTYPE *loc);
 static rb_node_begin_t *rb_node_begin_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
 static rb_node_rescue_t *rb_node_rescue_new(struct parser_params *p, NODE *nd_head, NODE *nd_resq, NODE *nd_else, const YYLTYPE *loc);
 static rb_node_resbody_t *rb_node_resbody_new(struct parser_params *p, NODE *nd_args, NODE *nd_body, NODE *nd_next, const YYLTYPE *loc);
+static rb_node_ensure_t *rb_node_ensure_new(struct parser_params *p, NODE *nd_ensr, const YYLTYPE *loc);
 static rb_node_and_t *rb_node_and_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYPE *loc);
 static rb_node_or_t *rb_node_or_new(struct parser_params *p, NODE *nd_1st, NODE *nd_2nd, const YYLTYPE *loc);
 static rb_node_masgn_t *rb_node_masgn_new(struct parser_params *p, NODE *nd_head, NODE *nd_args, const YYLTYPE *loc);
@@ -1184,6 +1185,7 @@ static rb_node_error_t *rb_node_error_new(struct parser_params *p, const YYLTYPE
 #define NEW_BEGIN(b,loc) (NODE *)rb_node_begin_new(p,b,loc)
 #define NEW_RESCUE(b,res,e,loc) (NODE *)rb_node_rescue_new(p,b,res,e,loc)
 #define NEW_RESBODY(a,ex,n,loc) (NODE *)rb_node_resbody_new(p,a,ex,n,loc)
+#define NEW_ENSURE(en,loc) rb_node_ensure_new(p,en,loc)
 #define NEW_AND(f,s,loc) (NODE *)rb_node_and_new(p,f,s,loc)
 #define NEW_OR(f,s,loc) (NODE *)rb_node_or_new(p,f,s,loc)
 #define NEW_MASGN(l,r,loc)   rb_node_masgn_new(p,l,r,loc)
@@ -2696,6 +2698,7 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
     rb_node_masgn_t *node_masgn;
     rb_node_def_temp_t *node_def_temp;
     rb_node_exits_t *node_exits;
+    rb_node_ensure_t *node_ensure;
     ID id;
     int num;
     st_table *tbl;
@@ -2785,7 +2788,8 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %type <node> bodystmt compstmt stmts stmt_or_begin stmt expr arg primary command command_call method_call
 %type <node> expr_value expr_value_do arg_value primary_value rel_expr
 %type <node_fcall> fcall
-%type <node> if_tail opt_else case_body case_args cases opt_rescue exc_list exc_var opt_ensure
+%type <node> if_tail opt_else case_body case_args cases opt_rescue exc_list exc_var
+%type <node_ensure> opt_ensure
 %type <node> args arg_splat call_args opt_call_args
 %type <node> paren_args opt_paren_args
 %type <node_args> args_tail block_args_tail
@@ -5994,7 +5998,7 @@ exc_var		: tASSOC lhs
 opt_ensure	: k_ensure compstmt
                     {
                         p->ctxt.in_rescue = $1.in_rescue;
-                        $$ = $2;
+                        $$ = NEW_ENSURE($2, &@$);
                     /*% ripper: ensure!($:2) %*/
                     }
                 | none
@@ -11441,7 +11445,7 @@ rb_node_retry_new(struct parser_params *p, const YYLTYPE *loc)
 }
 
 static rb_node_bodystmt_t *
-rb_node_bodystmt_new(struct parser_params *p, NODE *nd_body, NODE *nd_rescue, NODE *nd_else, NODE *nd_ensure, const YYLTYPE *loc)
+rb_node_bodystmt_new(struct parser_params *p, NODE *nd_body, NODE *nd_rescue, NODE *nd_else, rb_node_ensure_t *nd_ensure, const YYLTYPE *loc)
 {
     rb_node_bodystmt_t *n = NODE_NEWNODE(NODE_BODYSTMT, rb_node_bodystmt_t, loc);
     n->nd_body = nd_body;
@@ -11479,6 +11483,16 @@ rb_node_resbody_new(struct parser_params *p, NODE *nd_args, NODE *nd_body, NODE 
     n->nd_args = nd_args;
     n->nd_body = nd_body;
     n->nd_next = nd_next;
+
+    return n;
+}
+
+static rb_node_ensure_t *
+rb_node_ensure_new(struct parser_params *p, NODE *nd_ensr, const YYLTYPE *loc)
+{
+    rb_node_ensure_t *n = NODE_NEWNODE(NODE_ENSURE, rb_node_ensure_t, loc);
+    n->nd_head = 0;
+    n->nd_ensr = nd_ensr;
 
     return n;
 }
