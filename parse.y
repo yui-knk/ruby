@@ -3174,23 +3174,13 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
                 | stmt modifier_while expr_value
                     {
                         clear_block_exit(p, false);
-                        if ($1 && nd_type_p($1, NODE_BEGIN)) {
-                            $$ = NEW_WHILE(cond(p, $3, &@3), RNODE_BEGIN($1)->nd_body, 0, &@$);
-                        }
-                        else {
-                            $$ = NEW_WHILE(cond(p, $3, &@3), $1, 1, &@$);
-                        }
+                        $$ = NEW_WHILE(cond(p, $3, &@3), $1, 1, &@$);
                     /*% ripper: while_mod!($:3, $:1) %*/
                     }
                 | stmt modifier_until expr_value
                     {
                         clear_block_exit(p, false);
-                        if ($1 && nd_type_p($1, NODE_BEGIN)) {
-                            $$ = NEW_UNTIL(cond(p, $3, &@3), RNODE_BEGIN($1)->nd_body, 0, &@$);
-                        }
-                        else {
-                            $$ = NEW_UNTIL(cond(p, $3, &@3), $1, 1, &@$);
-                        }
+                        $$ = NEW_UNTIL(cond(p, $3, &@3), $1, 1, &@$);
                     /*% ripper: until_mod!($:3, $:1) %*/
                     }
                 | stmt modifier_rescue after_rescue stmt
