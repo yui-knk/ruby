@@ -1458,6 +1458,7 @@ static NODE *new_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs,
 static NODE *new_ary_op_assign(struct parser_params *p, NODE *ary, NODE *args, ID op, NODE *rhs, const YYLTYPE *args_loc, const YYLTYPE *loc);
 static NODE *new_attr_op_assign(struct parser_params *p, NODE *lhs, ID atype, ID attr, ID op, NODE *rhs, const YYLTYPE *loc);
 static NODE *new_const_op_assign(struct parser_params *p, NODE *lhs, ID op, NODE *rhs, struct lex_context, const YYLTYPE *loc);
+static NODE *new_bodystmt(struct parser_params *p, NODE *head, NODE *rescue, NODE *rescue_else, rb_node_ensure_t *ensure, const YYLTYPE *loc);
 
 static NODE *const_decl(struct parser_params *p, NODE* path, const YYLTYPE *loc);
 
@@ -3068,7 +3069,7 @@ bodystmt	: compstmt[body]
                     }
                   opt_ensure
                     {
-                        $$ = NEW_BODYSTMT($body, $opt_rescue, $elsebody, $opt_ensure, &@$);
+                        $$ = new_bodystmt(p, $body, $opt_rescue, $elsebody, $opt_ensure, &@$);
                     /*% ripper: bodystmt!($:body, $:opt_rescue, $:elsebody, $:opt_ensure) %*/
                     }
                 | compstmt[body]
@@ -3079,7 +3080,7 @@ bodystmt	: compstmt[body]
                     }
                   opt_ensure
                     {
-                        $$ = NEW_BODYSTMT($body, $opt_rescue, 0, $opt_ensure, &@$);
+                        $$ = new_bodystmt(p, $body, $opt_rescue, 0, $opt_ensure, &@$);
                     /*% ripper: bodystmt!($:body, $:opt_rescue, Qnil, $:opt_ensure) %*/
                     }
                 ;
@@ -14860,6 +14861,15 @@ assign_error(struct parser_params *p, const char *mesg, VALUE a)
     return a;
 }
 #endif
+
+static NODE *
+new_bodystmt(struct parser_params *p, NODE *head, NODE *rescue, NODE *rescue_else, rb_node_ensure_t *ensure, const YYLTYPE *loc)
+{
+    if (rescue) {
+        nd_set_line(rescue, rescue->nd_loc.beg_pos.lineno);
+    }
+    return NEW_BODYSTMT(head, rescue, rescue_else, ensure, loc);
+}
 
 static void
 warn_unused_var(struct parser_params *p, struct local_vars *local)

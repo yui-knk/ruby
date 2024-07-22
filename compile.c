@@ -8310,8 +8310,8 @@ compile_retry(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, i
 static int
 compile_bodystmt_rescue(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_bodystmt_t *const node, int popped)
 {
-    const int line = nd_line(RNODE(node));
-    const NODE *line_node = RNODE(node);
+    const int line = nd_line(RNODE(node->nd_rescue));
+    const NODE *line_node = RNODE(node->nd_rescue);
     LABEL *lstart = NEW_LABEL(line);
     LABEL *lend = NEW_LABEL(line);
     LABEL *lcont = NEW_LABEL(line);
@@ -8379,6 +8379,7 @@ compile_bodystmt_ensure(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_b
 
     ADD_LABEL(ret, lstart);
     if (node->nd_rescue) {
+        // TODO: Need to call COMPILE so that iseq last line is updated from ensure->nd_ensr to nd_rescue
         CHECK(compile_bodystmt_rescue(iseq, ret, node, (popped | last_leave)));
     }
     else {
