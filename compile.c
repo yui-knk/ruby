@@ -8310,8 +8310,8 @@ compile_retry(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, i
 static int
 compile_bodystmt_rescue(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_bodystmt_t *const node, int popped)
 {
-    const int line = nd_line(node->nd_rescue);
-    const NODE *line_node = node->nd_rescue;
+    const int line = nd_line(RNODE(node));
+    const NODE *line_node = RNODE(node);
     LABEL *lstart = NEW_LABEL(line);
     LABEL *lend = NEW_LABEL(line);
     LABEL *lcont = NEW_LABEL(line);

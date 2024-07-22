@@ -1350,6 +1350,7 @@ set_line_body(NODE *body, int line)
 {
     if (!body) return;
     switch (nd_type(body)) {
+      case NODE_BODYSTMT:
       case NODE_RESCUE:
       case NODE_ENSURE:
         nd_set_line(body, line);
