@@ -97,6 +97,7 @@ enum node_type {
     NODE_NEXT,
     NODE_REDO,
     NODE_RETRY,
+    NODE_BODYSTMT,
     NODE_BEGIN,
     NODE_RESCUE,
     NODE_RESBODY,
@@ -374,6 +375,15 @@ typedef struct RNode_REDO {
 typedef struct RNode_RETRY {
     NODE node;
 } rb_node_retry_t;
+
+typedef struct RNode_BODYSTMT {
+    NODE node;
+
+    struct RNode *nd_body;
+    struct RNode *nd_rescue;
+    struct RNode *nd_else;
+    struct RNode *nd_ensure;
+} rb_node_bodystmt_t;
 
 typedef struct RNode_BEGIN {
     NODE node;
@@ -1063,6 +1073,7 @@ typedef struct RNode_ERROR {
 #define RNODE_NEXT(node) ((rb_node_next_t *)(node))
 #define RNODE_REDO(node) ((rb_node_redo_t *)(node))
 #define RNODE_RETRY(node) ((rb_node_retry_t *)(node))
+#define RNODE_BODYSTMT(node) ((rb_node_bodystmt_t *)(node))
 #define RNODE_BEGIN(node) ((rb_node_begin_t *)(node))
 #define RNODE_RESCUE(node) ((rb_node_rescue_t *)(node))
 #define RNODE_RESBODY(node) ((rb_node_resbody_t *)(node))

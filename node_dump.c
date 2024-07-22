@@ -369,6 +369,17 @@ dump_node(VALUE buf, VALUE indent, int comment, const NODE * node)
         ANN("example: retry");
         return;
 
+      case NODE_BODYSTMT:
+        ANN("body statement");
+        ANN("format: [nd_body]; (rescue) [nd_rescue]; (else) [nd_else]; (ensure) [nd_ensure]");
+        ANN("example: begin; foo; rescue; bar; else; baz; end");
+        F_NODE(nd_body, RNODE_BODYSTMT, "body");
+        F_NODE(nd_rescue, RNODE_BODYSTMT, "rescue clause");
+        F_NODE(nd_else, RNODE_BODYSTMT, "rescue else clause");
+        LAST_NODE;
+        F_NODE(nd_ensure, RNODE_BODYSTMT, "ensure clause");
+        return;
+
       case NODE_BEGIN:
         ANN("begin statement");
         ANN("format: begin; [nd_body]; end");

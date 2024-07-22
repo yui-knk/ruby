@@ -8308,6 +8308,120 @@ compile_retry(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, i
 }
 
 static int
+compile_bodystmt_rescue(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_bodystmt_t *const node, int popped)
+{
+    const int line = nd_line(node->nd_rescue);
+    const NODE *line_node = node->nd_rescue;
+    LABEL *lstart = NEW_LABEL(line);
+    LABEL *lend = NEW_LABEL(line);
+    LABEL *lcont = NEW_LABEL(line);
+    const rb_iseq_t *rescue = NEW_CHILD_ISEQ(node->nd_rescue,
+                                             rb_str_concat(rb_str_new2("rescue in "),
+                                                           ISEQ_BODY(iseq)->location.label),
+                                             ISEQ_TYPE_RESCUE, line);
+
+    lstart->rescued = LABEL_RESCUE_BEG;
+    lend->rescued = LABEL_RESCUE_END;
+    ADD_LABEL(ret, lstart);
+
+    bool prev_in_rescue = ISEQ_COMPILE_DATA(iseq)->in_rescue;
+    ISEQ_COMPILE_DATA(iseq)->in_rescue = true;
+    {
+        CHECK(COMPILE(ret, "bodystmt body", node->nd_body));
+    }
+    ISEQ_COMPILE_DATA(iseq)->in_rescue = prev_in_rescue;
+
+    ADD_LABEL(ret, lend);
+    if (node->nd_else) {
+        ADD_INSN(ret, line_node, pop);
+        CHECK(COMPILE(ret, "bodystmt else", node->nd_else));
+    }
+    ADD_INSN(ret, line_node, nop);
+    ADD_LABEL(ret, lcont);
+
+    if (popped) {
+        ADD_INSN(ret, line_node, pop);
+    }
+
+    /* register catch entry */
+    ADD_CATCH_ENTRY(CATCH_TYPE_RESCUE, lstart, lend, rescue, lcont);
+    ADD_CATCH_ENTRY(CATCH_TYPE_RETRY, lend, lcont, NULL, lstart);
+    return COMPILE_OK;
+}
+
+static int
+compile_bodystmt_ensure(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_bodystmt_t *const node, int popped)
+{
+    const int line = nd_line(node->nd_ensure);
+    const NODE *line_node = node->nd_ensure;
+    DECL_ANCHOR(ensr);
+    const rb_iseq_t *ensure = NEW_CHILD_ISEQ(node->nd_ensure,
+                                             rb_str_concat(rb_str_new2 ("ensure in "), ISEQ_BODY(iseq)->location.label),
+                                             ISEQ_TYPE_ENSURE, line);
+    LABEL *lstart = NEW_LABEL(line);
+    LABEL *lend = NEW_LABEL(line);
+    LABEL *lcont = NEW_LABEL(line);
+    LINK_ELEMENT *last;
+    int last_leave = 0;
+    struct ensure_range er;
+    struct iseq_compile_data_ensure_node_stack enl;
+    struct ensure_range *erange;
+
+    INIT_ANCHOR(ensr);
+    CHECK(COMPILE_POPPED(ensr, "ensure ensr", node->nd_ensure));
+    last = ensr->last;
+    last_leave = last && IS_INSN(last) && IS_INSN_ID(last, leave);
+
+    er.begin = lstart;
+    er.end = lend;
+    er.next = 0;
+    push_ensure_entry(iseq, &enl, &er, node->nd_ensure);
+
+    ADD_LABEL(ret, lstart);
+    if (node->nd_rescue) {
+        CHECK(compile_bodystmt_rescue(iseq, ret, node, (popped | last_leave)));
+    }
+    else {
+        CHECK(COMPILE_(ret, "bodystmt body", node->nd_body, (popped | last_leave)));
+    }
+    ADD_LABEL(ret, lend);
+    ADD_SEQ(ret, ensr);
+    if (!popped && last_leave) ADD_INSN(ret, line_node, putnil);
+    ADD_LABEL(ret, lcont);
+    if (last_leave) ADD_INSN(ret, line_node, pop);
+
+    erange = ISEQ_COMPILE_DATA(iseq)->ensure_node_stack->erange;
+    if (lstart->link.next != &lend->link) {
+        while (erange) {
+            ADD_CATCH_ENTRY(CATCH_TYPE_ENSURE, erange->begin, erange->end,
+                            ensure, lcont);
+            erange = erange->next;
+        }
+    }
+
+    ISEQ_COMPILE_DATA(iseq)->ensure_node_stack = enl.prev;
+    return COMPILE_OK;
+}
+
+static int
+compile_bodystmt(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, int popped)
+{
+    rb_node_bodystmt_t *stmt = RNODE_BODYSTMT(node);
+
+    if (stmt->nd_ensure) {
+        CHECK(compile_bodystmt_ensure(iseq, ret, stmt, popped));
+    }
+    else if (stmt->nd_rescue) {
+        CHECK(compile_bodystmt_rescue(iseq, ret, stmt, popped));
+    }
+    else {
+        CHECK(COMPILE_(ret, "rescue head", stmt->nd_body, popped));
+    }
+
+    return COMPILE_OK;
+}
+
+static int
 compile_rescue(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, int popped)
 {
     const int line = nd_line(node);
@@ -8853,7 +8967,10 @@ compile_builtin_arg(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *node, c
 static NODE *
 mandatory_node(const rb_iseq_t *iseq, const NODE *cond_node)
 {
-    const NODE *node = ISEQ_COMPILE_DATA(iseq)->root_node;
+    NODE *node = (NODE *)ISEQ_COMPILE_DATA(iseq)->root_node;
+    if (nd_type(node) == NODE_BODYSTMT) {
+        node = RNODE_BODYSTMT(node)->nd_body;
+    }
     if (nd_type(node) == NODE_IF && RNODE_IF(node)->nd_cond == cond_node) {
         return RNODE_IF(node)->nd_body;
     }
@@ -10437,6 +10554,9 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
         break;
       case NODE_RETRY:
         CHECK(compile_retry(iseq, ret, node, popped));
+        break;
+      case NODE_BODYSTMT:
+        CHECK(compile_bodystmt(iseq, ret, node, popped));
         break;
       case NODE_BEGIN:{
         CHECK(COMPILE_(ret, "NODE_BEGIN", RNODE_BEGIN(node)->nd_body, popped));
