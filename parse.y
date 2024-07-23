@@ -1353,7 +1353,9 @@ set_line_body(NODE *body, int line)
     if (!body) return;
     switch (nd_type(body)) {
       case NODE_BODYSTMT:
-        if (RNODE_BODYSTMT(body)->nd_rescue) nd_set_line(RNODE(RNODE_BODYSTMT(body)->nd_rescue), line);
+        if (RNODE_BODYSTMT(body)->nd_rescue && !RNODE_BODYSTMT(body)->nd_ensure) {
+            nd_set_line(RNODE(RNODE_BODYSTMT(body)->nd_rescue), line);
+        }
         /* fall through */
       case NODE_RESCUE:
       case NODE_ENSURE:
@@ -14871,7 +14873,7 @@ new_bodystmt(struct parser_params *p, NODE *head, NODE *rescue, NODE *rescue_els
         YYLTYPE rescue_loc = code_loc_gen(&head->nd_loc, &tmp->nd_loc);
         int rescue_line = rescue->nd_loc.beg_pos.lineno;
 
-        rescue = NEW_RESCUE(head, rescue, rescue_else, &rescue_loc);
+        rescue = NEW_RESCUE(NULL, rescue, rescue_else, &rescue_loc);
         nd_set_line(rescue, rescue_line);
     }
     return NEW_BODYSTMT(head, RNODE_RESCUE(rescue), ensure, loc);

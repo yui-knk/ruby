@@ -393,6 +393,7 @@ typedef struct RNode_BEGIN {
 typedef struct RNode_RESCUE {
     NODE node;
 
+    // Remove nd_head once modifier rescue node is introduced
     struct RNode *nd_head;
     struct RNode *nd_resq;
     struct RNode *nd_else;

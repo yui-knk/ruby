@@ -8353,10 +8353,11 @@ compile_bodystmt_rescue(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_b
 static int
 compile_bodystmt_ensure(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_bodystmt_t *const node, int popped)
 {
-    const int line = nd_line(RNODE(node->nd_ensure));
-    const NODE *line_node = RNODE(node->nd_ensure);
+    rb_node_ensure_t *nd_ensure = node->nd_ensure;
+    const int line = nd_line(nd_ensure->nd_ensr);
+    const NODE *line_node = RNODE(nd_ensure);
     DECL_ANCHOR(ensr);
-    const rb_iseq_t *ensure = NEW_CHILD_ISEQ(node->nd_ensure->nd_ensr,
+    const rb_iseq_t *ensure = NEW_CHILD_ISEQ(nd_ensure->nd_ensr,
                                              rb_str_concat(rb_str_new2 ("ensure in "), ISEQ_BODY(iseq)->location.label),
                                              ISEQ_TYPE_ENSURE, line);
     LABEL *lstart = NEW_LABEL(line);
@@ -8381,6 +8382,7 @@ compile_bodystmt_ensure(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_b
     ADD_LABEL(ret, lstart);
     if (node->nd_rescue) {
         // Is it ok to change last_line dirctory
+        // if (!node->nd_body)
         ISEQ_COMPILE_DATA(iseq)->last_line = nd_line(RNODE(node->nd_rescue));
         // TODO: Need to call COMPILE so that iseq last line is updated from ensure->nd_ensr to nd_rescue
         CHECK(compile_bodystmt_rescue(iseq, ret, node, (popped | last_leave)));
