@@ -1072,7 +1072,7 @@ static rb_node_iter_t *rb_node_iter_new(struct parser_params *p, rb_node_args_t 
 static rb_node_for_t *rb_node_for_new(struct parser_params *p, NODE *nd_iter, NODE *nd_body, const YYLTYPE *loc);
 static rb_node_for_masgn_t *rb_node_for_masgn_new(struct parser_params *p, NODE *nd_var, const YYLTYPE *loc);
 static rb_node_retry_t *rb_node_retry_new(struct parser_params *p, const YYLTYPE *loc);
-static rb_node_bodystmt_t *rb_node_bodystmt_new(struct parser_params *p, NODE *nd_body, NODE *nd_rescue, NODE *nd_else, rb_node_ensure_t *nd_ensure, const YYLTYPE *loc);
+static rb_node_bodystmt_t *rb_node_bodystmt_new(struct parser_params *p, NODE *nd_body, rb_node_rescue_t *nd_rescue, NODE *nd_else, rb_node_ensure_t *nd_ensure, const YYLTYPE *loc);
 static rb_node_begin_t *rb_node_begin_new(struct parser_params *p, NODE *nd_body, const YYLTYPE *loc);
 static rb_node_rescue_t *rb_node_rescue_new(struct parser_params *p, NODE *nd_head, NODE *nd_resq, NODE *nd_else, const YYLTYPE *loc);
 static rb_node_resbody_t *rb_node_resbody_new(struct parser_params *p, NODE *nd_args, NODE *nd_body, NODE *nd_next, const YYLTYPE *loc);
@@ -11446,7 +11446,7 @@ rb_node_retry_new(struct parser_params *p, const YYLTYPE *loc)
 }
 
 static rb_node_bodystmt_t *
-rb_node_bodystmt_new(struct parser_params *p, NODE *nd_body, NODE *nd_rescue, NODE *nd_else, rb_node_ensure_t *nd_ensure, const YYLTYPE *loc)
+rb_node_bodystmt_new(struct parser_params *p, NODE *nd_body, rb_node_rescue_t *nd_rescue, NODE *nd_else, rb_node_ensure_t *nd_ensure, const YYLTYPE *loc)
 {
     rb_node_bodystmt_t *n = NODE_NEWNODE(NODE_BODYSTMT, rb_node_bodystmt_t, loc);
     n->nd_body = nd_body;
@@ -14873,7 +14873,7 @@ new_bodystmt(struct parser_params *p, NODE *head, NODE *rescue, NODE *rescue_els
         rescue = NEW_RESCUE(head, rescue, rescue_else, &rescue_loc);
         nd_set_line(rescue, rescue_line);
     }
-    return NEW_BODYSTMT(head, rescue, NULL, ensure, loc);
+    return NEW_BODYSTMT(head, RNODE_RESCUE(rescue), NULL, ensure, loc);
 }
 
 static void
