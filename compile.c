@@ -8310,12 +8310,13 @@ compile_retry(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, i
 static int
 compile_bodystmt_rescue(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_bodystmt_t *const node, int popped)
 {
-    const int line = nd_line(RNODE(node->nd_rescue));
-    const NODE *line_node = RNODE(node->nd_rescue);
+    rb_node_rescue_t *nd_rescue = node->nd_rescue;
+    const int line = nd_line(RNODE(nd_rescue));
+    const NODE *line_node = RNODE(nd_rescue);
     LABEL *lstart = NEW_LABEL(line);
     LABEL *lend = NEW_LABEL(line);
     LABEL *lcont = NEW_LABEL(line);
-    const rb_iseq_t *rescue = NEW_CHILD_ISEQ(node->nd_rescue,
+    const rb_iseq_t *rescue = NEW_CHILD_ISEQ(nd_rescue->nd_resq,
                                              rb_str_concat(rb_str_new2("rescue in "),
                                                            ISEQ_BODY(iseq)->location.label),
                                              ISEQ_TYPE_RESCUE, line);
@@ -8332,9 +8333,9 @@ compile_bodystmt_rescue(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_b
     ISEQ_COMPILE_DATA(iseq)->in_rescue = prev_in_rescue;
 
     ADD_LABEL(ret, lend);
-    if (node->nd_else) {
+    if (nd_rescue->nd_else) {
         ADD_INSN(ret, line_node, pop);
-        CHECK(COMPILE(ret, "bodystmt else", node->nd_else));
+        CHECK(COMPILE(ret, "bodystmt else", nd_rescue->nd_else));
     }
     ADD_INSN(ret, line_node, nop);
     ADD_LABEL(ret, lcont);
@@ -8379,6 +8380,8 @@ compile_bodystmt_ensure(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_node_b
 
     ADD_LABEL(ret, lstart);
     if (node->nd_rescue) {
+        // Is it ok to change last_line dirctory
+        ISEQ_COMPILE_DATA(iseq)->last_line = nd_line(RNODE(node->nd_rescue));
         // TODO: Need to call COMPILE so that iseq last line is updated from ensure->nd_ensr to nd_rescue
         CHECK(compile_bodystmt_rescue(iseq, ret, node, (popped | last_leave)));
     }

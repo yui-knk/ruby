@@ -416,7 +416,7 @@ node_children(VALUE ast_value, const NODE *node)
       case NODE_RETRY:
         return rb_ary_new_from_node_args(ast_value, 0);
       case NODE_BODYSTMT:
-        return rb_ary_new_from_node_args(ast_value, 4, RNODE_BODYSTMT(node)->nd_body, RNODE_BODYSTMT(node)->nd_rescue, RNODE_BODYSTMT(node)->nd_else, RNODE_BODYSTMT(node)->nd_ensure);
+        return rb_ary_new_from_node_args(ast_value, 3, RNODE_BODYSTMT(node)->nd_body, RNODE_BODYSTMT(node)->nd_rescue, RNODE_BODYSTMT(node)->nd_ensure);
       case NODE_BEGIN:
         return rb_ary_new_from_node_args(ast_value, 1, RNODE_BEGIN(node)->nd_body);
       case NODE_RESCUE:

@@ -14866,9 +14866,14 @@ static NODE *
 new_bodystmt(struct parser_params *p, NODE *head, NODE *rescue, NODE *rescue_else, rb_node_ensure_t *ensure, const YYLTYPE *loc)
 {
     if (rescue) {
-        nd_set_line(rescue, rescue->nd_loc.beg_pos.lineno);
+        NODE *tmp = rescue_else ? rescue_else : rescue;
+        YYLTYPE rescue_loc = code_loc_gen(&head->nd_loc, &tmp->nd_loc);
+        int rescue_line = rescue->nd_loc.beg_pos.lineno;
+
+        rescue = NEW_RESCUE(head, rescue, rescue_else, &rescue_loc);
+        nd_set_line(rescue, rescue_line);
     }
-    return NEW_BODYSTMT(head, rescue, rescue_else, ensure, loc);
+    return NEW_BODYSTMT(head, rescue, NULL, ensure, loc);
 }
 
 static void

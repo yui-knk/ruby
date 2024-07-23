@@ -380,7 +380,9 @@ typedef struct RNode_BODYSTMT {
     NODE node;
 
     struct RNode *nd_body;
+    // Change type
     struct RNode *nd_rescue;
+    // Remove
     struct RNode *nd_else;
     struct RNode_ENSURE *nd_ensure;
 } rb_node_bodystmt_t;
