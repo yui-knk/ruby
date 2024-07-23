@@ -1353,6 +1353,8 @@ set_line_body(NODE *body, int line)
     if (!body) return;
     switch (nd_type(body)) {
       case NODE_BODYSTMT:
+        if (RNODE_BODYSTMT(body)->nd_rescue) nd_set_line(RNODE(RNODE_BODYSTMT(body)->nd_rescue), line);
+        /* fall through */
       case NODE_RESCUE:
       case NODE_ENSURE:
         nd_set_line(body, line);
