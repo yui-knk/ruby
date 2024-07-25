@@ -5987,7 +5987,7 @@ exc_list	: arg_value
                     }
                 | mrhs
                     {
-                        if (!($$ = splat_array($1))) $$ = $1;
+                        $$ = $1;
                     }
                 | none
                 ;
