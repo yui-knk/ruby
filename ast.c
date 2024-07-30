@@ -622,7 +622,7 @@ node_children(VALUE ast_value, const NODE *node)
       case NODE_VALIAS:
         return rb_ary_new_from_args(2, ID2SYM(RNODE_VALIAS(node)->nd_alias), ID2SYM(RNODE_VALIAS(node)->nd_orig));
       case NODE_UNDEF:
-        return rb_ary_new_from_args(1, dump_parser_array(ast_value, RNODE_UNDEF(node)->nd_undefs));
+        return dump_parser_array(ast_value, RNODE_UNDEF(node)->nd_undefs);
       case NODE_CLASS:
         return rb_ary_new_from_node_args(ast_value, 3, RNODE_CLASS(node)->nd_cpath, RNODE_CLASS(node)->nd_super, RNODE_CLASS(node)->nd_body);
       case NODE_MODULE:
