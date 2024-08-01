@@ -54,6 +54,17 @@ test_TOPDIR(RbConfigSingletonTest) `TOPDIR` is `nil` during CI while RBS type is
 
 test_aref(FiberSingletonTest) the method should not accept String keys
 
+test_1(RBS::RbiPrototypeTest)
+test_alias(RBS::RbiPrototypeTest)
+test_attached_class(RBS::RbiPrototypeTest)
+test_basic_object(RBS::RbiPrototypeTest)
+test_bool(RBS::RbiPrototypeTest)
+test_class_of(RBS::RbiPrototypeTest)
+test_colon(RBS::RbiPrototypeTest)
+test_comment(RBS::RbiPrototypeTest)
+test_constant(RBS::RbiPrototypeTest)
+test_self_type(RBS::RbiPrototypeTest)
+
 NetSingletonTest depending on external resources
 NetInstanceTest depending on external resources
 TestHTTPRequest depending on external resources
