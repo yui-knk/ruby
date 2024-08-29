@@ -15347,11 +15347,10 @@ rb_reg_fragment_setenc(struct parser_params* p, rb_parser_string_t *str, int opt
     }
     else if (rb_is_usascii_enc(p->enc)) {
         if (!rb_parser_is_ascii_string(p, str)) {
-            /* raise in re.c */
-            rb_parser_enc_associate(p, str, rb_usascii_encoding());
+            rb_parser_enc_associate(p, str, rb_ascii8bit_encoding());
         }
         else {
-            rb_parser_enc_associate(p, str, rb_ascii8bit_encoding());
+            rb_parser_enc_associate(p, str, rb_usascii_encoding());
         }
     }
     return 0;
