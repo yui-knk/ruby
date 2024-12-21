@@ -73,7 +73,7 @@ jobs:
 
       - run: make
 
-      - run: ruby -v
+      - run: ./ruby -v
 
       - name: make ${{ matrix.test_task }}
         run: make -s ${{ matrix.test_task }} RUN_OPTS="$RUN_OPTS" SPECOPTS="$SPECOPTS"
