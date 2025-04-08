@@ -10548,13 +10548,13 @@ parser_yylex(struct parser_params *p)
         c = (IS_lex_state(EXPR_BEG|EXPR_CLASS|EXPR_FNAME|EXPR_DOT) &&
              !IS_lex_state(EXPR_LABELED));
         if (c || IS_lex_state_all(EXPR_ARG|EXPR_LABELED)) {
+            if (!c && p->ctxt.in_kwarg) {
+                goto normal_newline;
+            }
             if (!fallthru) {
                 dispatch_scan_event(p, tIGNORED_NL);
             }
             fallthru = FALSE;
-            if (!c && p->ctxt.in_kwarg) {
-                goto normal_newline;
-            }
             goto retry;
         }
         while (1) {
