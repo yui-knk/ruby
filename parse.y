@@ -2768,6 +2768,7 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %type <node> bodystmt stmts stmt_or_begin stmt expr arg ternary primary
 %type <node> command command_call command_call_value method_call
 %type <node> expr_value expr_value_do arg_value primary_value rel_expr
+%type <node> pattern_matching pm_assoc pm_in
 %type <node_fcall> fcall
 %type <node> if_tail opt_else case_body case_args cases opt_rescue exc_list exc_var opt_ensure
 %type <node> args arg_splat call_args opt_call_args
@@ -2875,12 +2876,13 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %nonassoc tLOWEST
 %nonassoc tLBRACE_ARG
 
-%nonassoc  modifier_if modifier_unless modifier_while modifier_until keyword_in
+%nonassoc  modifier_if modifier_unless modifier_while modifier_until
 %left  keyword_or keyword_and
 %right keyword_not
 %nonassoc keyword_defined
 %right '=' tOP_ASGN
 %left modifier_rescue
+%nonassoc keyword_in tASSOC
 %right '?' ':'
 %nonassoc tDOT2 tDOT3 tBDOT2 tBDOT3
 %left  tOROP
@@ -3414,6 +3416,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 command_asgn	: asgn(command_rhs)
                 | op_asgn(command_rhs)
                 | def_endless_method(endless_command)
+                | def_endless_method(pattern_matching)
                 ;
 
 endless_command : command
@@ -3462,7 +3465,15 @@ expr		: command_call
                         $$ = call_uni_op(p, method_cond(p, $2, &@2), '!', &@1, &@$);
                     /*% ripper: unary!(ID2VAL('\'!\''), $:2) %*/
                     }
-                | arg tASSOC
+                | pattern_matching
+                | arg %prec tLBRACE_ARG
+                ;
+
+pattern_matching : pm_assoc
+                 | pm_in
+                 ;
+
+pm_assoc : arg tASSOC
                     {
                         value_expr($arg);
                     }
@@ -3475,7 +3486,9 @@ expr		: command_call
                         $$ = NEW_CASE3($arg, NEW_IN($body, 0, 0, &@body), &@$, &NULL_LOC, &NULL_LOC);
                     /*% ripper: case!($:arg, in!($:body, Qnil, Qnil)) %*/
                     }
-                | arg keyword_in
+                ;
+
+pm_in             : arg keyword_in
                     {
                         value_expr($arg);
                     }
@@ -3488,7 +3501,6 @@ expr		: command_call
                         $$ = NEW_CASE3($arg, NEW_IN($body, NEW_TRUE(&@body), NEW_FALSE(&@body), &@body), &@$, &NULL_LOC, &NULL_LOC);
                     /*% ripper: case!($:arg, in!($:body, Qnil, Qnil)) %*/
                     }
-                | arg %prec tLBRACE_ARG
                 ;
 
 def_name	: fname
@@ -4193,6 +4205,16 @@ opt_call_args	: none
                 ;
 
 call_args	: value_expr(command)
+                    {
+                        $$ = NEW_LIST($1, &@$);
+                    /*% ripper: args_add!(args_new!, $:1) %*/
+                    }
+                | def_endless_method(endless_command)
+                    {
+                        $$ = NEW_LIST($1, &@$);
+                    /*% ripper: args_add!(args_new!, $:1) %*/
+                    }
+                | def_endless_method(pattern_matching)
                     {
                         $$ = NEW_LIST($1, &@$);
                     /*% ripper: args_add!(args_new!, $:1) %*/
