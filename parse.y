@@ -2798,7 +2798,7 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %type <node> p_kwargs p_kwarg p_kw
 %type <id>   keyword_variable user_variable sym operation2 operation3
 %type <id>   cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg f_bad_arg
-%type <id>   f_kwrest f_label f_arg_asgn call_op call_op2 reswords relop dot_or_colon
+%type <id>   f_kwrest f_label f_arg_asgn call_op reswords relop dot_or_colon
 %type <id>   p_kwrest p_kwnorest p_any_kwrest p_kw_label
 %type <id>   f_no_kwarg f_any_kwrest args_forward excessed_comma nonlocal_var def_name
 %type <ctxt> lex_ctxt begin_defined k_class k_module k_END k_rescue k_ensure after_rescue
@@ -3585,26 +3585,16 @@ command		: fcall command_args       %prec tLOWEST
                         nd_set_last_loc($1, @2.end_pos);
                     /*% ripper: method_add_block!(command!($:1, $:2), $:3) %*/
                     }
-                | primary_value call_op operation2 command_args	%prec tLOWEST
+                | primary_value call_op2 operation2 command_args	%prec tLOWEST
                     {
                         $$ = new_command_qcall(p, $2, $1, $3, $4, 0, &@3, &@$);
                     /*% ripper: command_call!($:1, $:2, $:3, $:4) %*/
                     }
-                | primary_value call_op operation2 command_args cmd_brace_block
+                | primary_value call_op2 operation2 command_args cmd_brace_block
                     {
                         $$ = new_command_qcall(p, $2, $1, $3, $4, $5, &@3, &@$);
                     /*% ripper: method_add_block!(command_call!($:1, $:2, $:3, $:4), $:5) %*/
                     }
-                | primary_value tCOLON2 operation2 command_args	%prec tLOWEST
-                    {
-                        $$ = new_command_qcall(p, idCOLON2, $1, $3, $4, 0, &@3, &@$);
-                    /*% ripper: command_call!($:1, $:2, $:3, $:4) %*/
-                    }
-                | primary_value tCOLON2 operation2 command_args cmd_brace_block
-                    {
-                        $$ = new_command_qcall(p, idCOLON2, $1, $3, $4, $5, &@3, &@$);
-                    /*% ripper: method_add_block!(command_call!($:1, $:2, $:3, $:4), $:5) %*/
-                   }
                 | keyword_super command_args
                     {
                         $$ = NEW_SUPER($2, &@$, &@1, &NULL_LOC, &NULL_LOC);
@@ -6692,9 +6682,9 @@ call_op 	: '.'
                 | tANDDOT
                 ;
 
-call_op2	: call_op
-                | tCOLON2
-                ;
+%rule %inline call_op2 : call_op
+                       | tCOLON2
+                       ;
 
 rparen		: '\n'? ')'
                 ;
