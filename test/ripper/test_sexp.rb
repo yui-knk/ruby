@@ -129,11 +129,10 @@ eot
       [:program,
         [
           [:method_add_block,
-            [:command_call,
+            [:call,
               [:vcall, [:@ident, "a", [1, 0]]],
               [:@op, "::", [1, 1]],
-              [:@const, "C", [1, 3]],
-              nil],
+              [:@const, "C", [1, 3]]],
           [:brace_block, nil, [[:void_stmt]]]]]],
       sexp)
   end
