@@ -2791,6 +2791,7 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %type <node> brace_block cmd_brace_block do_block lhs none fitem
 %type <node> mlhs_head mlhs_item mlhs_node
 %type <node_masgn> mlhs mlhs_basic mlhs_inner
+%type <node> pattern_match
 %type <node> p_case_body p_cases p_top_expr p_top_expr_body
 %type <node> p_expr p_as p_alt p_expr_basic p_find
 %type <node> p_args p_args_head p_args_tail p_args_post p_arg p_rest
@@ -2875,12 +2876,13 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %nonassoc tLOWEST
 %nonassoc tLBRACE_ARG
 
-%nonassoc  modifier_if modifier_unless modifier_while modifier_until keyword_in
+%nonassoc  modifier_if modifier_unless modifier_while modifier_until
 %left  keyword_or keyword_and
 %right keyword_not
 %nonassoc keyword_defined
 %right '=' tOP_ASGN
 %left modifier_rescue
+%nonassoc keyword_in tASSOC
 %right '?' ':'
 %nonassoc tDOT2 tDOT3 tBDOT2 tBDOT3
 %left  tOROP
@@ -3415,6 +3417,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 command_asgn	: asgn(command_rhs)
                 | op_asgn(command_rhs)
                 | def_endless_method(endless_command)
+                | def_endless_method(pattern_match)
                 ;
 
 endless_command : command
@@ -3463,7 +3466,11 @@ expr		: command_call
                         $$ = call_uni_op(p, method_cond(p, $2, &@2), '!', &@1, &@$);
                     /*% ripper: unary!(ID2VAL('\'!\''), $:2) %*/
                     }
-                | arg tASSOC
+                | pattern_match
+                | arg %prec tLBRACE_ARG
+                ;
+
+pattern_match   : arg tASSOC
                     {
                         value_expr($arg);
                     }
@@ -3489,7 +3496,6 @@ expr		: command_call
                         $$ = NEW_CASE3($arg, NEW_IN($body, NEW_TRUE(&@body), NEW_FALSE(&@body), &@body, &@keyword_in, &NULL_LOC, &NULL_LOC), &@$, &NULL_LOC, &NULL_LOC);
                     /*% ripper: case!($:arg, in!($:body, Qnil, Qnil)) %*/
                     }
-                | arg %prec tLBRACE_ARG
                 ;
 
 def_name	: fname
