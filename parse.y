@@ -3427,6 +3427,18 @@ endless_command : command
                         $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
                     /*% ripper: rescue_mod!($:1, $:4) %*/
                     }
+                | endless_command modifier_rescue after_rescue pattern_match
+                    {
+                        p->ctxt.in_rescue = $3.in_rescue;
+                        $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
+                    /*% ripper: rescue_mod!($:1, $:4) %*/
+                    }
+                | arg modifier_rescue after_rescue pattern_match
+                    {
+                        p->ctxt.in_rescue = $3.in_rescue;
+                        $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
+                    /*% ripper: rescue_mod!($:1, $:4) %*/
+                    }
                 | keyword_not '\n'? endless_command
                     {
                         $$ = call_uni_op(p, method_cond(p, $3, &@3), METHOD_NOT, &@1, &@$);
@@ -3442,6 +3454,14 @@ command_rhs	: command_call_value   %prec tOP_ASGN
                         $$ = NEW_RESCUE($1, NEW_RESBODY(0, 0, remove_begin($4), 0, &loc), 0, &@$);
                     /*% ripper: rescue_mod!($:1, $:4) %*/
                     }
+                | pattern_match
+                // | arg modifier_rescue after_rescue expr
+                //     {
+                //         p->ctxt.in_rescue = $3.in_rescue;
+                //         YYLTYPE loc = code_loc_gen(&@2, &@4);
+                //         $$ = NEW_RESCUE($1, NEW_RESBODY(0, 0, remove_begin($4), 0, &loc), 0, &@$);
+                //     /*% ripper: rescue_mod!($:1, $:4) %*/
+                //     }
                 | command_asgn
                 ;
 
@@ -4205,6 +4225,7 @@ call_args	: value_expr(command)
                     /*% ripper: args_add!(args_new!, $:1) %*/
                     }
                 | def_endless_method(endless_command)
+                | def_endless_method(pattern_match)
                 | args opt_block_arg
                     {
                         $$ = arg_blk_pass($1, $2);
