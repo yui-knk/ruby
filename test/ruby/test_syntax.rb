@@ -1815,9 +1815,7 @@ eom
     assert_valid_syntax('while class Foo a = tap do end; end; break; end')
   end
 
-  def test_command_with_cmd_brace_block
-    assert_valid_syntax('obj.foo (1) {}')
-    assert_valid_syntax('obj::foo (1) {}')
+  def test_method_call_with_block
     assert_valid_syntax('bar {}')
     assert_valid_syntax('Bar {}')
     assert_valid_syntax('bar() {}')
@@ -1826,6 +1824,38 @@ eom
     assert_valid_syntax('Foo::Bar {}')
     assert_valid_syntax('Foo::bar() {}')
     assert_valid_syntax('Foo::Bar() {}')
+
+    assert_valid_syntax('bar do end')
+    assert_valid_syntax('Bar do end')
+    assert_valid_syntax('bar() do end')
+    assert_valid_syntax('Bar() do end')
+    assert_valid_syntax('Foo::bar do end')
+    assert_syntax_error('Foo::Bar do end', /unexpected/)
+    assert_valid_syntax('Foo::bar() do end')
+    assert_valid_syntax('Foo::Bar() do end')
+
+    assert_valid_syntax('bar {} + 1')
+    assert_valid_syntax('Bar {} + 1')
+    assert_valid_syntax('bar() {} + 1')
+    assert_valid_syntax('Bar() {} + 1')
+    assert_valid_syntax('Foo::bar {} + 1')
+    assert_valid_syntax('Foo::Bar {} + 1')
+    assert_valid_syntax('Foo::bar() {} + 1')
+    assert_valid_syntax('Foo::Bar() {} + 1')
+
+    assert_valid_syntax('bar do end + 1')
+    assert_valid_syntax('Bar do end + 1')
+    assert_valid_syntax('bar() do end + 1')
+    assert_valid_syntax('Bar() do end + 1')
+    assert_valid_syntax('Foo::bar do end + 1')
+    assert_syntax_error('Foo::Bar do end + 1', /unexpected/)
+    assert_valid_syntax('Foo::bar() do end + 1')
+    assert_valid_syntax('Foo::Bar() do end + 1')
+  end
+
+  def test_command_with_cmd_brace_block
+    assert_valid_syntax('obj.foo (1) {}')
+    assert_valid_syntax('obj::foo (1) {}')
   end
 
   def test_command_newline_in_tlparen_args
