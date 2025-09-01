@@ -1,8 +1,35 @@
 # NEWS for Lrama
 
+## Lrama 0.7.1 (2025-xx-xx)
+
+### Syntax Diagrams
+
+Lrama provides an API for generating HTML syntax diagrams. These visual diagrams are highly useful as grammar development tools and can also serve as a form of automatic self-documentation.
+
+![Syntax Diagrams](https://github.com/user-attachments/assets/5d9bca77-93fd-4416-bc24-9a0f70693a22)
+
+If you use syntax diagrams, you add `--diagram` option.
+
+```console
+$ exe/lrama --diagram sample.y
+```
+
+### Support `--profile` option
+
+You can profile parser generation process without modification for Lrama source code.
+Currently `--profile=call-stack` and `--profile=memory` are supported.
+
+```console
+$ exe/lrama --profile=call-stack sample/calc.y
+```
+
+Then "tmp/stackprof-cpu-myapp.dump" is generated.
+
+https://github.com/ruby/lrama/pull/525
+
 ## Lrama 0.7.0 (2025-01-21)
 
-## [EXPERIMENTAL] Support the generation of the IELR(1) parser described in this paper
+### [EXPERIMENTAL] Support the generation of the IELR(1) parser described in this paper
 
 Support the generation of the IELR(1) parser described in this paper.
 https://www.sciencedirect.com/science/article/pii/S0167642309001191
@@ -15,12 +42,12 @@ If you use IELR(1) parser, you can write the following directive in your grammar
 
 But, currently IELR(1) parser is experimental feature. If you find any bugs, please report it to us. Thank you.
 
-## Support `-t` option as same as `--debug` option
+### Support `-t` option as same as `--debug` option
 
 Support to `-t` option as same as `--debug` option.
 These options align with Bison behavior. So same as `--debug` option.
 
-## Trace only explicit rules
+### Trace only explicit rules
 
 Support to trace only explicit rules.
 If you use `--trace=rules` option, it shows include mid-rule actions. If you want to show only explicit rules, you can use `--trace=only-explicit-rules` option.
@@ -97,9 +124,9 @@ nterm.y:6:7: symbol EOI redeclared as a nonterminal
 
 ## Lrama 0.6.10 (2024-09-11)
 
-### Aliased Named References for actions of RHS in parameterizing rules
+### Aliased Named References for actions of RHS in Parameterizing rules
 
-Allow to use aliased named references for actions of RHS in parameterizing rules.
+Allow to use aliased named references for actions of RHS in Parameterizing rules.
 
 ```yacc
 %rule sum(X, Y): X[summand] '+' Y[addend] { $$ = $summand + $addend }
@@ -109,9 +136,9 @@ Allow to use aliased named references for actions of RHS in parameterizing rules
 https://github.com/ruby/lrama/pull/410
 
 
-### Named References for actions of RHS in parameterizing rules caller side
+### Named References for actions of RHS in Parameterizing rules caller side
 
-Allow to use named references for actions of RHS in parameterizing rules caller side.
+Allow to use named references for actions of RHS in Parameterizing rules caller side.
 
 ```yacc
 opt_nl: '\n'?[nl] <str> { $$ = $nl; }
@@ -120,9 +147,9 @@ opt_nl: '\n'?[nl] <str> { $$ = $nl; }
 
 https://github.com/ruby/lrama/pull/414
 
-### Widen the definable position of parameterizing rules
+### Widen the definable position of Parameterizing rules
 
-Allow to define parameterizing rules in the middle of the grammar.
+Allow to define Parameterizing rules in the middle of the grammar.
 
 ```yacc
 %rule defined_option(X): /* empty */
@@ -186,15 +213,15 @@ Change to `%locations` directive not set by default.
 
 https://github.com/ruby/lrama/pull/446
 
-### Diagnostics report for parameterizing rules redefine
+### Diagnostics report for parameterized rules redefine
 
-Support to warning redefined parameterizing rules.
-Run `exe/lrama -W` or  `exe/lrama --warnings` to show redefined parameterizing rules.
+Support to warning redefined parameterized rules.
+Run `exe/lrama -W` or  `exe/lrama --warnings` to show redefined parameterized rules.
 
 ```console
 $ exe/lrama -W sample/calc.y
-parameterizing rule redefined: redefined_method(X)
-parameterizing rule redefined: redefined_method(X)
+parameterized rule redefined: redefined_method(X)
+parameterized rule redefined: redefined_method(X)
 ```
 
 https://github.com/ruby/lrama/pull/448
@@ -208,9 +235,9 @@ https://github.com/ruby/lrama/pull/457
 
 ## Lrama 0.6.9 (2024-05-02)
 
-### Callee side tag specification of parameterizing rules
+### Callee side tag specification of Parameterizing rules
 
-Allow to specify tag on callee side of parameterizing rules.
+Allow to specify tag on callee side of Parameterizing rules.
 
 ```yacc
 %union {
@@ -221,9 +248,9 @@ Allow to specify tag on callee side of parameterizing rules.
                      ;
 ```
 
-### Named References for actions of RHS in parameterizing rules
+### Named References for actions of RHS in Parameterizing rules
 
-Allow to use named references for actions of RHS in parameterizing rules.
+Allow to use named references for actions of RHS in Parameterizing rules.
 
 ```yacc
 %rule option(number): /* empty */
@@ -233,9 +260,9 @@ Allow to use named references for actions of RHS in parameterizing rules.
 
 ## Lrama 0.6.8 (2024-04-29)
 
-### Nested parameterizing rules with tag
+### Nested Parameterizing rules with tag
 
-Allow to nested parameterizing rules with tag.
+Allow to nested Parameterizing rules with tag.
 
 ```yacc
 %union {
@@ -257,9 +284,9 @@ Allow to nested parameterizing rules with tag.
 
 ## Lrama 0.6.7 (2024-04-28)
 
-### RHS of user defined parameterizing rules contains `'symbol'?`, `'symbol'+` and `'symbol'*`.
+### RHS of user defined Parameterizing rules contains `'symbol'?`, `'symbol'+` and `'symbol'*`.
 
-User can use `'symbol'?`, `'symbol'+` and `'symbol'*` in RHS of user defined parameterizing rules.
+User can use `'symbol'?`, `'symbol'+` and `'symbol'*` in RHS of user defined Parameterizing rules.
 
 ```
 %rule with_word_seps(X): /* empty */
@@ -319,7 +346,7 @@ expr : number { $$ = $1; }
 
 ### Typed Midrule Actions
 
-User can specify the type of mid rule action by tag (`<bar>`) instead of specifying it with in an action.
+User can specify the type of mid-rule action by tag (`<bar>`) instead of specifying it with in an action.
 
 ```yacc
 primary: k_case expr_value terms?
@@ -394,7 +421,7 @@ https://github.com/ruby/lrama/pull/382
 
 User can set codes for freeing semantic value resources by using `%destructor`.
 In general, these resources are freed by actions or after parsing.
-However if syntax error happens in parsing, these codes may not be executed.
+However, if syntax error happens in parsing, these codes may not be executed.
 Codes associated to `%destructor` are executed when semantic value is popped from the stack by an error.
 
 ```yacc
@@ -432,7 +459,7 @@ Lrama introduces two features to support another semantic value stack by parser 
 1. Callback entry points
 
 User can emulate semantic value stack by these callbacks.
-Lrama provides these five callbacks. Registered functions are called when each event happen. For example %after-shift function is called when shift happens on original semantic value stack.
+Lrama provides these five callbacks. Registered functions are called when each event happens. For example %after-shift function is called when shift happens on original semantic value stack.
 
 * `%after-shift` function_name
 * `%before-reduce` function_name
@@ -460,15 +487,15 @@ https://github.com/ruby/lrama/pull/367
 ### %no-stdlib directive
 
 If `%no-stdlib` directive is set, Lrama doesn't load Lrama standard library for
-parameterizing rules, stdlib.y.
+parameterized rules, stdlib.y.
 
 https://github.com/ruby/lrama/pull/344
 
 ## Lrama 0.6.1 (2024-01-13)
 
-### Nested parameterizing rules
+### Nested Parameterizing rules
 
-Allow to pass an instantiated rule to other parameterizing rules.
+Allow to pass an instantiated rule to other Parameterizing rules.
 
 ```yacc
 %rule constant(X) : X
@@ -485,7 +512,7 @@ program         : option(constant(number)) // Nested rule
 %%
 ```
 
-Allow to use nested parameterizing rules when define parameterizing rules.
+Allow to use nested Parameterizing rules when define Parameterizing rules.
 
 ```yacc
 %rule option(x) : /* empty */
@@ -510,9 +537,9 @@ https://github.com/ruby/lrama/pull/337
 
 ## Lrama 0.6.0 (2023-12-25)
 
-### User defined parameterizing rules
+### User defined Parameterizing rules
 
-Allow to define parameterizing rule by `%rule` directive.
+Allow to define Parameterizing rule by `%rule` directive.
 
 ```yacc
 %rule pair(X, Y): X Y { $$ = $1 + $2; }
@@ -532,7 +559,7 @@ https://github.com/ruby/lrama/pull/285
 
 ## Lrama 0.5.11 (2023-12-02)
 
-### Type specification of parameterizing rules
+### Type specification of Parameterizing rules
 
 Allow to specify type of rules by specifying tag, `<i>` in below example.
 Tag is post-modification style.
@@ -556,13 +583,13 @@ https://github.com/ruby/lrama/pull/272
 
 ### Parameterizing rules (option, nonempty_list, list)
 
-Support function call style parameterizing rules for `option`, `nonempty_list` and `list`.
+Support function call style Parameterizing rules for `option`, `nonempty_list` and `list`.
 
 https://github.com/ruby/lrama/pull/197
 
 ### Parameterizing rules (separated_list)
 
-Support `separated_list` and `separated_nonempty_list` parameterizing rules.
+Support `separated_list` and `separated_nonempty_list` Parameterizing rules.
 
 ```text
 program: separated_list(',', number)
@@ -618,7 +645,7 @@ https://github.com/ruby/lrama/pull/181
 
 ### Racc parser
 
-Replace Lrama's parser from hand written parser to LR parser generated by Racc.
+Replace Lrama's parser from handwritten parser to LR parser generated by Racc.
 Lrama uses `--embedded` option to generate LR parser because Racc is changed from default gem to bundled gem by Ruby 3.3 (https://github.com/ruby/lrama/pull/132).
 
 https://github.com/ruby/lrama/pull/62
