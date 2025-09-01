@@ -2764,7 +2764,7 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %type <node> literal numeric simple_numeric ssym dsym symbol cpath
 %type <node_def_temp> defn_head defs_head k_def
 %type <node_exits> block_open k_while k_until k_for allow_exits
-%type <node> top_stmts top_stmt begin_block endless_arg endless_command
+%type <node> top_stmts top_stmt begin_block endless_arg endless_command endless_body pattern_match
 %type <node> bodystmt stmts stmt_or_begin stmt expr arg ternary primary
 %type <node> command command_call command_call_value method_call
 %type <node> expr_value expr_value_do arg_value primary_value rel_expr
@@ -2875,12 +2875,13 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %nonassoc tLOWEST
 %nonassoc tLBRACE_ARG
 
-%nonassoc  modifier_if modifier_unless modifier_while modifier_until keyword_in
+%nonassoc  modifier_if modifier_unless modifier_while modifier_until
 %left  keyword_or keyword_and
-%right keyword_not
 %nonassoc keyword_defined
 %right '=' tOP_ASGN
 %left modifier_rescue
+%nonassoc keyword_in tASSOC
+%right keyword_not
 %right '?' ':'
 %nonassoc tDOT2 tDOT3 tBDOT2 tBDOT3
 %left  tOROP
@@ -3415,6 +3416,13 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
 command_asgn	: asgn(command_rhs)
                 | op_asgn(command_rhs)
                 | def_endless_method(endless_command)
+                | def_endless_method(endless_arg)
+                | def_endless_method(pattern_match)
+                ;
+
+endless_body    : endless_command
+                | endless_arg
+                | pattern_match
                 ;
 
 endless_command : command
@@ -3425,6 +3433,20 @@ endless_command : command
                     /*% ripper: rescue_mod!($:1, $:4) %*/
                     }
                 | keyword_not '\n'? endless_command
+                    {
+                        $$ = call_uni_op(p, method_cond(p, $3, &@3), METHOD_NOT, &@1, &@$);
+                    /*% ripper: unary!(ID2VAL(idNOT), $:3) %*/
+                    }
+                ;
+
+endless_arg     : arg %prec modifier_rescue
+                | endless_arg modifier_rescue after_rescue arg
+                    {
+                        p->ctxt.in_rescue = $3.in_rescue;
+                        $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
+                    /*% ripper: rescue_mod!($:1, $:4) %*/
+                    }
+                | keyword_not '\n'? endless_arg
                     {
                         $$ = call_uni_op(p, method_cond(p, $3, &@3), METHOD_NOT, &@1, &@$);
                     /*% ripper: unary!(ID2VAL(idNOT), $:3) %*/
@@ -3463,7 +3485,11 @@ expr		: command_call
                         $$ = call_uni_op(p, method_cond(p, $2, &@2), '!', &@1, &@$);
                     /*% ripper: unary!(ID2VAL('\'!\''), $:2) %*/
                     }
-                | arg tASSOC
+                | pattern_match
+                | arg %prec tLBRACE_ARG
+                ;
+
+pattern_match   : arg tASSOC
                     {
                         value_expr($arg);
                     }
@@ -3489,7 +3515,6 @@ expr		: command_call
                         $$ = NEW_CASE3($arg, NEW_IN($body, NEW_TRUE(&@body), NEW_FALSE(&@body), &@body, &@keyword_in, &NULL_LOC, &NULL_LOC), &@$, &NULL_LOC, &NULL_LOC);
                     /*% ripper: case!($:arg, in!($:body, Qnil, Qnil)) %*/
                     }
-                | arg %prec tLBRACE_ARG
                 ;
 
 def_name	: fname
@@ -4046,7 +4071,6 @@ arg		: asgn(arg_rhs)
                         p->ctxt.has_trailing_semicolon = $3.has_trailing_semicolon;
                     /*% ripper: defined!($:4) %*/
                     }
-                | def_endless_method(endless_arg)
                 | ternary
                 | primary
                 ;
@@ -4057,20 +4081,6 @@ ternary		: arg '?' arg '\n'? ':' arg
                         $$ = new_if(p, $1, $3, $6, &@$, &NULL_LOC, &@5, &NULL_LOC);
                         fixpos($$, $1);
                     /*% ripper: ifop!($:1, $:3, $:6) %*/
-                    }
-                ;
-
-endless_arg	: arg %prec modifier_rescue
-                | endless_arg modifier_rescue after_rescue arg
-                    {
-                        p->ctxt.in_rescue = $3.in_rescue;
-                        $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
-                    /*% ripper: rescue_mod!($:1, $:4) %*/
-                    }
-                | keyword_not '\n'? endless_arg
-                    {
-                        $$ = call_uni_op(p, method_cond(p, $3, &@3), METHOD_NOT, &@1, &@$);
-                    /*% ripper: unary!(ID2VAL(idNOT), $:3) %*/
                     }
                 ;
 
@@ -4199,6 +4209,16 @@ call_args	: value_expr(command)
                     /*% ripper: args_add!(args_new!, $:1) %*/
                     }
                 | def_endless_method(endless_command)
+                    {
+                        $$ = NEW_LIST($1, &@$);
+                    /*% ripper: args_add!(args_new!, $:1) %*/
+                    }
+                | def_endless_method(endless_arg)
+                    {
+                        $$ = NEW_LIST($1, &@$);
+                    /*% ripper: args_add!(args_new!, $:1) %*/
+                    }
+                | def_endless_method(pattern_match)
                     {
                         $$ = NEW_LIST($1, &@$);
                     /*% ripper: args_add!(args_new!, $:1) %*/
