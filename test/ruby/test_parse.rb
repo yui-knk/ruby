@@ -1441,6 +1441,44 @@ x = __ENCODING__
     assert_syntax_error("\\\v", /escaped vertical tab/)
   end
 
+  def test_asgn_pattern_match
+    o = Object.new
+    assert_equal(true, o.instance_eval("x = 1 in 1; x"), "[Bug 21097]") # x = (1 in 1)
+    assert_equal(nil, o.instance_eval("x = 1 => 1; x"), "[Bug 21097]") # x = (1 => 1)
+    assert_equal(true, o.instance_eval("def f1 = 1 in 1; f1"), "[Bug 21097], [Bug 21378]") # def f = (1 in 1)
+    assert_equal(nil, o.instance_eval("def f2 = 1 => 1; f2"), "[Bug 21097]") # def f = (1 => 1)
+
+    assert_equal(true, o.instance_eval("x = 0 && 1 in 1; x"), "[Bug 21097]") # x = ((0 && 1) in 1)
+    assert_equal(nil, o.instance_eval("x = 0 && 1 => 1; x"), "[Bug 21097]") # x = ((0 && 1) => 1)
+    assert_equal(true, o.instance_eval("def f3 = 0 && 1 in 1; f3"), "[Bug 21097]") # def f = ((0 && 1) in 1)
+    assert_equal(nil, o.instance_eval("def f4 = 0 && 1 => 1; f4"), "[Bug 21097]") # def f = ((0 && 1 ) => 1)
+  end
+
+  def test_asgn_rescue_pattern_match
+    o = Object.new
+    assert_equal(true, o.instance_eval("x = a rescue 1 in 1; x"), "[Bug 21097]") # x = (a rescue (1 in 1))
+    assert_equal(nil, o.instance_eval("x = a rescue 1 => 1; x"), "[Bug 21097]") # x = (a rescue (1 => 1))
+    assert_equal(true, o.instance_eval("def f1 = a rescue 1 in 1; f1"), "[Bug 21097]") # def f = (a rescue (1 in 1))
+    assert_equal(nil, o.instance_eval("def f2 = a rescue 1 => 1; f2"), "[Bug 21097]") # def f = (a rescue (1 => 1))
+
+    assert_equal(true, o.instance_eval("x = a rescue 0 && 1 in 1; x"), "[Bug 21097]") # x = (a rescue ((0 && 1) in 1))
+    assert_equal(nil, o.instance_eval("x = a rescue 0 && 1 => 1; x"), "[Bug 21097]") # x = (a rescue ((0 && 1) => 1))
+    assert_equal(true, o.instance_eval("def f3 = a rescue 0 && 1 in 1; f3"), "[Bug 21097]") # def f = (a rescue ((0 && 1) in 1))
+    assert_equal(nil, o.instance_eval("def f4 = a rescue 0 && 1 => 1; f4"), "[Bug 21097]") # def f = (a rescue ((0 && 1) => 1))
+  end
+
+  def test_endless_method_def_pattern_match_as_a_command_argument
+    assert_valid_syntax("private def f = 1 in 1; f")
+    assert_valid_syntax("private def f = 1 => 1; f")
+    assert_valid_syntax("private def f = 0 && 1 in 1; f")
+    assert_valid_syntax("private def f = 0 && 1 => 1; f")
+
+    assert_valid_syntax("private def f = a rescue 1 in 1; f")
+    assert_valid_syntax("private def f = a rescue 1 => 1; f")
+    assert_valid_syntax("private def f = a rescue 0 && 1 in 1; f")
+    assert_valid_syntax("private def f = a rescue 0 && 1 => 1; f")
+  end
+
   def test_command_def_cmdarg
     assert_valid_syntax("\n#{<<~"begin;"}\n#{<<~'end;'}")
     begin;
