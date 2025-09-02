@@ -2613,6 +2613,7 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 
 %expect 0
 %define api.pure
+// %define lr.type ielr
 %define parse.error verbose
 %printer {
     if ((NODE *)$$ == (NODE *)-1) {
@@ -2764,10 +2765,10 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %type <node> literal numeric simple_numeric ssym dsym symbol cpath
 %type <node_def_temp> defn_head defs_head k_def
 %type <node_exits> block_open k_while k_until k_for allow_exits
-%type <node> top_stmts top_stmt begin_block endless_arg endless_command
-%type <node> bodystmt stmts stmt_or_begin stmt expr arg ternary primary
+%type <node> top_stmts top_stmt begin_block endless_arg0 endless_arg endless_command
+%type <node> bodystmt stmts stmt_or_begin stmt expr arg arg0 ternary0 ternary primary
 %type <node> command command_call command_call_value method_call
-%type <node> expr_value expr_value_do arg_value primary_value rel_expr
+%type <node> expr_value expr_value_do arg_value primary_value rel_expr0 rel_expr
 %type <node_fcall> fcall
 %type <node> if_tail opt_else case_body case_args cases opt_rescue exc_list exc_var opt_ensure
 %type <node> args arg_splat call_args opt_call_args
@@ -2776,7 +2777,7 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %type <node> command_args aref_args
 %type <node_block_pass> opt_block_arg block_arg
 %type <node> var_ref var_lhs
-%type <node> command_rhs arg_rhs
+%type <node> command_rhs arg_rhs0 arg_rhs
 %type <node> command_asgn mrhs mrhs_arg superclass block_call block_command
 %type <node_args> f_arglist f_opt_paren_args f_paren_args f_args
 %type <node_args_aux> f_arg f_arg_item
@@ -2875,12 +2876,13 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %nonassoc tLOWEST
 %nonassoc tLBRACE_ARG
 
-%nonassoc  modifier_if modifier_unless modifier_while modifier_until keyword_in
+%nonassoc  modifier_if modifier_unless modifier_while modifier_until
 %left  keyword_or keyword_and
 %right keyword_not
 %nonassoc keyword_defined
 %right '=' tOP_ASGN
 %left modifier_rescue
+%nonassoc keyword_in tASSOC
 %right '?' ':'
 %nonassoc tDOT2 tDOT3 tBDOT2 tBDOT3
 %left  tOROP
@@ -3463,33 +3465,7 @@ expr		: command_call
                         $$ = call_uni_op(p, method_cond(p, $2, &@2), '!', &@1, &@$);
                     /*% ripper: unary!(ID2VAL('\'!\''), $:2) %*/
                     }
-                | arg tASSOC
-                    {
-                        value_expr($arg);
-                    }
-                  p_in_kwarg[ctxt] p_pvtbl p_pktbl
-                  p_top_expr_body[body]
-                    {
-                        pop_pktbl(p, $p_pktbl);
-                        pop_pvtbl(p, $p_pvtbl);
-                        p->ctxt.in_kwarg = $ctxt.in_kwarg;
-                        $$ = NEW_CASE3($arg, NEW_IN($body, 0, 0, &@body, &NULL_LOC, &NULL_LOC, &@2), &@$, &NULL_LOC, &NULL_LOC);
-                    /*% ripper: case!($:arg, in!($:body, Qnil, Qnil)) %*/
-                    }
-                | arg keyword_in
-                    {
-                        value_expr($arg);
-                    }
-                  p_in_kwarg[ctxt] p_pvtbl p_pktbl
-                  p_top_expr_body[body]
-                    {
-                        pop_pktbl(p, $p_pktbl);
-                        pop_pvtbl(p, $p_pvtbl);
-                        p->ctxt.in_kwarg = $ctxt.in_kwarg;
-                        $$ = NEW_CASE3($arg, NEW_IN($body, NEW_TRUE(&@body), NEW_FALSE(&@body), &@body, &@keyword_in, &NULL_LOC, &NULL_LOC), &@$, &NULL_LOC, &NULL_LOC);
-                    /*% ripper: case!($:arg, in!($:body, Qnil, Qnil)) %*/
-                    }
-                | arg %prec tLBRACE_ARG
+                | arg0 %prec tLBRACE_ARG
                 ;
 
 def_name	: fname
@@ -3915,6 +3891,168 @@ reswords	: keyword__LINE__ | keyword__FILE__ | keyword__ENCODING__
                 | keyword_while | keyword_until
                 ;
 
+arg0            : arg0[arg] tASSOC
+                    {
+                        value_expr($arg);
+                    }
+                  p_in_kwarg[ctxt] p_pvtbl p_pktbl
+                  p_top_expr_body[body]
+                    {
+                        pop_pktbl(p, $p_pktbl);
+                        pop_pvtbl(p, $p_pvtbl);
+                        p->ctxt.in_kwarg = $ctxt.in_kwarg;
+                        $$ = NEW_CASE3($arg, NEW_IN($body, 0, 0, &@body, &NULL_LOC, &NULL_LOC, &@2), &@$, &NULL_LOC, &NULL_LOC);
+                    /*% ripper: case!($:arg, in!($:body, Qnil, Qnil)) %*/
+                    }
+                | arg0[arg] keyword_in
+                    {
+                        value_expr($arg);
+                    }
+                  p_in_kwarg[ctxt] p_pvtbl p_pktbl
+                  p_top_expr_body[body]
+                    {
+                        pop_pktbl(p, $p_pktbl);
+                        pop_pvtbl(p, $p_pvtbl);
+                        p->ctxt.in_kwarg = $ctxt.in_kwarg;
+                        $$ = NEW_CASE3($arg, NEW_IN($body, NEW_TRUE(&@body), NEW_FALSE(&@body), &@body, &@keyword_in, &NULL_LOC, &NULL_LOC), &@$, &NULL_LOC, &NULL_LOC);
+                    /*% ripper: case!($:arg, in!($:body, Qnil, Qnil)) %*/
+                    }
+                | asgn(arg_rhs0)
+                | op_asgn(arg_rhs0)
+                | range_expr(arg0)
+                | arg0 '+' arg0
+                    {
+                        $$ = call_bin_op(p, $1, '+', $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL('\'+\''), $:3) %*/
+                    }
+                | arg0 '-' arg0
+                    {
+                        $$ = call_bin_op(p, $1, '-', $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL('\'-\''), $:3) %*/
+                    }
+                | arg0 '*' arg0
+                    {
+                        $$ = call_bin_op(p, $1, '*', $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL('\'*\''), $:3) %*/
+                    }
+                | arg0 '/' arg0
+                    {
+                        $$ = call_bin_op(p, $1, '/', $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL('\'/\''), $:3) %*/
+                    }
+                | arg0 '%' arg0
+                    {
+                        $$ = call_bin_op(p, $1, '%', $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL('\'%\''), $:3) %*/
+                    }
+                | arg0 tPOW arg0
+                    {
+                        $$ = call_bin_op(p, $1, idPow, $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL(idPow), $:3) %*/
+                    }
+                | tUMINUS_NUM simple_numeric tPOW arg0
+                    {
+                        $$ = call_uni_op(p, call_bin_op(p, $2, idPow, $4, &@2, &@$), idUMinus, &@1, &@$);
+                    /*% ripper: unary!(ID2VAL(idUMinus), binary!($:2, ID2VAL(idPow), $:4)) %*/
+                    }
+                | tUPLUS arg0
+                    {
+                        $$ = call_uni_op(p, $2, idUPlus, &@1, &@$);
+                    /*% ripper: unary!(ID2VAL(idUPlus), $:2) %*/
+                    }
+                | tUMINUS arg0
+                    {
+                        $$ = call_uni_op(p, $2, idUMinus, &@1, &@$);
+                    /*% ripper: unary!(ID2VAL(idUMinus), $:2) %*/
+                    }
+                | arg0 '|' arg0
+                    {
+                        $$ = call_bin_op(p, $1, '|', $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL('\'|\''), $:3) %*/
+                    }
+                | arg0 '^' arg0
+                    {
+                        $$ = call_bin_op(p, $1, '^', $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL('\'^\''), $:3) %*/
+                    }
+                | arg0 '&' arg0
+                    {
+                        $$ = call_bin_op(p, $1, '&', $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL('\'&\''), $:3) %*/
+                    }
+                | arg0 tCMP arg0
+                    {
+                        $$ = call_bin_op(p, $1, idCmp, $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL(idCmp), $:3) %*/
+                    }
+                | rel_expr0   %prec tCMP
+                | arg0 tEQ arg0
+                    {
+                        $$ = call_bin_op(p, $1, idEq, $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL(idEq), $:3) %*/
+                    }
+                | arg0 tEQQ arg0
+                    {
+                        $$ = call_bin_op(p, $1, idEqq, $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL(idEqq), $:3) %*/
+                    }
+                | arg0 tNEQ arg0
+                    {
+                        $$ = call_bin_op(p, $1, idNeq, $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL(idNeq), $:3) %*/
+                    }
+                | arg0 tMATCH arg0
+                    {
+                        $$ = match_op(p, $1, $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL(idEqTilde), $:3) %*/
+                    }
+                | arg0 tNMATCH arg0
+                    {
+                        $$ = call_bin_op(p, $1, idNeqTilde, $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL(idNeqTilde), $:3) %*/
+                    }
+                | '!' arg0
+                    {
+                        $$ = call_uni_op(p, method_cond(p, $2, &@2), '!', &@1, &@$);
+                    /*% ripper: unary!(ID2VAL('\'!\''), $:2) %*/
+                    }
+                | '~' arg0
+                    {
+                        $$ = call_uni_op(p, $2, '~', &@1, &@$);
+                    /*% ripper: unary!(ID2VAL('\'~\''), $:2) %*/
+                    }
+                | arg0 tLSHFT arg0
+                    {
+                        $$ = call_bin_op(p, $1, idLTLT, $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL(idLTLT), $:3) %*/
+                    }
+                | arg0 tRSHFT arg0
+                    {
+                        $$ = call_bin_op(p, $1, idGTGT, $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL(idGTGT), $:3) %*/
+                    }
+                | arg0 tANDOP arg0
+                    {
+                        $$ = logop(p, idANDOP, $1, $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL(idANDOP), $:3) %*/
+                    }
+                | arg0 tOROP arg0
+                    {
+                        $$ = logop(p, idOROP, $1, $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL(idOROP), $:3) %*/
+                    }
+                | keyword_defined '\n'? begin_defined arg0
+                    {
+                        p->ctxt.in_defined = $3.in_defined;
+                        $$ = new_defined(p, $4, &@$, &@1);
+                        p->ctxt.has_trailing_semicolon = $3.has_trailing_semicolon;
+                    /*% ripper: defined!($:4) %*/
+                    }
+                | def_endless_method(endless_arg0)
+                | ternary0
+                | primary
+                ;
+
 arg		: asgn(arg_rhs)
                 | op_asgn(arg_rhs)
                 | range_expr(arg)
@@ -4051,12 +4189,35 @@ arg		: asgn(arg_rhs)
                 | primary
                 ;
 
+ternary0        : arg0 '?' arg0 '\n'? ':' arg0
+                    {
+                        value_expr($1);
+                        $$ = new_if(p, $1, $3, $6, &@$, &NULL_LOC, &@5, &NULL_LOC);
+                        fixpos($$, $1);
+                    /*% ripper: ifop!($:1, $:3, $:6) %*/
+                    }
+                ;
+
 ternary		: arg '?' arg '\n'? ':' arg
                     {
                         value_expr($1);
                         $$ = new_if(p, $1, $3, $6, &@$, &NULL_LOC, &@5, &NULL_LOC);
                         fixpos($$, $1);
                     /*% ripper: ifop!($:1, $:3, $:6) %*/
+                    }
+                ;
+
+endless_arg0    : arg0 %prec modifier_rescue
+                | endless_arg0 modifier_rescue after_rescue arg0
+                    {
+                        p->ctxt.in_rescue = $3.in_rescue;
+                        $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
+                    /*% ripper: rescue_mod!($:1, $:4) %*/
+                    }
+                | keyword_not '\n'? endless_arg0
+                    {
+                        $$ = call_uni_op(p, method_cond(p, $3, &@3), METHOD_NOT, &@1, &@$);
+                    /*% ripper: unary!(ID2VAL(idNOT), $:3) %*/
                     }
                 ;
 
@@ -4078,6 +4239,19 @@ relop		: '>'  {$$ = '>';}
                 | '<'  {$$ = '<';}
                 | tGEQ {$$ = idGE;}
                 | tLEQ {$$ = idLE;}
+                ;
+
+rel_expr0       : arg0 relop arg0   %prec '>'
+                    {
+                        $$ = call_bin_op(p, $1, $2, $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL($2), $:3) %*/
+                    }
+                | rel_expr0 relop arg0   %prec '>'
+                    {
+                        rb_warning1("comparison '%s' after comparison", WARN_ID($2));
+                        $$ = call_bin_op(p, $1, $2, $3, &@2, &@$);
+                    /*% ripper: binary!($:1, ID2VAL($2), $:3) %*/
+                    }
                 ;
 
 rel_expr	: arg relop arg   %prec '>'
@@ -4127,6 +4301,20 @@ aref_args	: none
                     {
                         $$ = $1 ? NEW_LIST(new_hash(p, $1, &@1), &@$) : 0;
                     /*% ripper: args_add!(args_new!, bare_assoc_hash!($:1)) %*/
+                    }
+                ;
+
+arg_rhs0        : arg0   %prec tOP_ASGN
+                    {
+                        value_expr($1);
+                        $$ = $1;
+                    }
+                | arg0 modifier_rescue after_rescue arg0
+                    {
+                        p->ctxt.in_rescue = $3.in_rescue;
+                        value_expr($1);
+                        $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
+                    /*% ripper: rescue_mod!($:1, $:4) %*/
                     }
                 ;
 
