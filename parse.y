@@ -3433,6 +3433,12 @@ endless_command : command
                         $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
                     /*% ripper: rescue_mod!($:1, $:4) %*/
                     }
+                | arg modifier_rescue after_rescue arg
+                    {
+                        p->ctxt.in_rescue = $3.in_rescue;
+                        $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
+                    /*% ripper: rescue_mod!($:1, $:4) %*/
+                    }
                 | arg modifier_rescue after_rescue pattern_match
                     {
                         p->ctxt.in_rescue = $3.in_rescue;
