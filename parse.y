@@ -3420,7 +3420,26 @@ command_asgn	: asgn(command_rhs)
                 ;
 
 endless_command : command
+                | pattern_match
+                | arg modifier_rescue after_rescue arg
+                    {
+                        p->ctxt.in_rescue = $3.in_rescue;
+                        $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
+                    /*% ripper: rescue_mod!($:1, $:4) %*/
+                    }
+                | arg modifier_rescue after_rescue pattern_match
+                    {
+                        p->ctxt.in_rescue = $3.in_rescue;
+                        $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
+                    /*% ripper: rescue_mod!($:1, $:4) %*/
+                    }
                 | endless_command modifier_rescue after_rescue arg
+                    {
+                        p->ctxt.in_rescue = $3.in_rescue;
+                        $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
+                    /*% ripper: rescue_mod!($:1, $:4) %*/
+                    }
+                | endless_command modifier_rescue after_rescue pattern_match
                     {
                         p->ctxt.in_rescue = $3.in_rescue;
                         $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
@@ -4073,7 +4092,7 @@ ternary		: arg '?' arg '\n'? ':' arg
                     }
                 ;
 
-endless_arg	: arg %prec modifier_rescue
+endless_arg	: arg %prec tOP_ASGN
                 | endless_arg modifier_rescue after_rescue arg
                     {
                         p->ctxt.in_rescue = $3.in_rescue;

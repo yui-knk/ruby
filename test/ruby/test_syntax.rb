@@ -1802,6 +1802,18 @@ eom
     assert_valid_syntax('private def obj.foo(x) = puts x')
   end
 
+  def test_endless_method_def_pattern_match_as_a_command_argument
+    assert_valid_syntax("private def f = 1 in 1; f")
+    assert_valid_syntax("private def f = 1 => 1; f")
+    assert_valid_syntax("private def f = 0 && 1 in 1; f")
+    assert_valid_syntax("private def f = 0 && 1 => 1; f")
+
+    assert_valid_syntax("private def f = a rescue 1 in 1; f")
+    assert_valid_syntax("private def f = a rescue 1 => 1; f")
+    assert_valid_syntax("private def f = a rescue 0 && 1 in 1; f")
+    assert_valid_syntax("private def f = a rescue 0 && 1 => 1; f")
+  end
+
   def test_methoddef_in_cond
     assert_valid_syntax('while def foo; tap do end; end; break; end')
     assert_valid_syntax('while def foo a = tap do end; end; break; end')
