@@ -1441,6 +1441,24 @@ x = __ENCODING__
     assert_syntax_error("\\\v", /escaped vertical tab/)
   end
 
+  def test_asgn_pattern_match
+    o = Object.new
+    assert_equal(true, o.instance_eval("x = 1 in 1; x"), "[Bug 21097]") # x = (1 in 1)
+    assert_equal(nil, o.instance_eval("x = 1 => 1; x"), "[Bug 21097]") # x = (1 => 1)
+
+    assert_equal(true, o.instance_eval("x = 0 && 1 in 1; x"), "[Bug 21097]") # x = ((0 && 1) in 1)
+    assert_equal(nil, o.instance_eval("x = 0 && 1 => 1; x"), "[Bug 21097]") # x = ((0 && 1) => 1)
+  end
+
+  def test_asgn_rescue_pattern_match
+    o = Object.new
+    assert_equal(true, o.instance_eval("x = a rescue 1 in 1; x"), "[Bug 21097]") # x = (a rescue (1 in 1))
+    assert_equal(nil, o.instance_eval("x = a rescue 1 => 1; x"), "[Bug 21097]") # x = (a rescue (1 => 1))
+
+    assert_equal(true, o.instance_eval("x = a rescue 0 && 1 in 1; x"), "[Bug 21097]") # x = (a rescue ((0 && 1) in 1))
+    assert_equal(nil, o.instance_eval("x = a rescue 0 && 1 => 1; x"), "[Bug 21097]") # x = (a rescue ((0 && 1) => 1))
+  end
+
   def test_command_def_cmdarg
     assert_valid_syntax("\n#{<<~"begin;"}\n#{<<~'end;'}")
     begin;
