@@ -2778,6 +2778,7 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %type <node> var_ref var_lhs
 %type <node> command_rhs arg_rhs
 %type <node> command_asgn mrhs mrhs_arg superclass block_call block_command
+%type <node> endless_body
 %type <node_args> f_arglist f_opt_paren_args f_paren_args f_args
 %type <node_args_aux> f_arg f_arg_item
 %type <node> f_marg f_rest_marg
@@ -3419,15 +3420,18 @@ command_asgn	: asgn(command_rhs)
                 | def_endless_method(endless_command)
                 ;
 
-endless_command : command
-                | pattern_match
-                | arg modifier_rescue after_rescue arg
+endless_body    : arg %prec tOP_ASGN
+                | endless_body modifier_rescue after_rescue arg
                     {
                         p->ctxt.in_rescue = $3.in_rescue;
                         $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
                     /*% ripper: rescue_mod!($:1, $:4) %*/
                     }
-                | arg modifier_rescue after_rescue pattern_match
+                ;
+
+endless_command : command
+                | pattern_match
+                | endless_body modifier_rescue after_rescue pattern_match
                     {
                         p->ctxt.in_rescue = $3.in_rescue;
                         $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
@@ -4092,13 +4096,7 @@ ternary		: arg '?' arg '\n'? ':' arg
                     }
                 ;
 
-endless_arg	: arg %prec tOP_ASGN
-                | endless_arg modifier_rescue after_rescue arg
-                    {
-                        p->ctxt.in_rescue = $3.in_rescue;
-                        $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
-                    /*% ripper: rescue_mod!($:1, $:4) %*/
-                    }
+endless_arg	: endless_body %prec tOP_ASGN
                 | keyword_not '\n'? endless_arg
                     {
                         $$ = call_uni_op(p, method_cond(p, $3, &@3), METHOD_NOT, &@1, &@$);

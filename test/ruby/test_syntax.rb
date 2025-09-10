@@ -1812,6 +1812,9 @@ eom
     assert_valid_syntax("private def f = a rescue 1 => 1; f")
     assert_valid_syntax("private def f = a rescue 0 && 1 in 1; f")
     assert_valid_syntax("private def f = a rescue 0 && 1 => 1; f")
+
+    assert_syntax_error("private :m, def f = a rescue b rescue 1 in 1", /unexpected 'in'/)
+    assert_valid_syntax("private :m, def f = a rescue b rescue c; f")
   end
 
   def test_methoddef_in_cond

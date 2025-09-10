@@ -1465,6 +1465,9 @@ x = __ENCODING__
     assert_equal(nil, o.instance_eval("x = a rescue 0 && 1 => 1; x"), "[Bug 21097]") # x = (a rescue ((0 && 1) => 1))
     assert_equal(true, o.instance_eval("def f3 = a rescue 0 && 1 in 1; f3"), "[Bug 21097]") # def f = (a rescue ((0 && 1) in 1))
     assert_equal(nil, o.instance_eval("def f4 = a rescue 0 && 1 => 1; f4"), "[Bug 21097]") # def f = (a rescue ((0 && 1) => 1))
+
+    assert_equal(nil, o.instance_eval("x = a rescue b rescue 1 in 1; x"), "[Bug 21097]") # def f = (a rescue ((0 && 1) in 1))
+    assert_equal(true, o.instance_eval("def f5 = a rescue b rescue 1 in 1; f5"), "[Bug 21097]") # def f = (a rescue ((0 && 1) in 1))
   end
 
   def test_asgn_rescue
