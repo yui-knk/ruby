@@ -2879,10 +2879,10 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 
 %nonassoc  modifier_if modifier_unless modifier_while modifier_until
 %left  keyword_or keyword_and
-%right keyword_not
 %nonassoc keyword_defined
 %right '=' tOP_ASGN
 %left modifier_rescue
+%right keyword_not
 %nonassoc keyword_in tASSOC
 %right '?' ':'
 %nonassoc tDOT2 tDOT3 tBDOT2 tBDOT3
@@ -3426,6 +3426,11 @@ endless_body    : arg %prec tOP_ASGN
                         p->ctxt.in_rescue = $3.in_rescue;
                         $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
                     /*% ripper: rescue_mod!($:1, $:4) %*/
+                    }
+                | keyword_not '\n'? endless_body
+                    {
+                        $$ = call_uni_op(p, method_cond(p, $3, &@3), METHOD_NOT, &@1, &@$);
+                    /*% ripper: unary!(ID2VAL(idNOT), $:3) %*/
                     }
                 ;
 
@@ -4097,11 +4102,6 @@ ternary		: arg '?' arg '\n'? ':' arg
                 ;
 
 endless_arg	: endless_body %prec tOP_ASGN
-                | keyword_not '\n'? endless_arg
-                    {
-                        $$ = call_uni_op(p, method_cond(p, $3, &@3), METHOD_NOT, &@1, &@$);
-                    /*% ripper: unary!(ID2VAL(idNOT), $:3) %*/
-                    }
                 ;
 
 relop		: '>'  {$$ = '>';}
