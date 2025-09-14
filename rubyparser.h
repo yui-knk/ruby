@@ -1193,8 +1193,9 @@ typedef struct node_buffer_struct node_buffer_t;
 typedef struct rb_parser_config_struct rb_parser_config_t;
 #endif
 
+#include "prism.h"
 typedef struct rb_ast_body_struct {
-    const NODE *root;
+    const pm_node_t *root;
     rb_parser_ary_t *script_lines;
     int line_count;
     signed int frozen_string_literal:2; /* -1: not specified, 0: false, 1: true */
@@ -1208,7 +1209,20 @@ typedef struct rb_ast_struct {
 #endif
 } rb_ast_t;
 
-
+typedef struct rb_ast2_body_struct {
+    const NODE *root;
+    rb_parser_ary_t *script_lines;
+    int line_count;
+    signed int frozen_string_literal:2; /* -1: not specified, 0: false, 1: true */
+    signed int coverage_enabled:2; /* -1: not specified, 0: false, 1: true */
+} rb_ast2_body_t;
+typedef struct rb_ast2_struct {
+    node_buffer_t *node_buffer;
+    rb_ast2_body_t body;
+#ifdef UNIVERSAL_PARSER
+    const rb_parser_config_t *config;
+#endif
+} rb_ast2_t;
 
 /*
  * Parser Interface

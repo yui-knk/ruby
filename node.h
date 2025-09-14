@@ -45,20 +45,28 @@ RUBY_SYMBOL_EXPORT_BEGIN
 
 #ifdef UNIVERSAL_PARSER
 rb_ast_t *rb_ast_new(const rb_parser_config_t *config);
+rb_ast2_t *rb_ast2_new(const rb_parser_config_t *config);
 #else
 rb_ast_t *rb_ast_new(void);
+rb_ast2_t *rb_ast2_new(void);
 #endif
 size_t rb_ast_memsize(const rb_ast_t*);
 void rb_ast_dispose(rb_ast_t*);
+void rb_ast2_dispose(rb_ast2_t*);
 const char *ruby_node_name(int node);
 void rb_node_init(NODE *n, enum node_type type);
 
 void rb_ast_update_references(rb_ast_t*);
 void rb_ast_free(rb_ast_t*);
+void rb_ast2_free(rb_ast2_t*);
 NODE *rb_ast_newnode(rb_ast_t*, enum node_type type, size_t size, size_t alignment);
+NODE *rb_ast2_newnode(rb_ast2_t*, enum node_type type, size_t size, size_t alignment);
 void rb_ast_delete_node(rb_ast_t*, NODE *n);
+void rb_ast2_delete_node(rb_ast2_t*, NODE *n);
 rb_ast_id_table_t *rb_ast_new_local_table(rb_ast_t*, int);
+rb_ast_id_table_t *rb_ast2_new_local_table(rb_ast2_t*, int);
 rb_ast_id_table_t *rb_ast_resize_latest_local_table(rb_ast_t*, int);
+rb_ast_id_table_t *rb_ast2_resize_latest_local_table(rb_ast2_t*, int);
 
 VALUE rb_parser_dump_tree(const NODE *node, int comment);
 
@@ -66,6 +74,7 @@ const struct kwtable *rb_reserved_word(const char *, unsigned int);
 
 struct parser_params;
 PRINTF_ARGS(void rb_parser_printf(struct parser_params *parser, const char *fmt, ...), 2, 3);
+PRINTF_ARGS(void rb_parser2_printf(struct parser_params *parser, const char *fmt, ...), 2, 3);
 VALUE rb_node_set_type(NODE *n, enum node_type t);
 enum node_type rb_node_get_type(const NODE *n);
 

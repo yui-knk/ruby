@@ -58,15 +58,23 @@ typedef struct rb_strterm_struct {
 
 /* parse.y */
 void rb_ruby_parser_mark(void *ptr);
+void rb_ruby_parser2_mark(void *ptr);
 size_t rb_ruby_parser_memsize(const void *ptr);
+size_t rb_ruby_parser2_memsize(const void *ptr);
 
 void rb_ruby_parser_set_options(rb_parser_t *p, int print, int loop, int chomp, int split);
+void rb_ruby_parser2_set_options(rb_parser_t *p, int print, int loop, int chomp, int split);
 rb_parser_t *rb_ruby_parser_set_context(rb_parser_t *p, const struct rb_iseq_struct *base, int main);
+rb_parser_t *rb_ruby_parser2_set_context(rb_parser_t *p, const struct rb_iseq_struct *base, int main);
 void rb_ruby_parser_set_script_lines(rb_parser_t *p);
+void rb_ruby_parser2_set_script_lines(rb_parser_t *p);
 void rb_ruby_parser_error_tolerant(rb_parser_t *p);
+void rb_ruby_parser2_error_tolerant(rb_parser_t *p);
 void rb_ruby_parser_keep_tokens(rb_parser_t *p);
+void rb_ruby_parser2_keep_tokens(rb_parser_t *p);
 typedef rb_parser_string_t*(rb_parser_lex_gets_func)(struct parser_params*, rb_parser_input_data, int);
 rb_ast_t *rb_parser_compile(rb_parser_t *p, rb_parser_lex_gets_func *gets, VALUE fname, rb_parser_input_data input, int line);
+rb_ast2_t *rb_parser_compile2(rb_parser_t *p, rb_parser_lex_gets_func *gets, VALUE fname, rb_parser_input_data input, int line);
 
 RUBY_SYMBOL_EXPORT_BEGIN
 
@@ -74,13 +82,16 @@ rb_encoding *rb_ruby_parser_encoding(rb_parser_t *p);
 int rb_ruby_parser_end_seen_p(rb_parser_t *p);
 int rb_ruby_parser_set_yydebug(rb_parser_t *p, int flag);
 rb_parser_string_t *rb_str_to_parser_string(rb_parser_t *p, VALUE str);
+rb_parser_string_t *rb_str_to_parser2_string(rb_parser_t *p, VALUE str);
 void rb_parser_string_free(rb_parser_t *p, rb_parser_string_t *str);
+void rb_parser2_string_free(rb_parser_t *p, rb_parser_string_t *str);
 
 int rb_parser_dvar_defined_ref(struct parser_params*, ID, ID**);
 ID rb_parser_internal_id(struct parser_params*);
 typedef void (*rb_parser_reg_fragment_error_func)(struct parser_params *, VALUE);
 int rb_parser_reg_fragment_check(struct parser_params*, rb_parser_string_t*, int, rb_parser_reg_fragment_error_func);
 int rb_reg_named_capture_assign_iter_impl(struct parser_params *p, const char *s, long len, rb_encoding *enc, NODE **succ_block, const rb_code_location_t *loc, rb_parser_assignable_func assignable);
+int rb_reg_named_capture_assign_iter_impl2(struct parser_params *p, const char *s, long len, rb_encoding *enc, NODE **succ_block, const rb_code_location_t *loc, rb_parser_assignable_func assignable);
 int rb_parser_local_defined(struct parser_params *p, ID id, const struct rb_iseq_struct *iseq);
 NODE *rb_parser_assignable(struct parser_params *p, ID id, NODE *val, const YYLTYPE *loc);
 

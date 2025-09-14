@@ -32,6 +32,7 @@
 #include "internal/rational.h"
 #include "internal/re.h"
 #include "internal/ruby_parser.h"
+#include "internal/ruby_parser2.h"
 #include "internal/symbol.h"
 #include "internal/thread.h"
 #include "internal/variable.h"
@@ -1515,7 +1516,7 @@ new_child_iseq(rb_iseq_t *iseq, const NODE *const node,
                VALUE name, const rb_iseq_t *parent, enum rb_iseq_type type, int line_no)
 {
     rb_iseq_t *ret_iseq;
-    VALUE ast_value = rb_ruby_ast_new(node);
+    VALUE ast_value = rb_ruby_ast2_new(node);
 
     debugs("[new_child_iseq]> ---------------------------------------\n");
     int isolated_depth = ISEQ_COMPILE_DATA(iseq)->isolated_depth;
@@ -9224,7 +9225,7 @@ compile_builtin_mandatory_only_method(rb_iseq_t *iseq, const NODE *node, const N
     scope_node.nd_parent = NULL;
     scope_node.nd_args = &args_node;
 
-    VALUE ast_value = rb_ruby_ast_new(RNODE(&scope_node));
+    VALUE ast_value = rb_ruby_ast2_new(RNODE(&scope_node));
 
     const rb_iseq_t *mandatory_only_iseq =
       rb_iseq_new_with_opt(ast_value, rb_iseq_base_label(iseq),

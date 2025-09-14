@@ -55,6 +55,7 @@
 #include "internal/object.h"
 #include "internal/thread.h"
 #include "internal/ruby_parser.h"
+#include "internal/ruby_parser2.h"
 #include "internal/variable.h"
 #include "ruby/encoding.h"
 #include "ruby/thread.h"
@@ -2090,36 +2091,36 @@ process_script(ruby_cmdline_options_t *opt)
 {
     rb_ast_t *ast;
     VALUE ast_value;
-    VALUE parser = rb_parser_new();
+    VALUE parser = rb_parser2_new();
     const unsigned int dump = opt->dump;
 
     if (dump & DUMP_BIT(yydebug)) {
-        rb_parser_set_yydebug(parser, Qtrue);
+        rb_parser2_set_yydebug(parser, Qtrue);
     }
 
     if ((dump & dump_exit_bits) && (dump & DUMP_BIT(opt_error_tolerant))) {
-        rb_parser_error_tolerant(parser);
+        rb_parser2_error_tolerant(parser);
     }
 
     if (opt->e_script) {
         VALUE progname = rb_progname;
-        rb_parser_set_context(parser, 0, TRUE);
+        rb_parser2_set_context(parser, 0, TRUE);
 
         ruby_opt_init(opt);
         ruby_set_script_name(progname);
-        rb_parser_set_options(parser, opt->do_print, opt->do_loop,
+        rb_parser2_set_options(parser, opt->do_print, opt->do_loop,
                               opt->do_line, opt->do_split);
-        ast_value = rb_parser_compile_string(parser, opt->script, opt->e_script, 1);
+        ast_value = rb_parser2_compile_string(parser, opt->script, opt->e_script, 1);
     }
     else {
         VALUE f;
         int xflag = opt->xflag;
         f = open_load_file(opt->script_name, &xflag);
         opt->xflag = xflag != 0;
-        rb_parser_set_context(parser, 0, f == rb_stdin);
+        rb_parser2_set_context(parser, 0, f == rb_stdin);
         ast_value = load_file(parser, opt->script_name, f, 1, opt);
     }
-    ast = rb_ruby_ast_data_get(ast_value);
+    ast = rb_ruby_ast2_data_get(ast_value);
     if (!ast->body.root) {
         rb_ast_dispose(ast);
         return Qnil;
@@ -2312,11 +2313,11 @@ process_options(int argc, char **argv, ruby_cmdline_options_t *opt)
 {
     VALUE ast_value = Qnil;
     struct {
-        rb_ast_t *ast;
+        rb_ast2_t *ast;
         pm_parse_result_t prism;
     } result = {0};
 #define dispose_result() \
-    (result.ast ? rb_ast_dispose(result.ast) : pm_parse_result_free(&result.prism))
+    (result.ast ? rb_ast2_dispose(result.ast) : pm_parse_result_free(&result.prism))
 
     const rb_iseq_t *iseq;
     rb_encoding *enc, *lenc;
@@ -2557,7 +2558,7 @@ process_options(int argc, char **argv, ruby_cmdline_options_t *opt)
 
     if (!rb_ruby_prism_p()) {
         ast_value = process_script(opt);
-        if (!(result.ast = rb_ruby_ast_data_get(ast_value))) return Qfalse;
+        if (!(result.ast = rb_ruby_ast2_data_get(ast_value))) return Qfalse;
     }
     else {
         prism_script(opt, &result.prism);
@@ -2689,6 +2690,7 @@ struct load_file_arg {
 };
 
 void rb_set_script_lines_for(VALUE vparser, VALUE path);
+void rb_set_script_lines_for2(VALUE vparser, VALUE path);
 
 static VALUE
 load_file_internal(VALUE argp_v)
@@ -2790,20 +2792,20 @@ load_file_internal(VALUE argp_v)
     else {
         enc = rb_utf8_encoding();
     }
-    rb_parser_set_options(parser, opt->do_print, opt->do_loop,
+    rb_parser2_set_options(parser, opt->do_print, opt->do_loop,
                           opt->do_line, opt->do_split);
 
-    rb_set_script_lines_for(parser, orig_fname);
+    rb_set_script_lines_for2(parser, orig_fname);
 
     if (NIL_P(f)) {
         f = rb_str_new(0, 0);
         rb_enc_associate(f, enc);
-        return rb_parser_compile_string_path(parser, orig_fname, f, line_start);
+        return rb_parser2_compile_string_path(parser, orig_fname, f, line_start);
     }
     rb_funcall(f, set_encoding, 2, rb_enc_from_encoding(enc), rb_str_new_cstr("-"));
-    ast_value = rb_parser_compile_file_path(parser, orig_fname, f, line_start);
-    rb_funcall(f, set_encoding, 1, rb_parser_encoding(parser));
-    if (script && rb_parser_end_seen_p(parser)) {
+    ast_value = rb_parser2_compile_file_path(parser, orig_fname, f, line_start);
+    rb_funcall(f, set_encoding, 1, rb_parser2_encoding(parser));
+    if (script && rb_parser2_end_seen_p(parser)) {
         /*
          * DATA is a File that contains the data section of the executed file.
          * To create a data section use <tt>__END__</tt>:
@@ -2952,7 +2954,7 @@ void *
 rb_load_file_str(VALUE fname_v)
 {
     VALUE ast_value;
-    ast_value = rb_parser_load_file(rb_parser_new(), fname_v);
+    ast_value = rb_parser_load_file(rb_parser2_new(), fname_v);
     return (void *)rb_ruby_ast_data_get(ast_value);
 }
 

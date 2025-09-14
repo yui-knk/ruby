@@ -144,12 +144,14 @@ COMMONOBJS    = \
 		memory_view.$(OBJEXT) \
 		namespace.$(OBJEXT) \
 		node.$(OBJEXT) \
+		node2.$(OBJEXT) \
 		node_dump.$(OBJEXT) \
 		numeric.$(OBJEXT) \
 		object.$(OBJEXT) \
 		pack.$(OBJEXT) \
 		pathname.$(OBJEXT) \
 		parse.$(OBJEXT) \
+		parse2.$(OBJEXT) \
 		parser_st.$(OBJEXT) \
 		proc.$(OBJEXT) \
 		process.$(OBJEXT) \
@@ -166,6 +168,7 @@ COMMONOBJS    = \
 		regsyntax.$(OBJEXT) \
 		ruby.$(OBJEXT) \
 		ruby_parser.$(OBJEXT) \
+		ruby_parser2.$(OBJEXT) \
 		scheduler.$(OBJEXT) \
 		set.$(OBJEXT) \
 		shape.$(OBJEXT) \
@@ -715,13 +718,13 @@ clean-srcs:: clean-srcs-local clean-srcs-ext
 realclean-srcs:: realclean-srcs-local realclean-srcs-ext
 
 clean-srcs-local::
-	$(Q)$(RM) parse.c parse.h lex.c enc/trans/newline.c revision.h
+	$(Q)$(RM) parse.c parse.h parse2.c parse2.h lex.c enc/trans/newline.c revision.h
 	$(Q)$(RM) id.c id.h probes.dmyh probes.h
 	$(Q)$(RM) encdb.h transdb.h verconf.h ruby-runner.h
 
 realclean-srcs-local:: clean-srcs-local
 	$(Q)$(CHDIR) $(srcdir) && $(RM) \
-	  parse.c parse.h lex.c enc/trans/newline.c $(PRELUDES) revision.h \
+	  parse.c parse.h parse2.c parse2.h lex.c enc/trans/newline.c $(PRELUDES) revision.h \
 	  id.c id.h probes.dmyh configure aclocal.m4 tool/config.guess tool/config.sub \
 	  $(PRISM_SRCDIR)/srcs.mk gems/*.gem \
 	|| $(NULLCMD)
@@ -1009,11 +1012,13 @@ PHONY:
 
 {$(VPATH)}parse.c: {$(VPATH)}parse.y {$(VPATH)}id.h
 {$(VPATH)}parse.h: {$(VPATH)}parse.c
+{$(VPATH)}parse2.c: {$(VPATH)}parse2.y {$(VPATH)}id.h
+{$(VPATH)}parse2.h: {$(VPATH)}parse2.c
 
 {$(srcdir)}.y.c:
 	$(ECHO) generating $@
 	$(Q)$(BASERUBY) $(tooldir)/id2token.rb $(SRC_FILE) | \
-	$(LRAMA) $(YFLAGS) -o$@ -H$*.h - parse.y
+	$(LRAMA) $(YFLAGS) -o$@ -H$*.h - $<
 
 $(PLATFORM_D):
 	$(Q) $(MAKEDIRS) $(PLATFORM_DIR) $(@D)
@@ -1098,6 +1103,7 @@ $(COROUTINE_H:/Context.h=/.time):
 
 # dependencies for generated C sources.
 parse.$(OBJEXT): {$(VPATH)}parse.c
+parse2.$(OBJEXT): {$(VPATH)}parse2.c
 miniprelude.$(OBJEXT): {$(VPATH)}miniprelude.c
 
 # dependencies for optional sources.
@@ -1169,7 +1175,7 @@ BUILTIN_RB_SRCS = \
 		$(empty)
 BUILTIN_RB_INCS = $(BUILTIN_RB_SRCS:.rb=.rbinc)
 
-common-srcs: $(srcs_vpath)parse.c $(srcs_vpath)lex.c $(srcs_vpath)enc/trans/newline.c $(srcs_vpath)id.c \
+common-srcs: $(srcs_vpath)parse.c $(srcs_vpath)parse2.c $(srcs_vpath)lex.c $(srcs_vpath)enc/trans/newline.c $(srcs_vpath)id.c \
 	     $(BUILTIN_RB_INCS) \
 	     srcs-lib srcs-ext incs preludes
 

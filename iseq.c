@@ -30,6 +30,7 @@
 #include "internal/hash.h"
 #include "internal/io.h"
 #include "internal/ruby_parser.h"
+#include "internal/ruby_parser2.h"
 #include "internal/sanitizers.h"
 #include "internal/set_table.h"
 #include "internal/symbol.h"
@@ -821,7 +822,7 @@ set_compile_option_from_hash(rb_compile_option_t *option, VALUE opt)
 }
 
 static rb_compile_option_t *
-set_compile_option_from_ast(rb_compile_option_t *option, const rb_ast_body_t *ast)
+set_compile_option_from_ast(rb_compile_option_t *option, const rb_ast2_body_t *ast)
 {
 #define SET_COMPILE_OPTION(o, a, mem) \
     ((a)->mem < 0 ? 0 : ((o)->mem = (a)->mem > 0))
@@ -1020,8 +1021,8 @@ rb_iseq_new_with_opt(VALUE ast_value, VALUE name, VALUE path, VALUE realpath,
                      enum rb_iseq_type type, const rb_compile_option_t *option,
                      VALUE script_lines)
 {
-    rb_ast_t *ast = rb_ruby_ast_data_get(ast_value);
-    rb_ast_body_t *body = ast ? &ast->body : NULL;
+    rb_ast2_t *ast = rb_ruby_ast2_data_get(ast_value);
+    rb_ast2_body_t *body = ast ? &ast->body : NULL;
     const NODE *node = body ? body->root : 0;
     /* TODO: argument check */
     rb_iseq_t *iseq = iseq_alloc();

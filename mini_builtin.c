@@ -5,16 +5,18 @@
 #include "vm_core.h"
 #include "builtin.h"
 
+#include "internal/ruby_parser2.h"
+
 #include "miniprelude.c"
 
 static VALUE
 prelude_ast_value(VALUE name, VALUE code, int line)
 {
-    rb_ast_t *ast;
-    VALUE ast_value = rb_parser_compile_string_path(rb_parser_new(), name, code, line);
-    ast = rb_ruby_ast_data_get(ast_value);
+    rb_ast2_t *ast;
+    VALUE ast_value = rb_parser2_compile_string_path(rb_parser2_new(), name, code, line);
+    ast = rb_ruby_ast2_data_get(ast_value);
     if (!ast || !ast->body.root) {
-        if (ast) rb_ast_dispose(ast);
+        if (ast) rb_ast2_dispose(ast);
         rb_exc_raise(rb_errinfo());
     }
     return ast_value;
@@ -77,13 +79,13 @@ builtin_iseq_load(const char *feature_name, const struct rb_builtin_function *ta
     }
     else {
         VALUE ast_value = prelude_ast_value(name_str, code, start_line);
-        rb_ast_t *ast = rb_ruby_ast_data_get(ast_value);
+        rb_ast2_t *ast = rb_ruby_ast2_data_get(ast_value);
 
         vm->builtin_function_table = table;
         iseq = rb_iseq_new_with_opt(ast_value, name_str, name_str, Qnil, 0, NULL, 0, ISEQ_TYPE_TOP, &optimization, Qnil);
 
         vm->builtin_function_table = NULL;
-        rb_ast_dispose(ast);
+        rb_ast2_dispose(ast);
     }
 
     // for debug

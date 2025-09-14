@@ -26,6 +26,7 @@
 #include "internal/proc.h"
 #include "internal/re.h"
 #include "internal/ruby_parser.h"
+#include "internal/ruby_parser2.h"
 #include "internal/symbol.h"
 #include "internal/thread.h"
 #include "internal/transcode.h"
@@ -1561,7 +1562,7 @@ rb_binding_add_dynavars(VALUE bindval, rb_binding_t *bind, int dyncount, const I
     tmp_node.nd_parent = NULL;
     tmp_node.nd_args = 0;
 
-    VALUE ast_value = rb_ruby_ast_new(RNODE(&tmp_node));
+    VALUE ast_value = rb_ruby_ast2_new(RNODE(&tmp_node));
 
     if (base_iseq) {
         iseq = rb_iseq_new(ast_value, ISEQ_BODY(base_iseq)->location.label, path, realpath, base_iseq, ISEQ_TYPE_EVAL);

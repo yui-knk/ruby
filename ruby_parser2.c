@@ -2,7 +2,7 @@
 
 #include "internal/parse.h"
 #include "internal/re.h"
-#include "internal/ruby_parser.h"
+#include "internal/ruby_parser2.h"
 
 #include "node.h"
 #include "rubyparser.h"
@@ -519,20 +519,20 @@ rb_ruby_parser_config(void)
 }
 
 rb_parser_t *
-rb_parser_params_new(void)
+rb_parser2_params_new(void)
 {
     return rb_ruby_parser_new(&rb_global_parser_config);
 }
 #else
 rb_parser_t *
-rb_parser_params_new(void)
+rb_parser2_params_new(void)
 {
     return rb_ruby_parser_new();
 }
 #endif /* UNIVERSAL_PARSER */
 
 VALUE
-rb_parser_new(void)
+rb_parser2_new(void)
 {
     struct ruby_parser *parser;
     rb_parser_t *parser_params;
@@ -542,7 +542,7 @@ rb_parser_new(void)
      * rb_ruby_parser_new can run GC so if create vparser
      * first, parser_mark tries to mark not initialized parser_params.
      */
-    parser_params = rb_parser_params_new();
+    parser_params = rb_parser2_params_new();
     VALUE vparser = TypedData_Make_Struct(0, struct ruby_parser,
                                          &ruby_parser_data_type, parser);
     parser->parser_params = parser_params;
@@ -551,53 +551,53 @@ rb_parser_new(void)
 }
 
 void
-rb_parser_set_options(VALUE vparser, int print, int loop, int chomp, int split)
+rb_parser2_set_options(VALUE vparser, int print, int loop, int chomp, int split)
 {
     struct ruby_parser *parser;
 
     TypedData_Get_Struct(vparser, struct ruby_parser, &ruby_parser_data_type, parser);
-    rb_ruby_parser_set_options(parser->parser_params, print, loop, chomp, split);
+    rb_ruby_parser2_set_options(parser->parser_params, print, loop, chomp, split);
 }
 
 VALUE
-rb_parser_set_context(VALUE vparser, const struct rb_iseq_struct *base, int main)
+rb_parser2_set_context(VALUE vparser, const struct rb_iseq_struct *base, int main)
 {
     struct ruby_parser *parser;
 
     TypedData_Get_Struct(vparser, struct ruby_parser, &ruby_parser_data_type, parser);
-    rb_ruby_parser_set_context(parser->parser_params, base, main);
+    rb_ruby_parser2_set_context(parser->parser_params, base, main);
     return vparser;
 }
 
 void
-rb_parser_set_script_lines(VALUE vparser)
+rb_parser2_set_script_lines(VALUE vparser)
 {
     struct ruby_parser *parser;
 
     TypedData_Get_Struct(vparser, struct ruby_parser, &ruby_parser_data_type, parser);
-    rb_ruby_parser_set_script_lines(parser->parser_params);
+    rb_ruby_parser2_set_script_lines(parser->parser_params);
 }
 
 void
-rb_parser_error_tolerant(VALUE vparser)
+rb_parser2_error_tolerant(VALUE vparser)
 {
     struct ruby_parser *parser;
 
     TypedData_Get_Struct(vparser, struct ruby_parser, &ruby_parser_data_type, parser);
-    rb_ruby_parser_error_tolerant(parser->parser_params);
+    rb_ruby_parser2_error_tolerant(parser->parser_params);
 }
 
 void
-rb_parser_keep_tokens(VALUE vparser)
+rb_parser2_keep_tokens(VALUE vparser)
 {
     struct ruby_parser *parser;
 
     TypedData_Get_Struct(vparser, struct ruby_parser, &ruby_parser_data_type, parser);
-    rb_ruby_parser_keep_tokens(parser->parser_params);
+    rb_ruby_parser2_keep_tokens(parser->parser_params);
 }
 
 rb_parser_string_t *
-rb_parser_lex_get_str(struct parser_params *p, struct lex_pointer_string *ptr_str)
+rb_parser2_lex_get_str(struct parser_params *p, struct lex_pointer_string *ptr_str)
 {
     char *beg, *end, *start;
     long len;
@@ -614,7 +614,7 @@ rb_parser_lex_get_str(struct parser_params *p, struct lex_pointer_string *ptr_st
     end = memchr(beg, '\n', len);
     if (end) len = ++end - beg;
     ptr_str->ptr += len;
-    return rb_str_to_parser_string(p, rb_str_subseq(s, beg - start, len));
+    return rb_str_to_parser2_string(p, rb_str_subseq(s, beg - start, len));
 }
 
 static rb_parser_string_t *
@@ -625,15 +625,15 @@ lex_get_str(struct parser_params *p, rb_parser_input_data input, int line_count)
 
 static void parser_aset_script_lines_for(VALUE path, rb_parser_ary_t *lines);
 
-static rb_ast_t*
+static rb_ast2_t*
 parser_compile(rb_parser_t *p, rb_parser_lex_gets_func *gets, VALUE fname, rb_parser_input_data input, int line)
 {
-    rb_ast_t *ast = rb_parser_compile(p, gets, fname, input, line);
+    rb_ast2_t *ast = rb_parser_compile2(p, gets, fname, input, line);
     parser_aset_script_lines_for(fname, ast->body.script_lines);
     return ast;
 }
 
-static rb_ast_t*
+static rb_ast2_t*
 parser_compile_string0(struct ruby_parser *parser, VALUE fname, VALUE s, int line)
 {
     VALUE str = rb_str_new_frozen(s);
@@ -655,14 +655,14 @@ must_be_ascii_compatible(VALUE s)
     return enc;
 }
 
-static rb_ast_t*
+static rb_ast2_t*
 parser_compile_string_path(struct ruby_parser *parser, VALUE f, VALUE s, int line)
 {
     must_be_ascii_compatible(s);
     return parser_compile_string0(parser, f, s, line);
 }
 
-static rb_ast_t*
+static rb_ast2_t*
 parser_compile_string(struct ruby_parser *parser, const char *f, VALUE s, int line)
 {
     return parser_compile_string_path(parser, rb_filesystem_str_new_cstr(f), s, line);
@@ -676,7 +676,7 @@ lex_io_gets(struct parser_params *p, rb_parser_input_data input, int line_count)
     VALUE io = (VALUE)input;
     VALUE line = rb_io_gets_internal(io);
     if (NIL_P(line)) return 0;
-    return rb_str_to_parser_string(p, line);
+    return rb_str_to_parser2_string(p, line);
 }
 
 static rb_parser_string_t *
@@ -689,15 +689,15 @@ lex_gets_array(struct parser_params *p, rb_parser_input_data data, int index)
         if (!rb_enc_asciicompat(rb_enc_get(str))) {
             rb_raise(rb_eArgError, "invalid source encoding");
         }
-        return rb_str_to_parser_string(p, str);
+        return rb_str_to_parser2_string(p, str);
     }
     else {
         return 0;
     }
 }
 
-static rb_ast_t*
-parser_compile_file_path(struct ruby_parser *parser, VALUE fname, VALUE file, int start)
+static rb_ast2_t*
+parser_compile2_file_path(struct ruby_parser *parser, VALUE fname, VALUE file, int start)
 {
     parser->type = lex_type_io;
     parser->data.lex_io.file = file;
@@ -705,7 +705,7 @@ parser_compile_file_path(struct ruby_parser *parser, VALUE fname, VALUE file, in
     return parser_compile(parser->parser_params, lex_io_gets, fname, (rb_parser_input_data)file, start);
 }
 
-static rb_ast_t*
+static rb_ast2_t*
 parser_compile_array(struct ruby_parser *parser, VALUE fname, VALUE array, int start)
 {
     parser->type = lex_type_array;
@@ -714,7 +714,7 @@ parser_compile_array(struct ruby_parser *parser, VALUE fname, VALUE array, int s
     return parser_compile(parser->parser_params, lex_gets_array, fname, (rb_parser_input_data)array, start);
 }
 
-static rb_ast_t*
+static rb_ast2_t*
 parser_compile_generic(struct ruby_parser *parser, rb_parser_lex_gets_func *lex_gets, VALUE fname, VALUE input, int start)
 {
     parser->type = lex_type_generic;
@@ -725,8 +725,8 @@ parser_compile_generic(struct ruby_parser *parser, rb_parser_lex_gets_func *lex_
 static void
 ast_free(void *ptr)
 {
-    rb_ast_t *ast = (rb_ast_t *)ptr;
-    rb_ast_free(ast);
+    rb_ast2_t *ast = (rb_ast2_t *)ptr;
+    rb_ast2_free(ast);
 }
 
 static const rb_data_type_t ast_data_type = {
@@ -746,20 +746,20 @@ ast_alloc(void)
 }
 
 VALUE
-rb_parser_compile_file_path(VALUE vparser, VALUE fname, VALUE file, int start)
+rb_parser2_compile_file_path(VALUE vparser, VALUE fname, VALUE file, int start)
 {
     struct ruby_parser *parser;
     VALUE ast_value = ast_alloc();
 
     TypedData_Get_Struct(vparser, struct ruby_parser, &ruby_parser_data_type, parser);
-    DATA_PTR(ast_value) = parser_compile_file_path(parser, fname, file, start);
+    DATA_PTR(ast_value) = parser_compile2_file_path(parser, fname, file, start);
     RB_GC_GUARD(vparser);
 
     return ast_value;
 }
 
 VALUE
-rb_parser_compile_array(VALUE vparser, VALUE fname, VALUE array, int start)
+rb_parser2_compile_array(VALUE vparser, VALUE fname, VALUE array, int start)
 {
     struct ruby_parser *parser;
     VALUE ast_value = ast_alloc();
@@ -772,7 +772,7 @@ rb_parser_compile_array(VALUE vparser, VALUE fname, VALUE array, int start)
 }
 
 VALUE
-rb_parser_compile_generic(VALUE vparser, rb_parser_lex_gets_func *lex_gets, VALUE fname, VALUE input, int start)
+rb_parser2_compile_generic(VALUE vparser, rb_parser_lex_gets_func *lex_gets, VALUE fname, VALUE input, int start)
 {
     struct ruby_parser *parser;
     VALUE ast_value = ast_alloc();
@@ -785,7 +785,7 @@ rb_parser_compile_generic(VALUE vparser, rb_parser_lex_gets_func *lex_gets, VALU
 }
 
 VALUE
-rb_parser_compile_string(VALUE vparser, const char *f, VALUE s, int line)
+rb_parser2_compile_string(VALUE vparser, const char *f, VALUE s, int line)
 {
     struct ruby_parser *parser;
     VALUE ast_value = ast_alloc();
@@ -798,7 +798,7 @@ rb_parser_compile_string(VALUE vparser, const char *f, VALUE s, int line)
 }
 
 VALUE
-rb_parser_compile_string_path(VALUE vparser, VALUE f, VALUE s, int line)
+rb_parser2_compile_string_path(VALUE vparser, VALUE f, VALUE s, int line)
 {
     struct ruby_parser *parser;
     VALUE ast_value = ast_alloc();
@@ -811,7 +811,7 @@ rb_parser_compile_string_path(VALUE vparser, VALUE f, VALUE s, int line)
 }
 
 VALUE
-rb_parser_encoding(VALUE vparser)
+rb_parser2_encoding(VALUE vparser)
 {
     struct ruby_parser *parser;
 
@@ -820,7 +820,7 @@ rb_parser_encoding(VALUE vparser)
 }
 
 VALUE
-rb_parser_end_seen_p(VALUE vparser)
+rb_parser2_end_seen_p(VALUE vparser)
 {
     struct ruby_parser *parser;
 
@@ -829,7 +829,7 @@ rb_parser_end_seen_p(VALUE vparser)
 }
 
 VALUE
-rb_parser_set_yydebug(VALUE vparser, VALUE flag)
+rb_parser2_set_yydebug(VALUE vparser, VALUE flag)
 {
     struct ruby_parser *parser;
 
@@ -839,7 +839,7 @@ rb_parser_set_yydebug(VALUE vparser, VALUE flag)
 }
 
 void
-rb_set_script_lines_for(VALUE vparser, VALUE path)
+rb_set_script_lines_for2(VALUE vparser, VALUE path)
 {
     struct ruby_parser *parser;
     VALUE hash;
@@ -855,7 +855,7 @@ rb_set_script_lines_for(VALUE vparser, VALUE path)
 }
 
 VALUE
-rb_parser_build_script_lines_from(rb_parser_ary_t *lines)
+rb_parser2_build_script_lines_from(rb_parser_ary_t *lines)
 {
     int i;
     if (!lines) return Qnil;
@@ -871,7 +871,7 @@ rb_parser_build_script_lines_from(rb_parser_ary_t *lines)
 }
 
 VALUE
-rb_str_new_parser_string(rb_parser_string_t *str)
+rb_str_new_parser2_string(rb_parser_string_t *str)
 {
     VALUE string = rb_enc_literal_str(str->ptr, str->len, str->enc);
     rb_enc_str_coderange(string);
@@ -879,202 +879,202 @@ rb_str_new_parser_string(rb_parser_string_t *str)
 }
 
 VALUE
-rb_str_new_mutable_parser_string(rb_parser_string_t *str)
+rb_str_new_mutable_parser2_string(rb_parser_string_t *str)
 {
     return rb_enc_str_new(str->ptr, str->len, str->enc);
 }
 
-static VALUE
-negative_numeric(VALUE val)
-{
-    if (FIXNUM_P(val)) {
-        return LONG2FIX(-FIX2LONG(val));
-    }
-    if (SPECIAL_CONST_P(val)) {
-#if USE_FLONUM
-        if (FLONUM_P(val)) {
-            return DBL2NUM(-RFLOAT_VALUE(val));
-        }
-#endif
-        goto unknown;
-    }
-    switch (BUILTIN_TYPE(val)) {
-      case T_BIGNUM:
-        BIGNUM_NEGATE(val);
-        val = rb_big_norm(val);
-        break;
-      case T_RATIONAL:
-        RATIONAL_SET_NUM(val, negative_numeric(RRATIONAL(val)->num));
-        break;
-      case T_COMPLEX:
-        RCOMPLEX_SET_REAL(val, negative_numeric(RCOMPLEX(val)->real));
-        RCOMPLEX_SET_IMAG(val, negative_numeric(RCOMPLEX(val)->imag));
-        break;
-      case T_FLOAT:
-        val = DBL2NUM(-RFLOAT_VALUE(val));
-        break;
-      unknown:
-      default:
-        rb_bug("unknown literal type (%s) passed to negative_numeric",
-               rb_builtin_class_name(val));
-        break;
-    }
-    return val;
-}
+// static VALUE
+// negative_numeric(VALUE val)
+// {
+//     if (FIXNUM_P(val)) {
+//         return LONG2FIX(-FIX2LONG(val));
+//     }
+//     if (SPECIAL_CONST_P(val)) {
+// #if USE_FLONUM
+//         if (FLONUM_P(val)) {
+//             return DBL2NUM(-RFLOAT_VALUE(val));
+//         }
+// #endif
+//         goto unknown;
+//     }
+//     switch (BUILTIN_TYPE(val)) {
+//       case T_BIGNUM:
+//         BIGNUM_NEGATE(val);
+//         val = rb_big_norm(val);
+//         break;
+//       case T_RATIONAL:
+//         RATIONAL_SET_NUM(val, negative_numeric(RRATIONAL(val)->num));
+//         break;
+//       case T_COMPLEX:
+//         RCOMPLEX_SET_REAL(val, negative_numeric(RCOMPLEX(val)->real));
+//         RCOMPLEX_SET_IMAG(val, negative_numeric(RCOMPLEX(val)->imag));
+//         break;
+//       case T_FLOAT:
+//         val = DBL2NUM(-RFLOAT_VALUE(val));
+//         break;
+//       unknown:
+//       default:
+//         rb_bug("unknown literal type (%s) passed to negative_numeric",
+//                rb_builtin_class_name(val));
+//         break;
+//     }
+//     return val;
+// }
 
-static VALUE
-integer_value(const char *val, int base)
-{
-    return rb_cstr_to_inum(val, base, FALSE);
-}
+// static VALUE
+// integer_value(const char *val, int base)
+// {
+//     return rb_cstr_to_inum(val, base, FALSE);
+// }
 
-static VALUE
-rational_value(const char *node_val, int base, int seen_point)
-{
-    VALUE lit;
-    char* val = strdup(node_val);
-    if (seen_point > 0) {
-        int len = (int)(strlen(val));
-        char *point = &val[seen_point];
-        size_t fraclen = len-seen_point-1;
-        memmove(point, point+1, fraclen+1);
+// static VALUE
+// rational_value(const char *node_val, int base, int seen_point)
+// {
+//     VALUE lit;
+//     char* val = strdup(node_val);
+//     if (seen_point > 0) {
+//         int len = (int)(strlen(val));
+//         char *point = &val[seen_point];
+//         size_t fraclen = len-seen_point-1;
+//         memmove(point, point+1, fraclen+1);
 
-        lit = rb_rational_new(integer_value(val, base), rb_int_positive_pow(10, fraclen));
-    }
-    else {
-        lit = rb_rational_raw1(integer_value(val, base));
-    }
+//         lit = rb_rational_new(integer_value(val, base), rb_int_positive_pow(10, fraclen));
+//     }
+//     else {
+//         lit = rb_rational_raw1(integer_value(val, base));
+//     }
 
-    free(val);
+//     free(val);
 
-    return lit;
-}
+//     return lit;
+// }
 
-VALUE
-rb_node_integer_literal_val(const NODE *n)
-{
-    const rb_node_integer_t *node = RNODE_INTEGER(n);
-    VALUE val = integer_value(node->val, node->base);
-    if (node->minus) {
-        val = negative_numeric(val);
-    }
-    return val;
-}
+// VALUE
+// rb_node_integer_literal_val(const NODE *n)
+// {
+//     const rb_node_integer_t *node = RNODE_INTEGER(n);
+//     VALUE val = integer_value(node->val, node->base);
+//     if (node->minus) {
+//         val = negative_numeric(val);
+//     }
+//     return val;
+// }
 
-VALUE
-rb_node_float_literal_val(const NODE *n)
-{
-    const rb_node_float_t *node = RNODE_FLOAT(n);
-    double d = strtod(node->val, 0);
-    if (node->minus) {
-        d = -d;
-    }
-    VALUE val = DBL2NUM(d);
-    return val;
-}
+// VALUE
+// rb_node_float_literal_val(const NODE *n)
+// {
+//     const rb_node_float_t *node = RNODE_FLOAT(n);
+//     double d = strtod(node->val, 0);
+//     if (node->minus) {
+//         d = -d;
+//     }
+//     VALUE val = DBL2NUM(d);
+//     return val;
+// }
 
-VALUE
-rb_node_rational_literal_val(const NODE *n)
-{
-    VALUE lit;
-    const rb_node_rational_t *node = RNODE_RATIONAL(n);
+// VALUE
+// rb_node_rational_literal_val(const NODE *n)
+// {
+//     VALUE lit;
+//     const rb_node_rational_t *node = RNODE_RATIONAL(n);
 
-    lit = rational_value(node->val, node->base, node->seen_point);
+//     lit = rational_value(node->val, node->base, node->seen_point);
 
-    if (node->minus) {
-        lit = negative_numeric(lit);
-    }
+//     if (node->minus) {
+//         lit = negative_numeric(lit);
+//     }
 
-    return lit;
-}
+//     return lit;
+// }
 
-VALUE
-rb_node_imaginary_literal_val(const NODE *n)
-{
-    VALUE lit;
-    const rb_node_imaginary_t *node = RNODE_IMAGINARY(n);
+// VALUE
+// rb_node_imaginary_literal_val(const NODE *n)
+// {
+//     VALUE lit;
+//     const rb_node_imaginary_t *node = RNODE_IMAGINARY(n);
 
-    enum rb_numeric_type type = node->type;
+//     enum rb_numeric_type type = node->type;
 
-    switch (type) {
-      case integer_literal:
-        lit = integer_value(node->val, node->base);
-        break;
-      case float_literal:{
-        double d = strtod(node->val, 0);
-        lit = DBL2NUM(d);
-        break;
-      }
-      case rational_literal:
-        lit = rational_value(node->val, node->base, node->seen_point);
-        break;
-      default:
-        rb_bug("unreachable");
-    }
+//     switch (type) {
+//       case integer_literal:
+//         lit = integer_value(node->val, node->base);
+//         break;
+//       case float_literal:{
+//         double d = strtod(node->val, 0);
+//         lit = DBL2NUM(d);
+//         break;
+//       }
+//       case rational_literal:
+//         lit = rational_value(node->val, node->base, node->seen_point);
+//         break;
+//       default:
+//         rb_bug("unreachable");
+//     }
 
-    lit = rb_complex_raw(INT2FIX(0), lit);
+//     lit = rb_complex_raw(INT2FIX(0), lit);
 
-    if (node->minus) {
-        lit = negative_numeric(lit);
-    }
-    return lit;
-}
+//     if (node->minus) {
+//         lit = negative_numeric(lit);
+//     }
+//     return lit;
+// }
 
-VALUE
-rb_node_str_string_val(const NODE *node)
-{
-    rb_parser_string_t *str = RNODE_STR(node)->string;
-    return rb_str_new_parser_string(str);
-}
+// VALUE
+// rb_node_str_string_val(const NODE *node)
+// {
+//     rb_parser_string_t *str = RNODE_STR(node)->string;
+//     return rb_str_new_parser_string(str);
+// }
 
-VALUE
-rb_node_sym_string_val(const NODE *node)
-{
-    rb_parser_string_t *str = RNODE_SYM(node)->string;
-    return ID2SYM(rb_intern3(str->ptr, str->len, str->enc));
-}
+// VALUE
+// rb_node_sym_string_val(const NODE *node)
+// {
+//     rb_parser_string_t *str = RNODE_SYM(node)->string;
+//     return ID2SYM(rb_intern3(str->ptr, str->len, str->enc));
+// }
 
-VALUE
-rb_node_dstr_string_val(const NODE *node)
-{
-    rb_parser_string_t *str = RNODE_DSTR(node)->string;
-    return str ? rb_str_new_parser_string(str) : Qnil;
-}
+// VALUE
+// rb_node_dstr_string_val(const NODE *node)
+// {
+//     rb_parser_string_t *str = RNODE_DSTR(node)->string;
+//     return str ? rb_str_new_parser_string(str) : Qnil;
+// }
 
-VALUE
-rb_node_dregx_string_val(const NODE *node)
-{
-    rb_parser_string_t *str = RNODE_DREGX(node)->string;
-    return rb_str_new_parser_string(str);
-}
+// VALUE
+// rb_node_dregx_string_val(const NODE *node)
+// {
+//     rb_parser_string_t *str = RNODE_DREGX(node)->string;
+//     return rb_str_new_parser_string(str);
+// }
 
-VALUE
-rb_node_regx_string_val(const NODE *node)
-{
-    rb_node_regx_t *node_reg = RNODE_REGX(node);
-    rb_parser_string_t *string = node_reg->string;
-    VALUE str = rb_enc_str_new(string->ptr, string->len, string->enc);
+// VALUE
+// rb_node_regx_string_val(const NODE *node)
+// {
+//     rb_node_regx_t *node_reg = RNODE_REGX(node);
+//     rb_parser_string_t *string = node_reg->string;
+//     VALUE str = rb_enc_str_new(string->ptr, string->len, string->enc);
 
-    return rb_reg_compile(str, node_reg->options, NULL, 0);
-}
+//     return rb_reg_compile(str, node_reg->options, NULL, 0);
+// }
 
-VALUE
-rb_node_line_lineno_val(const NODE *node)
-{
-    return INT2FIX(node->nd_loc.beg_pos.lineno);
-}
+// VALUE
+// rb_node_line_lineno_val(const NODE *node)
+// {
+//     return INT2FIX(node->nd_loc.beg_pos.lineno);
+// }
 
-VALUE
-rb_node_file_path_val(const NODE *node)
-{
-    return rb_str_new_parser_string(RNODE_FILE(node)->path);
-}
+// VALUE
+// rb_node_file_path_val(const NODE *node)
+// {
+//     return rb_str_new_parser_string(RNODE_FILE(node)->path);
+// }
 
-VALUE
-rb_node_encoding_val(const NODE *node)
-{
-    return rb_enc_from_encoding(RNODE_ENCODING(node)->enc);
-}
+// VALUE
+// rb_node_encoding_val(const NODE *node)
+// {
+//     return rb_enc_from_encoding(RNODE_ENCODING(node)->enc);
+// }
 
 static void
 parser_aset_script_lines_for(VALUE path, rb_parser_ary_t *lines)
@@ -1087,19 +1087,19 @@ parser_aset_script_lines_for(VALUE path, rb_parser_ary_t *lines)
     hash = rb_const_get_at(rb_cObject, script_lines_id);
     if (!RB_TYPE_P(hash, T_HASH)) return;
     if (rb_hash_lookup(hash, path) == Qnil) return;
-    script_lines = rb_parser_build_script_lines_from(lines);
+    script_lines = rb_parser2_build_script_lines_from(lines);
     rb_hash_aset(hash, path, script_lines);
 }
 
 VALUE
-rb_ruby_ast_new(const pm_node_t *const root)
+rb_ruby_ast2_new(const NODE *const root)
 {
-    rb_ast_t *ast;
-    VALUE ast_value = TypedData_Make_Struct(0, rb_ast_t, &ast_data_type, ast);
+    rb_ast2_t *ast;
+    VALUE ast_value = TypedData_Make_Struct(0, rb_ast2_t, &ast_data_type, ast);
 #ifdef UNIVERSAL_PARSER
     ast->config = &rb_global_parser_config;
 #endif
-    ast->body = (rb_ast_body_t){
+    ast->body = (rb_ast2_body_t){
         .root = root,
         .frozen_string_literal = -1,
         .coverage_enabled = -1,
@@ -1109,11 +1109,11 @@ rb_ruby_ast_new(const pm_node_t *const root)
     return ast_value;
 }
 
-rb_ast_t *
-rb_ruby_ast_data_get(VALUE ast_value)
+rb_ast2_t *
+rb_ruby_ast2_data_get(VALUE ast_value)
 {
-    rb_ast_t *ast;
+    rb_ast2_t *ast;
     if (NIL_P(ast_value)) return NULL;
-    TypedData_Get_Struct(ast_value, rb_ast_t, &ast_data_type, ast);
+    TypedData_Get_Struct(ast_value, rb_ast2_t, &ast_data_type, ast);
     return ast;
 }
