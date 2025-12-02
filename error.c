@@ -1370,9 +1370,20 @@ rb_unexpected_type(VALUE x, int t)
 int
 rb_typeddata_inherited_p(const rb_data_type_t *child, const rb_data_type_t *parent)
 {
+    fprintf(stderr, "rb_typeddata_inherited_p is called. child is %p\n", child);
+
     while (child) {
+        if (child->wrap_struct_name) {
+            fprintf(stderr, "rb_typeddata_inherited_p %s\n", child->wrap_struct_name);
+        } else {
+            fprintf(stderr, "rb_typeddata_inherited_p no wrap_struct_name\n");
+        }
+
+        fprintf(stderr, "   1 rb_typeddata_inherited_p %p %p\n", child, parent);
         if (child == parent) return 1;
+        fprintf(stderr, "   2 rb_typeddata_inherited_p %p %p\n", child, parent);
         child = child->parent;
+        fprintf(stderr, "   3 rb_typeddata_inherited_p %p %p\n", child, parent);
     }
     return 0;
 }
@@ -1380,6 +1391,15 @@ rb_typeddata_inherited_p(const rb_data_type_t *child, const rb_data_type_t *pare
 int
 rb_typeddata_is_kind_of(VALUE obj, const rb_data_type_t *data_type)
 {
+    fprintf(stderr, "1 rb_typeddata_is_kind_of %p %d\n", obj, !RB_TYPE_P(obj, T_DATA));
+    if (RB_TYPE_P(obj, T_DATA)) {
+        fprintf(stderr, "2 rb_typeddata_is_kind_of %p %d\n", obj, !RTYPEDDATA_P(obj));
+    }
+    if (RB_TYPE_P(obj, T_DATA) && RTYPEDDATA_P(obj)) {
+        fprintf(stderr, "3.1 rb_typeddata_is_kind_of %p %p\n", obj, RTYPEDDATA_TYPE(obj));
+        fprintf(stderr, "3.2 rb_typeddata_is_kind_of %p %d\n", obj, !rb_typeddata_inherited_p(RTYPEDDATA_TYPE(obj), data_type));
+    }
+
     if (!RB_TYPE_P(obj, T_DATA) ||
         !RTYPEDDATA_P(obj) || !rb_typeddata_inherited_p(RTYPEDDATA_TYPE(obj), data_type)) {
         return 0;

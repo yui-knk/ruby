@@ -337,6 +337,8 @@ rb_gc_multi_ractor_p(void)
 bool
 rb_gc_shutdown_call_finalizer_p(VALUE obj)
 {
+    fprintf(stderr, "%p\n", obj);
+    // ruby_debug_print_v(obj);
     switch (BUILTIN_TYPE(obj)) {
       case T_DATA:
         if (!ruby_free_at_exit_p() && (!DATA_PTR(obj) || !RDATA(obj)->dfree)) return false;

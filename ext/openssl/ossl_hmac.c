@@ -306,4 +306,5 @@ Init_ossl_hmac(void)
     rb_define_alias(cHMAC, "to_s", "hexdigest");
 
     id_md_holder = rb_intern_const("EVP_MD_holder");
+    fprintf(stderr, "rb_data_type_t ossl_hmac_type %p\n", ossl_hmac_type);
 }

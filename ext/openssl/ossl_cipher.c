@@ -1140,4 +1140,8 @@ Init_ossl_cipher(void)
     id_auth_tag_len = rb_intern_const("auth_tag_len");
     id_key_set = rb_intern_const("key_set");
     id_cipher_holder = rb_intern_const("EVP_CIPHER_holder");
+
+    fprintf(stderr, "rb_data_type_t ossl_cipher_type %p\n", ossl_cipher_type);
+    fprintf(stderr, "rb_data_type_t ossl_evp_cipher_holder_type %p\n", ossl_evp_cipher_holder_type);
+
 }

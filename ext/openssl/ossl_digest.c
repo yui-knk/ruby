@@ -477,4 +477,6 @@ Init_ossl_digest(void)
     rb_define_method(cDigest, "name", ossl_digest_name, 0);
 
     id_md_holder = rb_intern_const("EVP_MD_holder");
+    fprintf(stderr, "rb_data_type_t ossl_digest_type %p\n", ossl_digest_type);
+    fprintf(stderr, "rb_data_type_t ossl_evp_md_holder_type %p\n", ossl_evp_md_holder_type);
 }

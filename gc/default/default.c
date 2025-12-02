@@ -3058,12 +3058,14 @@ rb_gc_impl_shutdown_call_finalizer(void *objspace_ptr)
     for (size_t i = 0; i < rb_darray_size(objspace->heap_pages.sorted); i++) {
         struct heap_page *page = rb_darray_get(objspace->heap_pages.sorted, i);
         short stride = page->slot_size;
+        fprintf(stderr, "enter into page %d, stride is %d, total slots is %d\n", i, stride, page->total_slots);
 
         uintptr_t p = (uintptr_t)page->start;
         uintptr_t pend = p + page->total_slots * stride;
         for (; p < pend; p += stride) {
             VALUE vp = (VALUE)p;
             asan_unpoisoning_object(vp) {
+                fprintf(stderr, "call with %p\n", vp);
                 if (rb_gc_shutdown_call_finalizer_p(vp)) {
                     rb_gc_obj_free_vm_weak_references(vp);
                     if (rb_gc_obj_free(objspace, vp)) {

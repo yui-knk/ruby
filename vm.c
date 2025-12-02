@@ -3844,6 +3844,7 @@ const rb_data_type_t ruby_threadptr_data_type = {
 VALUE
 rb_obj_is_thread(VALUE obj)
 {
+    fprintf(stderr, "rb_obj_is_thread %p, %p\n", obj, &thread_data_type);
     return RBOOL(rb_typeddata_is_kind_of(obj, &thread_data_type));
 }
 

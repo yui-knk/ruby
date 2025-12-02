@@ -402,4 +402,6 @@ Init_ossl_ns_spki(void)
     rb_define_method(cSPKI, "verify", ossl_spki_verify, 1);
     rb_define_method(cSPKI, "challenge", ossl_spki_get_challenge, 0);
     rb_define_method(cSPKI, "challenge=", ossl_spki_set_challenge, 1);
+
+    fprintf(stderr, "rb_data_type_t ossl_netscape_spki_type %p\n", ossl_netscape_spki_type);
 }

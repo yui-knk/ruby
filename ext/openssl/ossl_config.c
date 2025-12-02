@@ -458,4 +458,5 @@ Init_ossl_config(void)
     path = CONF_get1_default_config_file();
     path_str = rb_obj_freeze(ossl_buf2str(path, rb_long2int(strlen(path))));
     rb_define_const(cConfig, "DEFAULT_CONFIG_FILE", path_str);
+    fprintf(stderr, "rb_data_type_t ossl_config_type %p\n", ossl_config_type);
 }

@@ -3302,5 +3302,9 @@ Init_ossl_ssl(void)
     DefIVarID(io);
     DefIVarID(context);
     DefIVarID(hostname);
+
+    fprintf(stderr, "rb_data_type_t ossl_sslctx_type %p\n", ossl_sslctx_type);
+    fprintf(stderr, "rb_data_type_t ossl_ssl_type %p\n", ossl_ssl_type);
+
 #endif /* !defined(OPENSSL_NO_SOCK) */
 }

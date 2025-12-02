@@ -500,6 +500,8 @@ Init_ossl_engine(void)
     DefEngineConst(METHOD_DIGESTS);
     DefEngineConst(METHOD_ALL);
     DefEngineConst(METHOD_NONE);
+
+    fprintf(stderr, "rb_data_type_t ossl_engine_type %p\n", ossl_engine_type);
 }
 #else
 void

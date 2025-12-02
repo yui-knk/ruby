@@ -285,6 +285,7 @@ unload_library_in_box(VALUE path, VALUE handle_value, VALUE arg)
 #endif
 
     dln_close((void *)NUM2SVALUE(handle_value));
+    fprintf(stderr, "dln_close %s\n", RSTRING_PTR(path));
 
 #ifdef _WIN32
     box = (const rb_box_t *)arg;

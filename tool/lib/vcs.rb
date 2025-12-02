@@ -41,15 +41,15 @@ def IO.pread(*args)
   popen(*args) {|f|f.read}
 end
 
-module DebugPOpen
-  refine IO.singleton_class do
-    def popen(*args)
-      VCS.dump(args, "args: ") if $DEBUG
-      super
-    end
-  end
-end
-using DebugPOpen
+# module DebugPOpen
+#   refine IO.singleton_class do
+#     def popen(*args)
+#       VCS.dump(args, "args: ") if $DEBUG
+#       super
+#     end
+#   end
+# end
+# using DebugPOpen
 module DebugSystem
   def system(*args, exception: true, **opts)
     VCS.dump(args, "args: ") if $DEBUG

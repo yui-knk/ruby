@@ -1341,4 +1341,5 @@ Init_ossl_bn(void)
 
     /* RECiProcal
      * MONTgomery */
+    fprintf(stderr, "rb_data_type_t ossl_bn_type %p\n", ossl_bn_type);
 }

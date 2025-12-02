@@ -1932,6 +1932,13 @@ Init_ossl_ocsp(void)
 
     /* The responder ID is based on the public key. */
     rb_define_const(mOCSP, "V_RESPID_KEY", INT2NUM(V_OCSP_RESPID_KEY));
+
+    fprintf(stderr, "rb_data_type_t ossl_ocsp_request_type %p\n", ossl_ocsp_request_type);
+    fprintf(stderr, "rb_data_type_t ossl_ocsp_response_type %p\n", ossl_ocsp_response_type);
+    fprintf(stderr, "rb_data_type_t ossl_ocsp_basicresp_type %p\n", ossl_ocsp_basicresp_type);
+    fprintf(stderr, "rb_data_type_t ossl_ocsp_singleresp_type %p\n", ossl_ocsp_singleresp_type);
+    fprintf(stderr, "rb_data_type_t ossl_ocsp_certid_type %p\n", ossl_ocsp_certid_type);
+
 }
 #else
 void
