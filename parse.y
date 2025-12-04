@@ -3493,6 +3493,7 @@ expr		: command_call
                         $$ = NEW_CASE3($arg, NEW_IN($body, NEW_TRUE(&@body), NEW_FALSE(&@body), &@body, &@keyword_in, &NULL_LOC, &NULL_LOC), &@$, &NULL_LOC, &NULL_LOC);
                     /*% ripper: case!($:arg, in!($:body, Qnil, Qnil)) %*/
                     }
+                | fcall command_args keyword_in
                 | arg %prec tLBRACE_ARG
                 ;
 
