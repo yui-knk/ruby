@@ -15339,7 +15339,8 @@ new_args_tail2(struct parser_params *p, rb_array_node_t *kw_args, rb_node_t *kw_
     node->block = block;
     if (kw_args) {
         rb_node_list_move(&node->keywords, &kw_args->elements);
-    } else if (kw_rest_arg) {
+    }
+    else if (kw_rest_arg) {
         node->keyword_rest = kw_rest_arg;
     }
 
