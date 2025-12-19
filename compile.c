@@ -2039,7 +2039,6 @@ iseq_set_arguments_keywords(rb_iseq_t *iseq, LINK_ANCHOR *const optargs,
                 dv = complex_mark;
             }
 
-            keyword->num = ++di;
             rb_ary_push(default_values, dv);
         }
 
