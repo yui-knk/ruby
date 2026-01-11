@@ -5052,7 +5052,7 @@ primary		: inline_primary
                     if (!p->ctxt.in_defined) {
                         switch (p->ctxt.in_rescue) {
                           case before_rescue: yyerror1(&@1, "Invalid retry without rescue"); break;
-                            case after_rescue: /* ok */ break;
+                          case after_rescue: /* ok */ break;
                           case after_else: yyerror1(&@1, "Invalid retry after else"); break;
                           case after_ensure: yyerror1(&@1, "Invalid retry after ensure"); break;
                         }
