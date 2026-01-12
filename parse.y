@@ -3758,7 +3758,7 @@ mlhs_node	: user_or_keyword_variable
                 | primary_value tCOLON2 tIDENTIFIER
                     {
                         $$ = attrset(p, $1, idCOLON2, $3, &@$);
-                    /*% ripper: const_path_field!($:1, $:3) %*/
+                    /*% ripper: field!($:1, $:2, $:3) %*/
                     }
                 | primary_value tCOLON2 tCONSTANT
                     {
