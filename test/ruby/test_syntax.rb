@@ -471,6 +471,80 @@ class TestSyntax < Test::Unit::TestCase
     assert_syntax_error('proc do |**nil, **a, &b| end', /unexpected/)
   end
 
+  def test_formal_arguments_with_excessed_comma
+    message = /unexpected ','/
+
+    # `arg, opt, rest`
+    assert_valid_syntax("def m(a, o = 1, *r,); end")
+    assert_valid_syntax("def m(a, o = 1, *r, k1:, k2: :v2, **kw,); end")
+    assert_syntax_error("def m(a, o = 1, *r, k1:, k2: :v2, **kw, &blk,); end", message)
+    assert_valid_syntax("def m(a, o = 1, *r, k1:, k2: :v2,); end")
+    assert_syntax_error("def m(a, o = 1, *r, k1:, k2: :v2, &blk,); end", message)
+    assert_valid_syntax("def m(a, o = 1, *r, **kw,); end")
+    assert_valid_syntax("def m(a, o = 1, *r, **,); end")
+    assert_syntax_error("def m(a, o = 1, *r, **kw, &blk,); end", message)
+    assert_syntax_error("def m(a, o = 1, *r, **, &blk,); end", message)
+    assert_syntax_error("def m(a, o = 1, *r, &blk,); end", message)
+    assert_syntax_error("def m(a, o = 1, *r, ...,); end", message)
+
+    assert_valid_syntax("def m a, o = 1, *r,; end")
+    assert_valid_syntax("def m a, o = 1, *r, k1:, k2: :v2, **kw,; end")
+    assert_syntax_error("def m a, o = 1, *r, k1:, k2: :v2, **kw, &blk,; end", message)
+    assert_valid_syntax("def m a, o = 1, *r, k1:, k2: :v2,; end")
+    assert_syntax_error("def m a, o = 1, *r, k1:, k2: :v2, &blk,; end", message)
+    assert_valid_syntax("def m a, o = 1, *r, **kw,; end")
+    assert_valid_syntax("def m a, o = 1, *r, **,; end")
+    assert_syntax_error("def m a, o = 1, *r, **kw, &blk,; end", message)
+    assert_syntax_error("def m a, o = 1, *r, **, &blk,; end", message)
+    assert_syntax_error("def m a, o = 1, *r, &blk,; end", message)
+    assert_syntax_error("def m a, o = 1, *r, ...,; end", message)
+
+    # `arg, opt, rest, arg`
+    assert_valid_syntax("def m(a, o = 1, *r, b,); end")
+    assert_valid_syntax("def m(a, o = 1, *r, b, k1:, k2: :v2, **kw,); end")
+    assert_syntax_error("def m(a, o = 1, *r, b, k1:, k2: :v2, **kw, &blk,); end", message)
+    assert_valid_syntax("def m(a, o = 1, *r, b, k1:, k2: :v2,); end")
+    assert_syntax_error("def m(a, o = 1, *r, b, k1:, k2: :v2, &blk,); end", message)
+    assert_valid_syntax("def m(a, o = 1, *r, b, **kw,); end")
+    assert_valid_syntax("def m(a, o = 1, *r, b, **,); end")
+    assert_syntax_error("def m(a, o = 1, *r, b, **kw, &blk,); end", message)
+    assert_syntax_error("def m(a, o = 1, *r, b, **, &blk,); end", message)
+    assert_syntax_error("def m(a, o = 1, *r, b, &blk,); end", message)
+    assert_syntax_error("def m(a, o = 1, *r, b, ...,); end", message)
+
+    # `arg, opt`
+    assert_valid_syntax("def m(a, o = 1,); end")
+    assert_valid_syntax("def m(a, o = 1, k1:, k2: :v2, **kw,); end")
+    assert_syntax_error("def m(a, o = 1, k1:, k2: :v2, **kw, &blk,); end", message)
+    assert_valid_syntax("def m(a, o = 1, k1:, k2: :v2,); end")
+    assert_syntax_error("def m(a, o = 1, k1:, k2: :v2, &blk,); end", message)
+    assert_valid_syntax("def m(a, o = 1, **kw,); end")
+    assert_valid_syntax("def m(a, o = 1, **,); end")
+    assert_syntax_error("def m(a, o = 1, **kw, &blk,); end", message)
+    assert_syntax_error("def m(a, o = 1, **, &blk,); end", message)
+    assert_syntax_error("def m(a, o = 1, &blk,); end", message)
+    assert_syntax_error("def m(a, o = 1, ...,); end", message)
+
+    # `arg, opt, arg`
+    # `arg, rest`
+    # `arg, rest, arg`
+    # `arg`
+    # `opt, rest`
+    # `opt, rest, arg`
+    # `opt`
+    # `opt, arg`
+    # `rest`
+    # `rest, arg`
+
+    # `tail`
+    assert_syntax_error("def m(&blk,) end", message)
+    assert_syntax_error("def m &blk, end", message)
+
+    # `` (none)
+    assert_syntax_error("def m(,) end", message)
+    assert_syntax_error("def m , end", message)
+  end
+
   def test_optional_self_reference
     assert_valid_syntax("def foo(var = defined?(var)) var end")
     assert_valid_syntax("def foo(var = var) var end")
