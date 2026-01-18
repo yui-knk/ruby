@@ -2614,6 +2614,7 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %expect 0
 %define api.pure
 %define parse.error verbose
+// %define lr.type ielr
 %printer {
     if ((NODE *)$$ == (NODE *)-1) {
         rb_parser_printf(p, "NODE_SPECIAL");
@@ -2765,7 +2766,7 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %type <node_def_temp> defn_head defs_head k_def
 %type <node_exits> block_open k_while k_until k_for allow_exits
 %type <node> top_stmts top_stmt begin_block endless_arg endless_command
-%type <node> bodystmt stmts stmt_or_begin stmt expr arg ternary primary
+%type <node> bodystmt stmts stmt_or_begin stmt expr arg arg_w_asgn ternary primary
 %type <node> command command_call command_call_value method_call
 %type <node> expr_value expr_value_do arg_value primary_value rel_expr
 %type <node_fcall> fcall
@@ -2776,8 +2777,8 @@ rb_parser_ary_free(rb_parser_t *p, rb_parser_ary_t *ary)
 %type <node> command_args aref_args
 %type <node_block_pass> opt_block_arg block_arg
 %type <node> var_ref var_lhs
-%type <node> command_rhs arg_rhs
-%type <node> command_asgn mrhs mrhs_arg superclass block_call block_command
+%type <node>  arg_rhs expr_rhs
+%type <node>  mrhs mrhs_arg superclass block_call block_command
 %type <node_args> f_arglist f_opt_paren_args f_paren_args f_args
 %type <node_args_aux> f_arg f_arg_item
 %type <node> f_marg f_rest_marg
@@ -3382,7 +3383,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
                         }
                     /*% ripper: END!($:compstmt) %*/
                     }
-                | command_asgn
+                // | command_asgn
                 | mlhs '=' lex_ctxt command_call_value
                     {
                         $$ = node_assign(p, (NODE *)$1, $4, $3, &@$);
@@ -3405,6 +3406,7 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
                         $$ = node_assign(p, (NODE *)$1, $4, $3, &@$);
                     /*% ripper: massign!($:1, $:4) %*/
                     }
+                // | asgn(stmt_rhs)
                 | expr
                 | error
                     {
@@ -3413,10 +3415,25 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
                     }
                 ;
 
-command_asgn	: asgn(command_rhs)
-                | op_asgn(command_rhs)
-                | def_endless_method(endless_command)
+
+// stmt_rhs        : stmt %prec tOP_ASGN
+//                     {
+//                         value_expr(p, $1);
+//                         $$ = $1;
+//                     }
+                // | arg modifier_rescue after_rescue arg
+                //     {
+                //         p->ctxt.in_rescue = $3.in_rescue;
+                //         value_expr(p, $1);
+                //         $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
+                //     /*% ripper: rescue_mod!($:1, $:4) %*/
+                //     }
                 ;
+
+// command_asgn	: asgn(command_rhs)
+//                 | op_asgn(command_rhs)
+//                 | def_endless_method(endless_command)
+//                 ;
 
 endless_command : command
                 | endless_command modifier_rescue after_rescue arg
@@ -3432,18 +3449,21 @@ endless_command : command
                     }
                 ;
 
-command_rhs	: command_call_value   %prec tOP_ASGN
-                | command_call_value modifier_rescue after_rescue stmt
-                    {
-                        p->ctxt.in_rescue = $3.in_rescue;
-                        YYLTYPE loc = code_loc_gen(&@2, &@4);
-                        $$ = NEW_RESCUE($1, NEW_RESBODY(0, 0, remove_begin($4), 0, &loc), 0, &@$);
-                    /*% ripper: rescue_mod!($:1, $:4) %*/
-                    }
-                | command_asgn
-                ;
+// command_rhs	: command_call_value   %prec tOP_ASGN
+//                 | command_call_value modifier_rescue after_rescue stmt
+//                     {
+//                         p->ctxt.in_rescue = $3.in_rescue;
+//                         YYLTYPE loc = code_loc_gen(&@2, &@4);
+//                         $$ = NEW_RESCUE($1, NEW_RESBODY(0, 0, remove_begin($4), 0, &loc), 0, &@$);
+//                     /*% ripper: rescue_mod!($:1, $:4) %*/
+//                     }
+//                 | command_asgn
+//                 ;
 
 expr		: command_call
+                | asgn(expr_rhs)
+                | op_asgn(expr_rhs) // if remove it, conflict
+                | def_endless_method(endless_command)
                 | expr keyword_and expr
                     {
                         $$ = logop(p, idAND, $1, $3, &@2, &@$);
@@ -3495,6 +3515,20 @@ expr		: command_call
                     /*% ripper: case!($:arg, in!($:body, Qnil, Qnil)) %*/
                     }
                 | arg %prec tLBRACE_ARG
+                ;
+
+expr_rhs        : expr %prec tOP_ASGN
+                    {
+                        value_expr(p, $1);
+                        $$ = $1;
+                    }
+                | expr modifier_rescue after_rescue expr
+                    {
+                        p->ctxt.in_rescue = $3.in_rescue;
+                        value_expr(p, $1);
+                        $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
+                    /*% ripper: rescue_mod!($:1, $:4) %*/
+                    }
                 ;
 
 def_name	: fname
@@ -3920,9 +3954,12 @@ reswords	: keyword__LINE__ | keyword__FILE__ | keyword__ENCODING__
                 | keyword_while | keyword_until
                 ;
 
-arg		: asgn(arg_rhs)
+arg_w_asgn      : asgn(arg_rhs)
                 | op_asgn(arg_rhs)
-                | range_expr(arg)
+                | arg
+                ;
+
+arg		: range_expr(arg)
                 | arg '+' arg
                     {
                         $$ = call_bin_op(p, $1, '+', $3, &@2, &@$);
@@ -4118,7 +4155,7 @@ after_rescue	: lex_ctxt
                     }
                 ;
 
-arg_value	: value_expr(arg)
+arg_value	: value_expr(arg_w_asgn)
                 ;
 
 aref_args	: none
