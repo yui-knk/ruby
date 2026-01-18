@@ -3416,20 +3416,6 @@ stmt		: keyword_alias fitem {SET_LEX_STATE(EXPR_FNAME|EXPR_FITEM);} fitem
                 ;
 
 
-// stmt_rhs        : stmt %prec tOP_ASGN
-//                     {
-//                         value_expr(p, $1);
-//                         $$ = $1;
-//                     }
-                // | arg modifier_rescue after_rescue arg
-                //     {
-                //         p->ctxt.in_rescue = $3.in_rescue;
-                //         value_expr(p, $1);
-                //         $$ = rescued_expr(p, $1, $4, &@1, &@2, &@4);
-                //     /*% ripper: rescue_mod!($:1, $:4) %*/
-                //     }
-                ;
-
 // command_asgn	: asgn(command_rhs)
 //                 | op_asgn(command_rhs)
 //                 | def_endless_method(endless_command)
@@ -3448,17 +3434,6 @@ endless_command : command
                     /*% ripper: unary!(ID2VAL(idNOT), $:3) %*/
                     }
                 ;
-
-// command_rhs	: command_call_value   %prec tOP_ASGN
-//                 | command_call_value modifier_rescue after_rescue stmt
-//                     {
-//                         p->ctxt.in_rescue = $3.in_rescue;
-//                         YYLTYPE loc = code_loc_gen(&@2, &@4);
-//                         $$ = NEW_RESCUE($1, NEW_RESBODY(0, 0, remove_begin($4), 0, &loc), 0, &@$);
-//                     /*% ripper: rescue_mod!($:1, $:4) %*/
-//                     }
-//                 | command_asgn
-//                 ;
 
 expr		: command_call
                 | asgn(expr_rhs)
