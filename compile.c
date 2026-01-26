@@ -5062,6 +5062,7 @@ compile_logical(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *cond,
             return COMPILE_OK;
     }
     if (!label->refcnt) {
+        // ADD_SEQ(ret, seq);
         return COMPILE_SINGLE;
     }
     ADD_LABEL(seq, label);
@@ -5079,18 +5080,18 @@ compile_branch_condition(rb_iseq_t *iseq, LINK_ANCHOR *ret, const NODE *cond,
 
   again:
     switch (nd_type(cond)) {
-      case NODE_AND:
-        CHECK(ok = compile_logical(iseq, ret, RNODE_AND(cond)->nd_1st, NULL, else_label));
-        cond = RNODE_AND(cond)->nd_2nd;
+      case RB_AND_NODE:
+        CHECK(ok = compile_logical(iseq, ret, RB_NODE_AND(cond)->left, NULL, else_label));
+        cond = RB_NODE_AND(cond)->right;
         if (ok == COMPILE_SINGLE) {
             INIT_ANCHOR(ignore);
             ret = ignore;
             then_label = NEW_LABEL(nd_line(cond));
         }
         goto again;
-      case NODE_OR:
-        CHECK(ok = compile_logical(iseq, ret, RNODE_OR(cond)->nd_1st, then_label, NULL));
-        cond = RNODE_OR(cond)->nd_2nd;
+      case RB_OR_NODE:
+        CHECK(ok = compile_logical(iseq, ret, RB_NODE_OR(cond)->left, then_label, NULL));
+        cond = RB_NODE_OR(cond)->right;
         if (ok == COMPILE_SINGLE) {
             INIT_ANCHOR(ignore);
             ret = ignore;
@@ -5105,16 +5106,16 @@ compile_branch_condition(rb_iseq_t *iseq, LINK_ANCHOR *ret, const NODE *cond,
       case NODE_FLOAT:      /* NODE_FLOAT is always true */
       case NODE_RATIONAL:   /* NODE_RATIONAL is always true */
       case NODE_IMAGINARY:  /* NODE_IMAGINARY is always true */
-      case NODE_TRUE:
+      case RB_TRUE_NODE:
       case NODE_STR:
       case NODE_REGX:
       case NODE_ZLIST:
       case NODE_LAMBDA:
-        /* printf("useless condition eliminate (%s)\n",  ruby_node_name(nd_type(cond))); */
+        /* printf("useless condition eliminate (%s)\n", ruby_node_name(nd_type(cond))); */
         ADD_INSNL(ret, cond, jump, then_label);
         return COMPILE_OK;
-      case NODE_FALSE:
-      case NODE_NIL:
+      case RB_FALSE_NODE:
+      case RB_NIL_NODE:
         /* printf("useless condition eliminate (%s)\n", ruby_node_name(nd_type(cond))); */
         ADD_INSNL(ret, cond, jump, else_label);
         return COMPILE_OK;
@@ -11684,7 +11685,26 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
         CHECK(compile_begin_rescue(iseq, ret, node, popped));
         break;
       }
-
+      case RB_AND_NODE:
+      case RB_OR_NODE: {
+        LABEL *end_label = NEW_LABEL(line);
+        CHECK(COMPILE(ret, "nd_1st", RB_NODE_AND(node)->left));
+        if (!popped) {
+            ADD_INSN(ret, node, dup);
+        }
+        if (type == RB_AND_NODE) {
+            ADD_INSNL(ret, node, branchunless, end_label);
+        }
+        else {
+            ADD_INSNL(ret, node, branchif, end_label);
+        }
+        if (!popped) {
+            ADD_INSN(ret, node, pop);
+        }
+        CHECK(COMPILE_(ret, "nd_2nd", RB_NODE_AND(node)->right, popped));
+        ADD_LABEL(ret, end_label);
+        break;
+      }
       case RB_MULTI_WRITE_NODE:
       case RB_MULTI_TARGET_NODE: {
         bool prev_in_masgn = ISEQ_COMPILE_DATA(iseq)->in_masgn;
