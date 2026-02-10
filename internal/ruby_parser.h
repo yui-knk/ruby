@@ -45,9 +45,13 @@ VALUE rb_node_encoding_val(const NODE *);
 VALUE rb_node_encoding_val2(const rb_node_t *);
 
 VALUE rb_node_integer_literal_val(const NODE *);
+VALUE rb_node_integer_literal_val2(const rb_node_t *);
 VALUE rb_node_float_literal_val(const NODE *);
+VALUE rb_node_float_literal_val2(const rb_node_t *);
 VALUE rb_node_rational_literal_val(const NODE *);
+VALUE rb_node_rational_literal_val2(const rb_node_t *);
 VALUE rb_node_imaginary_literal_val(const NODE *);
+VALUE rb_node_imaginary_literal_val2(const rb_node_t *);
 RUBY_SYMBOL_EXPORT_END
 
 VALUE rb_parser_end_seen_p(VALUE);
