@@ -4739,7 +4739,7 @@ block_arg	: tAMPER arg_value
                 | tAMPER
                     {
                         forwarding_arg_check(p, idFWD_BLOCK, idFWD_ALL, "block");
-                        $$ = NEW_RB_BLOCK_ARGUMENT(NEW_LVAR(idFWD_BLOCK, &@1), &@$, &@1);
+                        $$ = NEW_RB_BLOCK_ARGUMENT(0, &@$, &@1);
                     /*% ripper: Qnil %*/
                     }
                 ;
@@ -4790,7 +4790,7 @@ arg_splat	: tSTAR arg_value
                 | tSTAR /* none */
                     {
                         forwarding_arg_check(p, idFWD_REST, idFWD_ALL, "rest");
-                        $$ = NEW_RB_SPLAT(NEW_LVAR(idFWD_REST, &@tSTAR), &@$, &@tSTAR);
+                        $$ = NEW_RB_SPLAT(0, &@$, &@tSTAR);
                     /*% ripper: Qnil %*/
                     }
                 ;
@@ -6765,7 +6765,6 @@ args_tail	: args_tail_basic(arg_value)
                             add_forwarding_args(p);
                         }
                         $$ = new_args_tail2(p, 0, fwd, 0, &@1);
-                        // $$->nd_ainfo.forwarding = 1;
                     /*% ripper: [Qnil, $:1, Qnil] %*/
                     }
                 ;
@@ -6850,11 +6849,7 @@ f_args		: f_arg ',' f_opt_arg(arg_value) ',' f_rest_arg opt_args_tail(args_tail)
 
 args_forward	: tBDOT3
                     {
-#ifdef FORWARD_ARGS_WITH_RUBY2_KEYWORDS
-                        $$ = 0;
-#else
                         $$ = idFWD_KWREST;
-#endif
                     /*% ripper: args_forward! %*/
                     }
                 ;
@@ -16879,9 +16874,9 @@ warn_duplicate_keys(struct parser_params *p, rb_array_node_t *hash)
             rb_bug("unexpected node: %s", ruby_node_name(nd_type(node)));
         }
 
-        /* keyword splat, e.g. {k: 1, **z, k: 2} */
+        /* keyword splat, e.g. {k: 1, **, k: 2} */
         if (!head) {
-            head = value;
+            continue;
         }
 
         if (nd_type_st_key_enable_p(head)) {
@@ -17285,9 +17280,7 @@ static void
 add_forwarding_args(struct parser_params *p)
 {
     arg_var(p, idFWD_REST);
-#ifndef FORWARD_ARGS_WITH_RUBY2_KEYWORDS
     arg_var(p, idFWD_KWREST);
-#endif
     arg_var(p, idFWD_BLOCK);
     arg_var(p, idFWD_ALL);
 }
@@ -17330,15 +17323,11 @@ static NODE *
 new_args_forward_call(struct parser_params *p, NODE *leading, const YYLTYPE *loc, const YYLTYPE *argsloc)
 {
     NODE *rest = NEW_LVAR(idFWD_REST, loc);
-#ifndef FORWARD_ARGS_WITH_RUBY2_KEYWORDS
     NODE *kwrest = list_append(p, NEW_LIST(0, loc), NEW_LVAR(idFWD_KWREST, loc));
-#endif
     rb_node_block_pass_t *block = NEW_BLOCK_PASS(NEW_LVAR(idFWD_BLOCK, loc), argsloc, &NULL_LOC);
     NODE *args = leading ? rest_arg_append(p, leading, rest, argsloc) : NEW_SPLAT(rest, loc, &NULL_LOC);
     block->forwarding = TRUE;
-#ifndef FORWARD_ARGS_WITH_RUBY2_KEYWORDS
     args = arg_append(p, args, new_keyword_hash(p, kwrest, loc), argsloc);
-#endif
     return arg_blk_pass(args, block);
 }
 

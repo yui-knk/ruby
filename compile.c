@@ -1024,7 +1024,7 @@ rb_iseq_compile_node(rb_iseq_t *iseq, const NODE *node)
             {
                 const rb_def_node_t *cast = (const rb_def_node_t *)node;
                 locals = cast->locals;
-                args = cast->parameters;
+                args = (NODE *)cast->parameters;
                 body = (NODE *)cast->body;
                 break;
             }
@@ -2497,13 +2497,13 @@ iseq_set_local_table(rb_iseq_t *iseq, const rb_ast_id_table_t *tbl, const NODE *
     unsigned int size = tbl ? tbl->size : 0;
     unsigned int offset = 0;
 
-    if (node_args) {
-        struct rb_args_info *args = &RNODE_ARGS(node_args)->nd_ainfo;
+    if (node_args && nd_type_p(node_args, RB_PARAMETERS_NODE)) {
+        const NODE *kw_rest = RB_NODE_PARAMETERS(node_args)->keyword_rest;
 
         // If we have a function that only has `...` as the parameter,
         // then its local table should only be `...`
         // FIXME: I think this should be fixed in the AST rather than special case here.
-        if (args->forwarding && args->pre_args_num == 0 && !args->opt_args) {
+        if (kw_rest && nd_type_p(kw_rest, RB_FORWARDING_PARAMETER_NODE)) {
             CHECK(size >= 3);
             size -= 3;
             offset += 3;
@@ -5391,6 +5391,8 @@ static_literal_value(const NODE *node, rb_iseq_t *iseq)
     }
 }
 
+static int compile_lvar(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, ID id);
+
 static int
 compile_array(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *line_node, const rb_node_list2_t *list, int popped, bool first_chunk)
 {
@@ -5516,7 +5518,14 @@ compile_array(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *line_node, co
             else if (nd_type_p(node, RB_SPLAT_NODE)) {
                 FLUSH_CHUNK;
 
-                NO_CHECK(COMPILE_(ret, "array element", RB_NODE_SPLAT(node)->expression, 0));
+                if (RB_NODE_SPLAT(node)->expression) {
+                    NO_CHECK(COMPILE_(ret, "array element", RB_NODE_SPLAT(node)->expression, 0));
+                }
+                else {
+                    /* [..., *, ...] */
+                    NO_CHECK(compile_lvar(iseq, ret, node, '*'));
+                }
+
                 if (first_chunk) {
                     /* [*ary, ...] */
                     ADD_INSN1(ret, node, splatarray, Qtrue);
@@ -5688,12 +5697,13 @@ compile_hash(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *line_node, con
                 FLUSH_CHUNK();
 
                 const NODE *kw = RB_NODE_ASSOC_SPLAT(node)->value;
-                int empty_kw = nd_type_p(kw, RB_HASH_NODE) && (!RB_NODE_LIST_LEN(&RB_NODE_HASH(kw)->elements)); /* foo(  ..., **{}, ...) */
+                /* kw is NULL if foo(**) */
+                int empty_kw = kw && nd_type_p(kw, RB_HASH_NODE) && (!RB_NODE_LIST_LEN(&RB_NODE_HASH(kw)->elements)); /* foo(  ..., **{}, ...) */
                 int first_kw = first_chunk && stack_len == 0; /* foo(1,2,3, **kw, ...) */
                 int last_kw = i == RB_NODE_LIST_LEN(list) - 1; /* foo(  ..., **kw) */
                 int only_kw = last_kw && first_kw;            /* foo(1,2,3, **kw) */
 
-                empty_kw = empty_kw || nd_type_p(kw, RB_NIL_NODE); /* foo(  ..., **nil, ...) */
+                empty_kw = empty_kw || (kw && nd_type_p(kw, RB_NIL_NODE)); /* foo(  ..., **nil, ...) */
                 if (empty_kw) {
                     if (only_kw && method_call_keywords) {
                         /* **{} appears at the only keyword argument in method call,
@@ -5722,7 +5732,13 @@ compile_hash(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *line_node, con
                          * This is only done for method calls and not for literal hashes,
                          * because literal hashes should always result in a new hash.
                          */
-                        NO_CHECK(COMPILE(ret, "keyword splat", kw));
+                        if (kw) {
+                            NO_CHECK(COMPILE(ret, "keyword splat", kw));
+                        }
+                        else {
+                            /* foo(**) */
+                            NO_CHECK(compile_lvar(iseq, ret, node, idPow));
+                        }
                     }
                     else {
                         /* There is more than one keyword argument, or this is not a method
@@ -5733,7 +5749,13 @@ compile_hash(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *line_node, con
                         if (first_kw) ADD_INSN1(ret, line_node, newhash, INT2FIX(0));
                         else ADD_INSN(ret, line_node, swap);
 
-                        NO_CHECK(COMPILE(ret, "keyword splat", kw));
+                        if (kw) {
+                            NO_CHECK(COMPILE(ret, "keyword splat", kw));
+                        }
+                        else {
+                            /* foo(**) */
+                            NO_CHECK(compile_lvar(iseq, ret, node, idPow));
+                        }
 
                         ADD_SEND(ret, line_node, id_core_hash_merge_kwd, INT2FIX(2));
                     }
@@ -6353,11 +6375,11 @@ compile_massign0(rb_iseq_t *iseq, LINK_ANCHOR *const pre, LINK_ANCHOR *const rhs
             /* a, b, *r, p1, p2 */
             int plen = (int)RB_NODE_LIST_LEN(postl);
             int ppos = 0;
-            int flag = 0x02 | (NODE_NAMED_REST_P(restn) ? 0x01 : 0x00);
+            int flag = 0x02 | (NODE_NAMED_REST_P2(restn) ? 0x01 : 0x00);
 
             ADD_INSN2(lhs, restn, expandarray, INT2FIX(plen), INT2FIX(flag));
 
-            if (NODE_NAMED_REST_P(restn)) {
+            if (NODE_NAMED_REST_P2(restn)) {
                 CHECK(compile_massign_lhs(iseq, pre, rhs, lhs, post, RB_NODE_SPLAT(restn)->expression, state, 1 + plen + state->lhs_level));
             }
             for (size_t i = 0; i < RB_NODE_LIST_LEN(postl); i++) {
@@ -7013,7 +7035,13 @@ compile_args(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const rb_arguments_node_t 
                 stack_len = 0;
             }
 
-            NO_CHECK(COMPILE(ret, "args (splat)", RB_NODE_SPLAT(node)->expression));
+            if (RB_NODE_SPLAT(node)->expression) {
+                NO_CHECK(COMPILE(ret, "args (splat)", RB_NODE_SPLAT(node)->expression));
+            }
+            else {
+                /* m(*) */
+                NO_CHECK(compile_lvar(iseq, ret, node, '*'));
+            }
 
             if (!splatted) {
                 ADD_INSN1(ret, node, splatarray, RBOOL(*dup_rest & SPLATARRAY_TRUE));
@@ -7362,7 +7390,13 @@ setup_args(rb_iseq_t *iseq, LINK_ANCHOR *const args, const rb_arguments_node_t *
         else {
             *flag |= VM_CALL_ARGS_BLOCKARG;
 
-            NO_CHECK(COMPILE(arg_block, "block", block->expression));
+            if (block->expression) {
+                NO_CHECK(COMPILE(arg_block, "block", block->expression));
+            }
+            else {
+                /* m(&) */
+                NO_CHECK(compile_lvar(iseq, arg_block, block, '&'));
+            }
         }
 
         if (LIST_INSN_SIZE_ONE(arg_block)) {
@@ -9346,6 +9380,21 @@ compile_retry(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, i
 }
 
 static int
+compile_lvar(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, ID id)
+{
+    int lv, idx, ls;
+    idx = get_dyna_var_idx(iseq, id, &lv, &ls);
+
+    if (idx < 0) {
+        COMPILE_ERROR(ERROR_ARGS "unknown dvar (%"PRIsVALUE")",
+                      rb_id2str(id));
+        return COMPILE_NG;
+    }
+    ADD_GETLOCAL(ret, node, ls - idx, lv);
+    return COMPILE_OK;
+}
+
+static int
 compile_lasgn_lhs(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, ID id)
 {
     int idx, lv, ls;
@@ -9656,15 +9705,6 @@ compile_evstr(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, i
         ADD_INSN(ret, line_node, anytostring);
     }
     return COMPILE_OK;
-}
-
-static void
-compile_lvar(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *line_node, ID id)
-{
-    int idx = ISEQ_BODY(ISEQ_BODY(iseq)->local_iseq)->local_table_size - get_local_var_idx(iseq, id);
-
-    debugs("id: %s idx: %d\n", rb_id2name(id), idx);
-    ADD_GETLOCAL(ret, line_node, idx, get_lvar_level(iseq));
 }
 
 static LABEL *
@@ -11918,17 +11958,12 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
         break;
       }
       case RB_LOCAL_VARIABLE_READ_NODE: { // LVAR and DVAR
-        int lv, idx, ls;
-        rb_local_variable_read_node_t *cast = RB_NODE_LOCAL_VARIABLE_READ(node);
-        debugi("nd_vid", cast->name);
+        ID id = RB_NODE_LOCAL_VARIABLE_READ(node)->name;
+        debugi("nd_vid", id);
         if (!popped) {
-            idx = get_dyna_var_idx(iseq, cast->name, &lv, &ls);
-            if (idx < 0) {
-                COMPILE_ERROR(ERROR_ARGS "unknown dvar (%"PRIsVALUE")",
-                              rb_id2str(cast->name));
+            if (compile_lvar(iseq, ret, node, id) == COMPILE_NG) {
                 goto ng;
             }
-            ADD_GETLOCAL(ret, node, ls - idx, lv);
         }
         break;
       }
