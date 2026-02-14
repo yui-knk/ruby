@@ -761,8 +761,12 @@ get_nd_recv(const NODE *node)
         return RB_NODE_CALL_TARGET(node)->receiver;
       case RB_INDEX_TARGET_NODE:
         return RB_NODE_INDEX_TARGET(node)->receiver;
-      case NODE_OP_ASGN1:
-        return RNODE_OP_ASGN1(node)->nd_recv;
+      case RB_INDEX_OPERATOR_WRITE_NODE:
+        return RB_NODE_INDEX_OPERATOR_WRITE(node)->receiver;
+      case RB_INDEX_OR_WRITE_NODE:
+        return RB_NODE_INDEX_OR_WRITE(node)->receiver;
+      case RB_INDEX_AND_WRITE_NODE:
+        return RB_NODE_INDEX_AND_WRITE(node)->receiver;
       case NODE_OP_ASGN2:
         return RNODE_OP_ASGN2(node)->nd_recv;
       default:
@@ -6550,6 +6554,7 @@ compile_cpath(LINK_ANCHOR *const ret, rb_iseq_t *iseq, const NODE *cpath)
     }
 }
 
+// TODO
 static inline int
 private_recv_p(const NODE *node)
 {
@@ -7293,10 +7298,10 @@ setup_args(rb_iseq_t *iseq, LINK_ANCHOR *const args, const rb_arguments_node_t *
            const rb_block_argument_node_t *block, unsigned int *flag, struct rb_callinfo_kwarg **keywords)
 {
     VALUE ret;
-    unsigned int dup_rest = SPLATARRAY_TRUE, initial_dup_rest, forwarding;
-    const rb_node_list2_t *list = &argn->arguments;
+    unsigned int dup_rest = SPLATARRAY_TRUE, initial_dup_rest, forwarding = 0;
 
     if (argn) {
+        const rb_node_list2_t *list = &argn->arguments;
         size_t splatn = 0;
 
         // avoid caller side array allocation for f(*arg), f(1, *arg), f(*arg, **hash) and f(1, *arg, **hash)
@@ -10344,13 +10349,12 @@ compile_call_core(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const nod
 }
 
 static int
-compile_op_asgn1(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, int popped)
+compile_op_asgn1(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node, const NODE *const nd_recv, ID id, const rb_arguments_node_t *const nd_index, const NODE *const nd_rvalue, int popped)
 {
     const int line = nd_line(node);
     VALUE argc;
     unsigned int flag = 0;
     int asgnflag = 0;
-    ID id = RNODE_OP_ASGN1(node)->nd_mid;
 
     /*
      * a[x] (op)= y
@@ -10378,17 +10382,11 @@ compile_op_asgn1(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node
     if (!popped) {
         ADD_INSN(ret, node, putnil);
     }
-    asgnflag = COMPILE_RECV(ret, "NODE_OP_ASGN1 recv", node, RNODE_OP_ASGN1(node)->nd_recv);
+    asgnflag = COMPILE_RECV(ret, "NODE_OP_ASGN1 recv", node, nd_recv);
     CHECK(asgnflag != -1);
-    switch (nd_type(RNODE_OP_ASGN1(node)->nd_index)) {
-      case NODE_ZLIST:
-        argc = INT2FIX(0);
-        break;
-      default:
-        // TODO: block
-        argc = setup_args(iseq, ret, RNODE_OP_ASGN1(node)->nd_index, NULL, &flag, NULL);
-        CHECK(!NIL_P(argc));
-    }
+    // TODO: block
+    argc = setup_args(iseq, ret, nd_index, NULL, &flag, NULL);
+    CHECK(!NIL_P(argc));
     int dup_argn = FIX2INT(argc) + 1;
     ADD_INSN1(ret, node, dupn, INT2FIX(dup_argn));
     flag |= asgnflag;
@@ -10415,7 +10413,7 @@ compile_op_asgn1(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node
         }
         ADD_INSN(ret, node, pop);
 
-        CHECK(COMPILE(ret, "NODE_OP_ASGN1 nd_rvalue: ", RNODE_OP_ASGN1(node)->nd_rvalue));
+        CHECK(COMPILE(ret, "NODE_OP_ASGN1 nd_rvalue: ", nd_rvalue));
         if (!popped) {
             ADD_INSN1(ret, node, setn, INT2FIX(dup_argn+1));
         }
@@ -10442,7 +10440,7 @@ compile_op_asgn1(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const node
         ADD_LABEL(ret, lfin);
     }
     else {
-        CHECK(COMPILE(ret, "NODE_OP_ASGN1 nd_rvalue: ", RNODE_OP_ASGN1(node)->nd_rvalue));
+        CHECK(COMPILE(ret, "NODE_OP_ASGN1 nd_rvalue: ", nd_rvalue));
         ADD_SEND(ret, node, id, INT2FIX(1));
         if (!popped) {
             ADD_INSN1(ret, node, setn, INT2FIX(dup_argn+1));
@@ -11882,6 +11880,21 @@ iseq_compile_each0(rb_iseq_t *iseq, LINK_ANCHOR *const ret, const NODE *const no
         ADD_INSN2(ret, node, setclassvariable,
                   ID2SYM(id),
                   get_cvar_ic_value(iseq, id));
+        break;
+      }
+      case RB_INDEX_OPERATOR_WRITE_NODE: {
+        rb_index_operator_write_node_t *cast = (rb_index_operator_write_node_t *)node;
+        CHECK(compile_op_asgn1(iseq, ret, node, cast->receiver, cast->binary_operator, cast->arguments, cast->value, popped));
+        break;
+      }
+      case RB_INDEX_OR_WRITE_NODE: {
+        rb_index_or_write_node_t *cast = (rb_index_or_write_node_t *)node;
+        CHECK(compile_op_asgn1(iseq, ret, node, cast->receiver, idOROP, cast->arguments, cast->value, popped));
+        break;
+      }
+      case RB_INDEX_AND_WRITE_NODE: {
+        rb_index_and_write_node_t *cast = (rb_index_and_write_node_t *)node;
+        CHECK(compile_op_asgn1(iseq, ret, node, cast->receiver, idANDOP, cast->arguments, cast->value, popped));
         break;
       }
 
