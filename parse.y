@@ -1375,7 +1375,9 @@ static rb_if_node_t *rb_new_node_if_new(struct parser_params *p, rb_node_t *nd_c
 static rb_unless_node_t *rb_new_node_unless_new(struct parser_params *p, rb_node_t *nd_cond, rb_statements_node_t *nd_body, rb_else_node_t *nd_else, const YYLTYPE *loc, const YYLTYPE *keyword_loc, const YYLTYPE *then_keyword_loc, const YYLTYPE *end_keyword_loc);
 static rb_else_node_t *rb_new_node_else_new(struct parser_params *p, rb_statements_node_t *nd_body, const YYLTYPE *loc, const YYLTYPE *else_keyword_loc, const YYLTYPE *end_keyword_loc);
 static rb_case_node_t *rb_new_node_case_new(struct parser_params *p, rb_node_t *nd_head, rb_array_node_t *nd_conds, const YYLTYPE *loc, const YYLTYPE *case_keyword_loc, const YYLTYPE *end_keyword_loc);
+static rb_case_match_node_t *rb_new_node_case_match_new(struct parser_params *p, rb_node_t *nd_head, rb_array_node_t *nd_conds, const YYLTYPE *loc, const YYLTYPE *case_keyword_loc, const YYLTYPE *end_keyword_loc);
 static rb_when_node_t *rb_new_node_when_new(struct parser_params *p, rb_array_node_t *nd_conds, rb_statements_node_t *nd_body, const YYLTYPE *loc, const YYLTYPE *keyword_loc, const YYLTYPE *then_keyword_loc);
+static rb_in_node_t *rb_new_node_in_new(struct parser_params *p, rb_node_t *nd_head, rb_statements_node_t *nd_body, const YYLTYPE *loc, const YYLTYPE *in_loc, const YYLTYPE *then_keyword_loc);
 static rb_while_node_t *rb_new_node_while_new(struct parser_params *p, rb_node_t *nd_cond, rb_statements_node_t *nd_body, rb_loop_flags_t flags, const YYLTYPE *loc, const YYLTYPE *keyword_loc, const YYLTYPE *closing_loc);
 static rb_until_node_t *rb_new_node_until_new(struct parser_params *p, rb_node_t *nd_cond, rb_statements_node_t *nd_body, rb_loop_flags_t flags, const YYLTYPE *loc, const YYLTYPE *keyword_loc, const YYLTYPE *closing_loc);
 static rb_block_node_t *rb_new_node_block_new(struct parser_params *p, rb_node_t *nd_args, rb_node_t *nd_body, const YYLTYPE *loc);
@@ -1521,7 +1523,9 @@ static rb_source_encoding_node_t *rb_new_node_source_encoding_new(struct parser_
 #define NEW_RB_UNLESS(c,t,e,loc,k_loc,t_loc,e_loc) (rb_node_t *)rb_new_node_unless_new(p,c,t,e,loc,k_loc,t_loc,e_loc)
 #define NEW_RB_ELSE(b,loc,el_loc,en_loc) rb_new_node_else_new(p,b,loc,el_loc,en_loc)
 #define NEW_RB_CASE(h,b,loc,ck_loc,ek_loc) (rb_node_t *)rb_new_node_case_new(p,h,b,loc,ck_loc,ek_loc)
+#define NEW_RB_CASE_MATCH(h,b,loc,ck_loc,ek_loc) (rb_node_t *)rb_new_node_case_match_new(p,h,b,loc,ck_loc,ek_loc)
 #define NEW_RB_WHEN(c,s,loc,k_loc,t_loc) (rb_node_t *)rb_new_node_when_new(p,c,s,loc,k_loc,t_loc)
+#define NEW_RB_IN(c,s,loc,ik_loc,tk_loc) (rb_node_t *)rb_new_node_in_new(p,c,s,loc,ik_loc,tk_loc)
 #define NEW_RB_WHILE(c,b,n,loc,k_loc,c_loc) (rb_node_t *)rb_new_node_while_new(p,c,b,n,loc,k_loc,c_loc)
 #define NEW_RB_UNTIL(c,b,n,loc,k_loc,c_loc) (rb_node_t *)rb_new_node_until_new(p,c,b,n,loc,k_loc,c_loc)
 #define NEW_RB_BLOCK(a,b,loc) rb_new_node_block_new(p,a,b,loc)
@@ -5056,7 +5060,7 @@ primary		: inline_primary
               p_case_body
               k_end
                 {
-                    $$ = NEW_CASE3($2, $4, &@$, &@1, &@5);
+                    $$ = NEW_RB_CASE_MATCH($2, $4, &@$, &@1, &@5);
                 /*% ripper: case!($:2, $:4) %*/
                 }
             | k_for for_var keyword_in
@@ -5935,7 +5939,6 @@ cases		: opt_else
                         if ($1) {
                             $$ = NEW_RB_ARRAY($1, $$);
                         }
-                    /*% ripper: when!($:2, $:4, $:5) %*/
                     }
                 | case_body
                 ;
@@ -5966,12 +5969,23 @@ p_case_body	: keyword_in
                   compstmt(stmts)
                   p_cases[cases]
                     {
-                        $$ = NEW_IN($expr, $compstmt, $cases, &@$, &@keyword_in, &@then, &NULL_LOC);
+                        $$ = NEW_RB_IN($expr, $compstmt, &@$, &@keyword_in, &@then);
+                        if ($cases) {
+                            $$ = node_array_prepend(p, $cases, $$, &@$);
+                        }
+                        else {
+                            $$ = NEW_RB_ARRAY($$, &@$);
+                        }
                     /*% ripper: in!($:expr, $:compstmt, $:cases) %*/
                     }
                 ;
 
 p_cases 	: opt_else
+                    {
+                        if ($1) {
+                            $$ = NEW_RB_ARRAY($1, $$);
+                        }
+                    }
                 | p_case_body
                 ;
 
@@ -13842,6 +13856,27 @@ rb_new_node_case_new(struct parser_params *p, rb_node_t *nd_head, rb_array_node_
     return n;
 }
 
+static rb_case_match_node_t *
+rb_new_node_case_match_new(struct parser_params *p, rb_node_t *nd_head, rb_array_node_t *nd_conds, const YYLTYPE *loc, const YYLTYPE *case_keyword_loc, const YYLTYPE *end_keyword_loc)
+{
+    rb_case_match_node_t *n = RB_NEW_NODE_NEWNODE((enum rb_node_type)RB_CASE_MATCH_NODE, rb_case_match_node_t, loc);
+    rb_node_list2_t *list = &nd_conds->elements;
+    rb_node_t *nd_last = rb_node_list_last(list);
+    rb_else_node_t *nd_else = NULL;
+
+    if (nd_last && nd_type_p(nd_last, RB_ELSE_NODE)) {
+        nd_else = rb_node_list_pop(list);
+    }
+
+    n->predicate = nd_head;
+    rb_node_list_init_with_src(&n->conditions, list);
+    n->else_clause = nd_else;
+    n->case_keyword_loc = *case_keyword_loc;
+    n->end_keyword_loc = *end_keyword_loc;
+
+    return n;
+}
+
 static rb_when_node_t *
 rb_new_node_when_new(struct parser_params *p, rb_array_node_t *nd_conds, rb_statements_node_t *nd_body, const YYLTYPE *loc, const YYLTYPE *keyword_loc, const YYLTYPE *then_keyword_loc)
 {
@@ -13850,6 +13885,18 @@ rb_new_node_when_new(struct parser_params *p, rb_array_node_t *nd_conds, rb_stat
     n->statements = nd_body;
     n->keyword_loc = *keyword_loc;
     n->then_keyword_loc = *then_keyword_loc;
+
+    return n;
+}
+
+static rb_in_node_t *
+rb_new_node_in_new(struct parser_params *p, rb_node_t *nd_head, rb_statements_node_t *nd_body, const YYLTYPE *loc, const YYLTYPE *in_loc, const YYLTYPE *then_keyword_loc)
+{
+    rb_in_node_t *n = RB_NEW_NODE_NEWNODE((enum rb_node_type)RB_IN_NODE, rb_in_node_t, loc);
+    n->pattern = nd_head;
+    n->statements = nd_body;
+    n->in_loc = *in_loc;
+    n->then_loc = *then_keyword_loc;
 
     return n;
 }
